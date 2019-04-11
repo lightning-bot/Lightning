@@ -64,7 +64,7 @@ initial_extensions = ['cogs.garfield',
                       'cogs.mod_userlog',
                       'cogs.setup',
                       'cogs.weeb',
-                      'cogs.info,'
+                      'cogs.info',
                       'db.databasestart']
 
 bot = commands.Bot(command_prefix=_callable_prefix, description='Lightning.py')
