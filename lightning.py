@@ -9,6 +9,10 @@ from discord.ext import commands
 from pathlib import Path
 import aiohttp
 import asyncio
+from datetime import datetime
+import db.per_guild_config
+import json
+from db.jsonf import JSONFile
 
 import sys, traceback
 
@@ -38,28 +42,31 @@ log.setLevel(logging.INFO)
 log.addHandler(file_handler)
 log.addHandler(stdout_handler)
 
-def get_prefix(bot, message):
-    """A callable Prefix for our bot. This could be edited to allow per server prefixes."""
+custom_prefixes = JSONFile('customprefixes.json')
+default_prefix = '.', '?'
 
-    prefixes = ['>', '.', '?']
+def _callable_prefix(bot, message):
+    if message.guild:
+        prefixes = custom_prefixes.get(message.guild.id, default_prefix)
+    else:
+        prefixes = default_prefix
 
-    # Check to see if we are outside of a guild. e.g DM's etc.
-    if not message.guild:
-        # Only allow . to be used in DMs
-        return '.'
-
-    # If we are in a guild, we allow for the user to mention us or use any of the prefixes in our list.
     return commands.when_mentioned_or(*prefixes)(bot, message)
 
 
 # Below cogs represents our folder our cogs are in. Following is the file name. So 'meme.py' in cogs, would be cogs.meme
-initial_extensions = ['cogs.gifs',
+initial_extensions = ['cogs.garfield',
                       'cogs.owner',
                       'cogs.load',
-                      'cogs.mod',
-                      'cogs.extras']
+                      'cogs.moderation',
+                      'cogs.extras',
+                      'cogs.role',
+                      'cogs.mod_userlog',
+                      'cogs.setup',
+                      'db.databasestart']
 
-bot = commands.Bot(command_prefix=get_prefix, description='Small and simple version of Lightning. Lightning Lite')
+bot = commands.Bot(command_prefix=_callable_prefix, description='Lightning.py')
+bot.launch_time = datetime.utcnow()
 
 bot.log = log
 bot.config = config
@@ -73,6 +80,13 @@ if __name__ == '__main__':
         except Exception as e:
             print(f'Failed to load cog {extension}.')
             print(traceback.print_exc())
+
+def load_jis():
+    bot.load_extension('jishaku')
+    print("Successfully loaded Jishaku")
+
+load_jis()
+
 
 
 @bot.event
@@ -173,9 +187,18 @@ async def about(ctx):
     embed = discord.Embed(title="Lightning Lite")
     embed.set_author(name="UmbraSage#7867")
     embed.set_thumbnail(url="https://assets.gitlab-static.net/uploads/-/system/user/avatar/3717366/avatar.png?width=90")
-    embed.url = "https://gitlab.com/UmbraSage/bot.py"
-    embed.description = "A small and simple bot. Designed for Lightning Hub server.\n\n Error Handling, credits to ave. <@426425345420296192>"
+    embed.url = "https://gitlab.com/UmbraSage/lightning.py"
+    embed.description = "Currently it is designed for Lightning Hub server only.\n\n Error Handling and Template, credits to ave. <@426425345420296192>"
     await ctx.send(embed=embed)
+
+@bot.command()
+async def uptime(ctx):
+    """Displays uptime"""
+    delta_uptime = datetime.utcnow() - bot.launch_time
+    hours, remainder = divmod(int(delta_uptime.total_seconds()), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    days, hours = divmod(hours, 24)
+    await ctx.send(f"My uptime is: {days}d, {hours}h, {minutes}m, {seconds}s <:meowbox:563009533530734592>")
 
 
 bot.run(config["token"], bot=True, reconnect=True, loop=bot.loop)
