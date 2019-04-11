@@ -107,3 +107,4 @@ venv.bak/
 config.yaml
 cogs/checks.py
 lightning.log
+/addons
