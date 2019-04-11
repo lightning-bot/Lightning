@@ -6,8 +6,8 @@ import aiohttp
 from bs4 import BeautifulSoup
 import io
 
-class Garfield(Cog):
-    """Garfield Comic Parser"""
+class Comics(Cog):
+    """Comics Cog"""
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
@@ -79,7 +79,26 @@ class Garfield(Cog):
         embed = discord.Embed(title="Random Garfield Comic", colour=discord.Colour(0xFF9900))
         embed.set_image(url=img_url)
         embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.avatar_url)
-        await ctx.send(embed=embed)    
+        await ctx.send(embed=embed)
+
+    @commands.command(aliases=['ruac'])
+    async def randomusacrescomic(self, ctx):
+        """Displays a random US Acres comic
+        
+        Powered by GoComics"""
+        url = "https://www.gocomics.com/random/us-acres"
+        async with self.session.get(url) as response:
+            soup = BeautifulSoup(await response.text(), "html.parser")
+
+        img_url = soup.find(attrs={'class':'item-comic-image'}).img['src']
+        async with self.session.get(img_url) as response:
+           img = io.BytesIO(await response.read())
+
+        embed = discord.Embed(title="Random U.S. Acres Comic")
+        embed.set_image(url=img_url)
+        embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.avatar_url)
+        await ctx.send(embed=embed)
+
 
 
 
@@ -87,4 +106,4 @@ class Garfield(Cog):
 
 
 def setup(bot):
-    bot.add_cog(Garfield(bot))
+    bot.add_cog(Comics(bot))
