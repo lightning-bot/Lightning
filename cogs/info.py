@@ -20,6 +20,17 @@ class Info(commands.Cog):
 
         await ctx.send(f"**{ctx.author}** You're asking for an invite in the support server? <:blobthonk:537791813990350873>\n~~There's an invite in <#527887739178188834> btw~~")
 
+    @commands.command()
+    async def about(self, ctx):
+        """About Lightning+"""
+        embed = discord.Embed(title="Lightning+")
+        embed.set_author(name="UmbraSage#7867")
+        embed.set_thumbnail(url="https://assets.gitlab-static.net/uploads/-/system/user/avatar/3717366/avatar.png?width=90")
+        embed.url = "https://github.com/UmbraSage/Lightning.py"
+        embed.description = "Lightning+, the successor to Lightning(.js)."
+        await ctx.send(embed=embed)
+
+
     @commands.command(aliases=['inviteme'])
     async def botinvite(self, ctx):
         """Invite Lightning+ to your server"""

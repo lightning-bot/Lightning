@@ -63,6 +63,8 @@ initial_extensions = ['cogs.garfield',
                       'cogs.role',
                       'cogs.mod_userlog',
                       'cogs.setup',
+                      'cogs.weeb',
+                      'cogs.info,'
                       'db.databasestart']
 
 bot = commands.Bot(command_prefix=_callable_prefix, description='Lightning.py')
@@ -180,16 +182,6 @@ async def on_message(message):
 
     ctx = await bot.get_context(message)
     await bot.invoke(ctx)
-
-@bot.command()
-async def about(ctx):
-    """About Lightning Lite"""
-    embed = discord.Embed(title="Lightning Lite")
-    embed.set_author(name="UmbraSage#7867")
-    embed.set_thumbnail(url="https://assets.gitlab-static.net/uploads/-/system/user/avatar/3717366/avatar.png?width=90")
-    embed.url = "https://gitlab.com/UmbraSage/lightning.py"
-    embed.description = "Currently it is designed for Lightning Hub server only.\n\n Error Handling and Template, credits to ave. <@426425345420296192>"
-    await ctx.send(embed=embed)
 
 @bot.command()
 async def uptime(ctx):
