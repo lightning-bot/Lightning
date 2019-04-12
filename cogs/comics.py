@@ -73,8 +73,6 @@ class Comics(Cog):
             soup = BeautifulSoup(await response.text(), "html.parser")
 
         img_url = soup.find(attrs={'class':'item-comic-image'}).img['src']
-        async with self.session.get(img_url) as response:
-           img = io.BytesIO(await response.read())
 
         embed = discord.Embed(title="Random Garfield Comic", colour=discord.Colour(0xFF9900))
         embed.set_image(url=img_url)
@@ -91,8 +89,6 @@ class Comics(Cog):
             soup = BeautifulSoup(await response.text(), "html.parser")
 
         img_url = soup.find(attrs={'class':'item-comic-image'}).img['src']
-        async with self.session.get(img_url) as response:
-           img = io.BytesIO(await response.read())
 
         embed = discord.Embed(title="Random U.S. Acres Comic")
         embed.set_image(url=img_url)
