@@ -1,4 +1,3 @@
-import yaml
 import os
 import sys
 import discord
@@ -13,10 +12,10 @@ from datetime import datetime
 import db.per_guild_config
 import json
 from db.jsonf import JSONFile
+import config
 
 import sys, traceback
 
-config = yaml.safe_load(open('config.yml'))
 
 # Uses template from ave's botbase.py
 # botbase.py is under the MIT License. https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
@@ -55,20 +54,24 @@ def _callable_prefix(bot, message):
 
 
 # Below cogs represents our folder our cogs are in. Following is the file name. So 'meme.py' in cogs, would be cogs.meme
-initial_extensions = ['cogs.garfield',
+initial_extensions = ['cogs.comics',
                       'cogs.owner',
                       'cogs.load',
                       'cogs.moderation',
+                      'cogs.logger',
                       'cogs.extras',
                       'cogs.role',
                       'cogs.mod_userlog',
                       'cogs.setup',
                       'cogs.weeb',
                       'cogs.info',
+                      'cogs.note',
+                      'cogs.fun',
                       'db.databasestart']
 
-bot = commands.Bot(command_prefix=_callable_prefix, description='Lightning.py')
+bot = commands.Bot(command_prefix=_callable_prefix, description=config.description)
 bot.launch_time = datetime.utcnow()
+bot.help_command.dm_help = None
 
 bot.log = log
 bot.config = config
@@ -193,4 +196,4 @@ async def uptime(ctx):
     await ctx.send(f"My uptime is: {days}d, {hours}h, {minutes}m, {seconds}s <:meowbox:563009533530734592>")
 
 
-bot.run(config["token"], bot=True, reconnect=True, loop=bot.loop)
+bot.run(config.token, bot=True, reconnect=True, loop=bot.loop)
