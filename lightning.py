@@ -54,20 +54,7 @@ def _callable_prefix(bot, message):
 
 
 # Below cogs represents our folder our cogs are in. Following is the file name. So 'meme.py' in cogs, would be cogs.meme
-initial_extensions = ['cogs.comics',
-                      'cogs.owner',
-                      'cogs.load',
-                      'cogs.moderation',
-                      'cogs.logger',
-                      'cogs.extras',
-                      'cogs.role',
-                      'cogs.mod_userlog',
-                      'cogs.setup',
-                      'cogs.weeb',
-                      'cogs.info',
-                      'cogs.note',
-                      'cogs.fun',
-                      'db.databasestart']
+initial_extensions = config.cogs
 
 bot = commands.Bot(command_prefix=_callable_prefix, description=config.description)
 bot.launch_time = datetime.utcnow()
@@ -99,10 +86,16 @@ async def on_ready():
     aioh = {"User-Agent": f"{script_name}/1.0'"}
     bot.aiosession = aiohttp.ClientSession(headers=aioh)
     bot.app_info = await bot.application_info()
+    bot.botlog_channel = bot.get_channel(config.error_channel)
 
     log.info(f'\nLogged in as: {bot.user.name} - '
              f'{bot.user.id}\ndpy version: {discord.__version__}\n')
     game_name = f".help"
+    summary = f"{len(bot.guilds)} guild(s) and {len(bot.users)} user(s)"
+    msg = f"{bot.user.name} has started! "\
+          f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}\n\nCogs Loaded: ```python\n{config.cogs}```"
+
+    await bot.botlog_channel.send(msg)
     await bot.change_presence(activity=discord.Game(name=game_name))
 
 @bot.event
@@ -122,7 +115,6 @@ async def on_error(event_method, *args, **kwargs):
     log.error(f"Error on {event_method}: {sys.exc_info()}")
 
 
-
 # Error handling thanks to Ave's botbase.py and Robocop from Reswitched.
 # botbase.py is under the MIT License. https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
 # https://gitlab.com/ao/dpyBotBase and Robocop-ng is under the MIT License too. https://github.com/reswitched/robocop-ng
@@ -136,6 +128,7 @@ async def on_command_error(ctx, error):
               f"of type {type(error)}: {error_text}"
         
     log.error(err_msg)
+
 
     if isinstance(error, commands.NoPrivateMessage):
         return await ctx.send("This command doesn't work on DMs.")
