@@ -52,7 +52,7 @@ class Load(commands.Cog, name='Cog Management'):
         except Exception as e:
             await ctx.send(f'💢 There was an error reloading the cog \n**`ERROR:`** {type(e).__name__} - {e}')
         else:
-            log_channel.send(f"{ctx.author.mention} reloaded the cog `{cog}`")
+            await log_channel.send(f"{ctx.author.mention} reloaded the cog `{cog}`")
             await ctx.send('✅ Successfully reloaded cog')
 
     @commands.command(name='addonload', aliases=["addload"])
