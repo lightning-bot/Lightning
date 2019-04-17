@@ -129,9 +129,9 @@ class Owner(Cog):
     @commands.guild_only()
     async def pull(self, ctx):
         """Pull new changes from GitHub."""
-        await ctx.send("Pulling changes...")
+        msg = await ctx.send("Pulling changes...")
         output = self.repo.git.pull()
-        await ctx.send('Pulled Changes:\n```' + output + '```')
+        await msg.edit('Pulled Changes:\n```' + output + '```')
             
     @commands.command(name='playing', aliases=['play', 'status'])
     @commands.is_owner()
