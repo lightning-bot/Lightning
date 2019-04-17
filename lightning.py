@@ -11,7 +11,7 @@ import asyncio
 from datetime import datetime
 import db.per_guild_config
 import json
-# from db.jsonf import JSONFile
+from db.jsonf import JSONFile
 import config
 
 import sys, traceback
