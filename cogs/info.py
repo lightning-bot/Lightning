@@ -49,7 +49,7 @@ class Info(commands.Cog):
     @commands.command(aliases=['inviteme'])
     async def botinvite(self, ctx):
         """Invite Lightning+ to your server"""
-        await ctx.send("You can invite me to your server with this link.\n<https://discordapp.com/api/oauth2/authorize?client_id=531163366799048716&permissions=8&scope=bot>")
+        await ctx.send("You can invite me to your server with this link.\n<https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot>")
 
     @commands.command(aliases=['sourcecode'])
     async def source(self, ctx):
