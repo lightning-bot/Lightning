@@ -8,7 +8,6 @@ import aiohttp
 import db.mod_check
 
 
-
 class Extras(commands.Cog):
     """Extra stuff"""
     def __init__(self, bot):
@@ -18,22 +17,20 @@ class Extras(commands.Cog):
     @commands.command()
     async def peng(self, ctx):
         """Uhhh ping?"""
-        await ctx.send(f"My ping is uhhh `{random.randint(31,95)}ms`")
+        await ctx.send(f"My ping is uhhh `{random.randint(31,150)}ms`")
 
     @commands.command(name='top-role', aliases=['toprole'])
     @commands.guild_only()
     async def show_toprole(self, ctx, *, member: discord.Member=None):
-        """Shows the member's Top Role."""
-
+        """Shows the member's highest role."""
         if member is None:
             member = ctx.author
-
         await ctx.send(f'🎉 The top role for {member.display_name} is **{member.top_role.name}**')
 
     @commands.command(aliases=['ui'])
     @commands.guild_only()
     async def userinfo(self, ctx, *, member: discord.Member=None):
-        """shows userinfo"""
+        """Shows userinfo"""
 
         if member is None:
             member = ctx.author
@@ -49,12 +46,23 @@ class Extras(commands.Cog):
         embed1.set_footer(text=f'User ID: {member.id}')
 
         await ctx.send(embed=embed1)
+
+    @commands.command()
+    @commands.guild_only()
+    async def avatar(self, ctx, *, member: discord.Member = None):
+        """Get someone's avatar."""
+        if member is None:
+            member = ctx.author
+        embed = discord.Embed(color=discord.Color.blue(), description=f"[Link to Avatar]({member.avatar_url})")
+        embed.set_author(name=f"{member.name}\'s Avatar")
+        embed.set_image(url=member.avatar_url)
+        await ctx.send(embed=embed)
         
     @commands.command(name='say', aliases=['speak'])
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
     async def speak(self, ctx, channel: discord.TextChannel, *, inp):
-        """Say something through the bot to the specified channel"""
+        """Say something through the bot to the specified channel. Staff only."""
         await channel.trigger_typing()
         await channel.send(inp)
     
@@ -62,7 +70,7 @@ class Extras(commands.Cog):
     @commands.command(name='embed')
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def embed_command(self, ctx):
-        """Interactive Embed Generator"""
+        """Interactive Embed Generator. Moderators only."""
         def check(ms):
             # Look for the message sent in the same channel where the command was used
             # As well as by the user who used the command.
@@ -78,8 +86,6 @@ class Extras(commands.Cog):
         desc = msg.content
 
         msg = await ctx.send(content='Now generating the embed...')
-
-
         embed = discord.Embed(
             title=title,
             description=desc,
