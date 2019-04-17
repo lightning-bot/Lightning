@@ -141,11 +141,11 @@ async def on_command_error(ctx, error):
         roles_needed = '\n-'.join(error.missing_perms)
         return await ctx.send(f"{ctx.author.mention}: Bot doesn't have "
                               "the right permissions to run this command. "
-                              "Please add the following roles: "
+                              "Please add the following permissions: "
                               f"```- {roles_needed}```")
     elif isinstance(error, commands.CommandOnCooldown):
-        return await ctx.send(f"{ctx.author.mention}: You're being "
-                              "ratelimited. Try in "
+        return await ctx.send(f"{ctx.author.mention}: ⚠ You're being "
+                              "ratelimited. Try again in "
                               f"{error.retry_after:.1f} seconds.")
     elif isinstance(error, commands.CheckFailure):
         return await ctx.send(f"{ctx.author.mention}: Check failed. "
