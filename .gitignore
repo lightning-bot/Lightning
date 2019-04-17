@@ -109,3 +109,4 @@ cogs/checks.py
 lightning.log
 /addons
 /config
+db/jsonf.py
