@@ -41,7 +41,7 @@ log.setLevel(logging.INFO)
 log.addHandler(file_handler)
 log.addHandler(stdout_handler)
 
-custom_prefixes = 'l.'
+custom_prefixes = JSONFile('customprefixes.json')
 default_prefix = '.', '?'
 
 def _callable_prefix(bot, message):
