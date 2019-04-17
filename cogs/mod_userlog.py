@@ -186,9 +186,10 @@ class ModUserLog(commands.Cog):
         await ctx.send(msg)
         if "log_channel" in ctx.guild_config:
             log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            safe_name = await commands.clean_content().convert(ctx, str(target))                              
             msg = f"🗑 **Cleared {event}**: {ctx.author.mention} cleared" \
                   f" all {event} events of {target.mention} | " \
-                  f"{await commands.clean_content().convert(ctx, str(target))}"
+                  f"{safe_name}"
             await log_channel.send(msg)
 
     @commands.guild_only()
