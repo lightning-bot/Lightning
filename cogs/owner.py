@@ -131,7 +131,7 @@ class Owner(Cog):
         """Pull new changes from GitHub."""
         msg = await ctx.send("Pulling changes...")
         output = self.repo.git.pull()
-        await msg.edit('Pulled Changes:\n```' + output + '```')
+        await msg.edit(content='Pulled Changes:\n```' + output + '```'")
             
     @commands.command(name='playing', aliases=['play', 'status'])
     @commands.is_owner()
