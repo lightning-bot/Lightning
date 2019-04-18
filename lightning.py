@@ -42,7 +42,7 @@ log.addHandler(file_handler)
 log.addHandler(stdout_handler)
 
 custom_prefixes = JSONFile('customprefixes.json')
-default_prefix = '.', '?'
+default_prefix = '.', 'l.'
 
 def _callable_prefix(bot, message):
     if message.guild:
