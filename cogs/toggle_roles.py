@@ -10,7 +10,7 @@ class ToggleRoles(commands.Cog):
 
         
     @commands.guild_only()
-    @commands.command(aliases=['gettoggleableroles'])
+    @commands.command(aliases=['gettoggleableroles', 'list_toggleable_roles'])
     async def get_toggleable_roles(self, ctx):
         """Lists all the toggleable roles this guild has"""
         session = self.bot.db.dbsession()
