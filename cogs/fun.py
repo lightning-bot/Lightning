@@ -30,6 +30,11 @@ class Fun(commands.Cog):
         embed.set_footer(text="Powered by dog.ceo", icon_url="https://dog.ceo/img/favicon.png")
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def lenny(self, ctx):
+        """( ͡° ͜ʖ ͡°)"""
+        await ctx.send("( ͡° ͜ʖ ͡°)")
+
 
 
 def setup(bot):
