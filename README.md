@@ -21,3 +21,10 @@ This version plans to be the successor to Lightning (which is currently written 
 - Fun Commands
   - Query random cat or dog pictures straight to your server.
 - Bot Owner Commands
+
+---
+
+## Invite
+
+If you want to invite Lightning to your guild, use this link https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot.
+
