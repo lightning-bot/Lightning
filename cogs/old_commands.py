@@ -29,11 +29,6 @@ class Old_Commands(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(aliases=[], hidden=True)
-    async def lenny(self, ctx):
-        embed = discord.Embed(title="Note", description="This command no longer exists. It will be added soon:tm:", color=discord.Color.dark_green())
-        await ctx.send(embed=embed)
-
-    @commands.command(aliases=[], hidden=True)
     async def roll(self, ctx):
         embed = discord.Embed(title="Note", description="This command no longer exists.", color=discord.Color.dark_green())
         await ctx.send(embed=embed)
