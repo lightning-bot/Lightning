@@ -23,7 +23,8 @@ This version plans to be the successor to Lightning (which is currently written 
 - Bot Owner Commands
 
 ---
-
+[![Discord Bots](https://discordbots.org/api/widget/status/532220480577470464.svg)](https://discordbots.org/bot/532220480577470464)
+[![Discord Bots](https://discordbots.org/api/widget/owner/532220480577470464.svg)](https://discordbots.org/bot/532220480577470464)
 ## Invite
 
 If you want to invite Lightning to your guild, use this link https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot.
