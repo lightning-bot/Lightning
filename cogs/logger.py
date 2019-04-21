@@ -79,11 +79,11 @@ class Logger(Cog):
                 msg = "🗑️ **Message deleted**: \n"\
                       f"Author: {self.bot.escape_message(message.author.name)} "\
                       f"({message.author.id})\nChannel: {message.channel.mention}\n"\
-                      f"\"{message.clean_content}\""
+                      f"\```{message.clean_content}```" # Wrap in a code block
                 # If resulting message is too long, upload to hastebin. Taken from robocop-ng which is under the MIT License.
                 if len(msg) > 2000:
                     haste_url = await self.bot.haste(msg)
-                    msg = f"🗑️ **Message delete**: \nToo long: <{haste_url}>"
+                    msg = f"🗑️ **Message deleted**: \nToo long: <{haste_url}>"
                 try:
                     await self.bot.get_channel(config["event_channel"]).send(msg)
                 except:
