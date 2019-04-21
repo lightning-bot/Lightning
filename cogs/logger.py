@@ -68,9 +68,27 @@ class Logger(Cog):
                 except:
                     pass
 
-
+    @Cog.listener()
+    async def on_message_delete(self, message):
+        await self.bot.wait_until_ready()
+        if message.author.bot: # Does not log bots
+            return
+        if db.per_guild_config.exist_guild_config(message.guild, "config"):
+            config = db.per_guild_config.get_guild_config(message.guild, "config")
+            if "event_channel" in config:
+                msg = "🗑️ **Message deleted**: \n"\
+                      f"Author: {self.bot.escape_message(message.author.name)} "\
+                      f"({message.author.id})\nChannel: {message.channel.mention}\n"\
+                      f"\"{message.clean_content}\""
+                # If resulting message is too long, upload to hastebin. Taken from robocop-ng which is under the MIT License.
+                if len(msg) > 2000:
+                    haste_url = await self.bot.haste(msg)
+                    msg = f"🗑️ **Message delete**: \nToo long: <{haste_url}>"
+                try:
+                    await self.bot.get_channel(config["event_channel"]).send(msg)
+                except:
+                    pass
         
-
 
 
 def setup(bot):
