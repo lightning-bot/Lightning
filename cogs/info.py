@@ -42,7 +42,7 @@ class Info(commands.Cog):
         embed.url = "https://github.com/UmbraSage/Lightning.py"
         embed.description = "Lightning+, the successor to Lightning(.js)."
         embed.add_field(name="Latest Changes:", value=revision)
-        embed.set_footer(text="Lightning+ 1.0.2")
+        embed.set_footer(text="Lightning+ 1.1.0")
         await ctx.send(embed=embed)
 
 
