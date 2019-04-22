@@ -23,6 +23,13 @@ This version plans to be the successor to Lightning (which is currently written 
 - Bot Owner Commands
 
 ---
+## Planned Features
+
+- [ ] Message Logging
+- [ ] Moderation: Slient Kick
+- [ ] Moderation: Mute
+
+---
 [![Discord Bots](https://discordbots.org/api/widget/status/532220480577470464.svg)](https://discordbots.org/bot/532220480577470464)
 [![Discord Bots](https://discordbots.org/api/widget/owner/532220480577470464.svg)](https://discordbots.org/bot/532220480577470464)
 ## Invite
