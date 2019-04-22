@@ -75,20 +75,46 @@ class Logger(Cog):
             return
         if db.per_guild_config.exist_guild_config(message.guild, "config"):
             config = db.per_guild_config.get_guild_config(message.guild, "config")
-            if "event_channel" in config:
+            if "message_log_channel" in config:
                 msg = "🗑️ **Message deleted**: \n"\
                       f"Author: {self.bot.escape_message(message.author.name)} "\
-                      f"({message.author.id})\nChannel: {message.channel.mention}\n"\
+                      f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"\
                       f"```{message.clean_content}```" # Wrap in a code block
                 # If resulting message is too long, upload to hastebin. Taken from robocop-ng which is under the MIT License.
                 if len(msg) > 2000:
                     haste_url = await self.bot.haste(msg)
-                    msg = f"🗑️ **Message deleted**: \nToo long: <{haste_url}>"
+                    msg = f"🗑️ **Message deleted**: \nMessage was too long. See the link: <{haste_url}>"
                 try:
-                    await self.bot.get_channel(config["event_channel"]).send(msg)
+                    await self.bot.get_channel(config["message_log_channel"]).send(msg)
                 except:
                     pass
-        
+
+    @Cog.listener()
+    async def on_message_edit(self, before, after):
+        await self.bot.wait_until_ready()
+        if before.guild is None:
+            return
+        if before.clean_content == after.clean_content:
+            return
+        if before.author.bot: # Don't log bots
+            return
+        if db.per_guild_config.exist_guild_config(before.guild, "config"):
+            config = db.per_guild_config.get_guild_config(before.guild, "config")
+            if "message_log_channel" in config:
+                msg = "📝 **Message edit**: \n"\
+                      f"Author: {self.bot.escape_message(after.author.name)} "\
+                      f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
+                      f"Before: ```{before.clean_content}```\nAfter: ```{after.clean_content}```" # Code Block Wrapping
+                # If resulting message is too long, upload to hastebin. Taken from robocop-ng which is under the MIT License.
+                if len(msg) > 2000:
+                    haste_url = await self.bot.haste(msg)
+                    msg = f"📝 **Message Edited**: \nMessage was too long. See the link: <{haste_url}>"
+                try:
+                    await self.bot.get_channel(config["message_log_channel"]).send(msg)
+                except:
+                    pass
+
+
 
 
 def setup(bot):
