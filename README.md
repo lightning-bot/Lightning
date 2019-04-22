@@ -25,9 +25,17 @@ This version plans to be the successor to Lightning (which is currently written 
 ---
 ## Planned Features
 
-- [ ] Message Logging
 - [ ] Moderation: Slient Kick
 - [ ] Moderation: Mute
+
+<details>
+<summary>Completed Features</summary>
+<p>
+
+- [x] Message Logging 
+
+</p>
+</details>
 
 ---
 [![Discord Bots](https://discordbots.org/api/widget/status/532220480577470464.svg)](https://discordbots.org/bot/532220480577470464)
