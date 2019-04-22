@@ -36,19 +36,20 @@ class Configuration(commands.Cog):
             await ctx.send("Member join and leaves logging disabled.")
         else:
             ctx.guild_config["join_log_channel"] = channel.id
-            await ctx.send(f"Member join and leaves logging set to {channel}")
+            await ctx.send(f"Member join and leaves logging set to {channel.mention} <:mayushii:562686801043521575>")
 
-    @commands.guild_only()
-    @commands.has_permissions(administrator=True)
-    @commands.command(name="setmodmailchannel")
-    async def setmodmailchannel(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set the Mod Mail Channel"""
-        if channel == "disable":
-            ctx.guild_config.pop("modmail_channel")
-            await ctx.send("Mod Mail has been disabled")
-        else:
-            ctx.guild_config["modmail_channel"] = channel.id
-            await ctx.send(f"Mod Mail has been set to {channel}")
+# Beta Feature
+#    @commands.guild_only()
+#    @commands.has_permissions(administrator=True)
+#    @commands.command(name="setmodmailchannel")
+#    async def setmodmailchannel(self, ctx, channel: Union[discord.TextChannel, str]):
+#        """Set the Mod Mail Channel"""
+#        if channel == "disable":
+#            ctx.guild_config.pop("modmail_channel")
+#            await ctx.send("Mod Mail has been disabled")
+#        else:
+#            ctx.guild_config["modmail_channel"] = channel.id
+#           await ctx.send(f"Mod Mail has been set to {channel.mention}")
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
@@ -60,7 +61,7 @@ class Configuration(commands.Cog):
             await ctx.send("Moderation logs have been disabled.")
         else:
             ctx.guild_config["log_channel"] = channel.id
-            await ctx.send(f"Moderation logs have been set to {channel} <:kurisu:561618919937409055>")
+            await ctx.send(f"Moderation logs have been set to {channel.mention} <:kurisu:561618919937409055>")
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
@@ -73,7 +74,19 @@ class Configuration(commands.Cog):
             await ctx.send("Event logs have been disabled.")
         else:
             ctx.guild_config["event_channel"] = channel.id
-            await ctx.send(f"Event logs have been set to {channel} <:mayushii:562686801043521575>")
+            await ctx.send(f"Event logs have been set to {channel.mention} <:mayushii:562686801043521575>")
+
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    @commands.command(name="set-message-log-channel", aliases=['setmsglogging'])
+    async def setmsglogchannel(self, ctx, channel: Union[discord.TextChannel, str]):
+        """Set the Message Log Channel"""
+        if channel == "disable":
+            ctx.guild_config.pop("message_log_channel")
+            await ctx.send("Message Logging has been disabled")
+        else:
+            ctx.guild_config["message_log_channel"] = channel.id
+            await ctx.send(f"The message log channel has been set to {channel.mention} <:mayushii:562686801043521575>")
 
     @commands.guild_only()
     @commands.command(name="setmodrole", aliases=['setmodroles'])
