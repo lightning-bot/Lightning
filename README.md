@@ -33,6 +33,7 @@ This version plans to be the successor to Lightning (which is currently written 
 <p>
 
 - [x] Message Logging 
+- [x] Logging: Invite Watching
 
 </p>
 </details>
