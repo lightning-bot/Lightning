@@ -89,6 +89,18 @@ class Configuration(commands.Cog):
             await ctx.send(f"The message log channel has been set to {channel.mention} <:mayushii:562686801043521575>")
 
     @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    @commands.command(aliases=['toggleinvitewatch', 'toggle-invite-watch'])
+    async def setinvitewatch(self, ctx, channel: Union[discord.TextChannel, str]):
+        """Set the Invite Watching Channel"""
+        if channel == "disable":
+            ctx.guild_config.pop("invite_watch")
+            await ctx.send("Invite Watching has been disabled")
+        else:
+            ctx.guild_config["invite_watch"] = channel.id
+            await ctx.send(f"Invite watching will be sent to {channel.mention}. Please note that this doesn't delete invites. <:mayushii:562686801043521575>")
+
+    @commands.guild_only()
     @commands.command(name="setmodrole", aliases=['setmodroles'])
     @commands.has_permissions(administrator=True)
     async def set_mod_role(self, ctx, target: str, level: str):

@@ -2,11 +2,15 @@ import discord
 from discord.ext.commands import Cog
 import db.per_guild_config
 import datetime
+import re
 
 class Logger(Cog):
     """Logs user actions"""
     def __init__(self, bot):
         self.bot = bot
+        self.check_inv = re.compile(r"((discord\.gg|discordapp\.com/" # Check Invite
+                                    r"+invite)/+[a-zA-Z0-9-]+)",
+                                    re.IGNORECASE)
         print(f'Cog "{self.qualified_name}" loaded')
 
     # Snippet of code from Noirscape's kirigiri. Under the AGPL 3.0 License, https://git.catgirlsin.space/noirscape/kirigiri/src/branch/master/LICENSE
@@ -18,6 +22,18 @@ class Logger(Cog):
 
     async def cog_after_invoke(self, ctx):
         db.per_guild_config.write_guild_config(ctx.guild, ctx.guild_config, "config")
+
+    async def invite_filter(self, message):
+        if message.author.bot:
+            return
+        
+        invites = self.check_inv.findall(message.content)
+        for invite in invites:
+            if db.per_guild_config.exist_guild_config(message.guild, "config"):
+                config = db.per_guild_config.get_guild_config(message.guild, "config")
+                if "invite_watch" in config:
+                    msg = f"📨 **Invite Posted** | Jump to message: {message.jump_url}\nMessage contained invite link: https://{invite[0]}"
+                    await self.bot.get_channel(config["invite_watch"]).send(msg)
 
 
     @Cog.listener()
@@ -98,6 +114,7 @@ class Logger(Cog):
             return
         if before.author.bot: # Don't log bots
             return
+        await self.invite_filter(after) # Check if message has invite
         if db.per_guild_config.exist_guild_config(before.guild, "config"):
             config = db.per_guild_config.get_guild_config(before.guild, "config")
             if "message_log_channel" in config:
@@ -113,6 +130,13 @@ class Logger(Cog):
                     await self.bot.get_channel(config["message_log_channel"]).send(msg)
                 except:
                     pass
+
+    @Cog.listener()
+    async def on_message(self, message):
+        await self.bot.wait_until_ready()
+
+        await self.invite_filter(message) # Check if message has invite
+
 
 
 
