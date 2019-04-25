@@ -158,7 +158,7 @@ class Configuration(commands.Cog):
         await ctx.send(f"All set mod roles for this guild have been reset")
 
     @commands.guild_only()
-    @commands.command(aliases=["settoggleableroles", "settogglerole"])
+    @commands.command(name="set-toggleable-roles", aliases=["settoggleableroles", "settogglerole"])
     @commands.has_permissions(manage_roles=True)
     async def set_toggleable_roles(self, ctx, role: str):
         """Setup toggleable roles for users"""
@@ -173,7 +173,7 @@ class Configuration(commands.Cog):
         await ctx.send(f"{role} has been saved to the database.")
 
     @commands.guild_only()
-    @commands.command(aliases=['removetoggleableroles'])
+    @commands.command(name="remove-toggleable-roles", aliases=['removetoggleableroles'])
     @commands.has_permissions(manage_roles=True)
     async def remove_toggleable_role(self, ctx):
         """This deletes all the toggleable roles you have set in this guild"""
