@@ -40,9 +40,7 @@ class Misc(commands.Cog, name='Misc Info'):
         embed1.add_field(name="Joined:", value=f"{member.joined_at}")
         embed1.add_field(name="Highest Role:", value=f"{member.top_role}", inline=True)
         embed1.set_footer(text=f'User ID: {member.id}')
-
         await ctx.send(embed=embed1)
-
 
     @commands.command()
     async def userinfoid(self, ctx, user_id):

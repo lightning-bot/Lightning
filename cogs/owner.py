@@ -149,7 +149,7 @@ class Owner(Cog):
                     self.bot.unload_extension("cogs." + cog)
                     self.bot.load_extension("cogs." + cog)
                     self.bot.log.info(f'Reloaded {cog}')
-                    await ctx.send(f':white_check_mark: `{cog}` '
+                    await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
                                    'successfully reloaded.')
                 except Exception as e:
                     await ctx.send(f'💢 There was an error reloading the cog \n**`ERROR:`** {type(e).__name__} - {e}')                   
@@ -170,7 +170,7 @@ class Owner(Cog):
                 try:
                     self.bot.load_extension("cogs." + cog)
                     self.bot.log.info(f'Loaded {cog}')
-                    await ctx.send(f':white_check_mark: `{cog}` '
+                    await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
                                    'successfully loaded.')
                 except Exception as e:
                     await ctx.send(f'💢 There was an error loading the cog \n**`ERROR:`** {type(e).__name__} - {e}')                   
@@ -182,9 +182,9 @@ class Owner(Cog):
     async def playing(self, ctx, *gamename):
         """Sets playing message. Owner only."""
         await self.bot.change_presence(activity=discord.Game(name=f'{" ".join(gamename)}'))
-        await ctx.send('Successfully changed status!')
+        await ctx.send(f'Successfully changed status to `{gamename}`')
 
-    @commands.command(name='stop', aliases=['bye'])
+    @commands.command(name='stop', aliases=['bye', 'exit'])
     @commands.is_owner()
     async def stop(self, ctx):
         """Stop the Bot."""
