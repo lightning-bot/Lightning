@@ -18,7 +18,7 @@ class Info(commands.Cog):
     async def supportserver(self, ctx):
         """Gives an invite to the support server"""
         if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
-            return await ctx.send(f"**Here you go {ctx.author.name} \n<https://discord.gg/cDPGuYd>**")
+            return await ctx.send(f"**Here you go {ctx.author.mention} \n<https://discord.gg/cDPGuYd>**")
 
         await ctx.send(f"{ctx.author.mention} You're asking for an invite in the support server? <:blobthonk:537791813990350873>\n~~There's an invite in <#567138592208453635> btw~~")
 
@@ -43,9 +43,8 @@ class Info(commands.Cog):
         embed.description = "Lightning+, the successor to Lightning(.js)."
         embed.add_field(name="Latest Changes:", value=revision)
         embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)")
-        embed.set_footer(text="Lightning+ 1.1.0", icon_url="https://images-ext-1.discordapp.net/external/bzm3RAfH1DJhP2IhSL3-9RgaIxX8snCFWFRRcokkqz0/%3Fsize%3D1024/https/cdn.discordapp.com/avatars/532220480577470464/d182ece5890001a8ee4bef4e4156deef.webp?width=494&height=494")
+        embed.set_footer(text="Lightning+ 1.1.0", icon_url=bot.user.avatar_url)
         await ctx.send(embed=embed)
-
 
     @commands.command(aliases=['invite'])
     async def botinvite(self, ctx):
@@ -62,11 +61,7 @@ class Info(commands.Cog):
         """Calculates the ping time.""" # Thanks discord.py's server
         pings = []
         number = 0
-        typings = time.monotonic()
         await ctx.trigger_typing()
-        typinge = time.monotonic()
-        typingms = round((typinge - typings) * 1000)
-        pings.append(typingms)
         latencyms = round(self.bot.latency * 1000)
         pings.append(latencyms)
         discords = time.monotonic()
@@ -83,7 +78,7 @@ class Info(commands.Cog):
         for ms in pings:
             number += ms
         average = round(number / len(pings))
-        await ctx.send(f"__**Ping Times:**__\nTyping: `{typingms}ms`  |  Latency: `{latencyms}ms`\nDiscord: `{discordms}`  |  Average: `{average}ms`")
+        await ctx.send(f"__**Ping Times:**__\nLatency: `{latencyms}ms`\nDiscord: `{discordms}`\n__Average:__ `{average}ms`")
 
 
     async def send_guild_info(self, embed, guild):

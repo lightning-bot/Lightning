@@ -1,5 +1,8 @@
 import discord
 from discord.ext import commands
+import db.mod_check
+import asyncio
+
 
 class Misc(commands.Cog, name='Misc Info'):
     """Misc. Information"""
@@ -56,6 +59,45 @@ class Misc(commands.Cog, name='Misc Info'):
         embed.add_field(name="Account Creation Date:", value=f"{user.created_at}")
         embed.set_footer(text=f"User ID: {user.id}")
         await ctx.send(embed=embed)
+
+    @commands.group()
+    async def announce(self, ctx):
+        """Announcements"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    @announce.command()
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    async def interactive(self, ctx, channel: discord.TextChannel):
+        """Interactive Announcement Embed Generator. Moderators only."""
+        def check(ms):
+            # Look for the message sent in the same channel where the command was used
+            # As well as by the user who used the command.
+            return ms.channel == ctx.message.channel and ms.author == ctx.message.author
+
+        await ctx.send(content='What would you like the title of your announcement to be?')
+
+        try:
+            msg = await self.bot.wait_for('message', timeout=65.0, check=check)
+        except asyncio.TimeoutError:
+            return await ctx.send('You took too long. Bye.')
+        title = msg.content # Set the title
+
+        await ctx.send(content='What would you like to set as the description?')
+        try:
+            msg = await self.bot.wait_for('message', timeout=300.0, check=check)
+        except asyncio.TimeoutError:
+            return await ctx.send('You took too long. Bye')
+        desc = msg.content
+
+        msg = await ctx.send(content=f'Now sending the embed to {channel.mention}...')
+        embed = discord.Embed(title=title, description=desc)
+        embed.set_author(name=ctx.message.author, icon_url=ctx.message.author.avatar_url)
+        embed.timestamp = msg.created_at
+        await channel.send(embed=embed, content=None)
+        return
+
+
 
 
 def setup(bot):

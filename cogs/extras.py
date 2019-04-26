@@ -38,7 +38,7 @@ class Extras(commands.Cog):
         embed.set_image(url=member.avatar_url)
         await ctx.send(embed=embed)
         
-    @commands.command(name='say', aliases=['speak'])
+    @commands.command(aliases=['say'])
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
     async def speak(self, ctx, channel: discord.TextChannel, *, inp):
