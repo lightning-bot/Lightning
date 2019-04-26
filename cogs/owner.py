@@ -155,6 +155,27 @@ class Owner(Cog):
                     await ctx.send(f'💢 There was an error reloading the cog \n**`ERROR:`** {type(e).__name__} - {e}')                   
                     return
 
+    @commands.is_owner()
+    @git.command(name="pull-load", aliases=['pl'])
+    @commands.guild_only()
+    async def pull_load(self, ctx):
+        """Pull and load new cogs automatically."""
+        msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
+        output = self.repo.git.pull()
+        await msg.edit(content=f'📥 Pulled Changes:\n```{output}```')
+
+        to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
+
+        for cog in to_reload: # Thanks Ave
+                try:
+                    self.bot.load_extension("cogs." + cog)
+                    self.bot.log.info(f'Loaded {cog}')
+                    await ctx.send(f':white_check_mark: `{cog}` '
+                                   'successfully loaded.')
+                except Exception as e:
+                    await ctx.send(f'💢 There was an error loading the cog \n**`ERROR:`** {type(e).__name__} - {e}')                   
+                    return
+
             
     @commands.command(name='playing', aliases=['play', 'status'])
     @commands.is_owner()
