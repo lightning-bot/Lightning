@@ -42,8 +42,8 @@ class Info(commands.Cog):
         embed.url = "https://github.com/UmbraSage/Lightning.py"
         embed.description = "Lightning+, the successor to Lightning(.js)."
         embed.add_field(name="Latest Changes:", value=revision)
-        embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)")
-        embed.set_footer(text="Lightning+ 1.1.0")
+        embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)")
+        embed.set_footer(text="Lightning+ 1.1.0", icon_url="https://images-ext-1.discordapp.net/external/bzm3RAfH1DJhP2IhSL3-9RgaIxX8snCFWFRRcokkqz0/%3Fsize%3D1024/https/cdn.discordapp.com/avatars/532220480577470464/d182ece5890001a8ee4bef4e4156deef.webp?width=494&height=494")
         await ctx.send(embed=embed)
 
 
