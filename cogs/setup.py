@@ -38,7 +38,7 @@ class Configuration(commands.Cog):
             ctx.guild_config["join_log_channel"] = channel.id
             await ctx.send(f"Member join and leaves logging set to {channel.mention} <:mayushii:562686801043521575>")
 
-# Beta Feature (who knows when and for testing)
+# Beta Feature
 #    @commands.guild_only()
 #    @commands.has_permissions(administrator=True)
 #    @commands.command(name="setmodmailchannel")
