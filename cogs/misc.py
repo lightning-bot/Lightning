@@ -16,5 +16,13 @@ class Misc(commands.Cog, name='Misc Info'):
         embed = discord.Embed(title=f"Channel Topic for {channel}", description=f"{channel.topic}", color=discord.Color.dark_blue())
         await ctx.send(embed=embed)
 
+    @commands.command(aliases=['hastebin'])
+    @commands.cooldown(rate=1, per=60.0, type=commands.BucketType.channel)
+    async def pastebin(self, ctx, *, message: str):
+        """Make a pastebin with your own message"""
+        url = await self.bot.haste(message)
+        await ctx.send(f"Here's your pastebin. {ctx.author.mention}\n{url}")
+
+
 def setup(bot):
     bot.add_cog(Misc(bot))
