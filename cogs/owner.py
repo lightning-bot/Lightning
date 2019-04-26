@@ -132,6 +132,29 @@ class Owner(Cog):
         msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
         output = self.repo.git.pull()
         await msg.edit(content=f'📥 Pulled Changes:\n```{output}```')
+
+    @commands.is_owner()
+    @git.command(aliases=['pr'])
+    @commands.guild_only()
+    async def pullreload(self, ctx):
+        """Pull and reload the cogs automatically."""
+        msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
+        output = self.repo.git.pull()
+        await msg.edit(content=f'📥 Pulled Changes:\n```{output}```')
+
+        to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
+
+        for cog in to_reload: # Thanks Ave
+                try:
+                    self.bot.unload_extension("cogs." + cog)
+                    self.bot.load_extension("cogs." + cog)
+                    self.bot.log.info(f'Reloaded {cog}')
+                    await ctx.send(f':white_check_mark: `{cog}` '
+                                   'successfully reloaded.')
+                except Exception as e:
+                    await ctx.send(f'💢 There was an error reloading the cog \n**`ERROR:`** {type(e).__name__} - {e}')                   
+                    return
+
             
     @commands.command(name='playing', aliases=['play', 'status'])
     @commands.is_owner()
