@@ -8,7 +8,6 @@ class Load(commands.Cog, name='Cog Management'):
         self.bot = bot
         print(f'Cog "{self.qualified_name}" loaded')
 
-    # Hidden means it won't show up on the default help.
 
     @commands.command(name='load')
     @commands.is_owner()
