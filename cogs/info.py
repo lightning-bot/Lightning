@@ -36,7 +36,7 @@ class Info(commands.Cog):
             revision = os.popen(cmd).read().strip()
         except OSError:
             revision = 'Could not fetch due to memory error. Sorry. :('
-        embed = discord.Embed(title="Lightning+")
+        embed = discord.Embed(title="Lightning+", color=discord.Color(0xf74b06))
         embed.set_author(name="UmbraSage#7867")
         embed.set_thumbnail(url="https://assets.gitlab-static.net/uploads/-/system/user/avatar/3717366/avatar.png?width=90")
         embed.url = "https://github.com/UmbraSage/Lightning.py"
