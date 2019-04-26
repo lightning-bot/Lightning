@@ -89,6 +89,8 @@ def member_at_least_has_staff_role(member: discord.Member, min_role: str="Helper
     """
     Non-check function for check_if_at_least_has_staff_role()
     """
+    if not hasattr(member, 'roles'):
+        return False
     role_list = ["helper", "moderator", "admin"]
     for role in role_list.copy():
         if role_list.index(role) < role_list.index(min_role.lower()):
