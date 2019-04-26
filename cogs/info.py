@@ -42,11 +42,12 @@ class Info(commands.Cog):
         embed.url = "https://github.com/UmbraSage/Lightning.py"
         embed.description = "Lightning+, the successor to Lightning(.js)."
         embed.add_field(name="Latest Changes:", value=revision)
+        embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)")
         embed.set_footer(text="Lightning+ 1.1.0")
         await ctx.send(embed=embed)
 
 
-    @commands.command(aliases=['inviteme'])
+    @commands.command(aliases=['invite'])
     async def botinvite(self, ctx):
         """Invite Lightning+ to your server"""
         await ctx.send("You can invite me to your server with this link.\n<https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot>")
