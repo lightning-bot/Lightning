@@ -58,7 +58,7 @@ class Info(commands.Cog):
 
     @commands.command()
     async def ping(self, ctx):
-        """Calculates the ping time.""" # Thanks discord.py's server
+        """Calculates the ping time."""
         pings = []
         number = 0
         await ctx.trigger_typing()
@@ -78,7 +78,11 @@ class Info(commands.Cog):
         for ms in pings:
             number += ms
         average = round(number / len(pings))
-        await ctx.send(f"__**Ping Times:**__\nLatency: `{latencyms}ms`\nDiscord: `{discordms}`\n__Average:__ `{average}ms`")
+        embed = discord.Embed(title="🏓 Ping Times:", color=discord.Color.dark_red())
+        embed.add_field(name="Latency", value=f"{latencyms}ms")
+        embed.add_field(name="Discord", value=f"{discordms}")
+        embed.set_footer(text=f"Average: {average}ms")
+        await ctx.send(embed=embed)
 
 
     async def send_guild_info(self, embed, guild):
