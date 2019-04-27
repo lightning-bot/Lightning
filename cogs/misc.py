@@ -97,6 +97,12 @@ class Misc(commands.Cog, name='Misc Info'):
         await channel.send(embed=embed, content=None)
         return
 
+    @announce.command()
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    async def simple(self, ctx, channel: discord.TextChannel, *, text):
+        """Make a simple announcement"""
+        await channel.send(f"Announcement from {ctx.author.mention}:\n\n{text}")
+
 
 
 
