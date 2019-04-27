@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import db.mod_check
 import asyncio
+import colorsys
+import random
 
 
 class Misc(commands.Cog, name='Misc Info'):
@@ -67,6 +69,7 @@ class Misc(commands.Cog, name='Misc Info'):
             await ctx.send_help(ctx.command)
 
     @announce.command()
+    @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def interactive(self, ctx, channel: discord.TextChannel):
         """Interactive Announcement Embed Generator. Moderators only."""
@@ -98,10 +101,45 @@ class Misc(commands.Cog, name='Misc Info'):
         return
 
     @announce.command()
+    @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def simple(self, ctx, channel: discord.TextChannel, *, text):
-        """Make a simple announcement"""
+        """Make a simple announcement""" # Basically the speak command, but mentions the author.
         await channel.send(f"Announcement from {ctx.author.mention}:\n\n{text}")
+
+    @announce.command(aliases=['rcembed', 'colorembed'])
+    @commands.guild_only()
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    async def random(self, ctx, channel: discord.TextChannel):
+        """Chooses a random color and uses it for the embed. (Interactive) """
+        def check(ms):
+            # Look for the message sent in the same channel where the command was used
+            # As well as by the user who used the command.
+            return ms.channel == ctx.message.channel and ms.author == ctx.message.author
+
+        await ctx.send(content='What would you like the title of your announcement to be?')
+
+        try:
+            msg = await self.bot.wait_for('message', timeout=65.0, check=check)
+        except asyncio.TimeoutError:
+            return await ctx.send('You took too long. Bye.')
+        title = msg.content # Set the title
+
+        await ctx.send(content='What would you like to set as the description?')
+        try:
+            msg = await self.bot.wait_for('message', timeout=300.0, check=check)
+        except asyncio.TimeoutError:
+            return await ctx.send('You took too long. Bye')
+        desc = msg.content
+
+        msg = await ctx.send(content=f'Now sending the embed to {channel.mention}...')
+        color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)] # Chooses a random color
+        embed = discord.Embed(title=title, description=desc, colour=discord.Color.from_rgb(*color_random))
+        embed.set_author(name=ctx.message.author, icon_url=ctx.message.author.avatar_url)
+        embed.timestamp = msg.created_at
+        await channel.send(embed=embed, content=None)
+        return
+
 
 
 

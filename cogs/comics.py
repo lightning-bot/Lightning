@@ -16,7 +16,7 @@ class Comics(Cog):
     @commands.command(aliases=['gc'])
     @commands.bot_has_permissions(embed_links=True)
     async def garfieldcomic(self, ctx, *, date=None):
-        """Gets a comic by date posted. 
+        """Gets a comic by date posted. (Interactive)
         Example: 2012, 05, 12 would show the comic for December 05, 2012"""
         # This could be better, but it'll do for now
         def check(ms):
