@@ -62,6 +62,14 @@ class Misc(commands.Cog, name='Misc Info'):
         embed.set_footer(text=f"User ID: {user.id}")
         await ctx.send(embed=embed)
 
+    @commands.command()
+    @commands.guild_only()
+    async def membercount(self, ctx):
+        """Prints the server's member count"""
+        embed = discord.Embed(title=f"Member Count", description=f"{ctx.guild.name} has {ctx.guild.member_count} members.", color=discord.Color.orange())
+        await ctx.send(embed=embed)
+
+
     @commands.group()
     async def announce(self, ctx):
         """Announcements"""
