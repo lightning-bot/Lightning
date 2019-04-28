@@ -1,0 +1,8 @@
+GitPython
+sqlalchemy
+jishaku
+discord.py
+asyncio
+python-dateutil
+aiohttp
+beautifulsoup4
