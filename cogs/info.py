@@ -1,6 +1,7 @@
 import discord
 import aiohttp
 import datetime
+from datetime import datetime
 import time
 import os
 import config
@@ -88,6 +89,15 @@ class Info(commands.Cog):
         embed.add_field(name="Discord", value=f"{discordms}")
         embed.set_footer(text=f"Average: {average}ms")
         await ctx.send(embed=embed)
+
+    @commands.command()
+    async def uptime(self, ctx):
+        """Displays my uptime"""
+        delta_uptime = datetime.utcnow() - self.bot.launch_time
+        hours, remainder = divmod(int(delta_uptime.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        days, hours = divmod(hours, 24)
+        await ctx.send(f"My uptime is: {days}d, {hours}h, {minutes}m, {seconds}s <:meowbox:563009533530734592>")
 
 
     async def send_guild_info(self, embed, guild):
