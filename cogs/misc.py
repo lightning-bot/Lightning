@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from collections import Counter
 import db.mod_check
 import asyncio
 import colorsys
@@ -55,11 +56,31 @@ class Misc(commands.Cog, name='Misc Info'):
         except discord.NotFound:
             await ctx.send(f"❌ I couldn't find {user_id}.")
             return
-        embed = discord.Embed(title=f"User Info for {user.name}", color=user.colour)
+        embed = discord.Embed(title=f"User Info for {user}", color=user.colour)
         embed.set_thumbnail(url=f"{user.avatar_url}")
         embed.add_field(name="Bot?", value=f"{user.bot}")
         embed.add_field(name="Account Creation Date:", value=f"{user.created_at}")
         embed.set_footer(text=f"User ID: {user.id}")
+        await ctx.send(embed=embed)
+
+    @commands.guild_only()
+    @commands.command(aliases=['serverinfo'])
+    async def server(self, ctx):
+        """Shows information about the server"""
+        guild = ctx.guild # Simplify 
+        embed = discord.Embed(title=f"Server Info for {guild.name}")
+        embed.add_field(name='Owner', value=guild.owner)
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon_url)
+        embed.add_field(name="Creation", value=guild.created_at)
+        member_by_status = Counter(str(m.status) for m in guild.members) # Little snippet taken from R. Danny. Under the MIT License
+        sta = f'<:online:572962188114001921> {member_by_status["online"]} ' \ 
+              f'<:idle:572962188201820200> {member_by_status["idle"]} ' \
+              f'<:dnd:572962188134842389> {member_by_status["dnd"]} ' \
+              f'<:offline:572962188008882178> {member_by_status["offline"]}\n\n' \
+              f'Total: {guild.member_count}'    
+
+        embed.add_field(name="Members", value=sta)
         await ctx.send(embed=embed)
 
     @commands.command()
