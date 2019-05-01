@@ -39,7 +39,7 @@ class Lockdown(commands.Cog):
 
         # Define Safe Name so we don't mess this up (again)
         safe_name = await commands.clean_content().convert(ctx, str(ctx.author))
-        log_message = f"🔒 **Lockdown**: {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
+        log_message = f"🔒 **Lockdown** in {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
 
         if "log_channel" in ctx.guild_config:
             try:
@@ -68,7 +68,7 @@ class Lockdown(commands.Cog):
 
         # Define Safe Name so we don't mess this up (again)
         safe_name = await commands.clean_content().convert(ctx, str(ctx.author))
-        log_message = f"🔒 **Hard Lockdown**: {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
+        log_message = f"🔒 **Hard Lockdown** in {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
 
         if "log_channel" in ctx.guild_config:
             try:
@@ -97,7 +97,7 @@ class Lockdown(commands.Cog):
 
         # Define Safe Name so we don't mess this up (again)
         safe_name = await commands.clean_content().convert(ctx, str(ctx.author))
-        log_message = f"🔓 **Unlock**: {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
+        log_message = f"🔓 **Unlock** in {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
 
         if "log_channel" in ctx.guild_config:
             try:
@@ -126,7 +126,7 @@ class Lockdown(commands.Cog):
 
         # Define Safe Name so we don't mess this up (again)
         safe_name = await commands.clean_content().convert(ctx, str(ctx.author))
-        log_message = f"🔓 **Hard Unlock**: {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
+        log_message = f"🔓 **Hard Unlock** in {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
 
         if "log_channel" in ctx.guild_config:
             try:
