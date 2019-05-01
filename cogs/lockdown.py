@@ -35,8 +35,7 @@ class Lockdown(commands.Cog):
             return
 
         await channel.set_permissions(ctx.guild.default_role, send_messages=False, add_reactions=False)
-
-        await channel.send(f"🔒 {channel.mention} is locked.")
+        await channel.send(f"🔒 {channel.mention} is now locked.")
 
         # Define Safe Name so we don't mess this up (again)
         safe_name = await commands.clean_content().convert(ctx, str(ctx.author))
