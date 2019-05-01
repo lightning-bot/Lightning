@@ -70,6 +70,7 @@ class Misc(commands.Cog, name='Misc Info'):
         guild = ctx.guild # Simplify 
         embed = discord.Embed(title=f"Server Info for {guild.name}")
         embed.add_field(name='Owner', value=guild.owner)
+        embed.add_field(name="ID", value=guild.id)
         if guild.icon:
             embed.set_thumbnail(url=guild.icon_url)
         embed.add_field(name="Creation", value=guild.created_at)
