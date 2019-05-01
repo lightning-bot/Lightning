@@ -74,7 +74,7 @@ class Misc(commands.Cog, name='Misc Info'):
             embed.set_thumbnail(url=guild.icon_url)
         embed.add_field(name="Creation", value=guild.created_at)
         member_by_status = Counter(str(m.status) for m in guild.members) # Little snippet taken from R. Danny. Under the MIT License
-        sta = f'<:online:572962188114001921> {member_by_status["online"]} ' \ 
+        sta = f'<:online:572962188114001921> {member_by_status["online"]} ' \
               f'<:idle:572962188201820200> {member_by_status["idle"]} ' \
               f'<:dnd:572962188134842389> {member_by_status["dnd"]} ' \
               f'<:offline:572962188008882178> {member_by_status["offline"]}\n\n' \
