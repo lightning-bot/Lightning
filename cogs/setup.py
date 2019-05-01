@@ -111,7 +111,7 @@ class Configuration(commands.Cog):
         """
         role = discord.utils.get(ctx.guild.roles, name=target)
         if not role:
-            return await ctx.send("That role does not exist.")
+            return await ctx.send(":x: That role does not exist.")
 
         if level.lower() not in ["helper", "moderator", "admin"]:
             return await ctx.send("Not a valid level! Level must be one of Helper, Moderator or Admin.")
