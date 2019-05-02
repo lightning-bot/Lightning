@@ -19,7 +19,7 @@ class Owner(Cog):
         self.last_eval_result = None
         self.previous_eval_code = None
         self.repo = Repo(os.getcwd())
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.is_owner()
     @commands.command(hidden=True)

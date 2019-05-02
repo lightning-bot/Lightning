@@ -6,7 +6,7 @@ class Load(commands.Cog, name='Cog Management'):
     """Load, reload, unload cogs and addons"""
     def __init__(self, bot):
         self.bot = bot
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
 
     @commands.command(name='load')

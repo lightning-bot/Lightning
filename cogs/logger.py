@@ -11,7 +11,7 @@ class Logger(Cog):
         self.check_inv = re.compile(r"((discord\.gg|discordapp\.com/" # Check Invite
                                     r"+invite)/+[a-zA-Z0-9-]+)",
                                     re.IGNORECASE)
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     # Snippet of code from Noirscape's kirigiri. Under the AGPL 3.0 License, https://git.catgirlsin.space/noirscape/kirigiri/src/branch/master/LICENSE
     async def cog_before_invoke(self, ctx):

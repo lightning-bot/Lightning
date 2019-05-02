@@ -7,7 +7,7 @@ class Lockdown(commands.Cog):
     """Channel Lockdown Commands"""
     def __init__(self, bot):
         self.bot = bot
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     # Snippet from kirigiri
     async def cog_before_invoke(self, ctx):

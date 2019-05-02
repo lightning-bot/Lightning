@@ -11,7 +11,7 @@ class Comics(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.command(aliases=['gc'])
     @commands.bot_has_permissions(embed_links=True)

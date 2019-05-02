@@ -8,7 +8,7 @@ class Configuration(commands.Cog):
     """Server Configuration Commands"""
     def __init__(self, bot):
         self.bot = bot
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     async def cog_check(self, ctx):
         if ctx.guild is None:
