@@ -45,7 +45,7 @@ class Logger(Cog):
                 msg = f"<a:blobjoin:563875361402912797> **Join**: {member.mention} | "\
                  f"{member}\n"\
                  f"🗓 __Account Creation__: {member.created_at}\n"\
-                 f"🕓 Account Age: {member.joined_at}\n"\
+                 f"🕓 Join Date: {member.joined_at}\n"\
                 f"🏷 __User ID__: {member.id}"
                 await self.bot.get_channel(config["join_log_channel"]).send(msg)
 
