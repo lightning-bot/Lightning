@@ -25,8 +25,10 @@
 
 import discord
 from discord.ext import commands
+from discord.ext.commands import Cog
 import db.per_guild_config
 from db.user_log import userlog
+from database import Config 
 from typing import Union
 import db.mod_check
 import datetime
@@ -165,9 +167,9 @@ class Moderation(commands.Cog):
         if reason:
             chan_message += f"✏️ __Reason__: \"{reason}\""
         else:
-            chan_message += "\nPlease add an explanation below. In the future" \
-                            ", it is recommended to use `.ban <user> [reason]`" \
-                            " as the reason is automatically sent to the user."
+            chan_message += f"\nPlease add an explanation below. In the future" \
+                            f", it is recommended to use `{ctx.prefix}ban <user> [reason]`" \
+                            f" as the reason is automatically sent to the user."
 
         if "log_channel" in ctx.guild_config:
             log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
@@ -350,6 +352,77 @@ class Moderation(commands.Cog):
                 await log_channel.send(chan_message)
             except:
                 pass  # w/e, dumbasses forgot to set send perms properly.
+
+    @commands.guild_only()
+    @commands.command(aliases=['muteuser'])
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    async def mute(self, ctx, target: discord.Member, *, reason: str = ""):
+        """Mutes a user, staff only."""
+        # Hedge-proofing the code
+        if target == self.bot.user:  # Idiots
+            return await ctx.send("You can't do mod actions on me.")
+        elif target == ctx.author.id:
+            return await ctx.send("You can't do mod actions on yourself.")
+        elif db.mod_check.member_at_least_has_staff_role(target):
+            return await ctx.send("I can't mute this user as "
+                                  "they're a staff member.")
+
+        userlog(ctx.guild, target.id, ctx.author, reason, "mutes", target.name)
+        safe_name = await commands.clean_content().convert(ctx, str(target)) # Let's not make the mistake
+        dm_message = f"You were muted!"
+        if reason:
+            dm_message += f" The given reason is: \"{reason}\"."
+        try:
+            await target.send(dm_message)
+        except discord.errors.Forbidden:
+            # Prevents kick issues in cases where user blocked bot
+            # or has DMs disabled
+            pass
+
+        # Rev up that chemotherapy, cause this part is cancer.
+        session = self.bot.db.dbsession()
+        try:
+            role_config = session.query(Config).filter_by(guild_id=ctx.guild.id).get(mute_role_id).one()
+        except:
+            role_config = None
+            return await ctx.send("❌ You need to setup a mute role.")
+
+        await target.add_roles(role_config, reason=str(ctx.author))
+
+
+        chan_message = f"🔇 **Muted**: {ctx.author.mention} muted "\
+                       f"{target.mention} | {safe_name}\n"\
+                       f"🏷 __User ID__: {target.id}\n"
+        if reason:
+            chan_message += f"✏️ __Reason__: \"{reason}\""
+        else:
+            chan_message += f"Please add an explanation below. In the future, "\
+                            f"it is recommended to use `{ctx.prefix}mute <user> [reason]`"\
+                            f" as the reason is automatically sent to the user."
+
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            try:
+                await log_channel.send(chan_message)
+            except:
+                pass  # w/e, dumbasses forgot to set send perms properly.
+        session = self.bot.db.dbsession()
+        role_sticky = Config(guild_id=ctx.guild.id, mute_role_id=role_config.id, muted_member=target.id)
+        session.merge(role_sticky)
+        session.commit()
+        session.close()
+        await ctx.send(f"{target.mention} can no longer speak.")
+
+   # @Cog.listener()
+   # async def on_member_join(self, member):
+   #     session = self.bot.db.dbsession()
+   #     server_id = member.guild.id
+   #     check = session.query(Config).filter_by(guild_id=member.guild.id).get(mute_role_id=role_id, muted_member=member.id).one()
+   #     if member.id in check:
+   #         await member.add_roles(role_id, reason="Reapply Restriction Role")
+   #     else:
+   #         session.close()
+   #         return
 
 
 
