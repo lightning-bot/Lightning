@@ -148,7 +148,7 @@ class Owner(Cog):
                 try:
                     self.bot.unload_extension("cogs." + cog)
                     self.bot.load_extension("cogs." + cog)
-                    self.bot.log.info(f'Reloaded {cog}')
+                    self.bot.log.info(f'Automatically reloaded {cog}')
                     await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
                                    'successfully reloaded.')
                 except Exception as e:
@@ -169,7 +169,7 @@ class Owner(Cog):
         for cog in to_reload: # Thanks Ave
                 try:
                     self.bot.load_extension("cogs." + cog)
-                    self.bot.log.info(f'Loaded {cog}')
+                    self.bot.log.info(f'Automatically loaded {cog}')
                     await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
                                    'successfully loaded.')
                 except Exception as e:
