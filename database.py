@@ -20,3 +20,9 @@ class Roles(Base):
     __tablename__ = "roles"
     guild_id = Column(Integer, primary_key=True)
     role_id = Column(Integer, primary_key=True)
+
+class Config(Base):
+    __tablename__ = "guild_configuration"
+    guild_id = Column(Integer, primary_key=True)
+    mute_role_id = Column(Integer)
+    muted_member = Column(Integer)
