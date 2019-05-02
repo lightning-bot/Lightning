@@ -45,7 +45,7 @@ class Info(commands.Cog):
         embed.add_field(name="Latest Changes:", value=revision)
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)")
-        embed.set_footer(text="Lightning+ 1.1.1") # We will do this later.
+        embed.set_footer(text=f"Lightning+ {self.bot.version}") # We will do this later.
         await ctx.send(embed=embed)
 
     @commands.command()

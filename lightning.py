@@ -79,7 +79,8 @@ def load_jis():
 
 load_jis()
 
-
+version_num = "v1.1.2"
+bot.version = version_num
 
 @bot.event
 async def on_ready():
@@ -90,7 +91,7 @@ async def on_ready():
 
     log.info(f'\nLogged in as: {bot.user.name} - '
              f'{bot.user.id}\ndpy version: {discord.__version__}\n')
-    game_name = f"v1.1.1 | l.help"
+    game_name = f"{version_num} | l.help"
     summary = f"{len(bot.guilds)} guild(s) and {len(bot.users)} user(s)"
     msg = f"{bot.user.name} has started! "\
           f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}\n\nCogs Loaded: ```python\n{config.cogs}```"
