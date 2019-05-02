@@ -70,12 +70,12 @@ if __name__ == '__main__':
         try:
             bot.load_extension(extension)
         except Exception as e:
-            print(f'Failed to load cog {extension}.')
-            print(traceback.print_exc())
+            log.error(f'Failed to load cog {extension}.')
+            log.error(traceback.print_exc())
 
 def load_jis():
     bot.load_extension('jishaku')
-    print("Successfully loaded Jishaku")
+    log.info("Successfully loaded Jishaku")
 
 load_jis()
 
@@ -90,11 +90,12 @@ async def on_ready():
     bot.botlog_channel = bot.get_channel(config.error_channel)
 
     log.info(f'\nLogged in as: {bot.user.name} - '
-             f'{bot.user.id}\ndpy version: {discord.__version__}\n')
+             f'{bot.user.id}\ndpy version: {discord.__version__}\nVersion: {bot.version}\n')
     game_name = f"{version_num} | l.help"
     summary = f"{len(bot.guilds)} guild(s) and {len(bot.users)} user(s)"
     msg = f"{bot.user.name} has started! "\
-          f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}\n\nCogs Loaded: ```python\n{config.cogs}```"
+          f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}\n\nCogs Loaded: ```python\n{config.cogs}```"\
+          f"\nI'm currently on **{bot.version}**"
 
     await bot.botlog_channel.send(msg)
     await bot.change_presence(activity=discord.Game(name=game_name))
