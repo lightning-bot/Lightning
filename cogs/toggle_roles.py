@@ -6,7 +6,7 @@ class ToggleRoles(commands.Cog):
     """Role Cog"""
     def __init__(self, bot):
         self.bot = bot
-        print(f'Cog "{self.qualified_name}" Loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
         
     @commands.guild_only()

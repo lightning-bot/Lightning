@@ -49,7 +49,7 @@ class ModUserLog(commands.Cog):
     """
     def __init__(self, bot):
         self.bot = bot
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     async def cog_before_invoke(self, ctx):
         if db.per_guild_config.exist_guild_config(ctx.guild, "moderation"):

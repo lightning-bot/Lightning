@@ -34,6 +34,8 @@ This version plans to be the successor to Lightning (which is currently written 
 
 - [x] Message Logging 
 - [x] Logging: Invite Watching
+- [x] Member Count
+- [x] Announcement Maker
 
 </p>
 </details>

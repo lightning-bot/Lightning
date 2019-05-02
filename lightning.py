@@ -26,7 +26,7 @@ log_file_name = f"{script_name}.log"
 
 # Limit of discord (non-nitro) is 8MB (not MiB)
 max_file_size = 1000 * 1000 * 8
-backup_count = 10000  # random big number
+backup_count = 10
 file_handler = logging.handlers.RotatingFileHandler(
     filename=log_file_name, maxBytes=max_file_size, backupCount=backup_count)
 stdout_handler = logging.StreamHandler(sys.stdout)
@@ -70,16 +70,17 @@ if __name__ == '__main__':
         try:
             bot.load_extension(extension)
         except Exception as e:
-            print(f'Failed to load cog {extension}.')
-            print(traceback.print_exc())
+            log.error(f'Failed to load cog {extension}.')
+            log.error(traceback.print_exc())
 
 def load_jis():
     bot.load_extension('jishaku')
-    print("Successfully loaded Jishaku")
+    log.info("Successfully loaded Jishaku")
 
 load_jis()
 
-
+version_num = "v1.1.2"
+bot.version = version_num
 
 @bot.event
 async def on_ready():
@@ -89,11 +90,12 @@ async def on_ready():
     bot.botlog_channel = bot.get_channel(config.error_channel)
 
     log.info(f'\nLogged in as: {bot.user.name} - '
-             f'{bot.user.id}\ndpy version: {discord.__version__}\n')
-    game_name = f".help"
+             f'{bot.user.id}\ndpy version: {discord.__version__}\nVersion: {bot.version}\n')
+    game_name = f"{version_num} | l.help"
     summary = f"{len(bot.guilds)} guild(s) and {len(bot.users)} user(s)"
     msg = f"{bot.user.name} has started! "\
-          f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}\n\nCogs Loaded: ```python\n{config.cogs}```"
+          f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}\n\nCogs Loaded: ```python\n{config.cogs}```"\
+          f"\nI'm currently on **{bot.version}**"
 
     await bot.botlog_channel.send(msg)
     await bot.change_presence(activity=discord.Game(name=game_name))
@@ -179,14 +181,6 @@ async def on_message(message):
     ctx = await bot.get_context(message)
     await bot.invoke(ctx)
 
-@bot.command()
-async def uptime(ctx):
-    """Displays uptime"""
-    delta_uptime = datetime.utcnow() - bot.launch_time
-    hours, remainder = divmod(int(delta_uptime.total_seconds()), 3600)
-    minutes, seconds = divmod(remainder, 60)
-    days, hours = divmod(hours, 24)
-    await ctx.send(f"My uptime is: {days}d, {hours}h, {minutes}m, {seconds}s <:meowbox:563009533530734592>")
 
 
 bot.run(config.token, bot=True, reconnect=True, loop=bot.loop)

@@ -8,7 +8,7 @@ class Configuration(commands.Cog):
     """Server Configuration Commands"""
     def __init__(self, bot):
         self.bot = bot
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     async def cog_check(self, ctx):
         if ctx.guild is None:
@@ -111,7 +111,7 @@ class Configuration(commands.Cog):
         """
         role = discord.utils.get(ctx.guild.roles, name=target)
         if not role:
-            return await ctx.send("That role does not exist.")
+            return await ctx.send(":x: That role does not exist.")
 
         if level.lower() not in ["helper", "moderator", "admin"]:
             return await ctx.send("Not a valid level! Level must be one of Helper, Moderator or Admin.")
@@ -158,7 +158,7 @@ class Configuration(commands.Cog):
         await ctx.send(f"All set mod roles for this guild have been reset")
 
     @commands.guild_only()
-    @commands.command(aliases=["settoggleableroles", "settogglerole"])
+    @commands.command(name="set-toggleable-roles", aliases=["settoggleableroles", "settogglerole"])
     @commands.has_permissions(manage_roles=True)
     async def set_toggleable_roles(self, ctx, role: str):
         """Setup toggleable roles for users"""
@@ -173,7 +173,7 @@ class Configuration(commands.Cog):
         await ctx.send(f"{role} has been saved to the database.")
 
     @commands.guild_only()
-    @commands.command(aliases=['removetoggleableroles'])
+    @commands.command(name="remove-toggleable-roles", aliases=['removetoggleableroles'])
     @commands.has_permissions(manage_roles=True)
     async def remove_toggleable_role(self, ctx):
         """This deletes all the toggleable roles you have set in this guild"""

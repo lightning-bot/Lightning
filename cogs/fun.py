@@ -8,7 +8,7 @@ class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession(loop=self.bot.loop)
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.command()
     async def cat(self, ctx):

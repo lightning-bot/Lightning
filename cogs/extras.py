@@ -12,7 +12,7 @@ class Extras(commands.Cog):
     """Extra stuff"""
     def __init__(self, bot):
         self.bot = bot
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.command()
     async def peng(self, ctx):
@@ -27,26 +27,6 @@ class Extras(commands.Cog):
             member = ctx.author
         await ctx.send(f'🎉 The top role for {member.display_name} is **{member.top_role.name}**')
 
-    @commands.command(aliases=['ui'])
-    @commands.guild_only()
-    async def userinfo(self, ctx, *, member: discord.Member=None):
-        """Shows userinfo"""
-
-        if member is None:
-            member = ctx.author
-
-        embed1 = discord.Embed(title=f'User Info. for {member}', color=member.colour)
-        embed1.set_thumbnail(url=f'{member.avatar_url}')
-        embed1.add_field(name="Bot?", value=f"{member.bot}")
-        embed1.add_field(name="Account Created On:", value=f"{member.created_at}", inline=True)
-        embed1.add_field(name='Status:', value=f"{member.status}")
-        embed1.add_field(name="Activity:", value=f"{member.activity.name if member.activity else None}", inline=True)
-        embed1.add_field(name="Joined:", value=f"{member.joined_at}")
-        embed1.add_field(name="Highest Role:", value=f"{member.top_role}", inline=True)
-        embed1.set_footer(text=f'User ID: {member.id}')
-
-        await ctx.send(embed=embed1)
-
     @commands.command()
     @commands.guild_only()
     async def avatar(self, ctx, *, member: discord.Member = None):
@@ -58,7 +38,7 @@ class Extras(commands.Cog):
         embed.set_image(url=member.avatar_url)
         await ctx.send(embed=embed)
         
-    @commands.command(name='say', aliases=['speak'])
+    @commands.command(aliases=['say'])
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
     async def speak(self, ctx, channel: discord.TextChannel, *, inp):

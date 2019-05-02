@@ -11,12 +11,12 @@ class Comics(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.command(aliases=['gc'])
     @commands.bot_has_permissions(embed_links=True)
     async def garfieldcomic(self, ctx, *, date=None):
-        """Gets a comic by date posted. 
+        """Gets a comic by date posted. (Interactive)
         Example: 2012, 05, 12 would show the comic for December 05, 2012"""
         # This could be better, but it'll do for now
         def check(ms):

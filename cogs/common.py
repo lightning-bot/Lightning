@@ -45,6 +45,8 @@ class Common(Cog):
         self.bot.escape_message = self.escape_message
         self.bot.parse_time = self.parse_time
         self.bot.haste = self.haste
+        self.bot.log.info(f'{self.qualified_name} loaded')
+
 
     def parse_time(self, delta_str):
         cal = parsedatetime.Calendar()
