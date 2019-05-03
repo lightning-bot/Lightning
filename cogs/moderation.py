@@ -28,7 +28,7 @@ from discord.ext import commands
 from discord.ext.commands import Cog
 import db.per_guild_config
 from db.user_log import userlog
-from database import Config 
+from database import Config, Restrictions
 from typing import Union
 import db.mod_check
 import datetime
@@ -367,9 +367,18 @@ class Moderation(commands.Cog):
             return await ctx.send("I can't mute this user as "
                                   "they're a staff member.")
 
+        # Rev up that chemotherapy, cause this part is cancer.
+        session = self.bot.db.dbsession() # Check to see if mute role is setup
+        try:
+            role_id = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
+            role = discord.Object(id=role_id.mute_role_id)
+        except:
+            role_id = None
+            return await ctx.send("❌ You need to setup a mute role.")
+
         userlog(ctx.guild, target.id, ctx.author, reason, "mutes", target.name)
         safe_name = await commands.clean_content().convert(ctx, str(target)) # Let's not make the mistake
-        dm_message = f"You were muted!"
+        dm_message = f"You were muted on {ctx.guild.name}!"
         if reason:
             dm_message += f" The given reason is: \"{reason}\"."
         try:
@@ -379,16 +388,7 @@ class Moderation(commands.Cog):
             # or has DMs disabled
             pass
 
-        # Rev up that chemotherapy, cause this part is cancer.
-        session = self.bot.db.dbsession()
-        try:
-            role_config = session.query(Config).filter_by(guild_id=ctx.guild.id).get(mute_role_id).one()
-        except:
-            role_config = None
-            return await ctx.send("❌ You need to setup a mute role.")
-
-        await target.add_roles(role_config, reason=str(ctx.author))
-
+        await target.add_roles(role, reason=str(ctx.author))
 
         chan_message = f"🔇 **Muted**: {ctx.author.mention} muted "\
                        f"{target.mention} | {safe_name}\n"\
@@ -407,7 +407,7 @@ class Moderation(commands.Cog):
             except:
                 pass  # w/e, dumbasses forgot to set send perms properly.
         session = self.bot.db.dbsession()
-        role_sticky = Config(guild_id=ctx.guild.id, mute_role_id=role_config.id, muted_member=target.id)
+        role_sticky = Restrictions(guild_id=ctx.guild.id, sticky_role=role.id, user_id=target.id)
         session.merge(role_sticky)
         session.commit()
         session.close()
