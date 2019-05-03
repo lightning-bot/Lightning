@@ -28,7 +28,8 @@ from discord.ext import commands
 from discord.ext.commands import Cog
 import db.per_guild_config
 from db.user_log import userlog
-from database import Config, Restrictions
+from database import Config
+from database import Restrictions
 from typing import Union
 import db.mod_check
 import datetime
@@ -355,6 +356,7 @@ class Moderation(commands.Cog):
 
     @commands.guild_only()
     @commands.command(aliases=['muteuser'])
+    @commands.bot_has_permissions(manage_roles=True)
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def mute(self, ctx, target: discord.Member, *, reason: str = ""):
         """Mutes a user, staff only."""
@@ -396,7 +398,7 @@ class Moderation(commands.Cog):
         if reason:
             chan_message += f"✏️ __Reason__: \"{reason}\""
         else:
-            chan_message += f"Please add an explanation below. In the future, "\
+            chan_message += f"\nPlease add an explanation below. In the future, "\
                             f"it is recommended to use `{ctx.prefix}mute <user> [reason]`"\
                             f" as the reason is automatically sent to the user."
 
@@ -407,17 +409,55 @@ class Moderation(commands.Cog):
             except:
                 pass  # w/e, dumbasses forgot to set send perms properly.
         session = self.bot.db.dbsession()
-        role_sticky = Restrictions(guild_id=ctx.guild.id, sticky_role=role.id, user_id=target.id)
+        role_sticky = Restrictions(guild_id=ctx.guild.id, user_id=target.id, sticky_role=role.id)
         session.merge(role_sticky)
         session.commit()
         session.close()
+        self.bot.log.info(f"{target} had a restriction applied!")
         await ctx.send(f"{target.mention} can no longer speak.")
+
+    @commands.guild_only()
+    @commands.command()
+    @commands.bot_has_permissions(manage_roles=True)
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    async def unmute(self, ctx, target: discord.Member):
+        session = self.bot.db.dbsession() # Check to see if mute role is setup
+        try:
+            role_id = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
+            role = discord.Object(id=role_id.mute_role_id)
+        except:
+            role_id = None
+            return await ctx.send("❌ You don't have a mute role setup.")
+        
+
+        await target.remove_roles(role, reason=str(ctx.author))
+        safe_name = await commands.clean_content().convert(ctx, str(target))
+
+        chan_message = f"🔈 **Unmuted**: {ctx.author.mention} unmuted "\
+                       f"{target.mention} | {safe_name}\n"\
+                       f"🏷 __User ID__: {target.id}\n"
+
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            try:
+                await log_channel.send(chan_message)
+            except:
+                pass  # w/e, dumbasses forgot to set send perms properly.
+        session = self.bot.db.dbsession()
+        role_no = session.query(Restrictions).filter_by(guild_id=ctx.guild.id, user_id=target.id, sticky_role=role.id).delete()
+        if role_no is None:
+            self.bot.log.info(f"{target} did not have a restriction applied.")
+        session.commit()
+        session.close()
+        self.bot.log.info(f"Restriction removed from {target}") # Make sure everything's working
+        await ctx.send(f"{target.mention} can now speak again.")
+
 
    # @Cog.listener()
    # async def on_member_join(self, member):
    #     session = self.bot.db.dbsession()
    #     server_id = member.guild.id
-   #     check = session.query(Config).filter_by(guild_id=member.guild.id).get(mute_role_id=role_id, muted_member=member.id).one()
+   #     check = session.query(Restrictions).filter_by(guild_id=member.guild.id, user_id=member.id, sticky_role=role.id).all()
    #     if member.id in check:
    #         await member.add_roles(role_id, reason="Reapply Restriction Role")
    #     else:
