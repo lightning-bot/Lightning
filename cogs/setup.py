@@ -206,7 +206,8 @@ class Configuration(commands.Cog):
     @commands.command(name="reset-mute-role", aliases=['deletemuterole'])
     @commands.has_permissions(administrator=True)
     async def delete_mute_role(self, ctx):
-        """This deletes whatever mute role is set for your server"""
+        """This deletes whatever mute role is set for your server. 
+        """
         session = self.bot.db.dbsession()
         mute = session.query(Config).filter_by(guild_id=ctx.guild.id).delete()
         if mute is None:
