@@ -30,4 +30,4 @@ class Restrictions(Base):
     __tablename__ = "restrictions"
     guild_id = Column(Integer, primary_key=True)
     user_id = Column(Integer)
-    sticky_role = (Integer)
+    sticky_role = Column(Integer)

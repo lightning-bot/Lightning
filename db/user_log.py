@@ -29,6 +29,7 @@ import db.per_guild_config
 userlog_event_types = {"warns": "Warn",
                        "bans": "Ban",
                        "kicks": "Kick",
+                       "mutes": "Mute",
                        "notes": "Note"
                        }
 
