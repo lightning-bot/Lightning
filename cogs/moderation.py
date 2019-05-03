@@ -53,7 +53,7 @@ class Moderation(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        print(f'Cog "{self.qualified_name}" loaded')
+        self.bot.log.info(f'{self.qualified_name} loaded')
         
     async def cog_check(self, ctx):
         if ctx.guild is None:
@@ -116,10 +116,10 @@ class Moderation(commands.Cog):
         if reason:
             chan_message += f"✏️ __Reason__: \"{reason}\""
         else:
-            chan_message += "\nPlease add an explanation below. In the future" \
-                            ", it is recommended to use " \
-                            "`.kick <user> [reason]`" \
-                            " as the reason is automatically sent to the user."
+            chan_message += f"\nPlease add an explanation below. In the future" \
+                            f", it is recommended to use " \
+                            f"`{ctx.prefix}kick <user> [reason]`" \
+                            f" as the reason is automatically sent to the user."
 
         if "log_channel" in ctx.guild_config:
             try:
@@ -236,9 +236,9 @@ class Moderation(commands.Cog):
         if reason:
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
-            msg += "\nPlease add an explanation below. In the future" \
-                   ", it is recommended to use `.warn <user> [reason]`" \
-                   " as the reason is automatically sent to the user."
+            msg += f"\nPlease add an explanation below. In the future" \
+                   f", it is recommended to use `{ctx.prefix}warn <user> [reason]`" \
+                   f" as the reason is automatically sent to the user."
 
         if "log_channel" in ctx.guild_config:
             log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
@@ -265,9 +265,9 @@ class Moderation(commands.Cog):
         if reason:
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
-            msg += "\nPlease add an explanation below. In the future" \
-                   ", it is recommended to use `.purge <message_count> [reason]`" \
-                   " for documentation purposes."
+            msg += f"\nPlease add an explanation below. In the future" \
+                   f", it is recommended to use `{ctx.prefix}purge <message_count> [reason]`" \
+                   f" for documentation purposes."
 
         if "log_channel" in ctx.guild_config:
             log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
@@ -302,9 +302,9 @@ class Moderation(commands.Cog):
         if reason:
             chan_message += f"✏️ __Reason__: \"{reason}\""
         else:
-            chan_message += "\nPlease add an explanation below. In the future"\
-                            ", it is recommended to use `.ban <user> [reason]`"\
-                            " as the reason is automatically sent to the user."
+            chan_message += f"\nPlease add an explanation below. In the future"\
+                            f", it is recommended to use `{ctx.prefix}ban <user> [reason]`"\
+                            f" as the reason is automatically sent to the user."
  
         if "log_channel" in ctx.guild_config:
             log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
@@ -343,9 +343,9 @@ class Moderation(commands.Cog):
         if reason:
             chan_message += f"✏️ __Reason__: \"{reason}\""
         else:
-            chan_message += "\nPlease add an explanation below. In the future"\
-                            ", it is recommended to use `.nickname <user> [reason]`"\
-                            " as the reason is logged."
+            chan_message += f"\nPlease add an explanation below. In the future"\
+                            f", it is recommended to use `{ctx.prefix}nickname <user> [reason]`"\
+                            f" as the reason is logged."
 
         if "log_channel" in ctx.guild_config:
             log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
@@ -386,7 +386,7 @@ class Moderation(commands.Cog):
         try:
             await target.send(dm_message)
         except discord.errors.Forbidden:
-            # Prevents kick issues in cases where user blocked bot
+            # Prevents issues in cases where user blocked bot
             # or has DMs disabled
             pass
 
