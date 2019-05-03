@@ -359,7 +359,7 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(manage_roles=True)
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def mute(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Mutes a user, staff only."""
+        """Mutes a user, Moderator+ only."""
         # Hedge-proofing the code
         if target == self.bot.user:  # Idiots
             return await ctx.send("You can't do mod actions on me.")
@@ -421,6 +421,7 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(manage_roles=True)
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def unmute(self, ctx, target: discord.Member):
+        """Unmutes a user, Moderator+ only"""
         session = self.bot.db.dbsession() # Check to see if mute role is setup
         try:
             role_id = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
