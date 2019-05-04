@@ -37,6 +37,7 @@ class Info(commands.Cog):
             revision = os.popen(cmd).read().strip()
         except OSError:
             revision = 'Could not fetch due to memory error. Sorry. :('
+        all_members = sum(1 for _ in ctx.bot.get_all_members())
         embed = discord.Embed(title="Lightning+", color=discord.Color(0xf74b06))
         embed.set_author(name="UmbraSage#7867")
         embed.set_thumbnail(url="https://assets.gitlab-static.net/uploads/-/system/user/avatar/3717366/avatar.png?width=90")
@@ -44,6 +45,7 @@ class Info(commands.Cog):
         embed.description = "Lightning+, the successor to Lightning(.js)."
         embed.add_field(name="Latest Changes:", value=revision)
         embed.add_field(name="Servers", value=len(self.bot.guilds))
+        embed.add_field(name="Members", value=all_members)
         embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)")
         embed.set_footer(text=f"Lightning+ {self.bot.version}", icon_url=ctx.bot.user.avatar_url)
         await ctx.send(embed=embed)
