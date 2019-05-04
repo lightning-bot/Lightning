@@ -453,6 +453,35 @@ class Moderation(commands.Cog):
         self.bot.log.info(f"Restriction removed from {target}") # Make sure everything's working
         await ctx.send(f"{target.mention} can now speak again.")
 
+    @commands.guild_only()
+    @commands.command()
+    @commands.bot_has_permissions(ban_members=True)
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    async def unban(self, ctx, user_id: int, *, reason: str = ""):
+        """Unbans a user, Moderator+ only"""
+        member = discord.Object(id=user_id)
+        try:
+            await ctx.guild.unban(member, reason=str(ctx.author))
+        except discord.HTTPException:
+            return await ctx.send(f"❌ Unable to unban user with ID `{user_id}`")
+
+        chan_message = f"⭕ **Unban**: {ctx.author.mention} unbanned "\
+                       f"<@{user_id}>\n"\
+                       f"🏷 __User ID__: {member.id}\n"
+        if reason:
+            chan_message += f"✏️ __Reason__: \"{reason}\""
+        else:
+            chan_message += f"\nPlease add an explanation below. In the future, "\
+                            f"it is recommended to use `{ctx.prefix}unban <user_id> [reason]`"\
+                            f" as the reason is automatically sent to the user."
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            try:
+                await log_channel.send(chan_message)
+            except:
+                pass  # w/e, dumbasses forgot to set send perms properly.
+        await ctx.send(f"{user_id} was unbanned.")
+
 
    # @Cog.listener()
    # async def on_member_join(self, member):
