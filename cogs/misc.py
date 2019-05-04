@@ -82,6 +82,7 @@ class Misc(commands.Cog, name='Misc Info'):
               f'Total: {guild.member_count}'    
 
         embed.add_field(name="Members", value=sta)
+        embed.add_field(name="Emoji Count", value=f"{len(guild.emojis)}")
         await ctx.send(embed=embed)
 
     @commands.command()
