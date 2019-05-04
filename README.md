@@ -38,6 +38,7 @@ This version plans to be the successor to Lightning (which is currently written 
 - [x] Announcement Maker
 - [x] Moderation: Mute
 - [x] Moderation: Restrictions
+- [x] Moderation: Ban ID/Hackban
 
 </p>
 </details>
