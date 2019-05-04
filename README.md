@@ -14,7 +14,7 @@ This version plans to be the successor to Lightning (which is currently written 
     - Helper: Helpers are small staff with the ability to warn users.
     - Moderator: Moderators are regular staff with the ability to kick and ban users.
     - Admin: Admins are (well Administrators :/). They have access to all the commands.
-  - If your server only has Moderators, apply all the levels to your server's moderator role.
+  - If your server only has Moderators, just apply Admin level to your server's moderator role.
 - Toggleable Roles
 - Weeb Features
   - Slap and headpat users.
