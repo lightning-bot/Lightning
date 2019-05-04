@@ -23,7 +23,7 @@ class Info(commands.Cog):
 
         await ctx.send(f"{ctx.author.mention} You're asking for an invite in the support server? <:blobthonk:537791813990350873>\n~~There's an invite in <#567138592208453635> btw~~")
 
-    @commands.command()
+    @commands.command(aliases=['info'])
     async def about(self, ctx):
         """About Lightning+"""
         #Snippet of code taken from RoboDanny. https://github.com/Rapptz/RoboDanny/blob/fb9c470b48e0333c58872d319cdbb9a42ec887c7/cogs/stats.py
@@ -45,7 +45,7 @@ class Info(commands.Cog):
         embed.add_field(name="Latest Changes:", value=revision)
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)")
-        embed.set_footer(text=f"Lightning+ {self.bot.version}") # We will do this later.
+        embed.set_footer(text=f"Lightning+ {self.bot.version}", icon_url=ctx.bot.user.avatar_url)
         await ctx.send(embed=embed)
 
     @commands.command()
