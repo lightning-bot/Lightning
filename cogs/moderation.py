@@ -482,6 +482,49 @@ class Moderation(commands.Cog):
                 pass  # w/e, dumbasses forgot to set send perms properly.
         await ctx.send(f"{user_id} was unbanned.")
 
+    @commands.guild_only()
+    @commands.command(aliases=['hackban'])
+    @commands.bot_has_permissions(ban_members=True)
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    async def banid(self, ctx, user_id: int, *, reason: str = ""):
+        """Bans a user by ID (hackban), Moderator+"""
+        try:
+            user = await self.bot.fetch_user(user_id)
+        except discord.errors.NotFound:
+            await ctx.send(f"❌ No user associated with ID `{user_id}`.")
+        target_member = ctx.guild.get_member(user_id)
+        # Hedge-proofing the code
+        if user == self.bot.user:  # Idiots
+            return await ctx.send("You can't do mod actions on me.")
+        elif user == ctx.author.id:
+            return await ctx.send("You can't do mod actions on yourself.")
+        elif target_member and db.mod_check.member_at_least_has_staff_role(target_member):
+            return await ctx.send("I can't ban this user as "
+                                  "they're a staff member.")
+        userlog(ctx.guild, user_id, ctx.author, reason, "bans", user.name)
+
+        safe_name = await commands.clean_content().convert(ctx, str(user_id))
+
+        await ctx.guild.ban(user,
+                            reason=f"{ctx.author}, reason: {reason}",
+                            delete_message_days=0)
+        chan_message = f"⛔ **Hackban**: {ctx.author.mention} banned "\
+                       f"{user.mention} | {safe_name}\n"\
+                       f"🏷 __User ID__: {user_id}\n"
+        if reason:
+            chan_message += f"✏️ __Reason__: \"{reason}\""
+        else:
+            chan_message += f"\nPlease add an explanation below. In the future"\
+                            f", it is recommended to use "\
+                            f"`{ctx.prefix}banid <user> [reason]`."
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            try:
+                await log_channel.send(chan_message)
+            except:
+                pass  # w/e, dumbasses forgot to set send perms properly.
+        await ctx.send(f"{safe_name} is now b&. 👍")
+
 
    # @Cog.listener()
    # async def on_member_join(self, member):
