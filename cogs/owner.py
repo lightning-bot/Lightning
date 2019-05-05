@@ -177,7 +177,7 @@ class Owner(Cog):
                     return
 
             
-    @commands.command(name='playing', aliases=['play', 'status'])
+    @commands.command(name='playing', aliases=['status']) #'play'
     @commands.is_owner()
     async def playing(self, ctx, *gamename):
         """Sets playing message. Owner only."""
