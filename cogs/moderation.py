@@ -314,20 +314,13 @@ class Moderation(commands.Cog):
                 pass  # w/e, dumbasses forgot to set send perms properly.
 
     @commands.guild_only()
-    @commands.command(aliases=["setnick"])
+    @commands.command(aliases=["nick"])
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
-    async def nickname(self, ctx, target: discord.Member, *, reason: str = ''):
+    async def nickname(self, ctx, target: discord.Member, *, nick: str = ''):
         """Sets a user's nickname, staff only.
         Useful for servers enforcing a nickname policy or manually applying nicknames."""
-        def check(msg):
-            return msg.author == ctx.author and ctx.channel == msg.channel
-
-        await ctx.send(content='What would you like to set the member\'s nickname to? (This timeouts in 60 seconds)')
-
-        msg = await self.bot.wait_for('message', timeout=60.0, check=check)
 
         try:
-            nick = msg.content
             await target.edit(nick=nick, reason=str(ctx.author))
         except discord.errors.Forbidden:
                 await ctx.send("<:noblobaww:561618920096792596>  I can't change their nickname!")
@@ -339,13 +332,6 @@ class Moderation(commands.Cog):
         chan_message = f"📇 **Nickname Change**: {ctx.author.mention} changed "\
                        f"{target.mention}'s nickname to"\
                        f' "{nick}"  | {safe_name}\n'
-        
-        if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
-        else:
-            chan_message += f"\nPlease add an explanation below. In the future"\
-                            f", it is recommended to use `{ctx.prefix}nickname <user> [reason]`"\
-                            f" as the reason is logged."
 
         if "log_channel" in ctx.guild_config:
             log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
@@ -523,6 +509,8 @@ class Moderation(commands.Cog):
             except:
                 pass  # w/e, dumbasses forgot to set send perms properly.
         await ctx.send(f"{safe_name} is now b&. 👍")
+
+
 
 
    # @Cog.listener()
