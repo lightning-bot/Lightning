@@ -46,7 +46,7 @@ class Moderation(commands.Cog):
 
     Most of these commands were taken from robocop-ngs mod.py and slightly adapted.
 
-    robcop-ngs mod.py is under the MIT license and is written by aveao / the ReSwitched team.
+    robocop-ngs mod.py is under the MIT license and is written by aveao / the ReSwitched team.
 
     See here for the license: https://github.com/aveao/robocop-ng/blob/master/LICENSE
     """
@@ -550,17 +550,16 @@ class Moderation(commands.Cog):
 
 
 
-
-   # @Cog.listener()
-   # async def on_member_join(self, member):
-   #     session = self.bot.db.dbsession()
-   #     server_id = member.guild.id
-   #     check = session.query(Restrictions).filter_by(guild_id=member.guild.id, user_id=member.id, sticky_role=role.id).all()
-   #     if member.id in check:
-   #         await member.add_roles(role_id, reason="Reapply Restriction Role")
-   #     else:
-   #         session.close()
-   #         return
+    # Messy Code:tm:
+    @Cog.listener()
+    async def on_member_join(self, member):
+        session = self.bot.db.dbsession()
+        rolere = session.query(Restrictions).filter_by(guild_id=member.guild.id, user_id=member.id).one()
+        role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
+        await member.add_roles(role, reason="Reapply Restriction Role") 
+        # role_add = member.guild.get_role(role)
+        # await member.add_roles(add_back, reason="Reapply Restriction Role")
+        session.close()
 
 
 
