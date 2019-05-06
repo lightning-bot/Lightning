@@ -200,12 +200,5 @@ class Owner(Cog):
             
 
 
-
-    async def cog_check(self, ctx):
-        if not await ctx.bot.is_owner(ctx.author):
-            raise commands.NotOwner('You aren\'t the owner of the bot. <:blobthonk:537791813990350873>')
-        return True
-
-
 def setup(bot):
     bot.add_cog(Owner(bot))

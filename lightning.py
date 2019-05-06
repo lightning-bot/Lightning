@@ -149,6 +149,9 @@ async def on_command_error(ctx, error):
         return await ctx.send(f"{ctx.author.mention}: ⚠ You're being "
                               "ratelimited. Try again in "
                               f"{error.retry_after:.1f} seconds.")
+    elif isinstance(error, commands.NotOwner):
+        return await ctx.send(f"{ctx.author.mention}: ❌ You cannot use this command "
+                              "as it's only for the owner of the bot!")
     elif isinstance(error, commands.CheckFailure):
         return await ctx.send(f"{ctx.author.mention}: Check failed. "
                               "You might not have the right permissions "
