@@ -538,8 +538,7 @@ class Moderation(commands.Cog):
         else:
             chan_message += f"\nPlease add an explanation below. In the future" \
                             f", it is recommended to use " \
-                            f"`{ctx.prefix}silentkick <user> [reason]`" \
-                            f" as the reason is automatically sent to the user."
+                            f"`{ctx.prefix}silentkick <user> [reason]`." 
 
         if "log_channel" in ctx.guild_config:
             try:

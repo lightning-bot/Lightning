@@ -25,7 +25,7 @@ This version plans to be the successor to Lightning (which is currently written 
 ---
 ## Planned Features
 
-More coming soon. Current finetuning current stuff.
+More coming soon. Currently finetuning current stuff.
 
 <details>
 <summary>Completed Features</summary>
