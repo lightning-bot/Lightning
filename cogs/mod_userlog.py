@@ -43,7 +43,7 @@ class ModUserLog(commands.Cog):
 
     These commands were taken from robocop-ngs mod_userlog.py
 
-    robcop-ngs mod.py is under the MIT license and is written by aveao / the ReSwitched team.
+    robocop-ngs mod.py is under the MIT license and is written by aveao / the ReSwitched team.
 
     See here for the license: https://github.com/aveao/robocop-ng/blob/master/LICENSE
     """
