@@ -510,6 +510,44 @@ class Moderation(commands.Cog):
                 pass  # w/e, dumbasses forgot to set send perms properly.
         await ctx.send(f"{safe_name} is now b&. 👍")
 
+    @commands.guild_only()
+    @commands.bot_has_permissions(kick_members=True)
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    @commands.command()
+    async def silentkick(self, ctx, target: discord.Member, *, reason: str = ""):
+        """Silently kicks a user. Does not DM a message to the target user. Moderator+"""
+        # Hedge-proofing the code
+        if target == self.bot.user:  # Idiots
+            return await ctx.send("You can't do mod actions on me.")
+        elif target == ctx.author:
+            return await ctx.send("You can't do mod actions on yourself.")
+        elif db.mod_check.member_at_least_has_staff_role(target):
+            return await ctx.send("I can't kick this user as "
+                                  "they're a staff member.")
+
+        userlog(ctx.guild, target.id, ctx.author, reason, "kicks", target.name)
+
+        safe_name = await commands.clean_content().convert(ctx, str(target))
+
+        await target.kick(reason=f"{ctx.author}, reason: {reason}")
+        chan_message = f"👢 **Silent Kick**: {ctx.author.mention} kicked " \
+                       f"{target.mention} | {safe_name}\n" \
+                       f"🏷 __User ID__: {target.id}\n"
+        if reason:
+            chan_message += f"✏️ __Reason__: \"{reason}\""
+        else:
+            chan_message += f"\nPlease add an explanation below. In the future" \
+                            f", it is recommended to use " \
+                            f"`{ctx.prefix}silentkick <user> [reason]`" \
+                            f" as the reason is automatically sent to the user."
+
+        if "log_channel" in ctx.guild_config:
+            try:
+                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+                await log_channel.send(chan_message)
+            except:
+                pass  # w/e, dumbasses forgot to set it properly.
+
 
 
 

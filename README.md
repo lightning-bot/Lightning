@@ -25,7 +25,6 @@ This version plans to be the successor to Lightning (which is currently written 
 ---
 ## Planned Features
 
-- [ ] Moderation: Slient Kick
 - [ ] Moderation: Reapply Restrictions on Member Join
 
 <details>
@@ -39,6 +38,7 @@ This version plans to be the successor to Lightning (which is currently written 
 - [x] Moderation: Mute
 - [x] Moderation: Restrictions
 - [x] Moderation: Ban ID/Hackban
+- [x] Moderation: Silent Kick
 
 </p>
 </details>
