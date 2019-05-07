@@ -10,7 +10,7 @@ from discord.ext import commands
 
 
 class Info(commands.Cog):
-    """Various information about the bot"""
+    """Bot Info Cog"""
     def __init__(self, bot):
         self.bot = bot
         self.bot.log.info(f'{self.qualified_name} loaded')
@@ -25,7 +25,7 @@ class Info(commands.Cog):
 
     @commands.command(aliases=['info'])
     async def about(self, ctx):
-        """About Lightning+"""
+        """Various information about the bot."""
         #Snippet of code taken from RoboDanny. https://github.com/Rapptz/RoboDanny/blob/fb9c470b48e0333c58872d319cdbb9a42ec887c7/cogs/stats.py
         cmd = r'git show -s HEAD~3..HEAD --format="[{}](https://github.com/UmbraSage/Lightning.py/commit/%H) %s (%cr)"'
         if os.name == 'posix':
@@ -42,7 +42,7 @@ class Info(commands.Cog):
         embed = discord.Embed(title="Lightning+", color=discord.Color(0xf74b06))
         embed.set_author(name="UmbraSage#7867", icon_url=bot_owner.avatar_url)
         embed.url = "https://github.com/UmbraSage/Lightning.py"
-        embed.description = f"Lightning+, the successor to Lightning(.js)\nLatest Changes:\n{revision}"
+        embed.description = f"Lightning+, the successor to Lightning(.js)\n\n__Latest Changes__:\n{revision}"
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
         embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)\n[Website](https://umbrasage.github.io/Lightning/home/)")
