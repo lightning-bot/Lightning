@@ -54,8 +54,7 @@ class Misc(commands.Cog, name='Misc Info'):
         try:
             user = await self.bot.fetch_user(user_id)
         except discord.NotFound:
-            await ctx.send(f"❌ I couldn't find {user_id}.")
-            return
+            return await ctx.send(f"❌ I couldn't find {user_id}.")
         embed = discord.Embed(title=f"User Info for {user}", color=user.colour)
         embed.set_thumbnail(url=f"{user.avatar_url}")
         embed.add_field(name="Bot?", value=f"{user.bot}")
