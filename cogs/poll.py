@@ -17,6 +17,11 @@ class Poll(commands.Cog):
         await msg.add_reaction("👍")
         await msg.add_reaction("👎")
         await msg.add_reaction("🤷")
+    
+    @poll.error
+    async def poll_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            return await ctx.send('Please add a question.')            
 
 
 def setup(bot):
