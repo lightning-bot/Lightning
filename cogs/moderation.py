@@ -554,8 +554,12 @@ class Moderation(commands.Cog):
     async def on_member_join(self, member):
         session = self.bot.db.dbsession()
         rolere = session.query(Restrictions).filter_by(guild_id=member.guild.id, user_id=member.id).one()
-        role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
-        await member.add_roles(role, reason="Reapply Restriction Role") 
+        # role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
+        if rolere:
+            role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
+            await member.add_roles(role, reason="Reapply Restriction Role") 
+        else:
+            return
         # role_add = member.guild.get_role(role)
         # await member.add_roles(add_back, reason="Reapply Restriction Role")
         session.close()

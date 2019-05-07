@@ -133,7 +133,7 @@ async def on_command_error(ctx, error):
 
 
     if isinstance(error, commands.NoPrivateMessage):
-        return await ctx.send("This command doesn't work on DMs.")
+        return await ctx.send("This command doesn't work in DMs.")
     elif isinstance(error, commands.MissingPermissions):
         roles_needed = '\n- '.join(error.missing_perms)
         return await ctx.send(f"{ctx.author.mention}: You don't have the right"
