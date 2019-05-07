@@ -42,11 +42,11 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
             if "join_log_channel" in config:
-                msg = f"<a:blobjoin:563875361402912797> **Join**: {member.mention} | "\
+                msg = f"<:join:575348114802606080> **Join**: {member.mention} | "\
                  f"{member}\n"\
                  f"🕓 __Account Creation__: {member.created_at}\n"\
                  f"🗓 Join Date: {member.joined_at}\n"\
-                f"🏷 __User ID__: {member.id}"
+                 f"🏷 __User ID__: {member.id}"
                 await self.bot.get_channel(config["join_log_channel"]).send(msg)
 
     @Cog.listener()
@@ -55,10 +55,10 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
             if "join_log_channel" in config:
-                msg = f"<a:blobleave:566329423595438122> **Leave**: {member.mention} | "\
+                msg = f"<:leave:575348321401569312> **Leave**: {member.mention} | "\
                     f"{member}\n"\
-                    f"📅 Left Date: {datetime.datetime.utcnow()}\n"
-                f"🏷 __User ID__: {member.id}"
+                    f"📅 Left Date: {datetime.datetime.utcnow()}\n"\
+                    f"🏷 __User ID__: {member.id}"
             await self.bot.get_channel(config["join_log_channel"]).send(msg)
 
     @Cog.listener()
