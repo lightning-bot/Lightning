@@ -47,7 +47,10 @@ class Logger(Cog):
                  f"🕓 __Account Creation__: {member.created_at}\n"\
                  f"🗓 Join Date: {member.joined_at}\n"\
                  f"🏷 __User ID__: {member.id}"
-                await self.bot.get_channel(config["join_log_channel"]).send(msg)
+                try:
+                    await self.bot.get_channel(config["join_log_channel"]).send(msg)
+                except:
+                    pass
 
     @Cog.listener()
     async def on_member_remove(self, member):
@@ -59,7 +62,10 @@ class Logger(Cog):
                     f"{member}\n"\
                     f"📅 Left Date: {datetime.datetime.utcnow()}\n"\
                     f"🏷 __User ID__: {member.id}"
-            await self.bot.get_channel(config["join_log_channel"]).send(msg)
+                try:
+                    await self.bot.get_channel(config["join_log_channel"]).send(msg)
+                except:
+                    pass
 
     @Cog.listener()
     async def on_guild_ban(self, guild, user):
