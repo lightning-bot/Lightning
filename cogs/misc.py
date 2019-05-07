@@ -91,6 +91,35 @@ class Misc(commands.Cog, name='Misc Info'):
         embed = discord.Embed(title=f"Member Count", description=f"{ctx.guild.name} has {ctx.guild.member_count} members.", color=discord.Color.orange())
         await ctx.send(embed=embed)
 
+    @commands.command()
+    @commands.guild_only()
+    @commands.has_permissions(change_nickname=True)
+    @commands.bot_has_permissions(change_nickname=True)
+    async def setnick(self, ctx, *, nick: str):
+        """Set your own nickname.
+        Clear your nickname by just sending .resetnick"""
+        author = ctx.author 
+        try:
+            await author.edit(nick=nick, reason=str(ctx.author))
+        except discord.errors.Forbidden:
+            return await ctx.send("💢 I can't change your nickname.")
+
+        
+        await ctx.send(f"{ctx.author.mention}: I've set your nickname to `{nick}`.")
+
+    @commands.command()
+    @commands.guild_only()
+    @commands.has_permissions(change_nickname=True)
+    @commands.bot_has_permissions(change_nickname=True)
+    async def resetnick(self, ctx):
+        """Resets your nickname."""
+        author = ctx.author
+        try:
+            await author.edit(nick=None, reason=str(ctx.author))
+        except discord.errors.Forbidden:
+            return await ctx.send("💢 I can't reset your nickname.")
+        
+        await ctx.send(f"I've reset your nickname, {ctx.author.mention}.")
 
     @commands.group()
     async def announce(self, ctx):
