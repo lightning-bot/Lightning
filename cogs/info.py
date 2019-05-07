@@ -42,7 +42,7 @@ class Info(commands.Cog):
         embed = discord.Embed(title="Lightning+", color=discord.Color(0xf74b06))
         embed.set_author(name="UmbraSage#7867", icon_url=bot_owner.avatar_url)
         embed.url = "https://github.com/UmbraSage/Lightning.py"
-        embed.description = f"Lightning+, the successor to Lightning(.js)\nLatest Changes: {revision}"
+        embed.description = f"Lightning+, the successor to Lightning(.js)\nLatest Changes:\n{revision}"
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
         embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)\n[Website](https://umbrasage.github.io/Lightning/home/)")
