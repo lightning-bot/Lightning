@@ -553,7 +553,7 @@ class Moderation(commands.Cog):
     @Cog.listener()
     async def on_member_join(self, member):
         session = self.bot.db.dbsession()
-        rolere = session.query(Restrictions).filter_by(guild_id=member.guild.id, user_id=member.id).one()
+        rolere = session.query(Restrictions).filter_by(guild_id=member.guild.id, user_id=member.id).one_or_none()
         # role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
         if rolere:
             role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
