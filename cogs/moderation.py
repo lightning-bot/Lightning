@@ -258,7 +258,7 @@ class Moderation(commands.Cog):
             await ctx.channel.purge(limit=message_count)
         except Exception as e:
             print(e)
-            return await ctx.send('Cannot purge messages!')
+            return await ctx.send('❌ Cannot purge messages!')
 
         msg = f'🗑️ **{message_count} messages purged** in {ctx.channel.mention} | {ctx.channel.name} | {ctx.channel.id} \n'
         msg += f'Purger was {ctx.author.mention} | {ctx.author.name}#{ctx.author.discriminator} | {ctx.author.id} \n'

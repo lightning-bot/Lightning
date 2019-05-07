@@ -42,7 +42,7 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
             if "join_log_channel" in config:
-                msg = f"<:join:575348114802606080> **Join**: {member.mention} | "\
+                msg = f"<:join:575348114802606080> **Member Join**: {member.mention} | "\
                  f"{member}\n"\
                  f"🕓 __Account Creation__: {member.created_at}\n"\
                  f"🗓 Join Date: {member.joined_at}\n"\
@@ -58,7 +58,7 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
             if "join_log_channel" in config:
-                msg = f"<:leave:575348321401569312> **Leave**: {member.mention} | "\
+                msg = f"<:leave:575348321401569312> **Member Leave**: {member.mention} | "\
                     f"{member}\n"\
                     f"📅 Left Date: {datetime.datetime.utcnow()}\n"\
                     f"🏷 __User ID__: {member.id}"
@@ -72,7 +72,8 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(guild, "config"):
             config = db.per_guild_config.get_guild_config(guild, "config")
             if "event_channel" in config:
-                message = f"🔨 **Ban**: {user.mention} | {user} (ID: {user.id})"
+                message = f"🔨 **Ban**: {user.mention} | {user}\n"\
+                          f"🏷 __User ID__: {user.id}"
                 try:
                     await self.bot.get_channel(config["event_channel"]).send(message)
                 except:
@@ -84,7 +85,8 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(guild, "config"):
             config = db.per_guild_config.get_guild_config(guild, "config")
             if "event_channel" in config:
-                message = f"⚠ **Unban**: {user.mention} | {user} (ID: {user.id})."
+                message = f"⚠ **Unban**: {user.mention} | {user}\n"\
+                          f"🏷 __User ID__: {user.id}"
                 try:
                     await self.bot.get_channel(config["event_channel"]).send(message)
                 except:
