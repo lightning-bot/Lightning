@@ -29,6 +29,17 @@ class Fun(commands.Cog):
         response = ["no", "most certainly", "doubtful", "it is certain", "ask again", "maybe", "🤷"]
         await ctx.send(f"{ctx.author.mention} You asked: `{question}`. | 8ball says {random.choice(response)}")
 
+    @commands.command(aliases=['roll'])
+    async def die(self, ctx, *, number: int):
+        """Rolls a 1 to the specified number sided die"""
+        number_ran = random.randint(1, number)
+        await ctx.send(f"🎲 You rolled a `{number}` sided die. | The die rolled on `{number_ran}`")
+
+    @dice.error
+    async def dice_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            return await ctx.send("You need to specify a number!")
+
 
     @commands.command()
     async def cat(self, ctx):
