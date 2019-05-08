@@ -13,6 +13,7 @@ class Weeb(commands.Cog):
         self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.command(name='headpat')
+    @commands.bot_has_permissions(embed_links=True)
     async def headpat(self, ctx):
         """Random headpat gifs"""
         async with self.session.get("https://nekos.life/api/pat") as resp:
@@ -25,6 +26,7 @@ class Weeb(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name='slap')
+    @commands.bot_has_permissions(embed_links=True)
     async def slap(self, ctx, person):
         """Slap yourself or someone."""
         async with self.session.get("https://nekos.life/api/v2/img/slap") as resp:

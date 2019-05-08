@@ -48,6 +48,7 @@ class Extras(commands.Cog):
     
     @commands.guild_only()
     @commands.command(name='embed')
+    @commands.bot_has_permissions(embed_links=True)
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def embed_command(self, ctx):
         """Interactive Embed Generator. Moderators only."""

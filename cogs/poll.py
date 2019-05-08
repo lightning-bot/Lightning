@@ -9,6 +9,7 @@ class Poll(commands.Cog):
 
 
     @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def poll(self, ctx, *, question: str):
         """Creates a simple poll with thumbs up, thumbs down, and shrug as reactions"""
         embed = discord.Embed(title="Poll", description=f'Question: {question}', color=discord.Color.dark_blue())

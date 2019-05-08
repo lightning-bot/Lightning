@@ -24,6 +24,7 @@ class Info(commands.Cog):
         await ctx.send(f"{ctx.author.mention} You're asking for an invite in the support server? <:blobthonk:537791813990350873>\n~~There's an invite in <#567138592208453635> btw~~")
 
     @commands.command(aliases=['info'])
+    @commands.bot_has_permissions(embed_links=True)
     async def about(self, ctx):
         """Various information about the bot."""
         #Snippet of code taken from RoboDanny. https://github.com/Rapptz/RoboDanny/blob/fb9c470b48e0333c58872d319cdbb9a42ec887c7/cogs/stats.py
@@ -64,6 +65,7 @@ class Info(commands.Cog):
         await ctx.send("This is my source code. https://github.com/UmbraSage/Lightning.py")
 
     @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def ping(self, ctx):
         """Calculates the ping time."""
         pings = []

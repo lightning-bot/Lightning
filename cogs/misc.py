@@ -31,6 +31,7 @@ class Misc(commands.Cog, name='Misc Info'):
 
     @commands.command(aliases=['ui'])
     @commands.guild_only()
+    @commands.bot_has_permissions(embed_links=True)
     async def userinfo(self, ctx, *, member: discord.Member=None):
         """Shows userinfo"""
 
@@ -49,6 +50,7 @@ class Misc(commands.Cog, name='Misc Info'):
         await ctx.send(embed=embed1)
 
     @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def userinfoid(self, ctx, user_id):
         """Get userinfo by ID"""
         try:
@@ -63,6 +65,7 @@ class Misc(commands.Cog, name='Misc Info'):
         await ctx.send(embed=embed)
 
     @commands.guild_only()
+    @commands.bot_has_permissions(embed_links=True)
     @commands.command(aliases=['serverinfo'])
     async def server(self, ctx):
         """Shows information about the server"""
@@ -86,6 +89,7 @@ class Misc(commands.Cog, name='Misc Info'):
 
     @commands.command()
     @commands.guild_only()
+    @commands.bot_has_permissions(embed_links=True)
     async def membercount(self, ctx):
         """Prints the server's member count"""
         embed = discord.Embed(title=f"Member Count", description=f"{ctx.guild.name} has {ctx.guild.member_count} members.", color=discord.Color.orange())
@@ -129,6 +133,7 @@ class Misc(commands.Cog, name='Misc Info'):
 
     @announce.command()
     @commands.guild_only()
+    @commands.bot_has_permissions(embed_links=True)
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def interactive(self, ctx, channel: discord.TextChannel):
         """Interactive Announcement Embed Generator. Moderators only."""
@@ -168,6 +173,7 @@ class Misc(commands.Cog, name='Misc Info'):
 
     @announce.command(aliases=['rcembed', 'colorembed'])
     @commands.guild_only()
+    @commands.bot_has_permissions(embed_links=True)
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def random(self, ctx, channel: discord.TextChannel):
         """Chooses a random color and uses it for the embed. (Interactive) """
