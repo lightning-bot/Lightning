@@ -6,3 +6,4 @@ asyncio
 python-dateutil
 aiohttp
 beautifulsoup4
+dhooks

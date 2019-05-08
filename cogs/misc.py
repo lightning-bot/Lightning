@@ -7,7 +7,7 @@ import colorsys
 import random
 
 
-class Misc(commands.Cog, name='Misc Info'):
+class Misc(commands.Cog):
     """Misc. Information"""
     def __init__(self, bot):
         self.bot = bot

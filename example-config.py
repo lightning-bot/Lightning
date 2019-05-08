@@ -7,3 +7,6 @@ cogs = ['cogs.comics', 'cogs.owner', 'cogs.load', 'cogs.moderation', 'cogs.logge
 'cogs.mod_userlog', 'cogs.setup', 'cogs.weeb', 'cogs.info', 'cogs.mod_note', 'cogs.fun', 'db.databasestart', 'cogs.toggle_roles']
 # Bot Errors Channel. 
 error_channel = 567109464184979502
+
+#Sends errors to Webhook
+webhookurl = "INSERT_LINK_HERE"

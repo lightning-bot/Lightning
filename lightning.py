@@ -13,7 +13,7 @@ import db.per_guild_config
 import json
 from db.jsonf import JSONFile
 import config
-
+from dhooks import Embed, Webhook
 import sys, traceback
 
 
@@ -53,7 +53,6 @@ def _callable_prefix(bot, message):
     return commands.when_mentioned_or(*prefixes)(bot, message)
 
 
-# Below cogs represents our folder our cogs are in. Following is the file name. So 'meme.py' in cogs, would be cogs.meme
 initial_extensions = config.cogs
 
 bot = commands.Bot(command_prefix=_callable_prefix, description=config.description)
@@ -128,9 +127,12 @@ async def on_command_error(ctx, error):
     err_msg = f"Error with \"{ctx.message.content}\" from "\
               f"\"{ctx.message.author} ({ctx.message.author.id}) "\
               f"of type {type(error)}: {error_text}"
-        
     log.error(err_msg)
 
+    hook = Webhook(config.webhookurl) # Log Errors
+    embed = Embed(description=f"{err_msg}", color=0xff0000, timestamp='now')
+    embed.set_title(title="ERROR")
+    hook.send(embed=embed)
 
     if isinstance(error, commands.NoPrivateMessage):
         return await ctx.send("This command doesn't work in DMs.")
