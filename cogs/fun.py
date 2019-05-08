@@ -24,7 +24,7 @@ class Fun(commands.Cog):
 
     @commands.command(name="8ball")
     @commands.cooldown(rate=1, per=4.0, type=commands.BucketType.channel)
-    async def eight_ball(self, ctx, question: commands.clean_content):
+    async def eight_ball(self, ctx, *, question: commands.clean_content):
         """Ask 8ball a question"""
         response = ["no", "most certainly", "doubtful", "it is certain", "ask again", "maybe", "🤷"]
         await ctx.send(f"{ctx.author.mention} You asked: `{question}`. | 8ball says {random.choice(response)}")
