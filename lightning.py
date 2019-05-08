@@ -162,7 +162,7 @@ async def on_command_error(ctx, error):
         return await ctx.send("❌ I wasn't able to find that ID.")
 
     help_text = f"Usage of this command is: ```{ctx.prefix}"\
-                f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
+                f"{ctx.command.qualified_name} {ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
                 f"{ctx.command.name}` for more info about this command."
     if isinstance(error, commands.BadArgument):
         return await ctx.send(f"{ctx.author.mention}: You gave incorrect "
