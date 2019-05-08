@@ -32,6 +32,8 @@ class Fun(commands.Cog):
     @commands.command(aliases=['roll'])
     async def die(self, ctx, *, number: int):
         """Rolls a 1 to the specified number sided die"""
+        if number == 0:
+            return await ctx.send("You can't roll that!")
         number_ran = random.randint(1, number)
         await ctx.send(f"🎲 You rolled a `{number}` sided die. | The die rolled on `{number_ran}`")
 
