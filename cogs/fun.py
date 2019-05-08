@@ -35,7 +35,7 @@ class Fun(commands.Cog):
         number_ran = random.randint(1, number)
         await ctx.send(f"🎲 You rolled a `{number}` sided die. | The die rolled on `{number_ran}`")
 
-    @dice.error
+    @die.error
     async def dice_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             return await ctx.send("You need to specify a number!")
