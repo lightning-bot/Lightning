@@ -118,6 +118,7 @@ class Owner(Cog):
                 await ctx.send(msg)
 
 
+    @commands.is_owner()
     @commands.group()
     async def git(self, ctx):
         """Git Commands"""
