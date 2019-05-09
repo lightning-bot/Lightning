@@ -57,6 +57,18 @@ class Configuration(commands.Cog):
             ctx.guild_config["join_log_embed_channel"] = channel.id
             await ctx.send(f"Embedded member join and leave logging set to {channel.mention} <:mayushii:562686801043521575>")
 
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    @embed.command(name="seteventlogs")
+    async def set_event_embed_logs(self, ctx, channel: Union[discord.TextChannel, str]):
+        """Set where events should be logged. Such as Unbans, Bans, Nickname Changes. Embedded"""
+        if channel == "disable":
+            ctx.guild_config.pop("event_embed_channel")
+            await ctx.send("Embedded event logs have been disabled.")
+        else:
+            ctx.guild_config["event_embed_channel"] = channel.id
+            await ctx.send(f"Embedded event logs have been set to {channel.mention} <:mayushii:562686801043521575>")
+
 # Beta Feature
 #    @commands.guild_only()
 #    @commands.has_permissions(administrator=True)
@@ -89,7 +101,7 @@ class Configuration(commands.Cog):
         """Set where events should be logged. 
         Such as Unbans, Bans, Nickname Changes."""
         if channel == "disable":
-            ctx.guild_config.pop("events_channel")
+            ctx.guild_config.pop("event_channel")
             await ctx.send("Event logs have been disabled.")
         else:
             ctx.guild_config["event_channel"] = channel.id
