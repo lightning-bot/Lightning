@@ -47,7 +47,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @embed.command(name="setjoinlogs")
+    @embed.command(name="setjoinlogs", aliases=['set-join-logs'])
     async def setjoinlogs_embed(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set the member join and leave logs. Embedded"""
         if channel == "disable":
@@ -59,15 +59,27 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @embed.command(name="seteventlogs")
+    @embed.command(name="set-role-logs")
     async def set_event_embed_logs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set where events should be logged. Such as Unbans, Bans, Nickname Changes. Embedded"""
+        """Set member role additions logs. Embedded"""
         if channel == "disable":
             ctx.guild_config.pop("event_embed_channel")
-            await ctx.send("Embedded event logs have been disabled.")
+            await ctx.send("Embedded member role logs have been disabled.")
         else:
             ctx.guild_config["event_embed_channel"] = channel.id
-            await ctx.send(f"Embedded event logs have been set to {channel.mention} <:mayushii:562686801043521575>")
+            await ctx.send(f"Embedded member role logs have been set to {channel.mention} <:mayushii:562686801043521575>")
+
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    @embed.command(name="set-ban-logs", aliases=['setbanlog', 'setbanlogs'])
+    async def set_embed_ban_log(self, ctx, channel: Union[discord.TextChannel, str]):
+        """Set server ban log channel. Embedded"""
+        if channel == "disable":
+            ctx.guild_config.pop("ban_embed_channel")
+            await ctx.send("Server ban log channel has been disabled.")
+        else:
+            ctx.guild_config["ban_embed_channel"] = channel.id
+            await ctx.send(f"Server ban log channel has been set to {channel.mention} <:mayushii:562686801043521575>")
 
 # Beta Feature
 #    @commands.guild_only()
@@ -96,16 +108,27 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(name="seteventlogs")
+    @commands.command(name="set-role-logs")
     async def set_event_logs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set where events should be logged. 
-        Such as Unbans, Bans, Nickname Changes."""
+        """Set member role additions logs."""
         if channel == "disable":
             ctx.guild_config.pop("event_channel")
-            await ctx.send("Event logs have been disabled.")
+            await ctx.send("Member role logs have been disabled.")
         else:
             ctx.guild_config["event_channel"] = channel.id
-            await ctx.send(f"Event logs have been set to {channel.mention} <:mayushii:562686801043521575>")
+            await ctx.send(f"Member role logs have been set to {channel.mention} <:mayushii:562686801043521575>")
+
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    @commands.command(name='set-ban-logs', aliases=['setbanlog', 'setbanlogs'])
+    async def set_ban_logs(self, ctx, channel: Union[discord.TextChannel, str]):
+        """Set server ban log channel."""
+        if channel == "disable":
+            ctx.guild_config.pop("ban_channel")
+            await ctx.send("Server ban log channel has been disabled.")
+        else:
+            ctx.guild_config["ban_channel"] = channel.id
+            await ctx.send(f"Server ban log channel has been set to {channel.mention} <:mayushii:562686801043521575>")
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)

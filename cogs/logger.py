@@ -86,18 +86,18 @@ class Logger(Cog):
     async def on_guild_ban(self, guild, user):
         if db.per_guild_config.exist_guild_config(guild, "config"):
             config = db.per_guild_config.get_guild_config(guild, "config")
-            if "event_embed_channel" in config:
+            if "ban_embed_channel" in config:
                 embed = discord.Embed(title="Ban", timestamp=datetime.datetime.utcnow(), color=discord.Color.red())
                 embed.description = f"{user.mention} | {user}\n🏷 __User ID__: {user.id}"
                 try:
-                    await self.bot.get_channel(config["event_embed_channel"]).send(embed=embed)
+                    await self.bot.get_channel(config["ban_embed_channel"]).send(embed=embed)
                 except:
                     pass
-            if "event_channel" in config:
+            if "ban_channel" in config:
                 message = f"🔨 **Ban**: {user.mention} | {user}\n"\
                           f"🏷 __User ID__: {user.id}"
                 try:
-                    await self.bot.get_channel(config["event_channel"]).send(message)
+                    await self.bot.get_channel(config["ban_channel"]).send(message)
                 except:
                     pass
 
@@ -106,18 +106,18 @@ class Logger(Cog):
         await self.bot.wait_until_ready()
         if db.per_guild_config.exist_guild_config(guild, "config"):
             config = db.per_guild_config.get_guild_config(guild, "config")
-            if "event_embed_channel" in config:
+            if "ban_embed_channel" in config:
                 embed = discord.Embed(title="Unban", timestamp=datetime.datetime.utcnow(), color=discord.Color.red())
                 embed.description = f"{user.mention} | {user}\n🏷 __User ID__: {user.id}"
                 try:
-                    await self.bot.get_channel(config["event_embed_channel"]).send(embed=embed)
+                    await self.bot.get_channel(config["ban_embed_channel"]).send(embed=embed)
                 except:
                     pass
-            if "event_channel" in config:
+            if "ban_channel" in config:
                 message = f"⚠ **Unban**: {user.mention} | {user}\n"\
                           f"🏷 __User ID__: {user.id}"
                 try:
-                    await self.bot.get_channel(config["event_channel"]).send(message)
+                    await self.bot.get_channel(config["ban_channel"]).send(message)
                 except:
                     pass
 
