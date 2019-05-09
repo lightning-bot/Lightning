@@ -33,10 +33,29 @@ class Configuration(commands.Cog):
         """Set the member join and leave logs"""
         if channel == "disable":
             ctx.guild_config.pop("join_log_channel")
-            await ctx.send("Member join and leaves logging disabled.")
+            await ctx.send("Member join and leave logging disabled.")
         else:
             ctx.guild_config["join_log_channel"] = channel.id
-            await ctx.send(f"Member join and leaves logging set to {channel.mention} <:mayushii:562686801043521575>")
+            await ctx.send(f"Member join and leave logging set to {channel.mention} <:mayushii:562686801043521575>")
+
+    @commands.group()
+    async def embed(self, ctx):
+        """Embedded Logging.""" # For those who don't like compact logging
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    @embed.command(name="setjoinlogs")
+    async def setjoinlogs_embed(self, ctx, channel: Union[discord.TextChannel, str]):
+        """Set the member join and leave logs. Embedded"""
+        if channel == "disable":
+            ctx.guild_config.pop("join_log_embed_channel")
+            await ctx.send("Embedded member join and leave logging disabled.")
+        else:
+            ctx.guild_config["join_log_embed_channel"] = channel.id
+            await ctx.send(f"Embedded member join and leave logging set to {channel.mention} <:mayushii:562686801043521575>")
 
 # Beta Feature
 #    @commands.guild_only()

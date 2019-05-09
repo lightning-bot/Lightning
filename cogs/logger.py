@@ -3,6 +3,7 @@ from discord.ext.commands import Cog
 import db.per_guild_config
 import datetime
 import re
+from humanize import naturaldate
 
 class Logger(Cog):
     """Logs user actions"""
@@ -41,6 +42,13 @@ class Logger(Cog):
         await self.bot.wait_until_ready()
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
+            if "join_log_embed_channel" in config:
+                embed = discord.Embed(title="<:join:575348114802606080> Member Join", timestamp=datetime.datetime.utcnow(), color=discord.Color.green())
+                embed.description = f"{member.mention} | {member}\n🕓 __Account Creation__: {member.created_at}\n🏷 __User ID__: {member.id}"
+                try:
+                    await self.bot.get_channel(config["join_log_embed_channel"]).send(embed=embed)
+                except:
+                    pass
             if "join_log_channel" in config:
                 msg = f"<:join:575348114802606080> **Member Join**: {member.mention} | "\
                  f"{member}\n"\
@@ -57,6 +65,13 @@ class Logger(Cog):
         await self.bot.wait_until_ready()
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
+            if "join_log_embed_channel" in config:
+                embed = discord.Embed(title="<:leave:575348321401569312> Member Leave", timestamp=datetime.datetime.utcnow(), color=discord.Color.red())
+                embed.description = f"{member.mention} | {member}\n🏷 __User ID__: {member.id}"
+                try:
+                    await self.bot.get_channel(config["join_log_embed_channel"]).send(embed=embed)
+                except:
+                    pass
             if "join_log_channel" in config:
                 msg = f"<:leave:575348321401569312> **Member Leave**: {member.mention} | "\
                     f"{member}\n"\
