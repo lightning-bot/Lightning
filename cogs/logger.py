@@ -174,6 +174,61 @@ class Logger(Cog):
 
         await self.invite_filter(message) # Check if message has invite
 
+    @Cog.listener()
+    async def on_member_update(self, before, after):
+        await self.bot.wait_until_ready()
+        if db.per_guild_config.exist_guild_config(before.guild, "config"):
+            config = db.per_guild_config.get_guild_config(before.guild, "config")
+            if "event_embed_channel" in config:
+                if before.roles == after.roles:
+                    return
+                added_roles = [role.name for role in after.roles if role not in before.roles]
+                removed_roles = [role.name for role in before.roles if role not in after.roles]
+                embed = discord.Embed(title="Member Update", color=discord.Color.blurple(), timestamp=datetime.datetime.utcnow())
+                embed.set_author(name=str(after), icon_url=str(after.avatar_url))
+                if len(added_roles) != 0:
+                    embed.add_field(name="Added Role", value=", ".join(added_roles))
+                if len(removed_roles) != 0:
+                    embed.add_field(name="Removed Role", value=", ".join(removed_roles))
+                try:
+                    await self.bot.get_channel(config["event_embed_channel"]).send(embed=embed)
+                except:
+                    pass
+            if "event_channel" in config:
+                msg = ""
+                if before.roles != after.roles: # Taken from robocop-ng. MIT Licensed.
+                    # role removal
+                    role_removal = []
+                    for index, role in enumerate(before.roles):
+                        if role not in after.roles:
+                            role_removal.append(role)
+                    # role addition
+                    role_addition = []
+                    for index, role in enumerate(after.roles):
+                        if role not in before.roles:
+                            role_addition.append(role)
+
+                    if len(role_addition) != 0 or len(role_removal) != 0:
+                        msg += "\n👑 __Role change__: "
+                        roles = []
+                        for role in role_removal:
+                            roles.append("_~~" + role.name + "~~_")
+                        for role in role_addition:
+                            roles.append("__**" + role.name + "**__")
+                        for index, role in enumerate(after.roles):
+                            if role.name == "@everyone":
+                                continue
+                            if role not in role_removal and role not in role_addition:
+                                roles.append(role.name)
+                    msg += ", ".join(roles)
+                if msg: # Ending
+                    msg = f"ℹ️ **Member update**: {after.mention} | "\
+                        f"{self.bot.escape_message(after)}{msg}"
+                try:
+                    await self.bot.get_channel(config["event_channel"]).send(msg)
+                except:
+                    pass
+
 
 
 
