@@ -4,6 +4,7 @@ from discord.ext import commands
 # import io
 # from PIL import Image, ImageFilter
 import random
+import math
 
 
 class Fun(commands.Cog):
@@ -12,6 +13,10 @@ class Fun(commands.Cog):
         self.bot = bot
         self.session = aiohttp.ClientSession(loop=self.bot.loop)
         self.bot.log.info(f'{self.qualified_name} loaded')
+
+    def c_to_f(self, c):
+        """stolen from Robocop-ng. """
+        return math.floor(9.0 / 5.0 * c + 32)
 
    # async def get_image(self, ctx, url)
 
@@ -48,9 +53,23 @@ class Fun(commands.Cog):
         safe_name = await commands.clean_content().convert(ctx, str(target))
         # :idontfeelsogood:
         random_bams = ["n̟̤͙̠̤̖ǫ̺̻ͅw̴͍͎̱̟ ̷̭̖̫͙̱̪b͏͈͇̬̠̥ͅ&̻̬.̶̜͍̬͇̬ ҉̜̪̘̞👍̡̫͙͚͕ͅͅ", "n͢ow̢ ͜b&͢. ̷👍̷", "n҉̺o̧̖̱w̯̬̜̺̘̮̯ ͉͈͎̱̰͎͡b&̪̗̮̣̻͉.͍͖̪͕̤͔ ͢👍̵͙̯͍̫̬", "ńo̶̡͜w͘͟͏ ҉̶b̧&̧.̡͝ ̕👍̡͟", "n҉o̢͘͞w̢͢ ̢͏̢b͠&̴̛.̵̶ ̢́👍̴", "n̶̵̵̷̡̲̝̺o̵̶̷̴̜͚̥͓w̶̶̶̴͔̲͢͝ ḇ̶̷̶̵̡̨͜&̷̴̶̵̢̗̻͝.̷̵̴̶̮̫̰͆ 👍̵̶̵̶̡̡̹̹",
-        "n̸̶̵̵̷̴̷̵̷̒̊̽ò̷̷̷̶̶̶̶̴̝ͥ̄w̶̶̷̶̵̴̷̶̴̤̑ͨ b̷̵̶̵̶̷̵̴̶̧͌̓&̵̶̵̶̷̴̵̴̻̺̓̑.̵̴̷̵̶̶̶̷̷̹̓̉ 👍"]
+        "n̸̶̵̵̷̴̷̵̷̒̊̽ò̷̷̷̶̶̶̶̴̝ͥ̄w̶̶̷̶̵̴̷̶̴̤̑ͨ b̷̵̶̵̶̷̵̴̶̧͌̓&̵̶̵̶̷̴̵̴̻̺̓̑.̵̴̷̵̶̶̶̷̷̹̓̉ 👍", "no̥̊w ͜͠b̹̑&̛͕.̡̉ 👍̡̌", "n̐̆ow͘ ̌̑b͛͗&͗̂̍̒.̄ ͊👍͂̿͘"]
 
         await ctx.send(f"{safe_name} is {random.choice(random_bams)}")
+
+    @commands.command() # Another meme
+    async def warm(self, ctx, user: discord.Member):
+        """Warms a user"""
+        celsius = random.randint(15, 100)
+        fahrenheit = self.c_to_f(celsius)
+        await ctx.send(f"{user.mention} warmed. User is now {celsius}°C ({fahrenheit}°F).")
+
+    @commands.command(aliases=['cool', 'cold']) # Another meme again
+    async def chill(self, ctx, user: discord.Member):
+        """Chills/cools a user"""
+        celsius = random.randint(-50, 15)
+        fahrenheit = self.c_to_f(celsius)
+        await ctx.send(f"{user.mention} chilled. User is now {celsius}°C ({fahrenheit}°F).")
 
     @commands.command()
     async def cat(self, ctx):
