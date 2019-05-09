@@ -28,9 +28,10 @@ class Configuration(commands.Cog):
     # Snippet of code taken from Noirscape's kirigiri. https://git.catgirlsin.space/noirscape/kirigiri/src/branch/master/LICENSE
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(name="setjoinlogs")
+    @commands.command(name="set-join-logs", aliases=['setjoinlogs', 'set-join-log'])
     async def setjoinlogs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set the member join and leave logs"""
+        """If enabled, tracks whenever users join or leave your server and sends it to the specified logging channel. 
+        Compact Logs"""
         if channel == "disable":
             ctx.guild_config.pop("join_log_channel")
             await ctx.send("Member join and leave logging disabled.")
@@ -40,7 +41,7 @@ class Configuration(commands.Cog):
 
     @commands.group()
     async def embed(self, ctx):
-        """Embedded Logging.""" # For those who don't like compact logging
+        """Set up embedded logging.""" # For those who don't like compact logging
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
@@ -49,7 +50,8 @@ class Configuration(commands.Cog):
     @commands.has_permissions(administrator=True)
     @embed.command(name="setjoinlogs", aliases=['set-join-logs'])
     async def setjoinlogs_embed(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set the member join and leave logs. Embedded"""
+        """If enabled, tracks whenever users join or leave your server and sends it to the specified logging channel. 
+        Embedded Logs"""
         if channel == "disable":
             ctx.guild_config.pop("join_log_embed_channel")
             await ctx.send("Embedded member join and leave logging disabled.")
@@ -59,9 +61,10 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @embed.command(name="set-role-logs")
+    @embed.command(name="set-role-logs", aliases=['setrolelogs'])
     async def set_event_embed_logs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set member role additions logs. Embedded"""
+        """If enabled, tracks whenever users change their roles or get theirs changed and sends it to the specified logging channel.
+        Embedded Logs"""
         if channel == "disable":
             ctx.guild_config.pop("event_embed_channel")
             await ctx.send("Embedded member role logs have been disabled.")
@@ -108,9 +111,10 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(name="set-role-logs")
+    @commands.command(name="set-role-logs", aliases=['setrolelogs'])
     async def set_event_logs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set member role additions logs."""
+        """If enabled, tracks whenever users change their roles or get theirs changed and sends it to the specified logging channel.
+        Compact Logs"""
         if channel == "disable":
             ctx.guild_config.pop("event_channel")
             await ctx.send("Member role logs have been disabled.")
