@@ -96,7 +96,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(name="setmodlogs")
+    @commands.command(name="set-mod-logs", aliases=['setmodlogs'])
     async def set_mod_logs(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set where moderation actions should be logged"""
         if channel == "disable":
@@ -144,8 +144,8 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(aliases=['toggleinvitewatch', 'toggle-invite-watch'])
-    async def setinvitewatch(self, ctx, channel: Union[discord.TextChannel, str]):
+    @commands.command(name="set-invite-watch", aliases=['toggleinvitewatch', 'toggle-invite-watch'])
+    async def set_invite_watch(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set the Invite Watching Channel"""
         if channel == "disable":
             ctx.guild_config.pop("invite_watch")
@@ -155,7 +155,7 @@ class Configuration(commands.Cog):
             await ctx.send(f"Invite watching will be sent to {channel.mention}. Please note that this doesn't delete invites. <:mayushii:562686801043521575>")
 
     @commands.guild_only()
-    @commands.command(name="setmodrole", aliases=['setmodroles'])
+    @commands.command(name="set-mod-role", aliases=['setmodroles', 'set-mod-roles'])
     @commands.has_permissions(administrator=True)
     async def set_mod_role(self, ctx, target: str, level: str):
         """
@@ -178,7 +178,7 @@ class Configuration(commands.Cog):
         await ctx.send(f"Successfully set the {level} rank to the {target} role! <:mayushii:562686801043521575>")
 
     @commands.guild_only()
-    @commands.command(name="getmodroles")
+    @commands.command(name="get-mod-roles")
     @commands.has_permissions(administrator=True)
     async def get_mod_roles(self, ctx):
         """
@@ -197,7 +197,7 @@ class Configuration(commands.Cog):
     # End Snippet
 
     @commands.guild_only()
-    @commands.command(name="deletemodroles")
+    @commands.command(name="delete-mod-roles")
     @commands.has_permissions(administrator=True)
     async def delete_mod_roles(self, ctx):
         """Delete the set mod roles"""
