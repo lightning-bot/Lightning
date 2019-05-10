@@ -445,11 +445,19 @@ class Moderation(commands.Cog):
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def unban(self, ctx, user_id: int, *, reason: str = ""):
         """Unbans a user, Moderator+ only"""
-        member = discord.Object(id=user_id)
+        # A Re-implementation of the BannedMember converter taken from RoboDanny. https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/mod.py
+        ban_list = await ctx.guild.bans()
         try:
-            await ctx.guild.unban(member, reason=str(ctx.author))
-        except discord.HTTPException:
-            return await ctx.send(f"❌ Unable to unban user with ID `{user_id}`")
+            member_id = int(user_id)
+            entity = discord.utils.find(lambda u: u.user.id == member_id, ban_list)
+        except ValueError: # We'll fix this soon. It Just Works:tm: for now
+            entity = discord.utils.find(lambda u: str(u.user) == user_id, ban_list)
+
+        if entity is None:
+            return await ctx.send("❌ Not a valid previously-banned member.")
+            # This is a mess :p
+        member = discord.Object(id=user_id)
+        await ctx.guild.unban(member, reason=str(ctx.author))
 
         chan_message = f"⭕ **Unban**: {ctx.author.mention} unbanned "\
                        f"<@{user_id}>\n"\
