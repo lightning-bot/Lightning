@@ -85,6 +85,7 @@ class Misc(commands.Cog):
 
         embed.add_field(name="Members", value=sta)
         embed.add_field(name="Emoji Count", value=f"{len(guild.emojis)}")
+        embed.add_field(name="Verification Level", value=guild.verification_level)
         await ctx.send(embed=embed)
 
     @commands.command()
