@@ -120,7 +120,7 @@ class Info(commands.Cog):
         msg = f"Thanks for adding me! I'm Lightning.\n"\
             f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
             f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd or see the setup guide"\
-            f" at <https://umbrasage.github.io/Lightning/settings/>"
+            f" at <https://umbrasage.gitlab.io/Lightning/settings/>"
         await guild.owner.send(msg)
 
     @commands.Cog.listener()
