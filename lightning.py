@@ -62,15 +62,19 @@ bot.log = log
 bot.config = config
 bot.help_command.dm_help = None
 bot.script_name = script_name
+failed_to_load_cogs = []
+success_cogs = []
 
 # Here we load our extensions(cogs) listed above in [initial_extensions].
 if __name__ == '__main__':
     for extension in initial_extensions:
         try:
             bot.load_extension(extension)
+            success_cogs.append([extension])
         except Exception as e:
             log.error(f'Failed to load cog {extension}.')
             log.error(traceback.print_exc())
+            failed_to_load_cogs.append([extension, type(e).__name__, e])
 
 def load_jis():
     bot.load_extension('jishaku')
@@ -93,8 +97,18 @@ async def on_ready():
     game_name = f"{version_num} | l.help"
     summary = f"{len(bot.guilds)} guild(s) and {len(bot.users)} user(s)"
     msg = f"{bot.user.name} has started! "\
-          f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}\n\nCogs Loaded: ```python\n{config.cogs}```"\
+          f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}"\
           f"\nI'm currently on **{bot.version}**"
+    if len(success_cogs) != 0:
+        info = "Cog Info:\n\n"
+        info += "Loaded Cogs:\n"
+        for s in success_cogs:
+            info += "{}\n".format(*s)
+        if len(failed_to_load_cogs) != 0:
+            for b in failed_to_load_cogs:
+                info += "Failed to load {}: `{}: {}`\n".format(*b)
+        url = await bot.haste(info)
+        msg += f"\n__Information about cogs loaded and failed__ -> {url}"
 
     await bot.botlog_channel.send(msg)
     await bot.change_presence(activity=discord.Game(name=game_name))
