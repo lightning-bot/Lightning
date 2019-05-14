@@ -55,9 +55,8 @@ def _callable_prefix(bot, message):
 
 initial_extensions = config.cogs
 
-bot = commands.Bot(command_prefix=_callable_prefix, description=config.description)
+bot = commands.Bot(command_prefix=_callable_prefix, description=config.description, pm_help=None)
 bot.launch_time = datetime.utcnow()
-bot.help_command.dm_help = None
 
 bot.log = log
 bot.config = config
