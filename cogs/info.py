@@ -48,7 +48,7 @@ class Info(commands.Cog):
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
         embed.add_field(name="Python Version", value=f"{platform.python_version()}")
-        embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)\n[Website](https://umbrasage.github.io/Lightning/home/)")
+        embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)\n[Website](https://umbrasage.gitlab.io/Lightning/home/)")
         embed.set_footer(text=f"Lightning+ {self.bot.version}", icon_url=ctx.bot.user.avatar_url)
         await ctx.send(embed=embed)
 
