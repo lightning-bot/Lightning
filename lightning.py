@@ -99,7 +99,7 @@ async def on_ready():
     summary = f"{len(bot.guilds)} guild(s) and {len(bot.users)} user(s)"
     msg = f"{bot.user.name} has started! "\
           f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}"\
-          f"Running on Python {platform.python_version()}"\
+          f"\nRunning on Python {platform.python_version()}"\
           f"\nI'm currently on **{bot.version}**"
     if len(success_cogs) != 0:
         info = "Cog Info:\n\n"
