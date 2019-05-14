@@ -182,7 +182,7 @@ class Configuration(commands.Cog):
         await ctx.send(f"Successfully set the {level} rank to the {target} role! <:mayushii:562686801043521575>")
 
     @commands.guild_only()
-    @commands.command(name="get-mod-roles")
+    @commands.command(name="get-mod-roles", aliases=['getmodroles', 'getmodrole'])
     @commands.has_permissions(administrator=True)
     async def get_mod_roles(self, ctx):
         """

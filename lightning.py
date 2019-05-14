@@ -61,7 +61,6 @@ bot.launch_time = datetime.utcnow()
 bot.log = log
 bot.config = config
 bot.help_command.dm_help = None
-bot.help_command.dm_help_threshold = 650
 bot.script_name = script_name
 
 # Here we load our extensions(cogs) listed above in [initial_extensions].
