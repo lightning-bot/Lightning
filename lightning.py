@@ -55,11 +55,13 @@ def _callable_prefix(bot, message):
 
 initial_extensions = config.cogs
 
-bot = commands.Bot(command_prefix=_callable_prefix, description=config.description, pm_help=None)
+bot.help_command.dm_help_threshold = 650
+bot = commands.Bot(command_prefix=_callable_prefix, description=config.description)
 bot.launch_time = datetime.utcnow()
 
 bot.log = log
 bot.config = config
+bot.help_command.dm_help = None
 bot.script_name = script_name
 
 # Here we load our extensions(cogs) listed above in [initial_extensions].
