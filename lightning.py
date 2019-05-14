@@ -1,6 +1,7 @@
 import os
 import sys
 import discord
+import platform
 import logging
 import logging.handlers
 import traceback
@@ -98,6 +99,7 @@ async def on_ready():
     summary = f"{len(bot.guilds)} guild(s) and {len(bot.users)} user(s)"
     msg = f"{bot.user.name} has started! "\
           f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}"\
+          f"Running on Python {platform.python_version()}"\
           f"\nI'm currently on **{bot.version}**"
     if len(success_cogs) != 0:
         info = "Cog Info:\n\n"
@@ -107,7 +109,7 @@ async def on_ready():
         if len(failed_to_load_cogs) != 0:
             for b in failed_to_load_cogs:
                 info += "Failed to load {}: `{}: {}`\n".format(*b)
-        url = await bot.haste(info)
+        url = await bot.haste(info) # Common Cog needs to be loaded so it can generate the haste
         msg += f"\n__Information about cogs loaded and failed__ -> {url}"
 
     await bot.botlog_channel.send(msg)
