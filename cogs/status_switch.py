@@ -4,6 +4,7 @@ from discord.ext import commands #, tasks
 import random
 import datetime
 import subprocess
+import json
 from enum import Enum
 
 # We'll use a Enum just for the sake of not redo-ing this code over again.
@@ -13,6 +14,7 @@ class Names(Enum):
     VERSION = 2
     DEF_HELP = 3
     MEMBERS = 4
+    MUSIC = 5
 
     def change(self):
         num = list(self.__class__)
@@ -28,6 +30,7 @@ class StatusSwitch(commands.Cog):
         self.bot = bot
         self.bot.log.info(f'{self.qualified_name} loaded')
         self.stats_ran = random.choice(list(Names))
+        self.music = json.load(open('resources/music_list.json', 'r'))
         self.rotate_task = self.bot.loop.create_task(self.status_rotate())       
 
     #def cog_unload(self):
@@ -54,6 +57,9 @@ class StatusSwitch(commands.Cog):
             if self.stats_ran is Names.MEMBERS:
                 act_name = f"{len(self.bot.users)} users"
                 act_type = discord.ActivityType.watching
+            if self.stats_ran is Names.MUSIC:
+                act_name = f"♬ {random.choice(self.music)}"
+                act_type = discord.ActivityType.playing
 
             
             await self.bot.change_presence(activity=discord.Activity(name=act_name, type=act_type))
