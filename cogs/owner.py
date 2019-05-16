@@ -10,6 +10,7 @@ from subprocess import call
 import time
 import asyncio
 from database import BlacklistGuild
+import random
 
 # I should clean up this cog soon:tm:
 
@@ -189,8 +190,16 @@ class Owner(Cog):
     @commands.is_owner()
     async def stop(self, ctx):
         """Stop the Bot."""
-        await ctx.send("👋 Shutting Down....")
+        shutdown_messages = ['Shutting Down...', "See ya!", "RIP", "Turning off...."]
+        await ctx.send(f"👋 {random.choice(shutdown_messages)}")
+        time.sleep(20)
         await self.bot.close()
+
+    @commands.command()
+    @commands.is_owner()
+    async def dm(self, ctx, user_id: discord.Member, *, message: str):
+        """Direct messages a user""" # No checks yet
+        await user_id.send(message)
 
     @commands.Cog.listener()
     async def on_guild_join(self, ctx, guild):
