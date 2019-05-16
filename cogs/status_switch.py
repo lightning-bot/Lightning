@@ -31,7 +31,7 @@ class StatusSwitch(commands.Cog):
         self.bot.log.info(f'{self.qualified_name} loaded')
         self.stats_ran = random.choice(list(Names))
         self.music = json.load(open('resources/music_list.json', 'r'))
-        self.rotate_task = self.bot.loop.create_task(self.status_rotate())       
+        self.rotate_task = self.bot.loop.create_task(self.status_rotate()) 
 
     #def cog_unload(self):
     #    self.status_rotate.cancel()
@@ -64,15 +64,23 @@ class StatusSwitch(commands.Cog):
             
             await self.bot.change_presence(activity=discord.Activity(name=act_name, type=act_type))
             self.stats_ran = self.stats_ran.change()
-            await asyncio.sleep(5 * 60) # 5 Minutes * 60 Seconds
-    
-    #async def rotate_loop(self):
-    #   try:
-    #        await self.stats_ran()
-    #        await self.status_rotate()
-    #        await asyncio.sleep(15 * 60)
-    #    except asyncio.CancelledError:
-    #        pass
+            await asyncio.sleep(5 * 60) # 5 * 60 Seconds
+# Tasks stuff    
+#    @commands.command()
+#    @commands.is_owner()
+#    async def start_ss(self, ctx):
+#        self.status_rotate.start()
+#        await ctx.send("Status Switcher has started! ✅")
+
+#    @status_rotate.before_loop
+#    async def before_status_rotate(self):
+#        await self.bot.wait_until_ready()
+
+#    @commands.command()
+#    @commands.is_owner()
+#    async def stop_ss(self, ctx):
+#        self.status_rotate.stop()
+#        await ctx.send("Status Switcher has been halted! 🛑")
 
 
 
