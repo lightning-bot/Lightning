@@ -8,11 +8,6 @@ class Old_Commands(commands.Cog):
         self.bot.log.info(f'{self.qualified_name} loaded')
 
 
-    @commands.command(aliases=['lightning'], hidden=True)
-    async def credits(self, ctx):
-        embed = discord.Embed(title="Note", description="This command has been changed to `l.about`", color=discord.Color.dark_green())
-        await ctx.send(embed=embed)
-
     @commands.command(aliases=['set', 'settings'], hidden=True)
     async def edit(self, ctx):
         embed = discord.Embed(title="Note", description="This command no longer exists. To setup the bot, use `l.help Configuration`", color=discord.Color.dark_green())

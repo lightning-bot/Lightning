@@ -24,7 +24,7 @@ class Info(commands.Cog):
 
         await ctx.send(f"{ctx.author.mention} You're asking for an invite in the support server? <:blobthonk:537791813990350873>\n~~There's an invite in <#567138592208453635> btw~~")
 
-    @commands.command(aliases=['info'])
+    @commands.command(aliases=['info', 'credits'])
     @commands.bot_has_permissions(embed_links=True)
     async def about(self, ctx):
         """Various information about the bot."""
@@ -52,8 +52,9 @@ class Info(commands.Cog):
         embed.set_footer(text=f"Lightning+ {self.bot.version}", icon_url=ctx.bot.user.avatar_url)
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @commands.command(hidden=True)
     async def upvote(self, ctx):
+        """Gives a link to the DBL page"""
         await ctx.send("You can vote for me here. <https://discordbots.org/bot/532220480577470464/vote>")
 
     @commands.command(aliases=['invite'])
