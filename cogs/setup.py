@@ -261,19 +261,20 @@ class Configuration(commands.Cog):
         await ctx.send(f"I successfully set the mute role to {role.name}")
 
     @commands.guild_only()
-    @commands.command(name="reset-mute-role", aliases=['deletemuterole'])
+    @commands.command(name="reset-mute-role", aliases=['deletemuterole', 'delete-mute-role'])
     @commands.has_permissions(administrator=True)
     async def delete_mute_role(self, ctx):
         """This deletes whatever mute role is set for your server. 
         """
         session = self.bot.db.dbsession()
-        mute = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
-        if mute:
+        try:
+            mute = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
             session.delete(mute)
             session.commit()
             session.close()
             await ctx.send("<:LightningCheck:571376826832650240> I successfully deleted the role from the database for this server.")
-        else:
+        except:
+            mute = None
             session.close()
             return await ctx.send("❌ This server does not have a mute role setup.")
 
