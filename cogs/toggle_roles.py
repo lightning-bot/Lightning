@@ -16,9 +16,13 @@ class ToggleRoles(commands.Cog):
         """Lists all the toggleable roles this guild has"""
         session = self.bot.db.dbsession()
         embed = discord.Embed(title="Toggleable Role List", color=discord.Color.dark_purple())
+        role_list = []
         for row in session.query(Roles).filter_by(guild_id=ctx.guild.id):
             role = discord.utils.get(ctx.guild.roles, id=row.role_id)
-            embed.description = f"{role.mention}"
+            embed.description = ""
+            role_list.append(role)
+            for s in role_list:
+                embed.description += f"{s.mention}\n"
         embed.set_footer(text=f"{ctx.guild.name}")
         session.close()
         await ctx.send(embed=embed)
