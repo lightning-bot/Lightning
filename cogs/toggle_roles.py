@@ -18,7 +18,7 @@ class ToggleRoles(commands.Cog):
         embed = discord.Embed(title="Toggleable Role List", color=discord.Color.dark_purple())
         for row in session.query(Roles).filter_by(guild_id=ctx.guild.id):
             role = discord.utils.get(ctx.guild.roles, id=row.role_id)
-            embed.add_field(name=f"{role.name}", value=f"{role.mention}")
+            embed.description = f"{role.mention}"
         embed.set_footer(text=f"{ctx.guild.name}")
         session.close()
         await ctx.send(embed=embed)
