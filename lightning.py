@@ -61,7 +61,7 @@ bot.launch_time = datetime.utcnow()
 
 bot.log = log
 bot.config = config
-bot.help_command.dm_help = None
+bot.help_command = commands.DefaultHelpCommand(dm_help = None)
 bot.script_name = script_name
 failed_to_load_cogs = []
 success_cogs = []
