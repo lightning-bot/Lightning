@@ -2,7 +2,6 @@ import asyncio
 import discord
 from discord.ext import commands #, tasks
 import random
-import datetime
 import subprocess
 import json
 from enum import Enum
