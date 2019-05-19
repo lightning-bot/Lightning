@@ -4,7 +4,6 @@ from discord.ext.commands import Cog
 import datetime
 import aiohttp
 from bs4 import BeautifulSoup
-import io
 
 class Comics(Cog):
     """Comics Cog"""
