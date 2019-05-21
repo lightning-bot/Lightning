@@ -6,9 +6,7 @@ import inspect
 import re
 import os
 from git import Repo
-from subprocess import call
 import time
-import asyncio
 from database import BlacklistGuild
 import random
 import config
