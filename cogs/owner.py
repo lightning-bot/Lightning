@@ -222,6 +222,7 @@ class Owner(Cog):
             f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd or see the setup guide"\
             f" at <https://umbrasage.gitlab.io/Lightning/settings/>"
             await guild.owner.send(msg)
+        session.close()
             
 
 
