@@ -11,6 +11,7 @@ import time
 import asyncio
 from database import BlacklistGuild
 import random
+import config
 
 # I should clean up this cog soon:tm:
 
@@ -26,8 +27,13 @@ class Owner(Cog):
     @commands.command(hidden=True)
     async def fetchlog(self, ctx):
         """Returns log"""
-        await ctx.send("Here's the current log file:",
-        file=discord.File(f"{self.bot.script_name}.log"))
+        log_channel = self.bot.get_channel(config.error_channel)
+        await ctx.message.add_reaction("✅")
+        try:
+            await ctx.author.send("Here's the current log file:", file=discord.File(f"{self.bot.script_name}.log"))
+        except discord.errors.Forbidden:
+            await ctx.send(f"💢 I couldn't send the log file in your DMs so I sent it to the bot's logging channel.")
+            await log_channel.send("Here's the current log file:", file=discord.File(f"{self.bot.script_name}.log"))
 
     @commands.is_owner()
     @commands.command(name='blacklistguild')
@@ -35,7 +41,7 @@ class Owner(Cog):
         """Blacklist a guild from using the bot"""
         guild = self.bot.get_guild(guild_id)
         if guild is None:
-            msg = "**Note**: Lightning+ is not in that guild. This is a preventive blacklist.\n"
+            msg = "**Note**: Lightning is not in that guild. This is a preventive blacklist.\n"
         else:
             msg = ""
             await guild.leave()
