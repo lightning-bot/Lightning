@@ -1,0 +1,42 @@
+image: python:latest
+# Mess
+# Pip's cache doesn't store the python packages
+# https://pip.pypa.io/en/stable/reference/pip_install/#caching
+#
+# If you want to also cache the installed packages, you have to install
+# them in a virtualenv and cache it as well.
+#cache:
+  #paths:
+    #- .cache/pip
+    #- venv/
+    
+variables:
+  NEW_COMMIT: git diff-tree --no-commit-id --name-only -r $CI_COMMIT_SHA
+  OUTPUT: ${NEW_COMMIT}
+
+before_script:
+  - python -V # Print out python version for debugging
+ # - pip install virtualenv
+ # - virtualenv venv
+ # - source venv/bin/activate
+
+#test:
+#  script:
+#  - python -mpip install -r requirements.txt
+#  - python lightning.py test
+#  - pip install tox flake8 # you can also use tox
+#  - tox -e py36,flake8
+#  - pip install --upgrade pyflakes
+
+pyflakes:
+  script:
+  - pip install pyflakes
+  - echo $NEW_COMMIT # What's new in the commit
+  #- $NEW_COMMIT
+  - pyflakes "$($NEW_COMMIT)"
+  # an alternative approach is to install and run:
+  #- pip install dist/*
+  # run the command here
+  #artifacts:
+   # paths:
+   # - dist/*.whl
