@@ -56,15 +56,16 @@ class Owner(Cog):
     async def unblacklist_guild(self, ctx, server_id: int):
         """Unblacklist a guild from using the bot"""
         session = self.bot.db.dbsession()
-        check_blacklist = session.query(BlacklistGuild).filter_by(guild_id=server_id).one()
-        if check_blacklist == None:
-            session.close()
-            return await ctx.send(f":x: `{server_id}` isn't blacklisted!")
-        else:
+        try:
+            check_blacklist = session.query(BlacklistGuild).filter_by(guild_id=server_id).one()
             session.delete(check_blacklist)
             session.commit()
             session.close()
             await ctx.send(f"✅ `{server_id}` successfully unblacklisted!")
+        except:
+            check_blacklist = None
+            session.close()
+            return await ctx.send(f":x: `{server_id}` isn't blacklisted!")
 
     @commands.is_owner()
     @commands.command()
