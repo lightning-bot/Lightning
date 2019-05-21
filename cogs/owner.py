@@ -37,9 +37,9 @@ class Owner(Cog):
 
     @commands.is_owner()
     @commands.command(name='blacklistguild')
-    async def blacklist_guild(self, ctx, guild_id: int):
+    async def blacklist_guild(self, ctx, server_id: int):
         """Blacklist a guild from using the bot"""
-        guild = self.bot.get_guild(guild_id)
+        guild = self.bot.get_guild(server_id)
         if guild is None:
             msg = "**Note**: Lightning is not in that guild. This is a preventive blacklist.\n"
         else:
@@ -47,11 +47,11 @@ class Owner(Cog):
             await guild.leave()
 
         session = self.bot.db.dbsession()
-        blacklist = BlacklistGuild(guild_id=guild)
+        blacklist = BlacklistGuild(guild_id=server_id)
         session.merge(blacklist)
         session.commit()
         session.close()
-        await ctx.send(msg + f'Successfully blacklisted {guild_id}')
+        await ctx.send(msg + f'Successfully blacklisted {server_id}')
 
     @commands.is_owner()
     @commands.command()
@@ -208,11 +208,20 @@ class Owner(Cog):
         await user_id.send(message)
 
     @commands.Cog.listener()
-    async def on_guild_join(self, ctx, guild):
+    async def on_guild_join(self, guild):
         session = self.bot.db.dbsession()
-        guild_blacklist = session.query(BlacklistGuild).get(guild.id)
-        if guild.id is guild_blacklist:
+        try:
+            guild_blacklist = session.query(BlacklistGuild).filter_by(guild_id=guild.id).one()
+            await guild.owner.send("**Sorry, this guild is blacklisted.** To appeal your blacklist, join the support server. https://discord.gg/cDPGuYd")
             await guild.leave()
+            return
+        except:
+            guild_blacklist = None
+            msg = f"Thanks for adding me! I'm Lightning.\n"\
+            f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
+            f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd or see the setup guide"\
+            f" at <https://umbrasage.gitlab.io/Lightning/settings/>"
+            await guild.owner.send(msg)
             
 
 

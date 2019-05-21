@@ -120,11 +120,6 @@ class Info(commands.Cog):
         embed = discord.Embed(title="Joined New Guild", color=discord.Color.blue())
         await self.send_guild_info(embed, guild)
         self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
-        msg = f"Thanks for adding me! I'm Lightning.\n"\
-            f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
-            f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd or see the setup guide"\
-            f" at <https://umbrasage.gitlab.io/Lightning/settings/>"
-        await guild.owner.send(msg)
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
