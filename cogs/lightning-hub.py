@@ -21,10 +21,13 @@ class LightningHub(commands.Cog):
             embed.description = text
             embed.add_field(name="Jump!", value=f"{ctx.message.jump_url}")
         await staff.send(f"‼ {ctx.author.mention} needs a staff member. @here", embed=(embed if text != "" else None))
+        await ctx.message.add_reaction("✅")
+        await ctx.send("Online staff have been notified of your request")
 
     @commands.command(hidden=True)
     @commands.has_any_role("Helpers", "Staff")
     async def probate(self, ctx, target: discord.Member, *, reason: str = ""):
+        """Probates a user."""
         if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
             return
 
@@ -52,10 +55,12 @@ class LightningHub(commands.Cog):
                     f" as the reason is automatically sent to the user."
 
         await mod_log_chan.send(msg)
+        await ctx.send(f"{target.mention} is now probated.")
 
     @commands.command(hidden=True)
     @commands.has_any_role("Helpers", "Staff")
     async def unprobate(self, ctx, target: discord.Member, *, reason: str = ""):
+        """Removes probation role/unprobates the user"""
         if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
             return
 
@@ -73,6 +78,7 @@ class LightningHub(commands.Cog):
                     f"`{ctx.prefix}unprobate <user> [reason]`" 
 
         await mod_log_chan.send(msg)
+        await ctx.send(f"{target.mention} is now unprobated.")
 
 
 
