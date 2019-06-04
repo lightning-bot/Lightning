@@ -10,7 +10,7 @@ class LightningHub(commands.Cog):
     @commands.command(hidden=True)
     @commands.has_any_role("Trusted", "Verified")
     async def sr(self, ctx, *, text: str = ""):
-        """Request staff assistance"""
+        """Request staff assistance. Trusted and Verified only."""
         if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
             return
         
@@ -22,12 +22,12 @@ class LightningHub(commands.Cog):
             embed.add_field(name="Jump!", value=f"{ctx.message.jump_url}")
         await staff.send(f"‼ {ctx.author.mention} needs a staff member. @here", embed=(embed if text != "" else None))
         await ctx.message.add_reaction("✅")
-        await ctx.send("Online staff have been notified of your request")
+        await ctx.send("Online staff have been notified of your request.")
 
     @commands.command(hidden=True)
     @commands.has_any_role("Helpers", "Staff")
     async def probate(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Probates a user."""
+        """Probates a user. Staff only."""
         if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
             return
 
@@ -38,12 +38,6 @@ class LightningHub(commands.Cog):
         if reason:
             dm_message += f" The given reason is: \"{reason}\"."
 
-        try:
-            await target.send(dm_message)
-        except discord.errors.Forbidden:
-            # Prevents kick issues in cases where user blocked bot
-            # or has DMs disabled
-            pass
         await target.add_roles(role, reason=str(ctx.author))
         msg = f"❗️ **Probate**: {ctx.author.mention} probated {target.mention} | {safe_name}"
         if reason:
@@ -53,6 +47,13 @@ class LightningHub(commands.Cog):
                     f", it is recommended to use " \
                     f"`{ctx.prefix}probate <user> [reason]`" \
                     f" as the reason is automatically sent to the user."
+        try:
+            await target.send(dm_message)
+        except discord.errors.Forbidden:
+            # Prevents issues in cases where user blocked bot
+            # or has DMs disabled
+            msg += f"{target.mention} has their DMs off and I was unable to send the reason."# Experimental
+            pass
 
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now probated.")
@@ -60,7 +61,7 @@ class LightningHub(commands.Cog):
     @commands.command(hidden=True)
     @commands.has_any_role("Helpers", "Staff")
     async def unprobate(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Removes probation role/unprobates the user"""
+        """Removes probation role/unprobates the user. Staff only."""
         if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
             return
 
