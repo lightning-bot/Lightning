@@ -52,7 +52,7 @@ class LightningHub(commands.Cog):
         except discord.errors.Forbidden:
             # Prevents issues in cases where user blocked bot
             # or has DMs disabled
-            msg += f"{target.mention} has their DMs off and I was unable to send the reason."# Experimental
+            msg += f"\n\n{target.mention} has their DMs off and I was unable to send the reason."# Experimental
             pass
 
         await mod_log_chan.send(msg)
