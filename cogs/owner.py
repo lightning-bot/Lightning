@@ -116,6 +116,7 @@ class Owner(Cog):
                 check_if_user = None
         # If nothing found in either tables, return
         if check_if_guild and check_if_user is None:
+            session.close()
             await ctx.send(f"❌ No matches found.")
 
     #@commands.command(name="blacklistuserlist", aliases=["blacklisteduserlist"])
