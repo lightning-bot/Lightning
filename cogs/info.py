@@ -119,7 +119,6 @@ class Info(commands.Cog):
     async def on_guild_join(self, guild):
         embed = discord.Embed(title="Joined New Guild", color=discord.Color.blue())
         await self.send_guild_info(embed, guild)
-        self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):

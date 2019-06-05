@@ -226,6 +226,7 @@ class Owner(Cog):
         session = self.bot.db.dbsession()
         try:
             guild_blacklist = session.query(BlacklistGuild).filter_by(guild_id=guild.id).one()
+            self.bot.log.info(f"Attempted to Join Blacklisted Guild | {guild.name} | ({guild.id})")
             await guild.owner.send("**Sorry, this guild is blacklisted.** To appeal your blacklist, join the support server. https://discord.gg/cDPGuYd")
             await guild.leave()
             return
@@ -236,7 +237,7 @@ class Owner(Cog):
             f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd or see the setup guide"\
             f" at <https://lightsage.gitlab.io/Lightning/settings/>"
             await guild.owner.send(msg)
-            self.bot.log.info(f"Attemped to Join Blacklisted Guild | {guild.name} | ({guild.id})")
+            self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
         session.close()
             
 
