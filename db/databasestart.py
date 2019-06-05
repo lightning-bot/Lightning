@@ -27,6 +27,7 @@ from database import BlacklistGuild, Base
 from database import Config, Base
 from database import Roles, Base
 from database import Restrictions, Base
+from database import BlacklistUser, Base
 from discord.ext.commands import Cog
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -35,12 +36,12 @@ from sqlalchemy.orm import sessionmaker
 class BotDB:
     pass
 
-# Changes to this adds the ability to create tables if they don't exist.
+# Changes to this adds the ability to create tables for any tables that aren't made.
 def setup(bot):
     bot.db = BotDB()
     engine = create_engine('sqlite:///config/database.sqlite3')
     bot.db.dbsession = sessionmaker(bind=engine)
     Base.metadata.bind = engine
-    Base.metadata.create_all(engine, tables=[StaffRoles.__table__, BlacklistGuild.__table__, Roles.__table__, Config.__table__, Restrictions.__table__])
+    Base.metadata.create_all(engine, tables=[StaffRoles.__table__, BlacklistGuild.__table__, Roles.__table__, Config.__table__, Restrictions.__table__, BlacklistUser.__table__])
     print(f'Database successfully loaded')
 

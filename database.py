@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
@@ -31,3 +31,8 @@ class Restrictions(Base):
     guild_id = Column(Integer, primary_key=True)
     user_id = Column(Integer)
     sticky_role = Column(Integer)
+
+class BlacklistUser(Base):
+    __tablename__ = "blacklisted_users"
+    user_id = Column(Integer, primary_key=True)
+    reason = Column(String)

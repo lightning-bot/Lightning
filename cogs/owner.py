@@ -7,11 +7,10 @@ import re
 import os
 from git import Repo
 import time
-from database import BlacklistGuild
+from database import BlacklistGuild, BlacklistUser
 import random
 import config
 
-# I should clean up this cog soon:tm:
 
 class Owner(Cog):
     def __init__(self, bot):
@@ -49,7 +48,7 @@ class Owner(Cog):
         session.merge(blacklist)
         session.commit()
         session.close()
-        await ctx.send(msg + f'Successfully blacklisted {server_id}')
+        await ctx.send(msg + f'✅ Successfully blacklisted guild `{server_id}`')
 
     @commands.is_owner()
     @commands.command(name='unblacklistguild', aliases=['unblacklist-guild'])
@@ -66,6 +65,70 @@ class Owner(Cog):
             check_blacklist = None
             session.close()
             return await ctx.send(f":x: `{server_id}` isn't blacklisted!")
+
+    @commands.is_owner()
+    @commands.command(name="blacklistuser", aliases=["blacklist-user"])
+    async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
+        """Blacklist an user from using the bot"""
+        session = self.bot.db.dbsession()
+        if reason_for_blacklist:
+            add_blacklistuser = BlacklistUser(user_id=userid, reason=reason_for_blacklist)
+        else:
+            add_blacklistuser = BlacklistUser(user_id=userid, reason="No Reason Provided")
+        session.merge(add_blacklistuser)
+        session.commit()
+        session.close()
+        await ctx.send(f"✅ Successfully blacklisted user `{userid}`")
+
+    @commands.is_owner()
+    @commands.command(name="unblacklistuser", aliases=['unblacklist-user'])
+    async def unblacklist_user(self, ctx, userid: int):
+        """Unblacklist an user from using the bot"""
+        session = self.bot.db.dbsession()
+        try:
+            check_if_user_blacklisted = session.query(BlacklistUser).filter_by(user_id=userid).one()
+            session.delete(check_if_user_blacklisted)
+            session.commit()
+            session.close()
+            await ctx.send(f"✅ `{userid}` successfully unblacklisted!")
+        except:
+            session.close()
+            return await ctx.send(f"❌ `{userid}` isn't blacklisted!")
+
+    @commands.command(name="blacklistsearch", aliases=["blacklist-search"])
+    @commands.is_owner()
+    async def search_blacklist(self, ctx, guild_or_user_id: int):
+        """Search the blacklist to see if a user or a guild is blacklisted"""
+        session = self.bot.db.dbsession()
+        try:
+            check_if_guild = session.query(BlacklistGuild).filter_by(guild_id=guild_or_user_id).one()
+            session.close()
+            await ctx.send(f"✅ Guild ID `{guild_or_user_id}` is currently blacklisted.")
+        except:
+            check_if_guild = None
+
+        if check_if_guild is None:
+            try:
+                check_if_user = session.query(BlacklistUser).filter_by(user_id=guild_or_user_id).one()
+                session.close()
+                await ctx.send(f"✅ User ID `{guild_or_user_id}` is currently blacklisted.") #(Reason: {check_if_user.reason})
+            except:
+                check_if_user = None
+        # If nothing found in either tables, return
+        if check_if_guild and check_if_user is None:
+            await ctx.send(f"❌ No matches found.")
+
+    #@commands.command(name="blacklistuserlist", aliases=["blacklisteduserlist"])
+    #@commands.is_owner()
+    #async def blacklisted_users_list(self, ctx):
+    #    """Lists blacklisted users"""
+    #    session = self.bot.db.dbsession()
+    #    paginator = commands.Paginator(prefix="", suffix="")
+    #    for row in session.query(BlacklistUser):
+    #        paginator.add_line(f"`{row.user_id}` - Reason: {row.reason}")
+    #    for page in paginator.pages:
+    #        await ctx.send(page)
+
 
     @commands.is_owner()
     @commands.command()
