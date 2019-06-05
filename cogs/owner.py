@@ -236,6 +236,7 @@ class Owner(Cog):
             f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd or see the setup guide"\
             f" at <https://lightsage.gitlab.io/Lightning/settings/>"
             await guild.owner.send(msg)
+            self.bot.log.info(f"Attemped to Join Blacklisted Guild | {guild.name} | ({guild.id})")
         session.close()
             
 
