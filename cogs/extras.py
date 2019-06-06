@@ -19,13 +19,6 @@ class Extras(commands.Cog):
         """Uhhh ping?"""
         await ctx.send(f"My ping is uhhh `{random.randint(31,150)}ms`")
 
-    @commands.command(name='top-role', aliases=['toprole'])
-    @commands.guild_only()
-    async def show_toprole(self, ctx, *, member: discord.Member=None):
-        """Shows the member's highest role."""
-        if member is None:
-            member = ctx.author
-        await ctx.send(f'🎉 The top role for {member.display_name} is **{member.top_role.name}**')
 
     @commands.command()
     @commands.guild_only()
@@ -83,16 +76,6 @@ class Extras(commands.Cog):
         )
         return
 
-    @commands.command(hidden=True)
-    async def emojiid(self, ctx):
-        """Shows emotes by ID"""
-
-        output = ""
-        for emote in self.bot.emojis:
-            if not emote.animated:
-                continue
-            output += f'`:{emote.name}: ID {emote.id}\n'
-        await ctx.send("__List of animated emojis with IDs:__\n\n" + output)
 
 # Taken from Kurisu's Extras Cog. Readapted to add different emotes to it. Kurisu is under the Apache 2.0 License.
 # https://github.com/nh-server/Kurisu/blob/port/LICENSE.txt
