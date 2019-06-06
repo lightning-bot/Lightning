@@ -31,6 +31,16 @@ class Owner(Cog):
         except discord.errors.Forbidden:
             await ctx.send(f"💢 I couldn't send the log file in your DMs so I sent it to the bot's logging channel.")
             await log_channel.send("Here's the current log file:", file=discord.File(f"{self.bot.script_name}.log"))
+    
+    @commands.command(name="fetchguilduserlog")
+    @commands.guild_only()
+    @commands.is_owner()
+    async def getmodlogjson(self, ctx, guild_id: int):
+        """Gets the guild id's userlog.json file"""
+        try:
+            await ctx.send(f"Here's the userlog.json for `{guild_id}`", file=discord.File(f"config/{guild_id}/userlog.json"))
+        except:
+            await ctx.send(f"`{guild_id}` doesn't have a userlog.json yet. Check back later.")
 
     @commands.is_owner()
     @commands.command(name='blacklistguild')
