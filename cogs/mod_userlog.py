@@ -245,6 +245,16 @@ class ModUserLog(commands.Cog):
                 await log_channel.send(msg, embed=del_event)
         else:
             await ctx.send(del_event)
+    
+    @commands.command(name="getuserlog")
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def getmodlogjson(self, ctx):
+        """Gets the current guild's userlog.json file"""
+        try:
+            await ctx.send(f"Here's the userlog.json for {ctx.guild.name}", file=discord.File(f"config/{ctx.guild.id}/userlog.json"))
+        except:
+            await ctx.send(f"This server doesn't have a userlog.json yet. Check back later.")
 
 
 def setup(bot):
