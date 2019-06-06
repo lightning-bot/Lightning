@@ -246,7 +246,7 @@ class ModUserLog(commands.Cog):
         else:
             await ctx.send(del_event)
     
-    @commands.command(name="getuserlog")
+    @commands.command(name="fetchuserlog")
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def getmodlogjson(self, ctx):
