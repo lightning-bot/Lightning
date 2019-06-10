@@ -79,10 +79,7 @@ class Moderation(commands.Cog):
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     @commands.command()
     async def kick(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Kicks a user.
-        
-        Moderator and Admin only.
-        """
+        """Kicks a user. Moderator+"""
         # Hedge-proofing the code
         if target == self.bot.user:  # Idiots
             return await ctx.send("You can't do mod actions on me.")
@@ -133,7 +130,7 @@ class Moderation(commands.Cog):
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     @commands.command()
     async def ban(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Bans a user, staff only."""
+        """Bans a user. Moderator+"""
         # Hedge-proofing the code
         if target == self.bot.user:  # Idiots
             return await ctx.send("You can't do mod actions on me.")
@@ -260,14 +257,15 @@ class Moderation(commands.Cog):
             print(e)
             return await ctx.send('❌ Cannot purge messages!')
 
-        msg = f'🗑️ **{message_count} messages purged** in {ctx.channel.mention} | {ctx.channel.name} | {ctx.channel.id} \n'
-        msg += f'Purger was {ctx.author.mention} | {ctx.author.name}#{ctx.author.discriminator} | {ctx.author.id} \n'
+        msg = f'🗑️ **{message_count} messages purged** in {ctx.channel.mention} | {ctx.channel.name}\n'
+        msg += f'Purger was {ctx.author.mention} | {ctx.author} | {ctx.author.id} \n'
         if reason:
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
-            msg += f"\nPlease add an explanation below. In the future" \
-                   f", it is recommended to use `{ctx.prefix}purge <message_count> [reason]`" \
-                   f" for documentation purposes."
+            pass
+            #msg += f"\nPlease add an explanation below. In the future" \
+            #       f", it is recommended to use `{ctx.prefix}purge <message_count> [reason]`" \
+            #       f" for documentation purposes."
 
         if "log_channel" in ctx.guild_config:
             log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
