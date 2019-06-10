@@ -43,7 +43,7 @@ class ModUserLog(commands.Cog):
 
     These commands were taken from robocop-ngs mod_userlog.py
 
-    robocop-ngs mod.py is under the MIT license and is written by aveao / the ReSwitched team.
+    robocop-ng's mod.py is under the MIT license and is written by aveao / the ReSwitched team.
 
     See here for the license: https://github.com/aveao/robocop-ng/blob/master/LICENSE
     """
@@ -52,8 +52,8 @@ class ModUserLog(commands.Cog):
         self.bot.log.info(f'{self.qualified_name} loaded')
 
     async def cog_before_invoke(self, ctx):
-        if db.per_guild_config.exist_guild_config(ctx.guild, "moderation"):
-            ctx.guild_config = db.per_guild_config.get_guild_config(ctx.guild, "moderation")
+        if db.per_guild_config.exist_guild_config(ctx.guild, "config"):
+            ctx.guild_config = db.per_guild_config.get_guild_config(ctx.guild, "config")
         else:
             ctx.guild_config = {}
 
