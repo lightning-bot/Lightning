@@ -13,7 +13,6 @@ from datetime import datetime
 import db.per_guild_config
 import config
 from dhooks import Embed, Webhook
-import sys, traceback
 
 
 # Uses template from ave's botbase.py
