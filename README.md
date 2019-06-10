@@ -1,10 +1,10 @@
-# Lightning+
+# Lightning.py
 [![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/cDPGuYd)
 
 
 Some code is taken from https://git.catgirlsin.space/noirscape/kirigiri, https://github.com/reswitched/robocop-ng, and https://gitlab.com/ao/dpybotbase. (It's all marked in the code)
 
-This version plans to be the successor to Lightning (which is currently written in .js)
+This version is the successor to Lightning.js
 
 ---
 
@@ -40,6 +40,12 @@ More coming soon. Currently finetuning current stuff.
 - [x] Moderation: Ban ID/Hackban
 - [x] Moderation: Silent Kick
 - [x] Moderation: Reapply Restrictions on Member Join
+- [x] Admin: Fetch the guild's userlog.json file
+- [x] Status Switching
+- [x] Support Server: Special commands that help moderate the support server
+- [x] Bot Owner: Blacklist Guilds and Users
+- [x] Bot Owner: Search blacklist with an ID
+
 
 </p>
 </details>
