@@ -11,8 +11,6 @@ import aiohttp
 import asyncio
 from datetime import datetime
 import db.per_guild_config
-import json
-from db.jsonf import JSONFile
 import config
 from dhooks import Embed, Webhook
 import sys, traceback
@@ -42,15 +40,10 @@ log.setLevel(logging.INFO)
 log.addHandler(file_handler)
 log.addHandler(stdout_handler)
 
-custom_prefixes = JSONFile('customprefixes.json')
 default_prefix = '.', 'l.'
 
 def _callable_prefix(bot, message):
-    if message.guild:
-        prefixes = custom_prefixes.get(message.guild.id, default_prefix)
-    else:
-        prefixes = default_prefix
-
+    prefixes = default_prefix
     return commands.when_mentioned_or(*prefixes)(bot, message)
 
 
@@ -79,7 +72,7 @@ if __name__ == '__main__':
 
 def load_jis():
     bot.load_extension('jishaku')
-    log.info("Successfully loaded Jishaku")
+    log.info("Jishaku loaded")
 
 load_jis()
 
@@ -95,7 +88,6 @@ async def on_ready():
 
     log.info(f'\nLogged in as: {bot.user.name} - '
              f'{bot.user.id}\ndpy version: {discord.__version__}\nVersion: {bot.version}\n')
-    game_name = f"{version_num} | l.help"
     summary = f"{len(bot.guilds)} guild(s) and {len(bot.users)} user(s)"
     msg = f"{bot.user.name} has started! "\
           f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}"\
@@ -113,7 +105,6 @@ async def on_ready():
         msg += f"\n__Information about cogs loaded and failed__ -> {url}"
 
     await bot.botlog_channel.send(msg)
-    await bot.change_presence(activity=discord.Game(name=game_name))
 
 @bot.event
 async def on_command(ctx):
