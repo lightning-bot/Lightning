@@ -8,7 +8,6 @@ import traceback
 from discord.ext import commands
 import aiohttp
 from datetime import datetime
-import db.per_guild_config
 import config
 from dhooks import Embed, Webhook
 
