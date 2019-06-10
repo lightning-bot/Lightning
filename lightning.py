@@ -6,9 +6,7 @@ import logging
 import logging.handlers
 import traceback
 from discord.ext import commands
-from pathlib import Path
 import aiohttp
-import asyncio
 from datetime import datetime
 import db.per_guild_config
 import config
