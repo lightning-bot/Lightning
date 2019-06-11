@@ -44,7 +44,7 @@ class ToggleRoles(commands.Cog):
         if add:
             await member.add_roles(role, reason="Toggled Role")
             session.close()
-            return await ctx.send(f"{member.mention} now has the role {role.name} 🎉")
+            return await ctx.send(f"{member.mention} now has the role **{role.name}** 🎉")
         else:
             session.close()
             return await ctx.send("That role is not toggleable.")
@@ -63,7 +63,7 @@ class ToggleRoles(commands.Cog):
         if role in member.roles and add:
             await member.remove_roles(role, reason="Untoggled Role")
             session.close()
-            return await ctx.send(f"{member.mention} You have untoggled the role {role.name}")
+            return await ctx.send(f"{member.mention} You have untoggled the role **{role.name}**")
         elif role not in member.roles and add:
             session.close()
             return await ctx.send(f"You do not have {role.name}.")
