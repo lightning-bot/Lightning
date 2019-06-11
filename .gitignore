@@ -110,3 +110,5 @@ lightning.log
 /addons
 /config
 db/jsonf.py
+/stabilite
+stabilite_config.py
