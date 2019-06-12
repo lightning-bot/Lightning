@@ -3,7 +3,6 @@ from discord.ext import commands
 
 
 class Memes(commands.Cog):
-
     def __init__(self, bot):
         """Approved™ memes"""
         self.bot = bot
@@ -30,8 +29,13 @@ class Memes(commands.Cog):
     async def hifumi1(self, ctx):
         """Disappointment"""
         await ctx.send(f"{ctx.author.display_name}: https://i.imgur.com/jTTHQLs.gifv")
+
+    @commands.command(hidden=True)
+    @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
+    async def thisisgit(self, ctx):
+        """Git in a nutshell"""
+        await ctx.send(f"{ctx.author.display_name}: https://gitlab.com/LightSage/bunches-of-images/raw/master/lightning/xkcd.png") # Using the img hosted on Gitlab for now    
        
-    
 
 
 def setup(bot):
