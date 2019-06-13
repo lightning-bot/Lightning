@@ -19,7 +19,7 @@ class Load(commands.Cog, name='Cog Management'):
         except Exception as e:
             await ctx.send(f'💢 There was an error loading the cog \n**`ERROR:`** {type(e).__name__} - {e}')
         else:
-            await log_channel.send(f"{ctx.author.mention} loaded the cog `{cog}`")
+            await log_channel.send(f"{ctx.author} loaded the cog `{cog}`")
             await ctx.send(f'<:LightningCheck:571376826832650240> Successfully Loaded `cogs.{cog}`')
 
     @commands.command(name='unload')
@@ -33,7 +33,7 @@ class Load(commands.Cog, name='Cog Management'):
         except Exception as e:
             await ctx.send(f'💢 There was an error unloading the cog \n***`ERROR:`** {type(e).__name__} - {e}')
         else:
-            await log_channel.send(f"{ctx.author.mention} unloaded the cog `{cog}`")
+            await log_channel.send(f"{ctx.author} unloaded the cog `{cog}`")
             await ctx.send(f'<:LightningCheck:571376826832650240> Successfully unloaded `cogs.{cog}`')
 
     @commands.command(name='reload')
@@ -48,7 +48,7 @@ class Load(commands.Cog, name='Cog Management'):
         except Exception as e:
             await ctx.send(f'💢 There was an error reloading the cog \n**`ERROR:`** {type(e).__name__} - {e}')
         else:
-            await log_channel.send(f"{ctx.author.mention} reloaded the cog `{cog}`")
+            await log_channel.send(f"{ctx.author} reloaded the cog `{cog}`")
             await ctx.send(f'<:LightningCheck:571376826832650240> Successfully reloaded `cogs.{cog}`')
 
     @commands.command(name='addonload', aliases=["addload"])
@@ -62,7 +62,7 @@ class Load(commands.Cog, name='Cog Management'):
         except Exception as e:
             await ctx.send(f'💢 There was an error loading the addon \n**`ERROR:`** {type(e).__name__} - {e}')
         else:
-            await log_channel.send(f"{ctx.author.mention} loaded addon `{addon}`")
+            await log_channel.send(f"{ctx.author} loaded addon `{addon}`")
             await ctx.send(f'<:LightningCheck:571376826832650240> Successfully loaded addon `addons.{addon}`')
 
     @commands.command(name='addonunload', aliases=["addunload"])
@@ -76,7 +76,7 @@ class Load(commands.Cog, name='Cog Management'):
         except Exception as e:
             await ctx.send(f'💢 There was an error unloading the addon \n**`ERROR:`** {type(e).__name__} - {e}')
         else:
-            await log_channel.send(f"{ctx.author.mention} unloaded addon `{addon}`")
+            await log_channel.send(f"{ctx.author} unloaded addon `{addon}`")
             await ctx.send(f'<:LightningCheck:571376826832650240> Successfully unloaded addon `addons.{addon}`')
     
     @commands.command(name='addonreload', aliases=["addreload"])
@@ -91,14 +91,10 @@ class Load(commands.Cog, name='Cog Management'):
         except Exception as e:
             await ctx.send(f'💢 There was an error reloading the addon \n**`ERROR:`** {type(e).__name__} - {e}')
         else:
-            await log_channel.send(f"{ctx.author.mention} reloaded addon `{addon}`")
+            await log_channel.send(f"{ctx.author} reloaded addon `{addon}`")
             await ctx.send(f'<:LightningCheck:571376826832650240> Successfully reloaded addon `addons.{addon}`')
     
 
-    async def cog_check(self, ctx):
-        if not await ctx.bot.is_owner(ctx.author):
-            raise commands.NotOwner('You aren\'t the owner of the bot. <:blobthonk:537791813990350873>')
-        return True
 
 def setup(bot):
     bot.add_cog(Load(bot))
