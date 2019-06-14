@@ -117,7 +117,7 @@ class LightningHub(commands.Cog):
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def autoprobate(self, ctx, status: str):
         """Turns on or off auto probate. 
-        Use "disable" to disable auto probate. Use "enable" to enable auto probate """
+        Use "disable" to disable auto probate."""
         if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
             return
 
@@ -125,12 +125,8 @@ class LightningHub(commands.Cog):
             ctx.guild_config.pop("auto_probate")
             await ctx.send("Auto Probate is now disabled.")
         else:
-            return await ctx.send_help(ctx.command)
-        if status == "enable":
-            ctx.guild_config["auto_probate"] = 527887739178188830
-            await ctx.send("Auto Probate is now enabled")
-        else:
-            return await ctx.send_help(ctx.command)
+            ctx.guild_config["auto_probate"] = ctx.author.id
+            await ctx.send("Auto Probate is now enabled\nTo turn off Auto Probate in the future, use `{ctx.prefix}autoprobate disable`")
 
 
 
