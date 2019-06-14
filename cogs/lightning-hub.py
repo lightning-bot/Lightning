@@ -102,7 +102,7 @@ class LightningHub(commands.Cog):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
             if "auto_probate" in config:
                 role = discord.Object(id=546379342943617025)
-                await target.add_roles(role, reason="Auto Probate")
+                await member.add_roles(role, reason="Auto Probate")
                 dm_message = f"You were automatically probated. Please read the rules for this server and speak in the probation channel when you are ready."
                 msg = f"**Auto Probate:** {member.mention}"
                 try:
