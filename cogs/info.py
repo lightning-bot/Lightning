@@ -49,7 +49,7 @@ class Info(commands.Cog):
         embed.add_field(name="Members", value=all_members)
         embed.add_field(name="Python Version", value=f"{platform.python_implementation()} {platform.python_version()}")
         embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)\n[Website](https://lightsage.gitlab.io/Lightning/home/)")
-        embed.set_footer(text=f"Lightning {self.bot.version}", icon_url=ctx.bot.user.avatar_url)
+        embed.set_footer(text=f"Lightning {self.bot.version}", icon_url=self.bot.user.avatar_url)
         await ctx.send(embed=embed)
 
     @commands.command(hidden=True)
