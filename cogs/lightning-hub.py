@@ -126,7 +126,7 @@ class LightningHub(commands.Cog):
             await ctx.send("Auto Probate is now disabled.")
         else:
             ctx.guild_config["auto_probate"] = ctx.author.id
-            await ctx.send("Auto Probate is now enabled\nTo turn off Auto Probate in the future, use `{ctx.prefix}autoprobate disable`")
+            await ctx.send(f"Auto Probate is now enabled\nTo turn off Auto Probate in the future, use `{ctx.prefix}autoprobate disable`")
 
 
 
