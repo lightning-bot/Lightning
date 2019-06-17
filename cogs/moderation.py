@@ -30,6 +30,7 @@ import db.per_guild_config
 from db.user_log import userlog
 from database import Config
 from typing import Union
+from utils.restrictions import add_restriction, remove_restriction
 import db.mod_check
 import datetime
 import asyncio
@@ -391,12 +392,7 @@ class Moderation(commands.Cog):
                 await log_channel.send(chan_message)
             except:
                 pass  # w/e, dumbasses forgot to set send perms properly.
-        session = self.bot.db.dbsession()
-        role_sticky = Restrictions(guild_id=ctx.guild.id, user_id=target.id, sticky_role=role.id)
-        session.merge(role_sticky)
-        session.commit()
-        session.close()
-        self.bot.log.info(f"{target} had a restriction applied!")
+        add_restriction(ctx.guild, target.id, role.id)
         await ctx.send(f"{target.mention} can no longer speak.")
 
     @commands.guild_only()
@@ -427,13 +423,7 @@ class Moderation(commands.Cog):
                 await log_channel.send(chan_message)
             except:
                 pass  # w/e, dumbasses forgot to set send perms properly.
-        session = self.bot.db.dbsession()
-        role_no = session.query(Restrictions).filter_by(guild_id=ctx.guild.id, user_id=target.id, sticky_role=role.id).delete()
-        if role_no is None:
-            self.bot.log.info(f"{target} did not have a restriction applied.")
-        session.commit()
-        session.close()
-        self.bot.log.info(f"Restriction removed from {target}") # Make sure everything's working
+        remove_restriction(ctx.guild, target.id, role.id)
         await ctx.send(f"{target.mention} can now speak again.")
 
     @commands.guild_only()

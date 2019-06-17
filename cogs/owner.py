@@ -8,6 +8,7 @@ import os
 from git import Repo
 import time
 from database import BlacklistGuild, BlacklistUser, Restrictions
+from utils.restrictions import add_restriction
 import random
 import config
 
@@ -301,11 +302,7 @@ class Owner(Cog):
         role = discord.utils.get(ctx.guild.roles, name=role_to_add)
         if not role:
             return await ctx.send("❌ That role does not exist.")
-        session = self.bot.db.dbsession()
-        add = Restrictions(guild_id=ctx.guild.id, user_id=member.id, sticky_role=role.id)
-        session.merge(add)
-        session.commit()
-        session.close()
+        add_restriction(ctx.guild, member.id, role.id)
         await ctx.send(f"Applied {role.id} | {role.name} to {member}")
 
     @commands.Cog.listener()
