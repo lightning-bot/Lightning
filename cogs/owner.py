@@ -302,7 +302,7 @@ class Owner(Cog):
         if not role:
             return await ctx.send("❌ That role does not exist.")
         session = self.bot.db.dbsession()
-        add = Restrictions(guild_id=guild.id, user_id=member.id, sticky_role=role.id)
+        add = Restrictions(guild_id=ctx.guild.id, user_id=member.id, sticky_role=role.id)
         session.merge(add)
         session.commit()
         session.close()
