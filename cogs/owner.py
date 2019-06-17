@@ -296,9 +296,9 @@ class Owner(Cog):
         """Direct messages a user""" # No checks yet
         await user_id.send(message)
 
-    @commands.command(name="addrestriction")
+    @commands.command(name="addrestriction", aliases=['addrestrict'])
     @commands.is_owner()
-    async def add_restriction(self, ctx, member: discord.Member, *, role_to_add: str):
+    async def add_restriction_to_user(self, ctx, member: discord.Member, *, role_to_add: str):
         role = discord.utils.get(ctx.guild.roles, name=role_to_add)
         if not role:
             return await ctx.send("❌ That role does not exist.")
