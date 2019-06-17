@@ -29,8 +29,8 @@ from discord.ext.commands import Cog
 import db.per_guild_config
 from db.user_log import userlog
 from database import Config
-from database import Restrictions
 from typing import Union
+from utils.restrictions import add_restriction, remove_restriction
 import db.mod_check
 import datetime
 import asyncio
@@ -392,12 +392,7 @@ class Moderation(commands.Cog):
                 await log_channel.send(chan_message)
             except:
                 pass  # w/e, dumbasses forgot to set send perms properly.
-        session = self.bot.db.dbsession()
-        role_sticky = Restrictions(guild_id=ctx.guild.id, user_id=target.id, sticky_role=role.id)
-        session.merge(role_sticky)
-        session.commit()
-        session.close()
-        self.bot.log.info(f"{target} had a restriction applied!")
+        add_restriction(ctx.guild, target.id, role.id)
         await ctx.send(f"{target.mention} can no longer speak.")
 
     @commands.guild_only()
@@ -428,13 +423,7 @@ class Moderation(commands.Cog):
                 await log_channel.send(chan_message)
             except:
                 pass  # w/e, dumbasses forgot to set send perms properly.
-        session = self.bot.db.dbsession()
-        role_no = session.query(Restrictions).filter_by(guild_id=ctx.guild.id, user_id=target.id, sticky_role=role.id).delete()
-        if role_no is None:
-            self.bot.log.info(f"{target} did not have a restriction applied.")
-        session.commit()
-        session.close()
-        self.bot.log.info(f"Restriction removed from {target}") # Make sure everything's working
+        remove_restriction(ctx.guild, target.id, role.id)
         await ctx.send(f"{target.mention} can now speak again.")
 
     @commands.guild_only()
@@ -553,22 +542,6 @@ class Moderation(commands.Cog):
             except:
                 pass  # w/e, dumbasses forgot to set it properly.
 
-
-
-    # Messy Code:tm:
-    @Cog.listener()
-    async def on_member_join(self, member):
-        session = self.bot.db.dbsession()
-        rolere = session.query(Restrictions).filter_by(guild_id=member.guild.id, user_id=member.id).one_or_none()
-        # role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
-        if rolere:
-            role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
-            await member.add_roles(role, reason="Reapply Restriction Role") 
-        else:
-            return
-        # role_add = member.guild.get_role(role)
-        # await member.add_roles(add_back, reason="Reapply Restriction Role")
-        session.close()
 
 
 
