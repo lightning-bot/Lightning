@@ -52,7 +52,7 @@ def add_restriction(guild, uid, rst):
         rsts[uid] = []
     if rst not in rsts[uid]:
         rsts[uid].append(rst)
-    set_restrictions(guild, json.dumps(rsts))
+    set_restrictions(guild, rsts)
 
 
 def remove_restriction(guild, uid, rst):
@@ -63,4 +63,4 @@ def remove_restriction(guild, uid, rst):
         rsts[uid] = []
     if rst in rsts[uid]:
         rsts[uid].remove(rst)
-    set_restrictions(guild, json.dumps(rsts))
+    set_restrictions(guild, rsts)
