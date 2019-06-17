@@ -7,7 +7,7 @@ import re
 import os
 from git import Repo
 import time
-from database import BlacklistGuild, BlacklistUser
+from database import BlacklistGuild, BlacklistUser, Restrictions
 import random
 import config
 
@@ -294,6 +294,18 @@ class Owner(Cog):
     async def dm(self, ctx, user_id: discord.Member, *, message: str):
         """Direct messages a user""" # No checks yet
         await user_id.send(message)
+
+    @commands.command()
+    @commands.is_owner()
+    async def addrestriction(self, ctx, member: discord.Member, *, role_to_add: str):
+        role = discord.utils.get(ctx.guild.roles, name=role_to_add)
+        if not role:
+            return await ctx.send("❌ That role does not exist.")
+        session = self.bot.db.dbsession()
+        add = Restrictions(guild_id=guild.id, user_id=member.id, sticky_role=role.id)
+        session.merge(add)
+        session.commit()
+        session.close()
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
