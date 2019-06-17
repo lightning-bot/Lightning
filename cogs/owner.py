@@ -306,6 +306,7 @@ class Owner(Cog):
         session.merge(add)
         session.commit()
         session.close()
+        await ctx.send(f"Applied {role.id} | {role.name} to {member}")
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
