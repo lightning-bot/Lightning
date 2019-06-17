@@ -26,12 +26,6 @@ class Config(Base):
     guild_id = Column(Integer, primary_key=True)
     mute_role_id = Column(Integer)
 
-class Restrictions(Base):
-    __tablename__ = "restrictions"
-    guild_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer)
-    sticky_role = Column(Integer)
-
 class BlacklistUser(Base):
     __tablename__ = "blacklisted_users"
     user_id = Column(Integer, primary_key=True)
