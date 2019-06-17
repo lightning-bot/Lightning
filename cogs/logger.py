@@ -41,9 +41,12 @@ class Logger(Cog):
     @Cog.listener()
     async def on_member_join(self, member):
         await self.bot.wait_until_ready()
-        rsts = get_user_restrictions(member.guild, member.id)
-        roles = [discord.utils.get(member.guild.roles, id=rst) for rst in rsts]
-        await member.add_roles(*roles)
+        try:
+            rsts = get_user_restrictions(member.guild, member.id)
+            roles = [discord.utils.get(member.guild.roles, id=rst) for rst in rsts]
+            await member.add_roles(*roles)
+        except:
+            pass
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
             if "join_log_embed_channel" in config:
