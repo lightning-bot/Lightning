@@ -29,7 +29,6 @@ from discord.ext.commands import Cog
 import db.per_guild_config
 from db.user_log import userlog
 from database import Config
-from database import Restrictions
 from typing import Union
 import db.mod_check
 import datetime
@@ -553,22 +552,6 @@ class Moderation(commands.Cog):
             except:
                 pass  # w/e, dumbasses forgot to set it properly.
 
-
-
-    # Messy Code:tm:
-    @Cog.listener()
-    async def on_member_join(self, member):
-        session = self.bot.db.dbsession()
-        rolere = session.query(Restrictions).filter_by(guild_id=member.guild.id, user_id=member.id).one_or_none()
-        # role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
-        if rolere:
-            role = discord.utils.get(member.guild.roles, id=rolere.sticky_role)
-            await member.add_roles(role, reason="Reapply Restriction Role") 
-        else:
-            return
-        # role_add = member.guild.get_role(role)
-        # await member.add_roles(add_back, reason="Reapply Restriction Role")
-        session.close()
 
 
 
