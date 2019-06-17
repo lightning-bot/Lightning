@@ -7,7 +7,7 @@ import re
 import os
 from git import Repo
 import time
-from database import BlacklistGuild, BlacklistUser, Restrictions
+from database import BlacklistGuild, BlacklistUser
 from utils.restrictions import add_restriction
 import random
 import config
