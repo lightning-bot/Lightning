@@ -38,7 +38,7 @@ def set_restrictions(guild, contents):
 
 def get_user_restrictions(guild, uid):
     uid = str(uid)
-    with open(f"config/{guild.id}restrictions.json", "r") as f:
+    with open(f"config/{guild.id}/restrictions.json", "r") as f:
         rsts = json.load(f)
         if uid in rsts:
             return rsts[uid]
