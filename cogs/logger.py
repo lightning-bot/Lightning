@@ -145,7 +145,7 @@ class Logger(Cog):
                     for attachment in message.attachments:
                         attachment_urls.append(f'File Name: {attachment.filename} <{attachment.url}>')
                     attachment_msg = '\N{BULLET} ' + '\n\N{BULLET} '.join(attachment_urls)
-                    msg += "🔗 **Attachments:** \n"\
+                    msg += "\n🔗 **Attachments:** \n"\
                            f"{attachment_msg}"
                 # If resulting message is too long, upload to hastebin. Taken from robocop-ng which is under the MIT License.
                 if len(msg) > 2000:
