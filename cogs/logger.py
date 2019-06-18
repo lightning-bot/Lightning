@@ -140,6 +140,13 @@ class Logger(Cog):
                       f"Author: {self.bot.escape_message(message.author.name)} "\
                       f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"\
                       f"```{message.clean_content}```" # Wrap in a code block
+                if message.attachments:
+                    attachment_urls = []
+                    for attachment in message.attachments:
+                        attachment_urls.append(f'File Name: {attachment.filename} <{attachment.url}>')
+                    attachment_msg = '\N{BULLET} ' + '\n\N{BULLET} '.join(attachment_urls)
+                    msg += "🔗 **Attachments:** \n"\
+                           f"{attachment_msg}"
                 # If resulting message is too long, upload to hastebin. Taken from robocop-ng which is under the MIT License.
                 if len(msg) > 2000:
                     haste_url = await self.bot.haste(msg)
@@ -166,6 +173,13 @@ class Logger(Cog):
                       f"Author: {self.bot.escape_message(after.author.name)} "\
                       f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
                       f"Before: ```{before.clean_content}```\nAfter: ```{after.clean_content}```" # Code Block Wrapping
+                #if after.attachments:
+                #    attachment_urls = []
+                #    for attachment in after.attachments:
+                #        attachment_urls.append(f'File Name: {attachment.filename} <{attachment.url}>')
+                #    attachment_msg = '\N{BULLET} ' + '\n\N{BULLET} '.join(attachment_urls)
+                #    msg += "🔗 **Attachments:** \n"\
+                #           f"{attachment_msg}"
                 # If resulting message is too long, upload to hastebin. Taken from robocop-ng which is under the MIT License.
                 if len(msg) > 2000:
                     haste_url = await self.bot.haste(msg)
