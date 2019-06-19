@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import random
 
 
 class Memes(commands.Cog):
@@ -24,7 +25,7 @@ class Memes(commands.Cog):
         """Here's a star just for you."""
         await ctx.send(f"{ctx.author.display_name}: https://i.imgur.com/vUrBPZr.png")
 
-    @commands.command(hidden=True)
+    @commands.command(hidden=True, aliases=['inori'])
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def hifumi1(self, ctx):
         """Disappointment"""
@@ -34,7 +35,17 @@ class Memes(commands.Cog):
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def thisisgit(self, ctx):
         """Git in a nutshell"""
-        await ctx.send(f"{ctx.author.display_name}: https://gitlab.com/LightSage/bunches-of-images/raw/master/lightning/xkcd.png") # Using the img hosted on Gitlab for now    
+        await ctx.send(f"{ctx.author.display_name}: https://gitlab.com/LightSage/bunches-of-images/raw/master/lightning/xkcd.png") # Using the img hosted on Gitlab for now   
+
+    @commands.command(hidden=True)
+    @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
+    async def knuckles(self, ctx):
+        # It's just as bad
+        re_list = ['to frii gaems', 'to bricc', 'to get frii gaems', 'to build sxos',
+                   'to play backup games', 'to get unban', 'to get reinx games',
+                   'to build atmos', 'to brick my 3ds bc ebay scammed me', 'to plz help me'] 
+        whenlifegetsatyou = ['?!?!?', '?!?!', '.', '!!!!', '!!', '!']
+        await ctx.send(f"Do you know da wae {random.choice(re_list)}{random.choice(whenlifegetsatyou)}")
        
 
 
