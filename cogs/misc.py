@@ -86,6 +86,9 @@ class Misc(commands.Cog):
         embed.add_field(name="Members", value=sta)
         embed.add_field(name="Emoji Count", value=f"{len(guild.emojis)}")
         embed.add_field(name="Verification Level", value=guild.verification_level)
+        boosts = f"Tier: {guild.premium_tier}\n"\
+                 f"Users Boosted Count: {guild.premium_subscription_count}"
+        embed.add_field(name="Nitro Server Boost", value=boosts)
         await ctx.send(embed=embed)
 
     @commands.command()
