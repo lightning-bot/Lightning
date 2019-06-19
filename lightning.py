@@ -193,4 +193,4 @@ async def on_message(message):
 
 
 
-bot.run(config.token, bot=True, reconnect=True, loop=bot.loop)
+bot.run(config.token, bot=True, reconnect=True)
