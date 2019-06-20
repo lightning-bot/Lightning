@@ -73,6 +73,7 @@ class Fun(commands.Cog):
 
     @commands.command()
     async def cryofreeze(self, ctx, user: discord.Member):
+        """Cryofreezes a user"""
         if user is None:
             user = ctx.author
         celsius = random.randint(-100, 0)
