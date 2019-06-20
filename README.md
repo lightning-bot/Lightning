@@ -6,18 +6,8 @@ This version is the successor to Lightning.js
 ---
 
 ## Features
-- Moderation. Warn, Kick, and Ban users with reasons.
-  - Works by assigning a level to a role. There are 3 levels.
-    - Helper: Helpers are small staff with the ability to warn users.
-    - Moderator: Moderators are regular staff with the ability to kick and ban users.
-    - Admin: Admins are (well Administrators :/). They have access to all the commands.
-  - If your server only has Moderators, just apply Admin level to your server's moderator role.
-- Toggleable Roles
-- Weeb Features
-  - Slap and headpat users.
-- Fun Commands
-  - Query random cat or dog pictures straight to your server.
-- Bot Owner Commands
+
+Go to https://lightsage.gitlab.io/Lightning/home/ for a list of current features.
 
 ---
 ## Planned Features
