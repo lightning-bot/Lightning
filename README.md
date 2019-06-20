@@ -60,7 +60,7 @@ If you want to invite Lightning to your guild, use this link https://discordapp.
 This bot uses parts and ideas from other Discord Bots:
 
 - [Kirigiri](https://git.catgirlsin.space/noirscape/kirigiri) by Noirscape. (For the per_guild_config and staff role database)
-- [Robocop-NG](https://github.com/reswitched/robocop-ng) by Ave and TomGER. (Moderation Commands)
+- [Robocop-NG](https://github.com/reswitched/robocop-ng) by Ave and TomGER. (Moderation Commands & Restrictions)
 - [Kurisu](https://github.com/nh-server/Kurisu) by ihaveahax/ihaveamac and 916253. (For the compact logging format)
 
 
