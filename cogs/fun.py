@@ -72,6 +72,14 @@ class Fun(commands.Cog):
         await ctx.send(f"{user.mention} chilled. User is now {celsius}°C ({fahrenheit}°F).")
 
     @commands.command()
+    async def cryofreeze(self, ctx, user: discord.Member):
+        if user is None:
+            user = ctx.author
+        celsius = random.randint(-100, 0)
+        fahrenheit = self.c_to_f(celsius)
+        await ctx.send(f"{user.mention} cryofreezed. User is now {celsius}°C ({fahrenheit}°F).")
+
+    @commands.command()
     async def cat(self, ctx):
         """Random Cat Pics from random.cat"""
         async with self.session.get('http://aws.random.cat/meow') as resp:
