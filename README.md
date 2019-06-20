@@ -1,9 +1,6 @@
 # Lightning.py
 [![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/cDPGuYd)
 
-
-Some code is taken from https://git.catgirlsin.space/noirscape/kirigiri, https://github.com/reswitched/robocop-ng, and https://gitlab.com/ao/dpybotbase. (It's all marked in the code)
-
 This version is the successor to Lightning.js
 
 ---
@@ -57,3 +54,17 @@ More coming soon. Currently finetuning current stuff.
 
 If you want to invite Lightning to your guild, use this link https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot.
 
+---
+## Credits 
+
+This bot uses parts and ideas from other Discord Bots:
+
+- [Kirigiri](https://git.catgirlsin.space/noirscape/kirigiri) by Noirscape. (For the per_guild_config and staff role database)
+- [Robocop-NG](https://github.com/reswitched/robocop-ng) by Ave and TomGER. (Moderation Commands)
+- [Kurisu](https://github.com/nh-server/Kurisu) by ihaveahax/ihaveamac and 916253. (For the compact logging format)
+
+
+Extended special thanks to:
+
+- aspargas2
+- OthersCallMeGhost
