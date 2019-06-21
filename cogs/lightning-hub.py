@@ -2,6 +2,7 @@ from discord.ext import commands
 import discord
 import db.per_guild_config
 import db.mod_check
+from utils.restrictions import add_restriction, remove_restriction
 
 class LightningHub(commands.Cog):
     """Helper commands for Lightning Hub only."""
@@ -67,6 +68,7 @@ class LightningHub(commands.Cog):
             msg += f"\n\n{target.mention} has their DMs off and I was unable to send the reason."# Experimental
             pass
 
+        add_restriction(ctx.guild, target.id, role.id)
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now probated.")
 
@@ -90,6 +92,7 @@ class LightningHub(commands.Cog):
                     f", it is recommended to use " \
                     f"`{ctx.prefix}unprobate <user> [reason]`" 
 
+        remove_restriction(ctx.guild, target.id, role.id)
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now unprobated.")
 
@@ -115,7 +118,7 @@ class LightningHub(commands.Cog):
     @commands.command(hidden=True)
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
-    async def autoprobate(self, ctx, status: str):
+    async def autoprobate(self, ctx, status="on"):
         """Turns on or off auto probate. 
         Use "disable" to disable auto probate."""
         if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
