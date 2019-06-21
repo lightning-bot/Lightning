@@ -131,7 +131,7 @@ class ModUserLog(commands.Cog):
 
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
-    @commands.command(aliases=["events"])
+    @commands.command(aliases=["events", "listmodevents", "listevents"])
     async def eventtypes(self, ctx):
         """Lists the available event types, staff only."""
         event_list = [f"{et} ({userlog_event_types[et]})" for et in
