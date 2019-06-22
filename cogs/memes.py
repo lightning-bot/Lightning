@@ -46,6 +46,14 @@ class Memes(commands.Cog):
                    'to build atmos', 'to brick my 3ds bc ebay scammed me', 'to plz help me'] 
         whenlifegetsatyou = ['?!?!?', '?!?!', '.', '!!!!', '!!', '!']
         await ctx.send(f"Do you know da wae {random.choice(re_list)}{random.choice(whenlifegetsatyou)}")
+
+    @commands.command(name="neo-ban", aliases=['neoban'], hidden=True)
+    @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
+    async def neoban(self, ctx, member: discord.Member=None):
+        if member is None:
+            member = ctx.author
+
+        await ctx.send(f"{member.mention} is now neo-banned!")
        
 
 
