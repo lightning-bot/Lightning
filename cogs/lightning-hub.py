@@ -135,6 +135,7 @@ class LightningHub(commands.Cog):
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
     async def elevate(self, ctx):
+        """Gains the elevated role. Use with care!"""
         if ctx.guild.id != 527887739178188830:
             return
         target = ctx.author
@@ -152,6 +153,7 @@ class LightningHub(commands.Cog):
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
     async def deelevate(self, ctx):
+        """Removes the elevated role. Use with care."""
         if ctx.guild.id != 527887739178188830:
             return
         target = ctx.author
