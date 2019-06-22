@@ -131,6 +131,39 @@ class LightningHub(commands.Cog):
             ctx.guild_config["auto_probate"] = ctx.author.id
             await ctx.send(f"Auto Probate is now enabled\nTo turn off Auto Probate in the future, use `{ctx.prefix}autoprobate disable`")
 
+    @commands.command(hidden=True)
+    @commands.guild_only()
+    @db.mod_check.check_if_at_least_has_staff_role("Helper")
+    async def elevate(self, ctx):
+        if ctx.guild.id != 527887739178188830:
+            return
+        target = ctx.author
+        mod_log_chan = self.bot.get_channel(552583376566091805)
+        safe_name = await commands.clean_content().convert(ctx, str(target))
+        role = discord.Object(id=527996858908540928)
+
+        await target.add_roles(role, reason=str(ctx.author))
+        msg = f"🚑️ **Elevated**: {ctx.author.mention} | {safe_name}"
+
+        await mod_log_chan.send(msg)
+        await ctx.send(f"{target.mention} is now elevated!")
+
+    @commands.command(hidden=True, aliases=['unelevate'])
+    @commands.guild_only()
+    @db.mod_check.check_if_at_least_has_staff_role("Helper")
+    async def deelevate(self, ctx):
+        if ctx.guild.id != 527887739178188830:
+            return
+        target = ctx.author
+        mod_log_chan = self.bot.get_channel(552583376566091805)
+        safe_name = await commands.clean_content().convert(ctx, str(target))
+        role = discord.Object(id=527996858908540928)
+
+        await target.remove_roles(role, reason=str(ctx.author))
+        msg = f"❗️ **De-elevated**: {ctx.author.mention} | {safe_name}"
+
+        await mod_log_chan.send(msg)
+        await ctx.send(f"{target.mention} is now unelevated!")
 
 
 def setup(bot):
