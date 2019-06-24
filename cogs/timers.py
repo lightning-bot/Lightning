@@ -42,7 +42,7 @@ class Timers(commands.Cog):
         table = self.db["cron_jobs"]
         table.insert(dict(job_type="reminder", author=ctx.author.id,
                      channel=ctx.channel.id, remind_text=description,
-                     expiry=expiry_timestamp, guild_id=ctx.guild.id))
+                     expiry=expiry_timestamp)) #, guild_id=ctx.guild.id
         await ctx.send(f"{ctx.author.mention}: I'll remind you in {duration_text}.")
 
     @commands.command(aliases=['listreminds', 'listtimers'])
@@ -54,10 +54,9 @@ class Timers(commands.Cog):
         try:
             for job in table:
                 if job['author'] == ctx.author.id:
-                    if job['guild_id'] == ctx.guild.id:
-                        expiry_timestr = datetime.utcfromtimestamp(job['expiry'])\
-                            .strftime('%Y-%m-%d %H:%M:%S (UTC)')
-                        embed.description += f"- {expiry_timestr}\nText: {job['remind_text']}\n"
+                    expiry_timestr = datetime.utcfromtimestamp(job['expiry'])\
+                        .strftime('%Y-%m-%d %H:%M:%S (UTC)')
+                    embed.description += f"- {expiry_timestr}\nText: {job['remind_text']}\n"
         except:
             log_channel = self.bot.get_channel(527965708793937960)
             await log_channel.send(f"PowersCron has Errored! "
