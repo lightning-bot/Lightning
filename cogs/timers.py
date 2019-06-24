@@ -57,7 +57,7 @@ class Timers(commands.Cog):
                     if job['guild_id'] == ctx.guild.id:
                         expiry_timestr = datetime.utcfromtimestamp(job['expiry'])\
                             .strftime('%Y-%m-%d %H:%M:%S (UTC)')
-                        embed.description += f"- {expiry_timestr}\nText: {job['remind_text']}"
+                        embed.description += f"- {expiry_timestr}\nText: {job['remind_text']}\n"
         except:
             log_channel = self.bot.get_channel(527965708793937960)
             await log_channel.send(f"PowersCron has Errored! "
@@ -76,8 +76,7 @@ class Timers(commands.Cog):
                     if timestamp > expiry2:
                         if jobtype['job_type'] == "reminder":
                             channel = self.bot.get_channel(jobtype['channel'])
-                            auth = jobtype['author']
-                            await channel.send(f"<@{auth}>: Timer is up! "
+                            await channel.send(f"<@{jobtype['author']}>: Timer is up! "
                                                f"`{jobtype['remind_text']}`")
                             # Delete the timer
                             self.db['cron_jobs'].delete(author=auth, expiry=expiry2,
@@ -85,7 +84,8 @@ class Timers(commands.Cog):
                         if jobtype['job_type'] == "timeban":
                             guid = self.bot.get_guild(jobtype['guild_id'])
                             uid = jobtype['user_id']
-                            await guid.unban(uid, reason="PowersCron: Timed Ban Expired.")
+                            await guid.unban(uid, reason="PowersCron: "
+                                             "Timed Ban Expired.")
                             # Delete the scheduled unban
                             self.db['cron_jobs'].delete(job_type="timeban", 
                                                         expiry=expiry2, user_id=uid)
