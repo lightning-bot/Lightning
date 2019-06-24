@@ -4,6 +4,7 @@ from datetime import datetime
 from discord.ext import commands
 import asyncio
 import traceback
+import discord
 
 class Timers(commands.Cog):
     def __init__(self, bot):
@@ -28,9 +29,9 @@ class Timers(commands.Cog):
         current_timestamp = time.time()
         expiry_timestamp = self.bot.parse_time(when)
 
-        if current_timestamp + 10 > expiry_timestamp:
+        if current_timestamp + 4 > expiry_timestamp:
             await ctx.send(f"{ctx.author.mention}: Minimum "
-                            "remind interval is 10 seconds.")
+                            "remind interval is 5 seconds.")
             return
 
         expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
@@ -41,9 +42,28 @@ class Timers(commands.Cog):
         table = self.db["cron_jobs"]
         table.insert(dict(job_type="reminder", author=ctx.author.id,
                      channel=ctx.channel.id, remind_text=description,
-                     expiry=expiry_timestamp))
+                     expiry=expiry_timestamp, guild_id=ctx.guild.id))
         await ctx.send(f"{ctx.author.mention}: I'll remind you in {duration_text}.")
 
+    @commands.command(aliases=['listreminds', 'listtimers'])
+    async def listreminders(self, ctx):
+        """Lists your reminders"""
+        table = self.db["cron_jobs"].all()
+        embed = discord.Embed(title="Reminders", description="\n")
+        # Kinda hacky-ish code
+        try:
+            for job in table:
+                if job['author'] == ctx.author.id:
+                    if job['guild_id'] == ctx.guild.id:
+                        expiry_timestr = datetime.utcfromtimestamp(job['expiry'])\
+                            .strftime('%Y-%m-%d %H:%M:%S (UTC)')
+                        embed.description += f"- {expiry_timestr}\nText: {job['remind_text']}"
+        except:
+            log_channel = self.bot.get_channel(527965708793937960)
+            await log_channel.send(f"PowersCron has Errored! "
+                                   f"```{traceback.format_exc()}```")
+            embed.description += "No Timers Currently Running!"
+        await ctx.send(embed=embed)
 
     async def do_jobs(self):
         await self.bot.wait_until_ready()
@@ -55,17 +75,26 @@ class Timers(commands.Cog):
                     expiry2 = jobtype['expiry']
                     if timestamp > expiry2:
                         if jobtype['job_type'] == "reminder":
-                            channelid = jobtype['channel']
-                            channel = self.bot.get_channel(channelid)
+                            channel = self.bot.get_channel(jobtype['channel'])
                             auth = jobtype['author']
                             await channel.send(f"<@{auth}>: Timer is up! "
                                                f"`{jobtype['remind_text']}`")
                             # Delete the timer
                             self.db['cron_jobs'].delete(author=auth, expiry=expiry2,
                                                         job_type="reminder")
+                        if jobtype['job_type'] == "timeban":
+                            guid = self.bot.get_guild(jobtype['guild_id'])
+                            uid = jobtype['user_id']
+                            await guid.unban(uid, reason="PowersCron: Timed Ban Expired.")
+                            # Delete the scheduled unban
+                            self.db['cron_jobs'].delete(job_type="timeban", 
+                                                        expiry=expiry2, user_id=uid)
+
             except:
+                # Keep jobs for now if they errored
                 log_channel = self.bot.get_channel(527965708793937960)
-                await log_channel.send(f"PowersCron has Errored! ```{traceback.format_exc()}```")
+                await log_channel.send(f"PowersCron has Errored! "
+                                       f"```{traceback.format_exc()}```")
 
             await asyncio.sleep(5)
 
