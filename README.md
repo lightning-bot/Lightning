@@ -12,7 +12,7 @@ Go to https://lightsage.gitlab.io/Lightning/home/ for a list of current features
 ---
 ## Planned Features
 
-More coming soon. Currently finetuning current stuff.
+- [] PowersCron: Time Mute
 
 <details>
 <summary>Completed Features</summary>
@@ -32,6 +32,7 @@ More coming soon. Currently finetuning current stuff.
 - [x] Support Server: Special commands that help moderate the support server
 - [x] Bot Owner: Blacklist Guilds and Users
 - [x] Bot Owner: Search blacklist with an ID
+- [x] PowersCron: Reminders/Timers
 
 
 </p>

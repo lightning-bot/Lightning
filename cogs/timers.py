@@ -76,10 +76,11 @@ class Timers(commands.Cog):
                     if timestamp > expiry2:
                         if jobtype['job_type'] == "reminder":
                             channel = self.bot.get_channel(jobtype['channel'])
-                            await channel.send(f"<@{jobtype['author']}>: Timer is up! "
+                            await channel.send(f"<@{jobtype['author']}>: "
+                                               "Timer is up! "
                                                f"`{jobtype['remind_text']}`")
                             # Delete the timer
-                            self.db['cron_jobs'].delete(author=auth, expiry=expiry2,
+                            self.db['cron_jobs'].delete(author=jobtype['author'], expiry=expiry2,
                                                         job_type="reminder")
                         if jobtype['job_type'] == "timeban":
                             guid = self.bot.get_guild(jobtype['guild_id'])
