@@ -12,7 +12,10 @@ Go to https://lightsage.gitlab.io/Lightning/home/ for a list of current features
 ---
 ## Planned Features
 
-- [] PowersCron: Time Mute
+- [ ] PowersCron: Time Mute
+- [ ] PowersCron: Time Bans
+- [ ] PowersCron: Management Cog (PCA)
+- [ ] PowersCron: Allow reminder author to delete their own reminders
 
 <details>
 <summary>Completed Features</summary>
