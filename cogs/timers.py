@@ -95,6 +95,8 @@ class Timers(commands.Cog):
 
             except:
                 # Keep jobs for now if they errored
+                self.bot.log.error(f"PowersCron ERROR: "
+                                   f"{traceback.format_exc()}")
                 log_channel = self.bot.get_channel(527965708793937960)
                 await log_channel.send(f"PowersCron has Errored! "
                                        f"```{traceback.format_exc()}```")
