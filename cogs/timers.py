@@ -47,7 +47,7 @@ class Timers(commands.Cog):
 
     @commands.command(aliases=['listreminds', 'listtimers'])
     async def listreminders(self, ctx):
-        """Lists your reminders"""
+        """Lists up to 10 of your reminders"""
         table = self.db["cron_jobs"].find(author=ctx.author.id, _limit=10)
         embed = discord.Embed(title="Reminders")
         # Kinda hacky-ish code
