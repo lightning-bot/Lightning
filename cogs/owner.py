@@ -287,7 +287,6 @@ class Owner(Cog):
         """Stop the Bot."""
         shutdown_messages = ['Shutting Down...', "See ya!", "RIP", "Turning off...."]
         await ctx.send(f"👋 {random.choice(shutdown_messages)}")
-        time.sleep(20)
         await self.bot.close()
 
     @commands.command()
