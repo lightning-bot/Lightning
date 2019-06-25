@@ -72,11 +72,11 @@ class Common(Cog):
                 return str_with_from_and_to
             elif include_from:
                 str_with_from = f"{humanized_string} "\
-                                f"({str(time_from).split('.')[0]})"
+                                f"({str(time_from).split('.')[0]} UTC)"
                 return str_with_from
             elif include_to:
                 str_with_to = f"{humanized_string} "\
-                              f"({str(time_to).split('.')[0]})"
+                              f"({str(time_to).split('.')[0]} UTC)"
                 return str_with_to
             return humanized_string
         else:
