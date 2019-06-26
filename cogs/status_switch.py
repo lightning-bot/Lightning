@@ -63,7 +63,7 @@ class StatusSwitch(commands.Cog):
             
             await self.bot.change_presence(activity=discord.Activity(name=act_name, type=act_type))
             self.stats_ran = self.stats_ran.change()
-            await asyncio.sleep(5 * 60) # 5 * 60 Seconds
+            await asyncio.sleep(8 * 60) # 5 * 60 Seconds
 # Tasks stuff    
 #    @commands.command()
 #    @commands.is_owner()
