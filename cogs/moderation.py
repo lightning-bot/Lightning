@@ -314,29 +314,17 @@ class Moderation(commands.Cog):
     @commands.guild_only()
     @commands.command(aliases=["nick"])
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
-    async def nickname(self, ctx, target: discord.Member, *, nick: str = ''):
+    async def nickname(self, ctx, target: discord.Member, *, nickname: str = ''):
         """Sets a user's nickname, staff only.
         Useful for servers enforcing a nickname policy or manually applying nicknames."""
 
         try:
-            await target.edit(nick=nick, reason=str(ctx.author))
+            await target.edit(nick=nickname)
         except discord.errors.Forbidden:
-                await ctx.send("<:noblobaww:561618920096792596>  I can't change their nickname!")
+                await ctx.send("I can't change their nickname!")
                 return
-        await ctx.send(f"Successfully set nickname to {nick}.")
 
-        safe_name = await commands.clean_content().convert(ctx, str(target))
-
-        chan_message = f"📇 **Nickname Change**: {ctx.author.mention} changed "\
-                       f"{target.mention}'s nickname to"\
-                       f' "{nick}"  | {safe_name}\n'
-
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(chan_message)
-            except:
-                pass  # w/e, dumbasses forgot to set send perms properly.
+        await ctx.send(f"Successfully changed {target.name}'s nickname.")
 
     @commands.guild_only()
     @commands.command(aliases=['muteuser'])
