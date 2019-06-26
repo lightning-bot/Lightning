@@ -12,12 +12,9 @@ class Memes(commands.Cog):
     @commands.command()
     async def listmemes(self, ctx):
         """Lists meme commands"""
-        # Taken from Kurisu until I make a better one. 
-        # Kurisu is under the Apache 2.0 License. https://github.com/nh-server/Kurisu/blob/port/LICENSE.txt
-        msg = "```css\n"
-        msg += ", ".join([x.name for x in self.get_commands() if x != self.listmemes])
-        msg += "```"
-        await ctx.send(msg)
+        embed = discord.Embed(description="\n")
+        embed.description += ", ".join([x.name for x in self.get_commands() if x != self.listmemes])
+        await ctx.send(embed=embed)
 
     @commands.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
