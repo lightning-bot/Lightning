@@ -46,7 +46,7 @@ Go to https://lightsage.gitlab.io/Lightning/home/ for a list of current features
 [![Discord Bots](https://discordbots.org/api/widget/owner/532220480577470464.svg)](https://discordbots.org/bot/532220480577470464)
 ## Invite
 
-If you want to invite Lightning to your guild, use this link https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot.
+If you want to invite Lightning to your guild, use this link https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=470150390&scope=bot.
 
 ---
 ## Credits 
