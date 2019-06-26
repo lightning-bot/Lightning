@@ -9,7 +9,7 @@ import db.mod_check
 class ModNote(Cog):
     def __init__(self, bot):
         """Note cog for adding a note to user. 
-        Useful for not taking moderation action on a user."""
+        Useful for not taking moderation action, but for keeping notes on a user."""
         self.bot = bot
         self.bot.log.info(f'{self.qualified_name} loaded')
 
@@ -20,7 +20,7 @@ class ModNote(Cog):
         """Adds a note to a user, staff only."""
         userlog(ctx.guild, target.id, ctx.author, note,
                 "notes", target.name)
-        await ctx.send(f"{ctx.author.mention}: noted {target}!")
+        await ctx.send(f"Noted {target}!")
 
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
