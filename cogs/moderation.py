@@ -35,6 +35,8 @@ import db.mod_check
 import datetime
 import asyncio
 import traceback
+import dataset
+from datetime import datetime
 
 ## Most commands here taken from robocop-ngs mod.py
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
@@ -54,6 +56,7 @@ class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot.log.info(f'{self.qualified_name} loaded')
+        self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
         
     async def cog_check(self, ctx):
         if ctx.guild is None:
@@ -530,7 +533,75 @@ class Moderation(commands.Cog):
             except:
                 pass  # w/e, dumbasses forgot to set it properly.
 
+    @commands.guild_only()
+    @commands.bot_has_permissions(ban_members=True)
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    @commands.command()
+    async def timeban(self, ctx, target: discord.Member,
+                      duration: str, *, reason: str = ""):
+        """Bans a user for a specified amount of time, staff only."""
+        # Hedge-proofing the code
+        if target == self.bot.user:  
+            return await ctx.send("You can't do mod actions on me.")
+        elif target == ctx.author:
+            return await ctx.send("You can't do mod actions on yourself.")
+        elif db.mod_check.member_at_least_has_staff_role(target):
+            return await ctx.send("I can't ban this user as "
+                                  "they're a staff member.")
 
+        expiry_timestamp = self.bot.parse_time(duration)
+        expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
+        duration_text = self.bot.get_relative_timestamp(time_to=expiry_datetime,
+                                                        include_to=True,
+                                                        humanized=True)
+
+        userlog(ctx.guild, target.id, ctx.author, 
+                f"{reason} (Timed, until "
+                f"{duration_text})",
+                "bans", target.name)
+
+        safe_name = await commands.clean_content().convert(ctx, str(target))
+
+        dm_message = f"You were banned from {ctx.guild.name}."
+        if reason:
+            dm_message += f" The given reason is: \"{reason}\"."
+        dm_message += f"\n\nThis ban will expire {duration_text}."
+
+        try:
+            await target.send(dm_message)
+        except discord.errors.Forbidden:
+            # Prevents ban issues in cases where user blocked bot
+            # or has DMs disabled
+            pass
+
+        await target.ban(reason=f"{ctx.author}, reason: {reason}",
+                         delete_message_days=0)
+        chan_message = f"⛔ **Timed Ban**: {ctx.author.mention} banned "\
+                       f"{target.mention} for {duration_text} | {safe_name}\n"\
+                       f"🏷 __User ID__: {target.id}\n"
+        if reason:
+            chan_message += f"✏️ __Reason__: \"{reason}\""
+        else:
+            chan_message += "Please add an explanation below. In the future"\
+                            f", it is recommended to use `{ctx.prefix}timeban"\
+                            " <target> <duration> [reason]`"\
+                            " as the reason is automatically sent to the user."
+
+        table = self.db["cron_jobs"]
+        table.insert(dict(job_type="timeban", 
+                     guild_id=ctx.guild.id,
+                     user_id=target.id,
+                     expiry=expiry_timestamp))
+
+        await ctx.send(f"{safe_name} is now b&. "
+                       f"It will expire {duration_text}. 👍")
+
+        if "log_channel" in ctx.guild_config:
+            try:
+                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+                await log_channel.send(chan_message)
+            except:
+                pass
 
 
 
