@@ -59,10 +59,10 @@ class Info(commands.Cog):
 
     @commands.command(aliases=['invite'])
     async def botinvite(self, ctx):
-        """Invite Lightning+ to your server"""
-        await ctx.send("You can invite me to your server with this link.\n<https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot>")
+        """Invite Lightning to your server"""
+        await ctx.send("You can invite me to your server with this link.\n<https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=470150390&scope=bot>")
 
-    @commands.command(aliases=['sourcecode'])
+    @commands.command(hidden=True, aliases=['sourcecode'])
     async def source(self, ctx):
         """My source code"""
         await ctx.send("This is my source code. https://github.com/LightSage/Lightning.py")
@@ -123,6 +123,7 @@ class Info(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         embed = discord.Embed(title="Left Guild", color=discord.Color.red())
+        self.bot.log.info(f"Left Guild | {guild.name} | {guild.id}")
         await self.send_guild_info(embed, guild)
 
 
