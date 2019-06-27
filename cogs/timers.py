@@ -84,7 +84,7 @@ class Timers(commands.Cog):
                             # Delete the timer
                             self.db['cron_jobs'].delete(author=jobtype['author'], expiry=expiry2,
                                                         job_type="reminder")
-                        if jobtype['job_type'] == "timeban":
+                        elif jobtype['job_type'] == "timeban":
                             guid = self.bot.get_guild(jobtype['guild_id'])
                             uid = await self.bot.fetch_user(jobtype['user_id'])
                             await guid.unban(uid, reason="PowersCron: "
