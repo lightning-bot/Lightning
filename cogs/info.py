@@ -71,29 +71,10 @@ class Info(commands.Cog):
     @commands.bot_has_permissions(embed_links=True)
     async def ping(self, ctx):
         """Calculates the ping time."""
-        pings = []
-        number = 0
         await ctx.trigger_typing()
         latencyms = round(self.bot.latency * 1000)
-        pings.append(latencyms)
-        discords = time.monotonic()
-        url = "https://discordapp.com/"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status is 200:
-                    discorde = time.monotonic()
-                    discordms = round((discorde-discords)*1000)
-                    pings.append(discordms)
-                    discordms = f"{discordms}ms"
-                else:
-                    discordms = "Failed"
-        for ms in pings:
-            number += ms
-        average = round(number / len(pings))
-        embed = discord.Embed(title="🏓 Ping Times:", color=discord.Color.dark_red())
+        embed = discord.Embed(title="🏓 Ping Time:", color=discord.Color.dark_red())
         embed.add_field(name="Latency", value=f"{latencyms}ms")
-        embed.add_field(name="Discord", value=f"{discordms}")
-        embed.set_footer(text=f"Average: {average}ms")
         await ctx.send(embed=embed)
 
     @commands.command()
