@@ -91,7 +91,8 @@ class Timers(commands.Cog):
                                              "Timed Ban Expired.")
                             # Delete the scheduled unban
                             self.db['cron_jobs'].delete(job_type="timeban", 
-                                                        expiry=expiry2, user_id=uid)
+                                                        expiry=expiry2, 
+                                                        user_id=jobtype['user_id'])
 
             except:
                 # Keep jobs for now if they errored
