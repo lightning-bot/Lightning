@@ -26,6 +26,8 @@ class Lockdown(commands.Cog):
     async def lock(self, ctx, channel: discord.TextChannel = None):
         """Locks down the channel mentioned. Moderators+
 
+        Sets the channel permissions as @everyone can't send messages.
+        
         If no channel was mentioned, it locks the channel the command was used in"""
         if not channel:
             channel = ctx.channel
@@ -53,7 +55,9 @@ class Lockdown(commands.Cog):
     @db.mod_check.check_if_at_least_has_staff_role("Admin")
     @commands.command(aliases=['hard-lock'])
     async def hlock(self, ctx, channel: discord.TextChannel = None):
-        """Hard locks a channel. Sets the channel permissions as @everyone can't speak or see the channel.
+        """Hard locks a channel. Admin only.
+
+        Sets the channel permissions as @everyone can't speak or see the channel.
         
         If no channel was mentioned, it hard locks the channel the command was used in."""
         if not channel:
