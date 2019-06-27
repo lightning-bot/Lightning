@@ -11,7 +11,7 @@ class Fun(commands.Cog):
     """Fun Stuff"""
     def __init__(self, bot):
         self.bot = bot
-        self.session = aiohttp.ClientSession(loop=self.bot.loop)
+        self.session = aiohttp.ClientSession()
         self.bot.log.info(f'{self.qualified_name} loaded')
 
     def c_to_f(self, c):
