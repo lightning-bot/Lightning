@@ -22,7 +22,7 @@ class ToggleRoles(commands.Cog):
             embed.description = ""
             role_list.append(role)
             for s in role_list:
-                embed.description += f"{s.mention}\n | Role ID {s.id}"
+                embed.description += f"{s.mention} | Role ID {s.id}\n"
         embed.set_footer(text=f"{ctx.guild.name}")
         session.close()
         await ctx.send(embed=embed)
