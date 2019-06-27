@@ -86,7 +86,7 @@ class Timers(commands.Cog):
                                                         job_type="reminder")
                         elif jobtype['job_type'] == "timeban":
                             guid = self.bot.get_guild(jobtype['guild_id'])
-                            uid = jobtype['user_id']
+                            uid = await self.bot.fetch_user(jobtype['user_id'])
                             await guid.unban(uid, reason="PowersCron: "
                                              "Timed Ban Expired.")
                             # Delete the scheduled unban
