@@ -25,16 +25,11 @@
 
 import discord
 from discord.ext import commands
-from discord.ext.commands import Cog
 import db.per_guild_config
 from db.user_log import userlog
 from database import Config
-from typing import Union
 from utils.restrictions import add_restriction, remove_restriction
 import db.mod_check
-import datetime
-import asyncio
-import traceback
 import dataset
 from datetime import datetime
 
