@@ -59,7 +59,8 @@ class Timers(commands.Cog):
                 duration_text = self.bot.get_relative_timestamp(time_to=expiry_timestr,
                                                                 include_to=True,
                                                                 humanized=True)
-                embed.add_field(name=f"In {duration_text}", value=f"{job['remind_text']}")
+                embed.add_field(name=f"{job['id']}: In {duration_text}", 
+                                value=f"{job['remind_text']}")
         except:
             log_channel = self.bot.get_channel(527965708793937960)
             await log_channel.send(f"PowersCron has Errored! "
