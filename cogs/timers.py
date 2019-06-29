@@ -78,9 +78,8 @@ class Timers(commands.Cog):
         NOTE: You must own the reminder to remove it"""
 
         try:
-            self.db['cron_jobs'].find_one(job_type="reminder", 
-                                      author=ctx.author.id,
-                                      id=reminder_id)
+            self.db['cron_jobs'].find_one(job_type="reminder", author=ctx.author.id,
+                                          sid=reminder_id)
         except:
             await ctx.message.add_reaction("❌")
             return await ctx.send(f"I couldn't delete a reminder with that ID!")
