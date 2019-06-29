@@ -78,7 +78,7 @@ class Timers(commands.Cog):
         NOTE: You must own the reminder to remove it"""
 
         try:
-            self.db['cron_jobs'].find(job_type="reminder", 
+            self.db['cron_jobs'].find_one(job_type="reminder", 
                                       author=ctx.author.id,
                                       id=reminder_id)
         except:
