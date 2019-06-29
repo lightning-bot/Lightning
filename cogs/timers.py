@@ -79,7 +79,7 @@ class Timers(commands.Cog):
 
         try:
             self.db['cron_jobs'].find_one(job_type="reminder", author=ctx.author.id,
-                                          sid=reminder_id)
+                                          id=reminder_id)
         except:
             await ctx.message.add_reaction("❌")
             return await ctx.send(f"I couldn't delete a reminder with that ID!")
