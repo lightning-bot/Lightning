@@ -68,14 +68,13 @@ class Timers(commands.Cog):
             embed.description += "No Timers Currently Running!"
         await ctx.send(embed=embed)
 
-    @commands.is_owner()
     @commands.command(aliases=['deletetimer', 'removereminder'])
     async def deletereminder(self, ctx, *, reminder_id: int):
         """Deletes a reminder by ID.
         
         You can get the ID of a reminder with .listreminders
 
-        NOTE: You must own the reminder to remove it"""
+        You must own the reminder to remove it"""
 
         query_s = self.db['cron_jobs'].find_one(job_type="reminder", author=ctx.author.id,
                                       id=reminder_id)
