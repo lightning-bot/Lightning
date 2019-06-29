@@ -68,6 +68,24 @@ class Timers(commands.Cog):
             embed.description += "No Timers Currently Running!"
         await ctx.send(embed=embed)
 
+    @commands.command(aliases=['deletetimer', 'removereminder'])
+    async def deletereminder(self, ctx, *, reminder_id: int):
+        """Deletes a reminder by ID.
+        
+        You can get the ID of a reminder with .listreminders
+
+        NOTE: You must own the reminder to remove it"""
+
+        try:
+            self.db['cron_jobs'].delete(job_type="reminder", author=ctx.author.id,
+                                        id=reminder_id)
+        except:
+            await ctx.message.add_reaction("❌")
+            return await ctx.send(f"I couldn't delete a reminder with that ID!")
+
+        await ctx.send(f"Successfully deleted reminder (ID: {reminder_id}")
+        await ctx.message.add_reaction("✅") # For whatever reason
+
     async def do_jobs(self):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
