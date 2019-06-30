@@ -84,7 +84,10 @@ class Fun(commands.Cog):
     async def cat(self, ctx):
         """Random Cat Pics from random.cat"""
         async with self.session.get('http://aws.random.cat/meow') as resp:
-            data = await resp.json()
+            if resp.status == 200:
+                data = await resp.json()
+            else:
+                return await ctx.send(f"Something went wrong fetching cute cats! Try again later.")
         embed = discord.Embed(title="Meow <:meowawauu:559383939513581569>", color=discord.Color.teal())
         embed.set_image(url=data['file'])
         embed.set_footer(text="Powered by random.cat", icon_url="https://purr.objects-us-east-1.dream.io/static/ico/favicon-96x96.png")
@@ -94,7 +97,10 @@ class Fun(commands.Cog):
     async def dog(self, ctx):
         """Random dog pics from dog.ceo"""
         async with self.session.get('https://dog.ceo/api/breeds/image/random') as resp:
-            data = await resp.json()
+            if resp.status == 200:
+                data = await resp.json()
+            else:
+                return await ctx.send(f"Something went wrong fetching dog pics! Try again later.")
         embed = discord.Embed(title="Bark 🐶", color=discord.Color.blurple())
         embed.set_image(url=data['message'])
         embed.set_footer(text="Powered by dog.ceo", icon_url="https://dog.ceo/img/favicon.png")
