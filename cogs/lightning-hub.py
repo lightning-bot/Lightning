@@ -20,11 +20,12 @@ class LightningHub(commands.Cog):
     async def cog_after_invoke(self, ctx):
         db.per_guild_config.write_guild_config(ctx.guild, ctx.guild_config, "config")
 
+    @commands.guild_only()
     @commands.command(hidden=True)
     @commands.has_any_role("Trusted", "Verified")
     async def sr(self, ctx, *, text: str = ""):
         """Request staff assistance. Trusted and Verified only."""
-        if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
+        if ctx.guild.id != 527887739178188830:
             return
         
         staff = self.bot.get_channel(536376192727646208)
@@ -37,11 +38,12 @@ class LightningHub(commands.Cog):
         await ctx.message.add_reaction("✅")
         await ctx.send("Online staff have been notified of your request.")
 
+    @commands.guild_only()
     @commands.command(hidden=True)
     @commands.has_any_role("Helpers", "Staff")
     async def probate(self, ctx, target: discord.Member, *, reason: str = ""):
         """Probates a user. Staff only."""
-        if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
+        if ctx.guild.id != 527887739178188830:
             return
 
         mod_log_chan = self.bot.get_channel(552583376566091805)
@@ -72,11 +74,12 @@ class LightningHub(commands.Cog):
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now probated.")
 
+    @commands.guild_only()
     @commands.command(hidden=True)
     @commands.has_any_role("Helpers", "Staff")
     async def unprobate(self, ctx, target: discord.Member, *, reason: str = ""):
         """Removes probation role/unprobates the user. Staff only."""
-        if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
+        if ctx.guild.id != 527887739178188830:
             return
 
         mod_log_chan = self.bot.get_channel(552583376566091805)
@@ -121,7 +124,7 @@ class LightningHub(commands.Cog):
     async def autoprobate(self, ctx, status="on"):
         """Turns on or off auto probate. 
         Use "disable" to disable auto probate."""
-        if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
+        if ctx.guild.id != 527887739178188830:
             return
 
         if status == "disable":
