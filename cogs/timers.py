@@ -50,14 +50,12 @@ class Timers(commands.Cog):
         """Lists up to 10 of your reminders"""
         table = self.db["cron_jobs"].find(author=ctx.author.id, _limit=10)
         embed = discord.Embed(title="Reminders", color=discord.Color(0xf74b06))
-        if table is None:
+        if len(table) == 0:
             embed.description = "No reminders were found!"
         # Kinda hacky-ish code
         try:
             for job in table:
-                #if job['author'] == ctx.author.id:
                 expiry_timestr = datetime.utcfromtimestamp(job['expiry'])
-                        #.strftime('%Y-%m-%d %H:%M:%S (UTC)')
                 duration_text = self.bot.get_relative_timestamp(time_to=expiry_timestr,
                                                                 include_to=True,
                                                                 humanized=True)
