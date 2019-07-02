@@ -50,6 +50,8 @@ class Timers(commands.Cog):
         """Lists up to 10 of your reminders"""
         table = self.db["cron_jobs"].find(author=ctx.author.id, _limit=10)
         embed = discord.Embed(title="Reminders", color=discord.Color(0xf74b06))
+        if table is None:
+            embed.description = "No reminders were found!"
         # Kinda hacky-ish code
         try:
             for job in table:
@@ -65,7 +67,8 @@ class Timers(commands.Cog):
             log_channel = self.bot.get_channel(527965708793937960)
             await log_channel.send(f"PowersCron has Errored! "
                                    f"```{traceback.format_exc()}```")
-            embed.description += "No Timers Currently Running!"
+            embed.description = "Something went wrong getting your timers!"\
+                                " Try again later"
         await ctx.send(embed=embed)
 
     @commands.command(aliases=['deletetimer', 'removereminder'])
