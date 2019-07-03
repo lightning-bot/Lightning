@@ -72,7 +72,7 @@ def load_jis():
 
 load_jis()
 
-version_num = "v1.2"
+version_num = "v1.2.1"
 bot.version = version_num
 
 @bot.event
