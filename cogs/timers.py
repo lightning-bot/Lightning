@@ -49,9 +49,12 @@ class Timers(commands.Cog):
     async def listreminders(self, ctx):
         """Lists up to 10 of your reminders"""
         table = self.db["cron_jobs"].find(author=ctx.author.id, _limit=10)
+        # bc this is 2 queries
+        ctable = self.db["cron_jobs"].count(author=ctx.author.id)
         embed = discord.Embed(title="Reminders", color=discord.Color(0xf74b06))
-        if table is None:
+        if ctable == 0:
             embed.description = "No reminders were found!"
+            return await ctx.send(embed=embed)
         # Kinda hacky-ish code
         try:
             for job in table:
