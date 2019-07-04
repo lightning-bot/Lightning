@@ -39,7 +39,8 @@ class Owner(Cog):
                                        stderr=subprocess.PIPE)
             stdout, stderr = await process.communicate()
             
-        msg1 = f"[stderr] {stderr.decode('utf-8')}\n[stdout] {stdout.decode('utf-8')}"
+        msg1 = f"[stderr]\n{stderr.decode('utf-8')}\n---\n"\
+               f"[stdout]\n{stdout.decode('utf-8')}"
         sliced_message = await self.bot.slice_message(msg1,
                                                       prefix="```",
                                                       suffix="```")
