@@ -235,7 +235,7 @@ class Owner(Cog):
     async def pull(self, ctx):
         """Pull new changes from GitHub."""
         msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
-        output = self.bot.call_shell("git pull")
+        output = await self.bot.call_shell("git pull")
         await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
 
     @commands.is_owner()
@@ -244,7 +244,7 @@ class Owner(Cog):
     async def pullreload(self, ctx):
         """Pull and reload the cogs automatically."""
         msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
-        output = self.bot.call_shell("git pull")
+        output = await self.bot.call_shell("git pull")
         await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
 
         to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
@@ -266,7 +266,7 @@ class Owner(Cog):
     async def pull_load(self, ctx):
         """Pull and load new cogs automatically."""
         msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
-        output = self.bot.call_shell("git pull")
+        output = await self.bot.call_shell("git pull")
         await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
 
         to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
