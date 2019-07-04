@@ -11,6 +11,8 @@ from database import BlacklistGuild, BlacklistUser
 from utils.restrictions import add_restriction
 import random
 import config
+import asyncio
+import subprocess
 
 
 class Owner(Cog):
@@ -20,7 +22,30 @@ class Owner(Cog):
         self.previous_eval_code = None
         self.repo = Repo(os.getcwd())
         self.bot.log.info(f'{self.qualified_name} loaded')
-
+        
+    @commands.is_owner()
+    @commands.command()
+    async def shell(self, ctx, *, command: str):
+        """Runs a command in the terminal/shell"""
+        try:
+            pipe = asyncio.subprocess.PIPE
+            process = await asyncio.create_subprocess_shell(command,
+                                                            stdout=pipe,
+                                                            stderr=pipe)
+            stdout, stderr = await process.communicate()
+        except NotImplementedError: # Account for Windows (Trashdows)
+            process = subprocess.Popen(command, shell=True, 
+                                       stdout=subprocess.PIPE, 
+                                       stderr=subprocess.PIPE)
+            stdout, stderr = await process.communicate()
+            
+        msg1 = f"[stderr] {stderr.decode('utf-8')}\n[stdout] {stdout.decode('utf-8')}"
+        sliced_message = await self.bot.slice_message(msg1,
+                                                      prefix="```",
+                                                      suffix="```")
+        for msg in sliced_message:
+            await ctx.send(msg)
+    
     @commands.is_owner()
     @commands.command(hidden=True)
     async def fetchlog(self, ctx):
