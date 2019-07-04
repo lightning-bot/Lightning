@@ -1,4 +1,3 @@
-GitPython
 sqlalchemy
 jishaku
 discord.py

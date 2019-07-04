@@ -28,6 +28,7 @@ import humanize
 import time
 import math
 import parsedatetime
+import subprocess
 from discord.ext.commands import Cog
 
 class Common(Cog):
@@ -174,6 +175,26 @@ class Common(Cog):
         else:
             return f"Error {response.status}: {response.text}"
 
+    # The function (call_shell) listed below is my work (LightSage). 
+    # LICENSE: GNU Affero General Public License v3.0 
+    # https://github.com/LightSage/Lightning.py/blob/master/LICENSE
+    async def call_shell(self, shell_command: str):
+        try:
+            pipe = asyncio.subprocess.PIPE
+            process = await asyncio.create_subprocess_shell(shell_command,
+                                                            stdout=pipe,
+                                                            stderr=pipe)
+            stdout, stderr = await process.communicate()
+        except NotImplementedError: # Account for Windows (Trashdows)
+            process = subprocess.Popen(shell_command, shell=True, 
+                                       stdout=subprocess.PIPE, 
+                                       stderr=subprocess.PIPE)
+            stdout, stderr = await process.communicate()
+            
+        msg1 = f"[stderr]\n{stderr.decode('utf-8')}\n---\n"\
+               f"[stdout]\n{stdout.decode('utf-8')}"
+               
+        return msg1
 
 def setup(bot):
     bot.add_cog(Common(bot))

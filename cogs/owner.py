@@ -4,15 +4,11 @@ from discord.ext.commands import Cog
 import traceback
 import inspect
 import re
-import os
-from git import Repo
 import time
 from database import BlacklistGuild, BlacklistUser
 from utils.restrictions import add_restriction
 import random
 import config
-import asyncio
-import subprocess
 
 
 class Owner(Cog):
@@ -20,28 +16,14 @@ class Owner(Cog):
         self.bot = bot
         self.last_eval_result = None
         self.previous_eval_code = None
-        self.repo = Repo(os.getcwd())
         self.bot.log.info(f'{self.qualified_name} loaded')
         
     @commands.is_owner()
     @commands.command()
     async def shell(self, ctx, *, command: str):
         """Runs a command in the terminal/shell"""
-        try:
-            pipe = asyncio.subprocess.PIPE
-            process = await asyncio.create_subprocess_shell(command,
-                                                            stdout=pipe,
-                                                            stderr=pipe)
-            stdout, stderr = await process.communicate()
-        except NotImplementedError: # Account for Windows (Trashdows)
-            process = subprocess.Popen(command, shell=True, 
-                                       stdout=subprocess.PIPE, 
-                                       stderr=subprocess.PIPE)
-            stdout, stderr = await process.communicate()
-            
-        msg1 = f"[stderr]\n{stderr.decode('utf-8')}\n---\n"\
-               f"[stdout]\n{stdout.decode('utf-8')}"
-        sliced_message = await self.bot.slice_message(msg1,
+        shell_out = await self.bot.call_shell(command)
+        sliced_message = await self.bot.slice_message(shell_out,
                                                       prefix="```",
                                                       suffix="```")
         for msg in sliced_message:
@@ -253,7 +235,7 @@ class Owner(Cog):
     async def pull(self, ctx):
         """Pull new changes from GitHub."""
         msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
-        output = self.repo.git.pull()
+        output = self.bot.call_shell("git pull")
         await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
 
     @commands.is_owner()
@@ -262,7 +244,7 @@ class Owner(Cog):
     async def pullreload(self, ctx):
         """Pull and reload the cogs automatically."""
         msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
-        output = self.repo.git.pull()
+        output = self.bot.call_shell("git pull")
         await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
 
         to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
@@ -284,7 +266,7 @@ class Owner(Cog):
     async def pull_load(self, ctx):
         """Pull and load new cogs automatically."""
         msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
-        output = self.repo.git.pull()
+        output = self.bot.call_shell("git pull")
         await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
 
         to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
