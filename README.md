@@ -14,7 +14,6 @@ Go to https://lightsage.gitlab.io/Lightning/home/ for a list of current features
 
 - [ ] Moderation: Time Mute (relies on PowersCron)
 - [ ] PowersCron: Management Cog (PCA)
-- [ ] PowersCron: Allow reminder author to delete their own reminders
 
 <details>
 <summary>Completed Features</summary>
@@ -36,6 +35,7 @@ Go to https://lightsage.gitlab.io/Lightning/home/ for a list of current features
 - [x] Bot Owner: Search blacklist with an ID
 - [x] PowersCron: Reminders/Timers
 - [x] Moderation: Time Ban (relies on PowersCron)
+- [x] PowersCron: Allow reminder author to delete their own reminders
 
 
 </p>
