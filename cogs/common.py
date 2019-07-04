@@ -46,6 +46,7 @@ class Common(Cog):
         self.bot.escape_message = self.escape_message
         self.bot.parse_time = self.parse_time
         self.bot.haste = self.haste
+        self.bot.call_shell = self.call_shell
         self.bot.log.info(f'{self.qualified_name} loaded')
 
 
