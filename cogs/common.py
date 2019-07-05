@@ -190,7 +190,7 @@ class Common(Cog):
             process = subprocess.Popen(shell_command, shell=True, 
                                        stdout=subprocess.PIPE, 
                                        stderr=subprocess.PIPE)
-            stdout, stderr = await process.communicate()
+            stdout, stderr = process.communicate()
             
         msg1 = f"[stderr]\n{stderr.decode('utf-8')}\n---\n"\
                f"[stdout]\n{stdout.decode('utf-8')}"
