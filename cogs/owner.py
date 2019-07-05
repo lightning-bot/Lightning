@@ -230,7 +230,7 @@ class Owner(Cog):
             await ctx.send_help(ctx.command)
 
     @commands.is_owner()
-    @git.command(name='pull')
+    @git.command()
     @commands.guild_only()
     async def pull(self, ctx):
         """Pull new changes from GitHub."""
@@ -282,7 +282,7 @@ class Owner(Cog):
                     return
 
             
-    @commands.command(name='playing', aliases=['status']) #'play'
+    @commands.command(aliases=['status']) #'play'
     @commands.is_owner()
     async def playing(self, ctx, *gamename):
         """Sets playing message. Owner only."""
