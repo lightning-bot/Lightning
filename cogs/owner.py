@@ -281,6 +281,58 @@ class Owner(Cog):
                     await ctx.send(f'💢 There was an error loading the cog \n**`ERROR:`** {type(e).__name__} - {e}')                   
                     return
 
+    @commands.is_owner()
+    @commands.group()
+    async def pip(self, ctx):
+        """Helper commands to assist with pip things"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+    
+    @commands.is_owner()
+    @pip.command(name="check-updates", 
+                 aliases=['chkupdate', 'cupdate', 'chku'])
+    async def check_updates(self, ctx):
+        """Checks to see which packages are outdated"""
+        await ctx.send("I\'m figuring this out.")
+        out = await self.bot.call_shell("pip3 list --outdated")
+        slice_msg = await self.bot.slice_message(out,
+                                                 prefix="```",
+                                                 suffix="```")
+        for msg in slice_msg:
+            await ctx.send(msg)
+
+    @commands.is_owner()
+    @pip.command(name='dpy', aliases=['discordpy'])
+    async def updatedpy(self, ctx):
+        """Updates discord.py. Use .pip chkupdate to see if there are updates to any packages."""
+        sh_out = await self.bot.call_shell("pip3 install --upgrade discord.py")
+        slice_msg = await self.bot.slice_message(sh_out,
+                                                 prefix="```",
+                                                 suffix="```")
+        for msg in slice_msg:
+            await ctx.send(msg)
+
+    @commands.is_owner()
+    @pip.command()
+    async def freeze(self, ctx):
+        """Returns a list of pip packages installed"""
+        sh_out = await self.bot.call_shell("pip3 freeze -l")
+        slice_msg = await self.bot.slice_message(sh_out,
+                                                 prefix="```",
+                                                 suffix="```")
+        for msg in slice_msg:
+            await ctx.send(msg)
+
+    @commands.is_owner()
+    @pip.command()
+    async def uninstall(self, ctx, package: str):
+        """Uninstalls a package. (Use with care.)"""
+        sh_out = await self.bot.call_shell(f"pip3 uninstall -y {package}")
+        slice_msg = await self.bot.slice_message(sh_out,
+                                                 prefix="```",
+                                                 suffix="```")
+        for msg in slice_msg:
+            await ctx.send(msg)
             
     @commands.command(aliases=['status']) #'play'
     @commands.is_owner()
@@ -313,17 +365,20 @@ class Owner(Cog):
     async def on_guild_join(self, guild):
         session = self.bot.db.dbsession()
         try:
-            guild_blacklist = session.query(BlacklistGuild).filter_by(guild_id=guild.id).one()
+            session.query(BlacklistGuild).filter_by(guild_id=guild.id).one()
             self.bot.log.info(f"Attempted to Join Blacklisted Guild | {guild.name} | ({guild.id})")
             await guild.owner.send("**Sorry, this guild is blacklisted.** To appeal your blacklist, join the support server. https://discord.gg/cDPGuYd")
             await guild.leave()
             return
         except:
             guild_blacklist = None
+
+        if guild_blacklist is None:
             msg = f"Thanks for adding me! I'm Lightning.\n"\
-            f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
-            f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd or see the setup guide"\
-            f" at <https://lightsage.gitlab.io/Lightning/settings/>"
+                  f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
+                  f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd"\
+                  f" or see the setup guide"\
+                  f" at <https://lightsage.gitlab.io/Lightning/settings/>"
             await guild.owner.send(msg)
             self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
         session.close()
