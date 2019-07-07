@@ -1,5 +1,4 @@
 import discord
-import aiohttp
 import datetime
 from datetime import datetime
 import time
@@ -7,7 +6,6 @@ import os
 import config
 import platform
 from discord.ext import commands
-
 
 
 class Info(commands.Cog):
@@ -106,10 +104,6 @@ class Info(commands.Cog):
         embed = discord.Embed(title="Left Guild", color=discord.Color.red())
         self.bot.log.info(f"Left Guild | {guild.name} | {guild.id}")
         await self.send_guild_info(embed, guild)
-
-
-
-
 
 
 
