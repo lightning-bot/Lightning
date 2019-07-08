@@ -51,6 +51,28 @@ class Memes(commands.Cog):
             member = ctx.author
 
         await ctx.send(f"{member.mention} is now neo-banned!")
+
+    @commands.command(aliases=['discordcopypasta'])
+    @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
+    async def discordcopypaste(self, ctx, member: discord.Member=None):
+        """Generates a discord copypaste
+        
+        If no arguments are passed, it's uses the author of the command"""
+        if member is None:
+            member = ctx.author
+        org_msg = f"Look out for a Discord user by the name of \"{member.name}\" with"\
+                  f" the tag #{member.discriminator}. "\
+                  "He is going around sending friend requests to random Discord users,"\
+                  " and those who accept his friend requests will have their accounts "\
+                  "DDoSed and their groups exposed with the members inside it "\
+                  "becoming a victim aswell. Spread the word and send "\
+                  "this to as many discord servers as you can. "\
+                  "If you see this user, DO NOT accept his friend "\
+                  "request and immediately block him. Our team is "\
+                  "currently working very hard to remove this user from our database,"\
+                  " please stay safe."
+
+        await ctx.send(org_msg)
        
 
 
