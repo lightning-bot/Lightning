@@ -40,41 +40,18 @@ class Extras(commands.Cog):
         await channel.send(inp)
     
     @commands.guild_only()
-    @commands.command(name='make-embed')
-    @commands.bot_has_permissions(embed_links=True)
-    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
-    async def embed_command(self, ctx):
-        """Interactive Embed Generator. Moderators only."""
-        def check(ms):
-            # Look for the message sent in the same channel where the command was used
-            # As well as by the user who used the command.
-            return ms.channel == ctx.message.channel and ms.author == ctx.message.author
+    @commands.command()
+    async def listemotes(self, ctx):
+        """Prints a fancy list of the server's emotes"""
+        if len(ctx.guild.emojis) == 0:
+            return await ctx.send("This server has no emotes!")
+            
+        paginator = commands.Paginator(suffix='', prefix='')
+        for emoji in ctx.guild.emojis:
+            paginator.add_line(f'{emoji} -- `{emoji}`')
 
-        await ctx.send(content='What would you like the title to be?')
-
-        msg = await self.bot.wait_for('message', check=check)
-        title = msg.content # Set the title
-
-        await ctx.send(content='What would you like the Description to be?')
-        msg = await self.bot.wait_for('message', check=check)
-        desc = msg.content
-
-        msg = await ctx.send(content='Now generating the embed...')
-        embed = discord.Embed(
-            title=title,
-            description=desc,
-            color=0x1ABC9C,
-        )
-        embed.set_thumbnail(url=self.bot.user.avatar_url)
-        embed.set_author(
-            name=ctx.message.author.name,
-            icon_url=ctx.message.author.avatar_url
-        )
-        await msg.edit(
-            embed=embed,
-            content=None
-        )
-        return
+        for page in paginator.pages:
+            await ctx.send(page)
 
 
 def setup(bot):
