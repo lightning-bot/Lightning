@@ -57,7 +57,9 @@ class Memes(commands.Cog):
     async def discordcopypaste(self, ctx, member: discord.Member=None):
         """Generates a discord copypaste
         
-        If no arguments are passed, it's uses the author of the command"""
+        If no arguments are passed, it uses the author of the command.
+        
+        If you fall for this, you should give yourself a solid facepalm."""
         if member is None:
             member = ctx.author
         org_msg = f"Look out for a Discord user by the name of \"{member.name}\" with"\
