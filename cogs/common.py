@@ -110,7 +110,7 @@ class Common(Cog):
             if data.status == 200:
                 byte_data = await data.read()
                 self.bot.log.debug(f"Data from {url}: {byte_data}")
-                return byte_data
+                return f"Data from {url}:\n{byte_data}"
             else:
                 self.bot.log.error(f"HTTP Error {data.status} "
                                    "while getting {url}")
