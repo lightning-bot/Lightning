@@ -364,14 +364,14 @@ class Owner(Cog):
     @commands.is_owner()
     @commands.group(invoke_without_command=True)
     async def curl(self, ctx, url: str):
-        text = await self.bot.aiogetbytes(url)
+        text = await self.bot.aioget(url)
 
-        sliced_message = await self.bot.slice_message(f"{url}\n{io.BytesIO(text)}",
-                                                      prefix="```",
-                                                      suffix="```")
+        #sliced_message = await self.bot.slice_message(io.BytesIO(text),
+        #                                              prefix="```",
+        #                                              suffix="```")
 
-        for msg in sliced_message:
-            await ctx.send(msg)
+        #for msg in sliced_message:
+        await ctx.send(io.BytesIO(text))
 
     @commands.is_owner()
     @curl.command(name='raw')
