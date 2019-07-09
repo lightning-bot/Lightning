@@ -371,7 +371,7 @@ class Owner(Cog):
         #                                              suffix="```")
 
         #for msg in sliced_message:
-        await ctx.send(io.BytesIO(text))
+        await ctx.send(text)
 
     @commands.is_owner()
     @curl.command(name='raw')
