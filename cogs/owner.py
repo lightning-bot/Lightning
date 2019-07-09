@@ -9,7 +9,7 @@ from database import BlacklistGuild, BlacklistUser
 from utils.restrictions import add_restriction
 import random
 import config
-
+import io
 
 class Owner(Cog):
     def __init__(self, bot):
@@ -341,7 +341,7 @@ class Owner(Cog):
         await self.bot.change_presence(activity=discord.Game(name=f'{" ".join(gamename)}'))
         await ctx.send(f'Successfully changed status to `{gamename}`')
 
-    @commands.command(name='stop', aliases=['bye', 'exit'])
+    @commands.command(aliases=['bye', 'exit'])
     @commands.is_owner()
     async def stop(self, ctx):
         """Stop the Bot."""
@@ -360,6 +360,18 @@ class Owner(Cog):
     async def add_restriction_to_user(self, ctx, member: discord.Member, *, role: discord.Role):
         add_restriction(ctx.guild, member.id, role.id)
         await ctx.send(f"Applied {role.id} | {role.name} to {member}")
+
+    @commands.is_owner()
+    @commands.command()
+    async def curl(self, ctx, url):
+        text = await self.bot.aiogetbytes(url)
+
+        sliced_message = await self.bot.slice_message(io.BytesIO(text),
+                                                          prefix="```",
+                                                          suffix="```")
+                                                          
+        for msg in sliced_message:
+            await ctx.send(msg)
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
