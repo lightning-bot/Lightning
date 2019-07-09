@@ -362,11 +362,23 @@ class Owner(Cog):
         await ctx.send(f"Applied {role.id} | {role.name} to {member}")
 
     @commands.is_owner()
-    @commands.command()
+    @commands.group(invoke_without_command=True)
     async def curl(self, ctx, url: str):
         text = await self.bot.aiogetbytes(url)
 
         sliced_message = await self.bot.slice_message(f"{url}\n{io.BytesIO(text)}",
+                                                      prefix="```",
+                                                      suffix="```")
+
+        for msg in sliced_message:
+            await ctx.send(msg)
+
+    @commands.is_owner()
+    @curl.command(name='raw')
+    async def curl_raw(self, ctx, url: str):
+        text = await self.bot.aiogetbytes(url)
+
+        sliced_message = await self.bot.slice_message(f"{url}\n\n{text}",
                                                       prefix="```",
                                                       suffix="```")
 
