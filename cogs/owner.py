@@ -363,13 +363,13 @@ class Owner(Cog):
 
     @commands.is_owner()
     @commands.command()
-    async def curl(self, ctx, url):
+    async def curl(self, ctx, *, url: str):
         text = await self.bot.aiogetbytes(url)
 
         sliced_message = await self.bot.slice_message(io.BytesIO(text),
-                                                          prefix="```",
-                                                          suffix="```")
-                                                          
+                                                      prefix="```",
+                                                      suffix="```")
+
         for msg in sliced_message:
             await ctx.send(msg)
 
