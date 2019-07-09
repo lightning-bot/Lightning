@@ -13,7 +13,6 @@ Go to https://lightsage.gitlab.io/Lightning/home/ for a list of current features
 ## Planned Features
 
 - [ ] Moderation: Time Mute (relies on PowersCron)
-- [ ] PowersCron: Management Cog (PCA)
 
 <details>
 <summary>Completed Features</summary>
@@ -36,6 +35,8 @@ Go to https://lightsage.gitlab.io/Lightning/home/ for a list of current features
 - [x] PowersCron: Reminders/Timers
 - [x] Moderation: Time Ban (relies on PowersCron)
 - [x] PowersCron: Allow reminder author to delete their own reminders
+- [x] PowersCron: Management Cog (PCA/PCM)
+- [x] PowersCron: 6 Hour Data Backup 
 
 
 </p>
@@ -56,6 +57,7 @@ This bot uses parts and ideas from other Discord Bots:
 - [Kirigiri](https://git.catgirlsin.space/noirscape/kirigiri) by Noirscape. (For the per_guild_config and staff role database)
 - [Robocop-NG](https://github.com/reswitched/robocop-ng) by Ave and TomGER. (Moderation Commands & Restrictions)
 - [Kurisu](https://github.com/nh-server/Kurisu) by ihaveahax/ihaveamac and 916253. (For the compact logging format)
+- [RoboDanny](https://github.com/Rapptz/RoboDanny) by Rapptz/Danny. (For Ideas, Unban Handler, and other things)
 
 
 Extended special thanks to:

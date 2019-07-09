@@ -5,6 +5,7 @@ from discord.ext import commands
 # from PIL import Image, ImageFilter
 import random
 import math
+import config
 
 
 class Fun(commands.Cog):
@@ -80,17 +81,44 @@ class Fun(commands.Cog):
         fahrenheit = self.c_to_f(celsius)
         await ctx.send(f"{user.mention} cryofreezed. User is now {celsius}°C ({fahrenheit}°F).")
 
-    @commands.command()
+    @commands.group(aliases=['cade'])
     async def cat(self, ctx):
+        """Random cats pics either from TheCatAPI or random.cat"""
+        if ctx.invoked_subcommand is None:
+            ranco = ["catapi", "randomcat"]
+            listo = random.choice(ranco)
+            await ctx.invoke(self.bot.get_command(f"cat {listo}"))
+
+    @cat.command()
+    async def randomcat(self, ctx):
         """Random Cat Pics from random.cat"""
         async with self.session.get('http://aws.random.cat/meow') as resp:
             if resp.status == 200:
                 data = await resp.json()
             else:
-                return await ctx.send(f"Something went wrong fetching cute cats! Try again later.")
-        embed = discord.Embed(title="Meow <:meowawauu:559383939513581569>", color=discord.Color.teal())
+                return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)") 
+        embed = discord.Embed(title="Meow <:meowawauu:559383939513581569>", 
+                              color=discord.Color.teal())
         embed.set_image(url=data['file'])
-        embed.set_footer(text="Powered by random.cat", icon_url="https://purr.objects-us-east-1.dream.io/static/ico/favicon-96x96.png")
+        embed.set_footer(text="Powered by random.cat", 
+                         icon_url="https://purr.objects-us-east-1.dream.io/static/ico/favicon-96x96.png")
+        await ctx.send(embed=embed)
+
+    @cat.command(aliases=['capi'])
+    async def catapi(self, ctx):
+        """Random Cat Pics from thecatapi.com"""
+        capi = {"x-api-key": config.catapi_token}
+        session = aiohttp.ClientSession(headers=capi)
+        async with session.get(url='https://api.thecatapi.com/v1/images/search') as resp:
+            if resp.status == 200:
+                dat = await resp.json()
+            else:
+                return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)")
+        embed = discord.Embed(title="Meow <:meowawauu:559383939513581569>", 
+                              color=discord.Color(0x0c4189))
+        for cat in dat: # There's only one but shrug.avi
+            embed.set_image(url=cat['url'])
+        embed.set_footer(text="Powered by TheCatApi")
         await ctx.send(embed=embed)
 
     @commands.command()
@@ -100,7 +128,8 @@ class Fun(commands.Cog):
             if resp.status == 200:
                 data = await resp.json()
             else:
-                return await ctx.send(f"Something went wrong fetching dog pics! Try again later.")
+                return await ctx.send("Something went wrong "
+                                      "fetching dog pics! Try again later.")
         embed = discord.Embed(title="Bark 🐶", color=discord.Color.blurple())
         embed.set_image(url=data['message'])
         embed.set_footer(text="Powered by dog.ceo", icon_url="https://dog.ceo/img/favicon.png")
