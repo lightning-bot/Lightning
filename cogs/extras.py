@@ -40,7 +40,7 @@ class Extras(commands.Cog):
         await channel.send(inp)
     
     @commands.guild_only()
-    @commands.command()
+    @commands.command(aliases=['listemojis', 'listemoji'])
     async def listemotes(self, ctx):
         """Prints a fancy list of the server's emotes"""
         if len(ctx.guild.emojis) == 0:
