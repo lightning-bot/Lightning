@@ -365,7 +365,9 @@ class Owner(Cog):
     @commands.group(invoke_without_command=True)
     async def curl(self, ctx, url: str):
         text = await self.bot.aioget(url)
-
+        if len(text) > 1990: # Safe Number
+            haste_url = await self.bot.haste(text)
+            return await ctx.send(f"Message exceeded character limit. See the haste {haste_url}")
         await ctx.send(f"```md\n{url}:\n{text}```")
 
     @commands.is_owner()

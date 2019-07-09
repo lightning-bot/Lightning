@@ -155,9 +155,8 @@ class Common(Cog):
         """Slices a message into multiple messages"""
         if len(text) > size * self.max_split_length:
             haste_url = await self.haste(text)
-            return [f"Message is too long ({len(text)} > "
-                    f"{size * self.max_split_length} "
-                    f"({size} * {self.max_split_length}))"
+            return [f"Message exceeded the max split "
+                    f"length "
                     f", go to haste: <{haste_url}>"]
         reply_list = []
         size_wo_fix = size - len(prefix) - len(suffix)
@@ -174,7 +173,8 @@ class Common(Cog):
             result_json = await response.json()
             return f"{instance}{result_json['key']}"
         else:
-            return f"Error {response.status}: {response.text}"
+            self.bot.log.error(f"{response.text}")
+            return f"Error {response.status}. Try again later?"
 
     # The function (call_shell) listed below is my work (LightSage). 
     # LICENSE: GNU Affero General Public License v3.0 
