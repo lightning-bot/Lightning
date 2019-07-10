@@ -132,10 +132,14 @@ async def on_command_error(ctx, error):
               f"of type {type(error)}: {error_text}"
     log.error(err_msg)
 
-    hook = Webhook(config.webhookurl) # Log Errors
-    embed = Embed(description=f"{err_msg}", color=0xff0000, timestamp='now')
-    embed.set_title(title="ERROR")
-    hook.send(embed=embed)
+    if not isinstance(error, commands.CommandNotFound):
+        err2 = f"Error with \"{ctx.message.content}\" from "\
+               f"\"{ctx.message.author} ({ctx.message.author.id}) "\
+               f"of type {type(error)}: {error_text}"
+        hook = Webhook(config.webhookurl) # Log Errors
+        embed = Embed(description=f"{err2}", color=0xff0000, timestamp='now')
+        embed.set_title(title="ERROR")
+        hook.send(embed=embed)
 
     if isinstance(error, commands.NoPrivateMessage):
         return await ctx.send("This command doesn't work in DMs.")
