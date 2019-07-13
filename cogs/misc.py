@@ -5,6 +5,8 @@ import db.mod_check
 import asyncio
 import colorsys
 import random
+import io
+from PIL import Image
 
 
 class Misc(commands.Cog):
@@ -12,6 +14,13 @@ class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot.log.info(f'{self.qualified_name} loaded')
+
+    def finalize_image(self, image): # Image Save
+        image_b = Image.open(io.BytesIO(image))
+        image_file = io.BytesIO()
+        image_b.save(image_file, format="png")
+        image_file.seek(0)
+        return image_file
 
     @commands.command()
     @commands.guild_only()
@@ -208,6 +217,31 @@ class Misc(commands.Cog):
         embed.timestamp = msg.created_at
         await channel.send(embed=embed, content=None)
         return
+
+    @commands.command()
+    async def bmp(self, ctx, link: str):
+        """Converts a .bmp image to .png"""
+        #if link is None:
+         #   if ctx.message.attachments:
+        #        f = ctx.message.attachments
+        #        if f.filename.lower().endswith('.bmp') and f.size <= 600000:
+        #            image_bmp = await self.bot.aiogetbytes(f.url)
+         #           image_final = self.finalize_image(image_bmp)
+        #            await ctx.send(file=image_final)
+        #        else: 
+        #            return await ctx.send("This is not a `.bmp` file.")
+        #    else:
+         #       return await ctx.send(":x: Provide either a link or an attachment to your message"/
+        #                              "so it can be converted.")
+        try:
+            image_bmp = await self.bot.aiogetbytes(link)
+            img_final = self.finalize_image(image_bmp)
+            filex = discord.File(img_final, filename=f"BMP conversion from {ctx.author}.png")
+            await ctx.send(file=filex)
+        except ValueError:
+            return await ctx.send(":x: Provide a link to your message"/
+                                  "so it can be converted.")
+
 
 
 
