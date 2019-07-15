@@ -1,12 +1,13 @@
 import json
 import os
+import config
 
 def get_botmgmt():
     if os.path.isfile(f"config/botmanagers.json"):
         with open(f"config/botmanagers.json", "r") as f:
             return json.load(f)
     else:
-        return {}
+        return {"botmanager": []}
 
 def write_botmgmt(contents):
     os.makedirs(f"config", exist_ok=True)
@@ -15,16 +16,20 @@ def write_botmgmt(contents):
 
 def read_bm(uid):
     bm = get_botmgmt()
-    uid = int(uid)
-    if uid not in bm:
+    uid = str(uid)
+    if uid not in bm['botmanager']:
         return False
-    return True
+
+def add_botmanager(userid):
+    uid = str(userid)
+    bm = get_botmgmt()
+    if uid not in bm['botmanager']:
+        bm['botmanager'].append(uid)
+    write_botmgmt(bm)
 
 def check_if_botmgmt(ctx):
     if not ctx.guild:
         return False
     bm = get_botmgmt()
-    uid = int(ctx.author.id)
-    if uid not in bm:
-        return False
-    return True
+    if str(ctx.author.id) in bm['botmanager'] or str(ctx.author.id) == config.owner_id:
+        return True
