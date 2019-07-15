@@ -27,6 +27,13 @@ def add_botmanager(userid):
         bm['botmanager'].append(uid)
     write_botmgmt(bm)
 
+def remove_botmanager(userid):
+    uid = str(userid)
+    bm = get_botmgmt()
+    if uid in bm['botmanager']:
+        bm['botmanager'].remove(uid)
+    write_botmgmt(bm)
+
 def check_if_botmgmt(ctx):
     if not ctx.guild:
         return False
