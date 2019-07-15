@@ -218,29 +218,34 @@ class Misc(commands.Cog):
         await channel.send(embed=embed, content=None)
         return
 
-    @commands.command()
-    async def bmp(self, ctx, link: str):
+    @commands.command(aliases=['bmptopng'])
+    async def bmp(self, ctx, link=None):
         """Converts a .bmp image to .png"""
-        #if link is None:
-         #   if ctx.message.attachments:
-        #        f = ctx.message.attachments
-        #        if f.filename.lower().endswith('.bmp') and f.size <= 600000:
-        #            image_bmp = await self.bot.aiogetbytes(f.url)
-         #           image_final = self.finalize_image(image_bmp)
-        #            await ctx.send(file=image_final)
-        #        else: 
-        #            return await ctx.send("This is not a `.bmp` file.")
-        #    else:
-         #       return await ctx.send(":x: Provide either a link or an attachment to your message"/
-        #                              "so it can be converted.")
-        try:
-            image_bmp = await self.bot.aiogetbytes(link)
-            img_final = self.finalize_image(image_bmp)
-            filex = discord.File(img_final, filename=f"BMP conversion from {ctx.author}.png")
-            await ctx.send(file=filex)
-        except ValueError:
-            return await ctx.send(":x: Provide a link to your message"/
-                                  "so it can be converted.")
+        if link is None:
+            if ctx.message.attachments:
+                f = ctx.message.attachments[0]
+                if f.filename.lower().endswith('.bmp'):
+                    image_bmp = await self.bot.aiogetbytes(f.url)
+                    img_final = self.finalize_image(image_bmp)
+                    filex = discord.File(img_final, 
+                                         filename=f"BMP conversion from {ctx.author}.png")
+                    await ctx.send(file=filex)
+                else: 
+                    return await ctx.send("This is not a `.bmp` file.")
+            else:
+                return await ctx.send(":x: Either provide an attachment or a link so it can be converted")
+        else:
+            if link.lower().endswith('.bmp'):
+                try:
+                    image_bmp = await self.bot.aiogetbytes(link)
+                    img_final = self.finalize_image(image_bmp)
+                    filex = discord.File(img_final, filename=f"BMP conversion from {ctx.author}.png")
+                    await ctx.send(file=filex)
+                except:
+                    return await ctx.send(":x: Provide a link to your message"/
+                                          "so it can be converted.")
+            else:
+                return await ctx.send("This is not a `.bmp` file.")
 
 
 
