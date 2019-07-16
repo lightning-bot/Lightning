@@ -392,7 +392,7 @@ class Owner(Cog):
     @commands.command()
     async def removebotmanager(self, ctx, uid: discord.Member):
         remove_botmanager(uid.id)
-        await ctx.send(f"{uid} is now longer a bot manager")
+        await ctx.send(f"{uid} is no longer a bot manager")
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
