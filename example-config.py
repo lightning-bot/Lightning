@@ -11,3 +11,6 @@ error_channel = 567109464184979502
 
 #Sends errors to Webhook
 webhookurl = "INSERT_LINK_HERE"
+
+# Bot Owner ID
+owner_id = "INSERT_ID_HERE"

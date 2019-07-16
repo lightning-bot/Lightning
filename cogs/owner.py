@@ -10,6 +10,7 @@ from utils.restrictions import add_restriction
 import random
 import config
 import io
+from utils.bot_mgmt import add_botmanager, check_if_botmgmt, remove_botmanager
 
 class Owner(Cog):
     def __init__(self, bot):
@@ -41,9 +42,8 @@ class Owner(Cog):
             await ctx.send(f"💢 I couldn't send the log file in your DMs so I sent it to the bot's logging channel.")
             await log_channel.send("Here's the current log file:", file=discord.File(f"{self.bot.script_name}.log"))
     
+    @commands.check(check_if_botmgmt)
     @commands.command(name="fetchguilduserlog")
-    @commands.guild_only()
-    @commands.is_owner()
     async def getmodlogjson(self, ctx, guild_id: int):
         """Gets the guild id's userlog.json file"""
         try:
@@ -51,7 +51,7 @@ class Owner(Cog):
         except:
             await ctx.send(f"`{guild_id}` doesn't have a userlog.json yet. Check back later.")
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.command(name='blacklistguild')
     async def blacklist_guild(self, ctx, server_id: int):
         """Blacklist a guild from using the bot"""
@@ -69,7 +69,7 @@ class Owner(Cog):
         session.close()
         await ctx.send(msg + f'✅ Successfully blacklisted guild `{server_id}`')
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.command(name='unblacklistguild', aliases=['unblacklist-guild'])
     async def unblacklist_guild(self, ctx, server_id: int):
         """Unblacklist a guild from using the bot"""
@@ -85,7 +85,7 @@ class Owner(Cog):
             session.close()
             return await ctx.send(f":x: `{server_id}` isn't blacklisted!")
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.command(name="blacklistuser", aliases=["blacklist-user"])
     async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
         """Blacklist an user from using the bot"""
@@ -99,7 +99,7 @@ class Owner(Cog):
         session.close()
         await ctx.send(f"✅ Successfully blacklisted user `{userid}`")
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.command(name="unblacklistuser", aliases=['unblacklist-user'])
     async def unblacklist_user(self, ctx, userid: int):
         """Unblacklist an user from using the bot"""
@@ -114,8 +114,8 @@ class Owner(Cog):
             session.close()
             return await ctx.send(f"❌ `{userid}` isn't blacklisted!")
 
+    @commands.check(check_if_botmgmt)
     @commands.command(name="blacklistsearch", aliases=["blacklist-search"])
-    @commands.is_owner()
     async def search_blacklist(self, ctx, guild_or_user_id: int):
         """Search the blacklist to see if a user or a guild is blacklisted"""
         session = self.bot.db.dbsession()
@@ -361,16 +361,16 @@ class Owner(Cog):
         add_restriction(ctx.guild, member.id, role.id)
         await ctx.send(f"Applied {role.id} | {role.name} to {member}")
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.group(invoke_without_command=True)
     async def curl(self, ctx, url: str):
         text = await self.bot.aioget(url)
         if len(text) > 1990: # Safe Number
             haste_url = await self.bot.haste(text)
             return await ctx.send(f"Message exceeded character limit. See the haste {haste_url}")
-        await ctx.send(f"```md\n{url}:\n{text}```")
+        await ctx.send(f"```md\n{text}```")
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @curl.command(name='raw')
     async def curl_raw(self, ctx, url: str):
         text = await self.bot.aiogetbytes(url)
@@ -381,6 +381,18 @@ class Owner(Cog):
 
         for msg in sliced_message:
             await ctx.send(msg)
+
+    @commands.is_owner()
+    @commands.command()
+    async def addbotmanager(self, ctx, uid: discord.Member):
+        add_botmanager(uid.id)
+        await ctx.send(f"{uid} is now a bot manager")
+
+    @commands.is_owner()
+    @commands.command()
+    async def removebotmanager(self, ctx, uid: discord.Member):
+        remove_botmanager(uid.id)
+        await ctx.send(f"{uid} is now longer a bot manager")
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
