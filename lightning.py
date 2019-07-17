@@ -195,6 +195,9 @@ async def on_message(message):
     ctx = await bot.get_context(message)
     await bot.invoke(ctx)
 
+# Create config folder if not found
+if not os.path.exists("config"):
+    os.makedirs("config")
 
 
 bot.run(config.token, bot=True, reconnect=True)
