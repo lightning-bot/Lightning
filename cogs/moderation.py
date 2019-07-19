@@ -581,12 +581,14 @@ class Moderation(commands.Cog):
                             f", it is recommended to use `{ctx.prefix}timeban"\
                             " <target> <duration> [reason]`"\
                             " as the reason is automatically sent to the user."
+        j_add = datetime.utcnow()
 
         table = self.db["cron_jobs"]
         table.insert(dict(job_type="timeban", 
                      guild_id=ctx.guild.id,
                      user_id=target.id,
-                     expiry=expiry_timestamp))
+                     expiry=expiry_timestamp,
+                     job_added=j_add))
 
         await ctx.send(f"{safe_name} is now b&. "
                        f"It will expire {duration_text}. 👍")

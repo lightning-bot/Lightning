@@ -6,6 +6,8 @@ import asyncio
 import traceback
 import discord
 
+STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
+
 class Timers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -39,10 +41,12 @@ class Timers(commands.Cog):
                                                         include_to=True,
                                                         humanized=True)
 
+        j_add = datetime.utcnow()
+
         table = self.db["cron_jobs"]
         table.insert(dict(job_type="reminder", author=ctx.author.id,
                      channel=ctx.channel.id, remind_text=description,
-                     expiry=expiry_timestamp)) #, guild_id=ctx.guild.id
+                     expiry=expiry_timestamp, job_added=j_add)) #, guild_id=ctx.guild.id
         await ctx.send(f"{ctx.author.mention}: I'll remind you in {duration_text}.")
 
     @commands.command(aliases=['listreminds', 'listtimers'])
@@ -108,8 +112,10 @@ class Timers(commands.Cog):
                         if jobtype['job_type'] == "reminder":
                             channel = self.bot.get_channel(jobtype['channel'])
                             await channel.send(f"<@{jobtype['author']}>: "
-                                               "Timer is up! "
-                                               f"`{jobtype['remind_text']}`")
+                                               "You asked to be reminded "
+                                               "on "
+                                               f"{jobtype['job_added'].strftime(STIMER)} "
+                                               f"about `{jobtype['remind_text']}`")
                             # Delete the timer
                             self.db['cron_jobs'].delete(author=jobtype['author'], expiry=expiry2,
                                                         job_type="reminder")
