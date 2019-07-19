@@ -174,7 +174,7 @@ class Logger(Cog):
             if "message_log_channel" in config:
                 msg = "📝 **Message edit**: \n"\
                       f"Author: {self.bot.escape_message(after.author.name)} "\
-                      f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
+                      f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"
                 embed = discord.Embed(description=f"Before: {before.clean_content}\nAfter: {after.clean_content}")
                 #if after.attachments:
                 #    attachment_urls = []
