@@ -136,13 +136,13 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(message.guild, "config"):
             config = db.per_guild_config.get_guild_config(message.guild, "config")
             if "message_log_channel" in config:
+                escape = discord.utils.escape_markdown(message.clean_content, 
+                                                            as_needed=False, 
+                                                            ignore_links=True)
                 msg = "🗑️ **Message deleted**: \n"\
                       f"Author: {self.bot.escape_message(message.author.name)} "\
                       f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"\
-                    msges = discord.utils.escape_markdown(message.clean_content, 
-                                                          *, as_needed=False, 
-                                                          ignore_links=True)
-                      f"```{msges}```" # Wrap in a code block
+                      f"```{escape}```" # Wrap in a code block
                 if message.attachments:
                     attachment_urls = []
                     for attachment in message.attachments:
@@ -172,15 +172,15 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(before.guild, "config"):
             config = db.per_guild_config.get_guild_config(before.guild, "config")
             if "message_log_channel" in config:
+                msges = discord.utils.escape_markdown(before.clean_content, 
+                                                      as_needed=True, 
+                                                      ignore_links=True)
+                msgez = discord.utils.escape_markdown(after.clean_content, 
+                                                      as_needed=True, 
+                                                      ignore_links=True)
                 msg = "📝 **Message edit**: \n"\
                       f"Author: {self.bot.escape_message(after.author.name)} "\
                       f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
-                    msges = discord.utils.escape_markdown(before.clean_content, 
-                                                          *, as_needed=False, 
-                                                          ignore_links=True)
-                    msgez = discord.utils.escape_markdown(after.clean_content, 
-                                                          *, as_needed=False, 
-                                                          ignore_links=True)
                       f"Before: ```{msges}```\nAfter: ```{msgez}```" # Code Block Wrapping
                 #if after.attachments:
                 #    attachment_urls = []
