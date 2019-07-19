@@ -141,8 +141,8 @@ class Logger(Cog):
                                                             ignore_links=True)
                 msg = "🗑️ **Message deleted**: \n"\
                       f"Author: {self.bot.escape_message(message.author.name)} "\
-                      f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"\
-                      f"```{escape}```" # Wrap in a code block
+                      f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"
+                embed = discord.Embed(description=f"Message: {message.clean_content}")
                 if message.attachments:
                     attachment_urls = []
                     for attachment in message.attachments:
@@ -155,7 +155,7 @@ class Logger(Cog):
                     haste_url = await self.bot.haste(msg)
                     msg = f"🗑️ **Message deleted**: \nMessage was too long. See the link: <{haste_url}>"
                 try:
-                    await self.bot.get_channel(config["message_log_channel"]).send(msg)
+                    await self.bot.get_channel(config["message_log_channel"]).send(msg, embed=embed)
                 except:
                     pass
 
@@ -172,16 +172,10 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(before.guild, "config"):
             config = db.per_guild_config.get_guild_config(before.guild, "config")
             if "message_log_channel" in config:
-                msges = discord.utils.escape_markdown(before.clean_content, 
-                                                      as_needed=True, 
-                                                      ignore_links=True)
-                msgez = discord.utils.escape_markdown(after.clean_content, 
-                                                      as_needed=True, 
-                                                      ignore_links=True)
                 msg = "📝 **Message edit**: \n"\
                       f"Author: {self.bot.escape_message(after.author.name)} "\
                       f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
-                      f"Before: ```{msges}```\nAfter: ```{msgez}```" # Code Block Wrapping
+                embed = discord.Embed(description=f"Before: {before.clean_content}\nAfter: {after.clean_content}")
                 #if after.attachments:
                 #    attachment_urls = []
                 #    for attachment in after.attachments:
@@ -194,7 +188,7 @@ class Logger(Cog):
                     haste_url = await self.bot.haste(msg)
                     msg = f"📝 **Message Edited**: \nMessage was too long. See the link: <{haste_url}>"
                 try:
-                    await self.bot.get_channel(config["message_log_channel"]).send(msg)
+                    await self.bot.get_channel(config["message_log_channel"]).send(msg, embed=embed)
                 except:
                     pass
 
