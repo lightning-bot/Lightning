@@ -139,7 +139,7 @@ class Logger(Cog):
                 msg = "🗑️ **Message deleted**: \n"\
                       f"Author: {self.bot.escape_message(message.author.name)} "\
                       f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"\
-                      f"```{message.clean_content}```" # Wrap in a code block
+                      f"```{message.clean_content(escape_markdown=True)}```" # Wrap in a code block
                 if message.attachments:
                     attachment_urls = []
                     for attachment in message.attachments:
@@ -172,7 +172,7 @@ class Logger(Cog):
                 msg = "📝 **Message edit**: \n"\
                       f"Author: {self.bot.escape_message(after.author.name)} "\
                       f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
-                      f"Before: ```{before.clean_content}```\nAfter: ```{after.clean_content}```" # Code Block Wrapping
+                      f"Before: ```{before.clean_content(escape_markdown=True)}```\nAfter: ```{after.clean_content(escape_markdown=True)}```" # Code Block Wrapping
                 #if after.attachments:
                 #    attachment_urls = []
                 #    for attachment in after.attachments:
