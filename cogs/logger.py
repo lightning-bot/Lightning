@@ -185,7 +185,11 @@ class Logger(Cog):
                 #           f"{attachment_msg}"
                 # If resulting message is too long, upload to hastebin. Taken from robocop-ng which is under the MIT License.
                 if len(msg) > 2000:
-                    haste_url = await self.bot.haste(msg)
+                    hastemsg = "📝 **Message edit**: \n"\
+                              f"Author: {self.bot.escape_message(after.author.name)} "\
+                              f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
+                              f"Before: {before.clean_content}\n\nAfter: {after.clean_content}"
+                    haste_url = await self.bot.haste(hastemsg)
                     msg = f"📝 **Message Edited**: \nMessage was too long. See the link: <{haste_url}>"
                 try:
                     await self.bot.get_channel(config["message_log_channel"]).send(msg, embed=embed)
