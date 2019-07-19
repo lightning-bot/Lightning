@@ -394,6 +394,12 @@ class Owner(Cog):
         remove_botmanager(uid.id)
         await ctx.send(f"{uid} is no longer a bot manager")
 
+    @commands.is_owner()
+    @commands.command()
+    async def fetchdb(self, ctx):
+        await ctx.send(file=discord.File("config/powerscron.sqlite3"))
+        await ctx.send(file=discord.File("config/database.sqlite3"))
+
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
         session = self.bot.db.dbsession()
