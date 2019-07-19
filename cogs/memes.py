@@ -54,7 +54,7 @@ class Memes(commands.Cog):
 
     @commands.command(aliases=['discordcopypasta'])
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
-    async def discordcopypaste(self, ctx, member: discord.User=None):
+    async def discordcopypaste(self, ctx, member: discord.Member=None):
         """Generates a discord copypaste
         
         If no arguments are passed, it uses the author of the command.
