@@ -417,7 +417,7 @@ class Owner(Cog):
                   f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
                   f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd"\
                   f" or see the setup guide"\
-                  f" at <https://lightsage.gitlab.io/Lightning/settings/>"
+                  f" at <https://lightsage.gitlab.io/lightning/setup/>"
             await guild.owner.send(msg)
             self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
         session.close()
