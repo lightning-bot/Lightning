@@ -54,6 +54,7 @@ bot.help_command = commands.DefaultHelpCommand(dm_help = None)
 bot.script_name = script_name
 failed_to_load_cogs = []
 success_cogs = []
+bot.successful_command = 0
 
 # Here we load our extensions(cogs) listed above in [initial_extensions].
 if __name__ == '__main__':
@@ -194,6 +195,10 @@ async def on_message(message):
 
     ctx = await bot.get_context(message)
     await bot.invoke(ctx)
+
+@bot.event
+async def on_command_completion(ctx):
+    bot.successful_command += 1
 
 # Create config folder if not found
 if not os.path.exists("config"):
