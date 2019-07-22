@@ -6,7 +6,7 @@ description  = "Lightning+, the successor to Lightning(.js)"
 cogs = ['cogs.comics', 'cogs.owner', 'cogs.load', 'cogs.moderation', 'cogs.logger', 
 'cogs.extras', 'cogs.mod_userlog', 'cogs.setup',
 'cogs.weeb', 'cogs.info', 'cogs.mod_note', 'cogs.fun', 'db.databasestart', 'cogs.toggle_roles', 
-'cogs.lockdown', 'cogs.memes', 'cogs.poll', 'cogs.common', 'cogs.misc', 'cogs.status_switch', 
+'cogs.lockdown', 'cogs.memes', 'cogs.common', 'cogs.misc', 'cogs.status_switch', 
 'cogs.lightning-hub', 'cogs.timers', 'cogs.powerscrona']
 
 # Bot Errors/Logs Channel. 
