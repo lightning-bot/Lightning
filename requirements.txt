@@ -1,7 +1,6 @@
 sqlalchemy
 jishaku
 discord.py
-asyncio
 python-dateutil
 aiohttp
 beautifulsoup4
@@ -9,3 +8,4 @@ dhooks
 parsedatetime
 dataset
 Pillow
+github3.py
