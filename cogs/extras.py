@@ -74,7 +74,7 @@ class Extras(commands.Cog):
         """Converts text to binary"""
         async with ctx.typing():
             msg = " ".join(f"{ord(i):08b}" for i in text)
-        await ctx.send(msg)
+        await ctx.send(f"```{msg}```")
 
 def setup(bot):
     bot.add_cog(Extras(bot))
