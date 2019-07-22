@@ -69,6 +69,12 @@ class Extras(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             return await ctx.send('Please add a question.')
 
+    @commands.command()
+    async def texttobinary(self, ctx, *, text: str):
+        """Converts text to binary"""
+        async with ctx.typing():
+            msg = " ".join(f"{ord(i):08b}" for i in text)
+        await ctx.send(msg)
 
 def setup(bot):
     bot.add_cog(Extras(bot))
