@@ -81,7 +81,7 @@ class Fun(commands.Cog):
         fahrenheit = self.c_to_f(celsius)
         await ctx.send(f"{user.mention} cryofreezed. User is now {celsius}°C ({fahrenheit}°F).")
 
-    @commands.group()
+    @commands.group(aliases=['cade'])
     async def cat(self, ctx):
         """Random cats pics either from TheCatAPI or random.cat"""
         if ctx.invoked_subcommand is None:
