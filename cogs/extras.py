@@ -53,6 +53,22 @@ class Extras(commands.Cog):
         for page in paginator.pages:
             await ctx.send(page)
 
+    @commands.command()
+    async def inviteinfo(self, ctx, invite_code: discord.Invite):
+        embed = discord.Embed(title=f'Invite for {invite_code.guild.name} '
+                                    f"({invite_code.guild.id})")
+        embed.add_field(name='Channel', value=f'{invite_code.channel.name} '
+                                              f'({invite_code.channel.id})', inline=False)
+        embed.add_field(name='Uses', value=invite_code.uses, inline=False)
+        if invite_code.inviter:
+            embed.add_field(name='Inviter', value=invite_code.inviter, inline=False)
+        embed.add_field(name="Created", value=invite_code.created_at)
+        if invite_code.temporary is True:
+            embed.description += "✅ Temporary Invite"
+        await ctx.send(embed=embed)
+        await ctx.send(f"{invite_code.max_age} {invite_code.approximate_member_count}"
+                       f"{invite_code.id} {invite_code.url}")
+
 
 def setup(bot):
     bot.add_cog(Extras(bot))
