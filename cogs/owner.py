@@ -397,8 +397,49 @@ class Owner(Cog):
     @commands.is_owner()
     @commands.command()
     async def fetchdb(self, ctx):
+        """Fetches the database files"""
         await ctx.send(file=discord.File("config/powerscron.sqlite3"))
         await ctx.send(file=discord.File("config/database.sqlite3"))
+
+    @commands.command(name='load')
+    @commands.is_owner()
+    async def c_load(self, ctx, *, cog: str):
+        """Load a Cog."""
+        try:
+            self.bot.load_extension("cogs." + cog)
+        except Exception as e:
+            await ctx.send(f'💢 There was an error loading the cog \n'
+                           f'**ERROR:** ```{type(e).__name__} - {e}```')
+        else:
+            self.bot.log.info(f"{ctx.author} loaded the cog `{cog}`")
+            await ctx.send(f'✅ Successfully loaded `cogs.{cog}`')
+
+    @commands.command(name='unload')
+    @commands.is_owner()
+    async def c_unload(self, ctx, *, cog: str):
+        """Unloads a Cog."""
+        try:
+            self.bot.unload_extension("cogs." + cog)
+        except Exception as e:
+            await ctx.send(f'💢 There was an error unloading the cog \n'
+                           f'**ERROR:** ```{type(e).__name__} - {e}```')
+        else:
+            self.bot.log.info(f"{ctx.author} unloaded the cog `{cog}`")            
+            await ctx.send(f'✅ Successfully unloaded `cogs.{cog}`')
+
+    @commands.command(name='reload')
+    @commands.is_owner()
+    async def c_reload(self, ctx, *, cog: str):
+        """Reload a Cog."""
+        try:
+            self.bot.unload_extension("cogs." + cog)
+            self.bot.load_extension("cogs." + cog)
+        except Exception as e:
+            await ctx.send(f'💢 There was an error reloading the cog \n'
+                           f'**ERROR:** ```{type(e).__name__} - {e}```')
+        else:
+            self.bot.log.info(f"{ctx.author} reloaded the cog `{cog}`")     
+            await ctx.send(f'✅ Successfully reloaded `cogs.{cog}`')
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
