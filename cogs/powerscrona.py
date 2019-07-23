@@ -29,6 +29,7 @@ class Names(Enum):
         return num[index]
 
 STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
+C_HASH = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('UTF-8')
 
 class PowersCronManagement(commands.Cog):
     """Commands that help manage PowersCron's Cron Jobs"""
@@ -168,7 +169,7 @@ class PowersCronManagement(commands.Cog):
                 act_name = f"{len(self.bot.guilds)} servers"
                 act_type = discord.ActivityType.watching
             if self.stats_ran is Names.GIT_COMMIT:
-                act_name = f"Running on commit {subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('UTF-8')}"
+                act_name = f"Running on commit {C_HASH}"
                 act_type = discord.ActivityType.playing
             if self.stats_ran is Names.VERSION:
                 act_name = f"on {self.bot.version}"
