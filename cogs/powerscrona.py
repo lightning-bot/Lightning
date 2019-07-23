@@ -2,11 +2,31 @@ import dataset
 import time
 import config
 from datetime import datetime
-from discord.ext import commands
+from discord.ext import commands, tasks
 import asyncio
 import traceback
 import discord
 from utils.bot_mgmt import check_if_botmgmt
+from enum import Enum
+import subprocess
+import random
+import json
+
+# We'll use a Enum just for the sake of not redo-ing this status switching code.
+class Names(Enum):
+    SERVERS = 0
+    GIT_COMMIT = 1
+    VERSION = 2
+    DEF_HELP = 3
+    MEMBERS = 4
+    MUSIC = 5
+
+    def change(self):
+        num = list(self.__class__)
+        index = num.index(self) + 1
+        if index >= len(num):
+            index = 0
+        return num[index]
 
 STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
 
@@ -14,13 +34,17 @@ class PowersCronManagement(commands.Cog):
     """Commands that help manage PowersCron's Cron Jobs"""
     def __init__(self, bot):
         self.bot = bot
+        self.stats_ran = random.choice(list(Names))
+        self.music = json.load(open('resources/music_list.json', 'r'))
+        self.status_rotate.start()
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
         self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
         self.bot.log.info(f'{self.qualified_name} loaded')
 
-    # Here we cancel our do_jobs loop on cog unload
+    # Here we cancel do_jobs and status rotate loop on cog unload
     def cog_unload(self):
         self.dispatch_jobs.cancel()
+        self.status_rotate.cancel()
 
     @commands.check(check_if_botmgmt)
     @commands.command()
@@ -82,6 +106,20 @@ class PowersCronManagement(commands.Cog):
                                 " Try again later(?)"
         await ctx.send(embed=embed)
 
+    @commands.is_owner()
+    @commands.command(aliases=['stopstatus'])
+    async def stop_ss(self, ctx):
+        """Stops the status rotation loop gracefully"""
+        self.status_rotate.stop()
+        await ctx.send("Status Switcher has been halted! 🛑")
+
+    @commands.is_owner()
+    @commands.command(aliases=['restartstatus', 'startstatus'])
+    async def start_ss(self, ctx):
+        """(Re)starts the status rotation loop"""
+        self.status_rotate.start()
+        await ctx.send("Status Switcher has started (again)! ✅")
+
     async def do_jobs(self):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
@@ -122,6 +160,33 @@ class PowersCronManagement(commands.Cog):
 
             await asyncio.sleep(5)
 
+    @tasks.loop(minutes=7)
+    async def status_rotate(self):
+        await self.bot.wait_until_ready()           
+        while not self.bot.is_closed():
+            if self.stats_ran is Names.SERVERS:
+                act_name = f"{len(self.bot.guilds)} servers"
+                act_type = discord.ActivityType.watching
+            if self.stats_ran is Names.GIT_COMMIT:
+                act_name = f"Running on commit {subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('UTF-8')}"
+                act_type = discord.ActivityType.playing
+            if self.stats_ran is Names.VERSION:
+                act_name = f"on {self.bot.version}"
+                act_type = discord.ActivityType.playing
+            if self.stats_ran is Names.DEF_HELP:
+                act_name = f"for l.help"
+                act_type = discord.ActivityType.watching
+            if self.stats_ran is Names.MEMBERS:
+                act_name = f"{len(self.bot.users)} users"
+                act_type = discord.ActivityType.watching
+            if self.stats_ran is Names.MUSIC:
+                act_name = f"♬ {random.choice(self.music)}"
+                act_type = discord.ActivityType.playing
+
+            
+            await self.bot.change_presence(activity=discord.Activity(name=act_name, type=act_type))
+            self.stats_ran = self.stats_ran.change()
+            await asyncio.sleep(7 * 60) # Use our same value here
 
 
 def setup(bot):
