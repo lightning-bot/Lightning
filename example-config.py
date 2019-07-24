@@ -7,7 +7,7 @@ cogs = ['cogs.comics', 'cogs.owner', 'cogs.moderation', 'cogs.logger',
 'cogs.extras', 'cogs.mod_userlog', 'cogs.setup',
 'cogs.weeb', 'cogs.info', 'cogs.mod_note', 'cogs.fun', 'db.databasestart', 'cogs.toggle_roles', 
 'cogs.lockdown', 'cogs.memes', 'cogs.common', 'cogs.misc',
-'cogs.lightning-hub', 'cogs.timers', 'cogs.powerscrona']
+'cogs.lightning-hub', 'cogs.timers', 'cogs.powerscrona', 'cogs.emoji']
 
 # Bot Errors/Logs Channel. 
 error_channel = 567109464184979502

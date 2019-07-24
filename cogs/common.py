@@ -113,7 +113,8 @@ class Common(Cog):
                 return byte_data
             else:
                 self.bot.log.error(f"HTTP Error {data.status} "
-                                   "while getting {url}")
+                                   f"while getting {url}")
+                return False
         except:
             self.bot.log.error(f"Error while getting {url} "
                                f"on aiogetbytes: {traceback.format_exc()}")

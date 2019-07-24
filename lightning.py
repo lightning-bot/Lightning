@@ -61,11 +61,11 @@ if __name__ == '__main__':
     for extension in initial_extensions:
         try:
             bot.load_extension(extension)
-            success_cogs.append([extension])
+            success_cogs.append(extension)
         except Exception as e:
             log.error(f'Failed to load cog {extension}.')
             log.error(traceback.print_exc())
-            failed_to_load_cogs.append([extension, type(e).__name__, e])
+            failed_to_load_cogs.append(extension, type(e).__name__, e)
 
 def load_jis():
     bot.load_extension('jishaku')
@@ -170,8 +170,14 @@ async def on_command_error(ctx, error):
         return await ctx.send("❌ I wasn't able to find that ID.")
 
     help_text = f"Usage of this command is: ```{ctx.prefix}"\
-                f"{ctx.invoked_with} {ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
-                f"{ctx.command.name}` for more info about this command."
+                f"{ctx.invoked_subcommand} "\
+                f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
+                f"{ctx.command}` for more info about this command."    
+    if ctx.invoked_subcommand is None:
+        help_text = f"Usage of this command is: ```{ctx.prefix}"\
+                    f"{ctx.invoked_with} "\
+                    f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
+                    f"{ctx.command.name}` for more info about this command."
     if isinstance(error, commands.BadArgument):
         return await ctx.send(f"{ctx.author.mention}: You gave incorrect "
                               f"arguments. {help_text}")
