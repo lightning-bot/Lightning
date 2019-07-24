@@ -105,7 +105,9 @@ class Misc(commands.Cog):
     @commands.bot_has_permissions(embed_links=True)
     async def membercount(self, ctx):
         """Prints the server's member count"""
-        embed = discord.Embed(title=f"Member Count", description=f"{ctx.guild.name} has {ctx.guild.member_count} members.", color=discord.Color.orange())
+        embed = discord.Embed(title=f"Member Count", 
+                              description=f"{ctx.guild.name} has {ctx.guild.member_count} members.", 
+                              color=discord.Color.orange())
         await ctx.send(embed=embed)
 
     @commands.command()
