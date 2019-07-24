@@ -39,13 +39,20 @@ class PowersCronManagement(commands.Cog):
         self.music = json.load(open('resources/music_list.json', 'r'))
         self.status_rotate.start()
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
+        self.cron_6_hours.start()
         self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
         self.bot.log.info(f'{self.qualified_name} loaded')
 
-    # Here we cancel do_jobs and status rotate loop on cog unload
+    # Here we cancel our loops on cog unload
     def cog_unload(self):
         self.dispatch_jobs.cancel()
         self.status_rotate.cancel()
+        self.cron_6_hours.cancel()
+
+    async def send_db(self):
+        back_chan = self.bot.get_channel(config.powerscron_backups)
+        await back_chan.send("6 hour data backup:", 
+                             file=discord.File("config/powerscron.sqlite3"))
 
     @commands.check(check_if_botmgmt)
     @commands.command()
@@ -189,6 +196,20 @@ class PowersCronManagement(commands.Cog):
             self.stats_ran = self.stats_ran.change()
             await asyncio.sleep(7 * 60) # Use our same value here
 
+    @tasks.loop(hours=6)
+    async def cron_6_hours(self):
+        errors_chan = self.bot.get_channel(config.powerscron_errors)
+        while not self.bot.is_closed():
+            try:
+                await self.send_db()
+            except:
+                await errors_chan.send("PowersCron 6 Hours has Errored:"
+                                       f"```{traceback.format_exc()}```")
+            await asyncio.sleep(21600) # 6 Hours
+
+    @cron_6_hours.before_loop
+    async def c_6hr_prep(self):
+        await self.bot.wait_until_ready()
 
 def setup(bot):
     bot.add_cog(PowersCronManagement(bot))
