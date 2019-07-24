@@ -41,7 +41,7 @@ class Emoji(commands.Cog):
             emoji_aio = self.aiobytesfinalize(emoji_link)
             try:
                 finalized_e = await ctx.guild.create_custom_emoji(name=emoji_name, image=emoji_aio, 
-                                                                  reason=f"Emoji Created by {ctx.author} "
+                                                                  reason=f"Emoji Added by {ctx.author} "
                                                                   f"(ID: {ctx.author.id})")
             except Exception as ex:
                 self.bot.log.error(ex)
@@ -49,6 +49,28 @@ class Emoji(commands.Cog):
                                       " emoji\'s list isn\'t full and that emoji is under 256kb.")
             else:
                 await ctx.send(f"Successfully created {finalized_e} `{finalized_e}`")
+        else:
+            return await ctx.send("Something went wrong trying to fetch the url. Try again later(?)")
+
+    @emoji.command()
+    @commands.bot_has_permissions(manage_emojis=True)
+    @db.mod_check.check_if_at_least_has_staff_role("Helper")
+    async def copy(self, ctx, emoji: discord.PartialEmoji):
+        """ "Copies" an emoji and adds it to the guild.
+        
+        Helpers+"""
+        emoji_link = await self.bot.aiogetbytes(str(emoji.url))
+        if emoji_link is not False:
+            try:
+                fe = await ctx.guild.create_custom_emoji(name=emoji.name, image=emoji_link,
+                                                         reason=f"Emoji Added by {ctx.author} "
+                                                         f"(ID: {ctx.author.id})")
+            except Exception as ex:
+                self.bot.log.error(ex)
+                return await ctx.send("Something went wrong creating that emoji. Make sure this guild"
+                                      " emoji\'s list isn\'t full and that emoji is under 256kb.")
+            else:
+                await ctx.send(f"Successfully created {fe} `{fe}`")
         else:
             return await ctx.send("Something went wrong trying to fetch the url. Try again later(?)")
 
