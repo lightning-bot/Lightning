@@ -53,28 +53,6 @@ class Extras(commands.Cog):
         for page in paginator.pages:
             await ctx.send(page)
 
-    @commands.command()
-    async def poll(self, ctx, *, question: str):
-        """Creates a simple poll with thumbs up, thumbs down, and shrug as reactions"""
-        embed = discord.Embed(title="Poll", description=f'Question: {question}', 
-                              color=discord.Color.dark_blue())
-        embed.set_author(name=f'{ctx.author}', icon_url=f'{ctx.author.avatar_url}')
-        msg = await ctx.send(embed=embed)
-        await msg.add_reaction("👍")
-        await msg.add_reaction("👎")
-        await msg.add_reaction("🤷")
-    
-    @poll.error
-    async def poll_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
-            return await ctx.send('Please add a question.')
-
-    @commands.command()
-    async def texttobinary(self, ctx, *, text: str):
-        """Converts text to binary"""
-        async with ctx.typing():
-            msg = " ".join(f"{ord(i):08b}" for i in text)
-        await ctx.send(f"```{msg}```")
 
 def setup(bot):
     bot.add_cog(Extras(bot))

@@ -5,22 +5,13 @@ import db.mod_check
 import asyncio
 import colorsys
 import random
-import io
-from PIL import Image
-import datetime
+
 
 class Misc(commands.Cog):
     """Misc. Information"""
     def __init__(self, bot):
         self.bot = bot
         self.bot.log.info(f'{self.qualified_name} loaded')
-
-    def finalize_image(self, image): # Image Save
-        image_b = Image.open(io.BytesIO(image))
-        image_file = io.BytesIO()
-        image_b.save(image_file, format="png")
-        image_file.seek(0)
-        return image_file
 
     @commands.command()
     @commands.guild_only()
@@ -105,9 +96,7 @@ class Misc(commands.Cog):
     @commands.bot_has_permissions(embed_links=True)
     async def membercount(self, ctx):
         """Prints the server's member count"""
-        embed = discord.Embed(title=f"Member Count", 
-                              description=f"{ctx.guild.name} has {ctx.guild.member_count} members.", 
-                              color=discord.Color.orange())
+        embed = discord.Embed(title=f"Member Count", description=f"{ctx.guild.name} has {ctx.guild.member_count} members.", color=discord.Color.orange())
         await ctx.send(embed=embed)
 
     @commands.command()
@@ -220,60 +209,8 @@ class Misc(commands.Cog):
         await channel.send(embed=embed, content=None)
         return
 
-    @commands.command(aliases=['bmptopng'])
-    async def bmp(self, ctx, link=None):
-        """Converts a .bmp image to .png"""
-        if link is None:
-            if ctx.message.attachments:
-                f = ctx.message.attachments[0]
-                if f.filename.lower().endswith('.bmp'):
-                    image_bmp = await self.bot.aiogetbytes(f.url)
-                    img_final = self.finalize_image(image_bmp)
-                    filex = discord.File(img_final, 
-                                         filename=f"BMP conversion from {ctx.author}.png")
-                    await ctx.send(file=filex)
-                else: 
-                    return await ctx.send("This is not a `.bmp` file.")
-            else:
-                return await ctx.send(":x: Either provide an attachment or a link so it can be converted")
-        else:
-            if link.lower().endswith('.bmp'):
-                try:
-                    image_bmp = await self.bot.aiogetbytes(link)
-                    img_final = self.finalize_image(image_bmp)
-                    filex = discord.File(img_final, filename=f"BMP conversion from {ctx.author}.png")
-                    await ctx.send(file=filex)
-                except:
-                    return await ctx.send(":x: Provide a link to your message"/
-                                          "so it can be converted.")
-            else:
-                return await ctx.send("This is not a `.bmp` file.")
 
-    @commands.command()
-    @commands.cooldown(rate=1, per=250.0, type=commands.BucketType.channel)
-    @db.mod_check.check_if_at_least_has_staff_role("Admin")
-    async def archive(self, ctx, limit: int):
-        """Archives the current channel's contents.
-        Admins only!"""
-        if limit > 750: # Safe Value
-            return await ctx.send("Too big! Lower the value!")
-        log_t = f"Archive of {ctx.channel} (ID: {ctx.channel.id}) "\
-                f"made on {datetime.datetime.utcnow()}\n\n\n"
-        async with ctx.typing():
-            async for log in ctx.channel.history(limit=limit):
-                # .strftime('%X/%H:%M:%S') but no for now
-                log_t += f"[{log.created_at}]: {log.author} - {log.clean_content}"
-                if log.attachments:
-                    for attach in log.attachments:
-                        log_t += f"{attach.url}\n"
-                else:
-                    log_t += "\n"
-            
-        aiostring = io.StringIO()
-        aiostring.write(log_t)
-        aiostring.seek(0)
-        aiofile = discord.File(aiostring, filename=f"{ctx.channel}_archive.txt")
-        await ctx.send(file=aiofile)
+
 
 
 def setup(bot):
