@@ -4,12 +4,13 @@ from discord.ext.commands import Cog
 import traceback
 import inspect
 import re
-import time
+import asyncio
 from database import BlacklistGuild, BlacklistUser
 from utils.restrictions import add_restriction
 import random
 import config
 import io
+from utils.bot_mgmt import add_botmanager, check_if_botmgmt, remove_botmanager
 
 class Owner(Cog):
     def __init__(self, bot):
@@ -41,9 +42,8 @@ class Owner(Cog):
             await ctx.send(f"💢 I couldn't send the log file in your DMs so I sent it to the bot's logging channel.")
             await log_channel.send("Here's the current log file:", file=discord.File(f"{self.bot.script_name}.log"))
     
+    @commands.check(check_if_botmgmt)
     @commands.command(name="fetchguilduserlog")
-    @commands.guild_only()
-    @commands.is_owner()
     async def getmodlogjson(self, ctx, guild_id: int):
         """Gets the guild id's userlog.json file"""
         try:
@@ -51,7 +51,7 @@ class Owner(Cog):
         except:
             await ctx.send(f"`{guild_id}` doesn't have a userlog.json yet. Check back later.")
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.command(name='blacklistguild')
     async def blacklist_guild(self, ctx, server_id: int):
         """Blacklist a guild from using the bot"""
@@ -69,7 +69,7 @@ class Owner(Cog):
         session.close()
         await ctx.send(msg + f'✅ Successfully blacklisted guild `{server_id}`')
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.command(name='unblacklistguild', aliases=['unblacklist-guild'])
     async def unblacklist_guild(self, ctx, server_id: int):
         """Unblacklist a guild from using the bot"""
@@ -85,7 +85,7 @@ class Owner(Cog):
             session.close()
             return await ctx.send(f":x: `{server_id}` isn't blacklisted!")
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.command(name="blacklistuser", aliases=["blacklist-user"])
     async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
         """Blacklist an user from using the bot"""
@@ -99,7 +99,7 @@ class Owner(Cog):
         session.close()
         await ctx.send(f"✅ Successfully blacklisted user `{userid}`")
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.command(name="unblacklistuser", aliases=['unblacklist-user'])
     async def unblacklist_user(self, ctx, userid: int):
         """Unblacklist an user from using the bot"""
@@ -114,8 +114,8 @@ class Owner(Cog):
             session.close()
             return await ctx.send(f"❌ `{userid}` isn't blacklisted!")
 
+    @commands.check(check_if_botmgmt)
     @commands.command(name="blacklistsearch", aliases=["blacklist-search"])
-    @commands.is_owner()
     async def search_blacklist(self, ctx, guild_or_user_id: int):
         """Search the blacklist to see if a user or a guild is blacklisted"""
         session = self.bot.db.dbsession()
@@ -152,10 +152,10 @@ class Owner(Cog):
 
     @commands.is_owner()
     @commands.command()
-    async def restart(self, ctx):
-        """Restart the bot"""
-        await ctx.send('Restarting now...')
-        time.sleep(1)
+    async def logout(self, ctx):
+        """Logout the bot"""
+        await ctx.send('Logging out now...')
+        await asyncio.sleep(5.0)
         await self.bot.logout()
 
     @commands.is_owner()
@@ -282,6 +282,16 @@ class Owner(Cog):
                     return
 
     @commands.is_owner()
+    @git.command(name="pull-exit", aliases=['pe'])
+    async def pull_exit(self, ctx):
+        """Git Pulls and then exits"""
+        await ctx.send("Git Pulling....")
+        await ctx.invoke(self.bot.get_command('git pull'))
+        await asyncio.sleep(10.0)
+        await ctx.send("Exiting...")
+        await ctx.invoke(self.bot.get_command('exit'))
+
+    @commands.is_owner()
     @commands.group()
     async def pip(self, ctx):
         """Helper commands to assist with pip things"""
@@ -361,14 +371,16 @@ class Owner(Cog):
         add_restriction(ctx.guild, member.id, role.id)
         await ctx.send(f"Applied {role.id} | {role.name} to {member}")
 
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @commands.group(invoke_without_command=True)
     async def curl(self, ctx, url: str):
         text = await self.bot.aioget(url)
+        if len(text) > 1990: # Safe Number
+            haste_url = await self.bot.haste(text)
+            return await ctx.send(f"Message exceeded character limit. See the haste {haste_url}")
+        await ctx.send(f"```md\n{text}```")
 
-        await ctx.send(f"```md\n{url}:\n{text}```")
-
-    @commands.is_owner()
+    @commands.check(check_if_botmgmt)
     @curl.command(name='raw')
     async def curl_raw(self, ctx, url: str):
         text = await self.bot.aiogetbytes(url)
@@ -379,6 +391,65 @@ class Owner(Cog):
 
         for msg in sliced_message:
             await ctx.send(msg)
+
+    @commands.is_owner()
+    @commands.command()
+    async def addbotmanager(self, ctx, uid: discord.Member):
+        add_botmanager(uid.id)
+        await ctx.send(f"{uid} is now a bot manager")
+
+    @commands.is_owner()
+    @commands.command()
+    async def removebotmanager(self, ctx, uid: discord.Member):
+        remove_botmanager(uid.id)
+        await ctx.send(f"{uid} is no longer a bot manager")
+
+    @commands.is_owner()
+    @commands.command()
+    async def fetchdb(self, ctx):
+        """Fetches the database files"""
+        await ctx.send(file=discord.File("config/powerscron.sqlite3"))
+        await ctx.send(file=discord.File("config/database.sqlite3"))
+
+    @commands.command(name='load')
+    @commands.is_owner()
+    async def c_load(self, ctx, *, cog: str):
+        """Load a Cog."""
+        try:
+            self.bot.load_extension("cogs." + cog)
+        except Exception as e:
+            await ctx.send(f'💢 There was an error loading the cog \n'
+                           f'**ERROR:** ```{type(e).__name__} - {e}```')
+        else:
+            self.bot.log.info(f"{ctx.author} loaded the cog `{cog}`")
+            await ctx.send(f'✅ Successfully loaded `cogs.{cog}`')
+
+    @commands.command(name='unload')
+    @commands.is_owner()
+    async def c_unload(self, ctx, *, cog: str):
+        """Unloads a Cog."""
+        try:
+            self.bot.unload_extension("cogs." + cog)
+        except Exception as e:
+            await ctx.send(f'💢 There was an error unloading the cog \n'
+                           f'**ERROR:** ```{type(e).__name__} - {e}```')
+        else:
+            self.bot.log.info(f"{ctx.author} unloaded the cog `{cog}`")            
+            await ctx.send(f'✅ Successfully unloaded `cogs.{cog}`')
+
+    @commands.command(name='reload')
+    @commands.is_owner()
+    async def c_reload(self, ctx, *, cog: str):
+        """Reload a Cog."""
+        try:
+            self.bot.unload_extension("cogs." + cog)
+            self.bot.load_extension("cogs." + cog)
+        except Exception as e:
+            await ctx.send(f'💢 There was an error reloading the cog \n'
+                           f'**ERROR:** ```{type(e).__name__} - {e}```')
+        else:
+            self.bot.log.info(f"{ctx.author} reloaded the cog `{cog}`")     
+            await ctx.send(f'✅ Successfully reloaded `cogs.{cog}`')
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
@@ -397,7 +468,7 @@ class Owner(Cog):
                   f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
                   f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd"\
                   f" or see the setup guide"\
-                  f" at <https://lightsage.gitlab.io/Lightning/settings/>"
+                  f" at <https://lightsage.gitlab.io/lightning/setup/>"
             await guild.owner.send(msg)
             self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
         session.close()

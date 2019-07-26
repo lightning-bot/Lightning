@@ -54,17 +54,18 @@ bot.help_command = commands.DefaultHelpCommand(dm_help = None)
 bot.script_name = script_name
 failed_to_load_cogs = []
 success_cogs = []
+bot.successful_command = 0
 
 # Here we load our extensions(cogs) listed above in [initial_extensions].
 if __name__ == '__main__':
     for extension in initial_extensions:
         try:
             bot.load_extension(extension)
-            success_cogs.append([extension])
+            success_cogs.append(extension)
         except Exception as e:
             log.error(f'Failed to load cog {extension}.')
             log.error(traceback.print_exc())
-            failed_to_load_cogs.append([extension, type(e).__name__, e])
+            failed_to_load_cogs.append(extension, type(e).__name__, e)
 
 def load_jis():
     bot.load_extension('jishaku')
@@ -132,10 +133,14 @@ async def on_command_error(ctx, error):
               f"of type {type(error)}: {error_text}"
     log.error(err_msg)
 
-    hook = Webhook(config.webhookurl) # Log Errors
-    embed = Embed(description=f"{err_msg}", color=0xff0000, timestamp='now')
-    embed.set_title(title="ERROR")
-    hook.send(embed=embed)
+    if not isinstance(error, commands.CommandNotFound):
+        err2 = f"Error with \"{ctx.message.content}\" from "\
+               f"\"{ctx.message.author} ({ctx.message.author.id}) "\
+               f"of type {type(error)}: {error_text}"
+        hook = Webhook(config.webhookurl) # Log Errors
+        embed = Embed(description=f"{err2}", color=0xff0000, timestamp='now')
+        embed.set_title(title="ERROR")
+        hook.send(embed=embed)
 
     if isinstance(error, commands.NoPrivateMessage):
         return await ctx.send("This command doesn't work in DMs.")
@@ -165,8 +170,14 @@ async def on_command_error(ctx, error):
         return await ctx.send("❌ I wasn't able to find that ID.")
 
     help_text = f"Usage of this command is: ```{ctx.prefix}"\
-                f"{ctx.invoked_with} {ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
-                f"{ctx.command.name}` for more info about this command."
+                f"{ctx.invoked_subcommand} "\
+                f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
+                f"{ctx.command}` for more info about this command."    
+    if ctx.invoked_subcommand is None:
+        help_text = f"Usage of this command is: ```{ctx.prefix}"\
+                    f"{ctx.invoked_with} "\
+                    f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
+                    f"{ctx.command.name}` for more info about this command."
     if isinstance(error, commands.BadArgument):
         return await ctx.send(f"{ctx.author.mention}: You gave incorrect "
                               f"arguments. {help_text}")
@@ -191,6 +202,13 @@ async def on_message(message):
     ctx = await bot.get_context(message)
     await bot.invoke(ctx)
 
+@bot.event
+async def on_command_completion(ctx):
+    bot.successful_command += 1
+
+# Create config folder if not found
+if not os.path.exists("config"):
+    os.makedirs("config")
 
 
 bot.run(config.token, bot=True, reconnect=True)
