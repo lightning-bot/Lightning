@@ -1,13 +1,15 @@
 import discord
 from discord.ext import commands
-import db.per_guild_config
+import utils.guild_config
 from typing import Union
 from database import StaffRoles, Roles, Config
+import dataset
 
 class Configuration(commands.Cog):
     """Server Configuration Commands"""
     def __init__(self, bot):
         self.bot = bot
+        self.db = dataset.connect("sqlite:///config/guild_config.sqlite3")
         self.bot.log.info(f'{self.qualified_name} loaded')
 
     async def cog_check(self, ctx):
@@ -15,17 +17,6 @@ class Configuration(commands.Cog):
             raise commands.NoPrivateMessage()
         return True
 
-    # Snippet of Code taken from Noirscape's kirigiri. https://git.catgirlsin.space/noirscape/kirigiri/src/branch/master/LICENSE
-    async def cog_before_invoke(self, ctx):
-        if db.per_guild_config.exist_guild_config(ctx.guild, "config"):
-            ctx.guild_config = db.per_guild_config.get_guild_config(ctx.guild, "config")
-        else:
-            ctx.guild_config = {}
-
-    async def cog_after_invoke(self, ctx):
-        db.per_guild_config.write_guild_config(ctx.guild, ctx.guild_config, "config")
-
-    # Snippet of code taken from Noirscape's kirigiri. https://git.catgirlsin.space/noirscape/kirigiri/src/branch/master/LICENSE
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     @commands.command(name="set-join-logs", aliases=['setjoinlogs', 'set-join-log'])
@@ -33,10 +24,19 @@ class Configuration(commands.Cog):
         """If enabled, tracks whenever users join or leave your server and sends it to the specified logging channel. 
         Compact Logs"""
         if channel == "disable":
-            ctx.guild_config.pop("join_log_channel")
+            try:
+                res = self.db['config'].find(guild_id=ctx.guild.id)
+                for config in res:
+                    self.db['config'].delete(join_log_channel=config['join_log_channel'])
+            except:
+                return await ctx.send("You don\'t have this setup!")
             await ctx.send("Member join and leave logging disabled.")
         else:
-            ctx.guild_config["join_log_channel"] = channel.id
+            res = self.db['config'].find_one(guild_id=ctx.guild.id)
+            if res is None:
+                self.db['config'].insert(dict(guild_id=ctx.guild.id, join_log_channel=channel.id))
+            else:
+                self.db['config'].update(dict(guild_id=ctx.guild.id, join_log_channel=channel.id), ['guild_id'])
             await ctx.send(f"Member join and leave logging set to {channel.mention} <:mayushii:562686801043521575>")
 
     @commands.group()
@@ -53,10 +53,21 @@ class Configuration(commands.Cog):
         """If enabled, tracks whenever users join or leave your server and sends it to the specified logging channel. 
         Embedded Logs"""
         if channel == "disable":
-            ctx.guild_config.pop("join_log_embed_channel")
+            try:
+                res = self.db['config'].find(guild_id=ctx.guild.id)
+                for config in res:
+                    self.db['config'].delete(join_log_embed_channel=config['join_log_embed_channel'])
+            except:
+                return await ctx.send("You don\'t have this setup!")
             await ctx.send("Embedded member join and leave logging disabled.")
         else:
-            ctx.guild_config["join_log_embed_channel"] = channel.id
+            res = self.db['config'].find_one(guild_id=ctx.guild.id)
+            if res is None:
+                self.db['config'].insert(dict(guild_id=ctx.guild.id, 
+                                              join_log_embed_channel=channel.id))
+            else:
+                self.db['config'].update(dict(guild_id=ctx.guild.id, 
+                                              join_log_embed_channel=channel.id), ['guild_id'])
             await ctx.send(f"Embedded member join and leave logging set to {channel.mention} <:mayushii:562686801043521575>")
 
     @commands.guild_only()
@@ -66,36 +77,42 @@ class Configuration(commands.Cog):
         """If enabled, tracks whenever users change their roles or get theirs changed and sends it to the specified logging channel.
         Embedded Logs"""
         if channel == "disable":
-            ctx.guild_config.pop("event_embed_channel")
+            try:
+                res = self.db['config'].find(guild_id=ctx.guild.id)
+                for config in res:
+                    self.db['config'].delete(event_embed_channel=config['event_embed_channel'])
+            except:
+                return await ctx.send("You don\'t have this setup!")
             await ctx.send("Embedded member role logs have been disabled.")
         else:
-            ctx.guild_config["event_embed_channel"] = channel.id
+            res = self.db['config'].find_one(guild_id=ctx.guild.id)
+            if res is None:
+                self.db['config'].insert(dict(guild_id=ctx.guild.id, event_embed_channel=channel.id))
+            else:
+                self.db['config'].update(dict(guild_id=ctx.guild.id, event_embed_channel=channel.id), ['guild_id'])
             await ctx.send(f"Embedded member role logs have been set to {channel.mention} <:mayushii:562686801043521575>")
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @embed.command(name="set-ban-logs", aliases=['setbanlog', 'setbanlogs'])
+    @embed.command(name="set-ban-logs", aliases=['setbanlog', 'setbanlogs'], 
+                   disabled=True, hidden=True)
     async def set_embed_ban_log(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set server ban log channel. Embedded"""
         if channel == "disable":
-            ctx.guild_config.pop("ban_embed_channel")
+            try:
+                res = self.db['config'].find(guild_id=ctx.guild.id)
+                for config in res:
+                    self.db['config'].delete(ban_embed_channel=config['ban_embed_channel'])
+            except:
+                return await ctx.send("You don\'t have this setup!")
             await ctx.send("Server ban log channel has been disabled.")
         else:
-            ctx.guild_config["ban_embed_channel"] = channel.id
+            res = self.db['config'].find_one(guild_id=ctx.guild.id)
+            if res is None:
+                self.db['config'].insert(dict(guild_id=ctx.guild.id, ban_embed_channel=channel.id))
+            else:
+                self.db['config'].update(dict(guild_id=ctx.guild.id, ban_embed_channel=channel.id), ['guild_id'])
             await ctx.send(f"Server ban log channel has been set to {channel.mention} <:mayushii:562686801043521575>")
-
-# Beta Feature
-#    @commands.guild_only()
-#    @commands.has_permissions(administrator=True)
-#    @commands.command(name="setmodmailchannel")
-#    async def setmodmailchannel(self, ctx, channel: Union[discord.TextChannel, str]):
-#        """Set the Mod Mail Channel"""
-#        if channel == "disable":
-#            ctx.guild_config.pop("modmail_channel")
-#            await ctx.send("Mod Mail has been disabled")
-#        else:
-#            ctx.guild_config["modmail_channel"] = channel.id
-#           await ctx.send(f"Mod Mail has been set to {channel.mention}")
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
@@ -103,10 +120,19 @@ class Configuration(commands.Cog):
     async def set_mod_logs(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set where moderation actions should be logged"""
         if channel == "disable":
-            ctx.guild_config.pop("log_channel")
+            try:
+                res = self.db['config'].find(guild_id=ctx.guild.id)
+                for config in res:
+                    self.db['config'].delete(mod_log_channel=config['mod_log_channel'])
+            except:
+                return await ctx.send("You don\'t have this setup!")
             await ctx.send("Moderation logs have been disabled.")
         else:
-            ctx.guild_config["log_channel"] = channel.id
+            res = self.db['config'].find_one(guild_id=ctx.guild.id)
+            if res is None:
+                self.db['config'].insert(dict(guild_id=ctx.guild.id, mod_log_channel=channel.id))
+            else:
+                self.db['config'].update(dict(guild_id=ctx.guild.id, mod_log_channel=channel.id), ['guild_id'])
             await ctx.send(f"Moderation logs have been set to {channel.mention} <:kurisu:561618919937409055>")
 
     @commands.guild_only()
@@ -116,10 +142,19 @@ class Configuration(commands.Cog):
         """If enabled, tracks whenever users change their roles or get theirs changed and sends it to the specified logging channel.
         Compact Logs"""
         if channel == "disable":
-            ctx.guild_config.pop("event_channel")
+            try:
+                res = self.db['config'].find(guild_id=ctx.guild.id)
+                for config in res:
+                    self.db['config'].delete(event_log_channel=config['event_log_channel'])
+            except:
+                return await ctx.send("You don\'t have this setup!")
             await ctx.send("Member role logs have been disabled.")
         else:
-            ctx.guild_config["event_channel"] = channel.id
+            res = self.db['config'].find_one(guild_id=ctx.guild.id)
+            if res is None:
+                self.db['config'].insert(dict(guild_id=ctx.guild.id, event_log_channel=channel.id))
+            else:
+                self.db['config'].update(dict(guild_id=ctx.guild.id, event_log_channel=channel.id), ['guild_id'])
             await ctx.send(f"Member role logs have been set to {channel.mention} <:mayushii:562686801043521575>")
 
     @commands.guild_only()
@@ -128,10 +163,19 @@ class Configuration(commands.Cog):
     async def set_ban_logs(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set server ban log channel."""
         if channel == "disable":
-            ctx.guild_config.pop("ban_channel")
+            try:
+                res = self.db['config'].find(guild_id=ctx.guild.id)
+                for config in res:
+                    self.db['config'].delete(ban_log_channel=config['ban_log_channel'])
+            except:
+                return await ctx.send("You don\'t have this setup!")
             await ctx.send("Server ban log channel has been disabled.")
         else:
-            ctx.guild_config["ban_channel"] = channel.id
+            res = self.db['config'].find_one(guild_id=ctx.guild.id)
+            if res is None:
+                self.db['config'].insert(dict(guild_id=ctx.guild.id, ban_log_channel=channel.id))
+            else:
+                self.db['config'].update(dict(guild_id=ctx.guild.id, ban_log_channel=channel.id), ['guild_id'])
             await ctx.send(f"Server ban log channel has been set to {channel.mention} <:mayushii:562686801043521575>")
 
     @commands.guild_only()
@@ -140,10 +184,19 @@ class Configuration(commands.Cog):
     async def setmsglogchannel(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set the Message Log Channel"""
         if channel == "disable":
-            ctx.guild_config.pop("message_log_channel")
+            try:
+                res = self.db['config'].find(guild_id=ctx.guild.id)
+                for config in res:
+                    self.db['config'].delete(message_log_channel=config['message_log_channel'])
+            except:
+                return await ctx.send("You don\'t have this setup!")
             await ctx.send("Message Logging has been disabled")
         else:
-            ctx.guild_config["message_log_channel"] = channel.id
+            res = self.db['config'].find_one(guild_id=ctx.guild.id)
+            if res is None:
+                self.db['config'].insert(dict(guild_id=ctx.guild.id, message_log_channel=channel.id))
+            else:
+                self.db['config'].update(dict(guild_id=ctx.guild.id, message_log_channel=channel.id), ['guild_id'])
             await ctx.send(f"The message log channel has been set to {channel.mention} <:mayushii:562686801043521575>")
 
     @commands.guild_only()
@@ -152,10 +205,19 @@ class Configuration(commands.Cog):
     async def set_invite_watch(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set the Invite Watching Channel"""
         if channel == "disable":
-            ctx.guild_config.pop("invite_watch")
+            try:
+                res = self.db['config'].find(guild_id=ctx.guild.id)
+                for config in res:
+                    self.db['config'].delete(invite_watch_chan=config['invite_watch_chan'])
+            except:
+                return await ctx.send("You don\'t have this setup!")
             await ctx.send("Invite Watching has been disabled")
         else:
-            ctx.guild_config["invite_watch"] = channel.id
+            res = self.db['config'].find_one(guild_id=ctx.guild.id)
+            if res is None:
+                self.db['config'].insert(dict(guild_id=ctx.guild.id, invite_watch_chan=channel.id))
+            else:
+                self.db['config'].update(dict(guild_id=ctx.guild.id, invite_watch_chan=channel.id), ['guild_id'])
             await ctx.send(f"Invite watching will be sent to {channel.mention}. Please note that this doesn't delete invites. <:mayushii:562686801043521575>")
 
     @commands.guild_only()
@@ -255,11 +317,10 @@ class Configuration(commands.Cog):
 
         session = self.bot.db.dbsession()
         try: # Here we go
-            is_mute_setup = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
+            session.query(Config).filter_by(guild_id=ctx.guild.id).one()
             session.close()
             return await ctx.send("❌ This server already has a mute role setup.")
         except:
-            is_mute_setup = None
             mute_db = Config(guild_id=ctx.guild.id, mute_role_id=role.id)
             session.merge(mute_db)
             session.commit()

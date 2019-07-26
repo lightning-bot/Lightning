@@ -28,7 +28,7 @@ import discord
 from discord.ext import commands
 import json
 from db.user_log import get_userlog, set_userlog, userlog_event_types
-import db.per_guild_config
+from utils.guild_config import read_guild_config
 import db.mod_check
 
 ## Most commands here taken from robocop-ngs mod.py
@@ -50,15 +50,6 @@ class ModUserLog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot.log.info(f'{self.qualified_name} loaded')
-
-    async def cog_before_invoke(self, ctx):
-        if db.per_guild_config.exist_guild_config(ctx.guild, "config"):
-            ctx.guild_config = db.per_guild_config.get_guild_config(ctx.guild, "config")
-        else:
-            ctx.guild_config = {}
-
-    async def cog_after_invoke(self, ctx):
-        db.per_guild_config.write_guild_config(ctx.guild, ctx.guild_config, "moderation")
 
     def get_userlog_embed_for_id(self, uid: str, name: str, guild, own: bool = False,
                                  event=""):
@@ -184,8 +175,9 @@ class ModUserLog(commands.Cog):
         """Clears all events of given type for a user, Admins only."""
         msg = self.clear_event_from_id(str(target.id), event, guild=ctx.guild)
         await ctx.send(msg)
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+        config = read_guild_config(ctx.guild.id, "mod_log_channel")
+        if config is not False:
+            log_channel = self.bot.get_channel(config)
             safe_name = await commands.clean_content().convert(ctx, str(target))                              
             msg = f"🗑 **Cleared {event}**: {ctx.author.mention} cleared" \
                   f" all {event} events of {target.mention} | " \
@@ -199,8 +191,9 @@ class ModUserLog(commands.Cog):
         """Clears all events of given type for a userid, Admins only."""
         msg = self.clear_event_from_id(str(target), event, guild=ctx.guild)
         await ctx.send(msg)
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+        config = read_guild_config(ctx.guild.id, "mod_log_channel")
+        if config is not False:
+            log_channel = self.bot.get_channel(config)
             msg = f"🗑 **Cleared {event}**: {ctx.author.mention} cleared" \
                   f" all {event} events of <@{target}> "
             await log_channel.send(msg)
@@ -216,8 +209,9 @@ class ModUserLog(commands.Cog):
         # This is hell.
         if isinstance(del_event, discord.Embed):
             await ctx.send(f"{target.mention} has a {event_name} removed!")
-            if "log_channel" in ctx.guild_config:
-                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            config = read_guild_config(ctx.guild.id, "mod_log_channel")
+            if config is not False:
+                log_channel = self.bot.get_channel(config)
                 safe_name = await commands.clean_content().convert(ctx, str(target))
                 msg = f"🗑 **Deleted {event_name}**: " \
                       f"{ctx.author.mention} removed " \
@@ -237,8 +231,9 @@ class ModUserLog(commands.Cog):
         # This is hell.
         if isinstance(del_event, discord.Embed):
             await ctx.send(f"<@{target}> has a {event_name} removed!")
-            if "log_channel" in ctx.guild_config:
-                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            config = read_guild_config(ctx.guild.id, "mod_log_channel")
+            if config is not False:
+                log_channel = self.bot.get_channel(config)
                 msg = f"🗑 **Deleted {event_name}**: " \
                       f"{ctx.author.mention} removed " \
                       f"{event_name} {idx} from <@{target}> "
@@ -252,7 +247,8 @@ class ModUserLog(commands.Cog):
     async def getmodlogjson(self, ctx):
         """Gets the current guild's userlog.json file"""
         try:
-            await ctx.send(f"Here's the userlog.json for {ctx.guild.name}", file=discord.File(f"config/{ctx.guild.id}/userlog.json"))
+            await ctx.send(f"Here's the userlog.json for {ctx.guild.name}", 
+                           file=discord.File(f"config/{ctx.guild.id}/userlog.json"))
         except:
             await ctx.send(f"This server doesn't have a userlog.json yet. Check back later.")
 
