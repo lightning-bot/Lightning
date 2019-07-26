@@ -281,6 +281,8 @@ class LightningHub(commands.Cog):
         """Creates a gist with the channel's pins
         
         Uses the channel that the command was invoked in."""
+        if ctx.guild.id not in config.gh_whitelisted_guilds:
+            return
         pins = await ctx.channel.pins()
         if pins: # Does this channel have pins?
             async with ctx.typing():
@@ -311,6 +313,36 @@ class LightningHub(commands.Cog):
 
         #for pm in pins: # Unpin our pins(?)
         #    await pm.unpin()
+
+    @commands.check(check_if_botmgmt)
+    @commands.command()
+    async def archivegist(self, ctx, limit: int):
+        """Creates a gist with every message in channel"""
+        if ctx.guild.id not in config.gh_whitelisted_guilds:
+            return
+        log_t = f"Archive of {ctx.channel} (ID: {ctx.channel.id}) "\
+                f"made on {datetime.datetime.utcnow()}\n\n"
+        async with ctx.typing():
+            async for log in ctx.channel.history(limit=limit):
+                log_t += f"[{str(log.created_at)}]: {log.author} - {log.clean_content}"
+                if log.attachments:
+                    for attach in log.attachments:
+                        log_t += f"[{attach.filename}]({attach.url})\n\n" # hackyish
+                else:
+                    log_t += "\n\n"
+
+        files = {
+            f'{ctx.channel.name} | {datetime.datetime.utcnow()}.md' : {
+                'content': log_t
+                }
+            }
+
+        # Login with our token and create a gist
+        gist = self.gh.create_gist(f'Message Archive for {ctx.channel.name}.', 
+                                   files, public=False)
+        # Send the created gist's URL
+        await ctx.send(f"You can find an archive of this channel's history at {gist.html_url}")
+
 
 def setup(bot):
     bot.add_cog(LightningHub(bot))

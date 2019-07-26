@@ -4,7 +4,7 @@ from discord.ext.commands import Cog
 import traceback
 import inspect
 import re
-import time
+import asyncio
 from database import BlacklistGuild, BlacklistUser
 from utils.restrictions import add_restriction
 import random
@@ -155,7 +155,7 @@ class Owner(Cog):
     async def restart(self, ctx):
         """Restart the bot"""
         await ctx.send('Restarting now...')
-        time.sleep(1)
+        asyncio.sleep(1)
         await self.bot.logout()
 
     @commands.is_owner()
@@ -280,6 +280,14 @@ class Owner(Cog):
                 except Exception as e:
                     await ctx.send(f'💢 There was an error loading the cog \n**`ERROR:`** {type(e).__name__} - {e}')                   
                     return
+
+    @commands.is_owner()
+    @git.command(name="pull-exit", aliases=['pe'])
+    async def pull_exit(self, ctx):
+        """Git Pulls and then exits"""
+        await ctx.invoke(self.bot.get_command('git pull'))
+        asyncio.sleep(5.0)
+        await ctx.invoke(self.bot.get_command('exit'))
 
     @commands.is_owner()
     @commands.group()

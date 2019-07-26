@@ -7,7 +7,7 @@ import colorsys
 import random
 import io
 from PIL import Image
-
+import datetime
 
 class Misc(commands.Cog):
     """Misc. Information"""
@@ -249,9 +249,31 @@ class Misc(commands.Cog):
             else:
                 return await ctx.send("This is not a `.bmp` file.")
 
-
-
-
+    @commands.command()
+    @commands.cooldown(rate=1, per=250.0, type=commands.BucketType.channel)
+    @db.mod_check.check_if_at_least_has_staff_role("Admin")
+    async def archive(self, ctx, limit: int):
+        """Archives the current channel's contents.
+        Admins only!"""
+        if limit > 750: # Safe Value
+            return await ctx.send("Too big! Lower the value!")
+        log_t = f"Archive of {ctx.channel} (ID: {ctx.channel.id}) "\
+                f"made on {datetime.datetime.utcnow()}\n\n\n"
+        async with ctx.typing():
+            async for log in ctx.channel.history(limit=limit):
+                # .strftime('%X/%H:%M:%S') but no for now
+                log_t += f"[{log.created_at}]: {log.author} - {log.clean_content}"
+                if log.attachments:
+                    for attach in log.attachments:
+                        log_t += f"{attach.url}\n"
+                else:
+                    log_t += "\n"
+            
+        aiostring = io.StringIO()
+        aiostring.write(log_t)
+        aiostring.seek(0)
+        aiofile = discord.File(aiostring, filename=f"{ctx.channel}_archive.txt")
+        await ctx.send(file=aiofile)
 
 
 def setup(bot):
