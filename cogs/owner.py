@@ -152,10 +152,10 @@ class Owner(Cog):
 
     @commands.is_owner()
     @commands.command()
-    async def restart(self, ctx):
-        """Restart the bot"""
-        await ctx.send('Restarting now...')
-        asyncio.sleep(1)
+    async def logout(self, ctx):
+        """Logout the bot"""
+        await ctx.send('Logging out now...')
+        await asyncio.sleep(5.0)
         await self.bot.logout()
 
     @commands.is_owner()
@@ -285,8 +285,10 @@ class Owner(Cog):
     @git.command(name="pull-exit", aliases=['pe'])
     async def pull_exit(self, ctx):
         """Git Pulls and then exits"""
+        await ctx.send("Git Pulling....")
         await ctx.invoke(self.bot.get_command('git pull'))
-        asyncio.sleep(5.0)
+        await asyncio.sleep(10.0)
+        await ctx.send("Exiting...")
         await ctx.invoke(self.bot.get_command('exit'))
 
     @commands.is_owner()
