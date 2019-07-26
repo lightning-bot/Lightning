@@ -25,7 +25,7 @@
 
 import discord
 from discord.ext import commands
-from utils.guild_config import read_guild_config
+import db.per_guild_config
 from db.user_log import userlog
 from database import Config
 from utils.restrictions import add_restriction, remove_restriction
@@ -57,6 +57,20 @@ class Moderation(commands.Cog):
         if ctx.guild is None:
             raise commands.NoPrivateMessage()
         return True
+
+
+    def check_if_target_has_any_roles(self, member: discord.Member, roles_list: list):
+        return any(role in member.roles for role in roles_list)
+
+    async def cog_before_invoke(self, ctx):
+        if db.per_guild_config.exist_guild_config(ctx.guild, "config"):
+            ctx.guild_config = db.per_guild_config.get_guild_config(ctx.guild, "config")
+        else:
+            ctx.guild_config = {}
+
+    async def cog_after_invoke(self, ctx):
+        db.per_guild_config.write_guild_config(ctx.guild, ctx.guild_config, "config")
+
 
     @commands.guild_only()
     @commands.bot_has_permissions(kick_members=True)
@@ -102,10 +116,9 @@ class Moderation(commands.Cog):
                             f"`{ctx.prefix}kick <user> [reason]`" \
                             f" as the reason is automatically sent to the user."
 
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
+        if "log_channel" in ctx.guild_config:
             try:
-                log_channel = self.bot.get_channel(config)
+                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
                 await log_channel.send(chan_message)
             except:
                 pass  # w/e, dumbasses forgot to set it properly.
@@ -154,10 +167,9 @@ class Moderation(commands.Cog):
                             f", it is recommended to use `{ctx.prefix}ban <user> [reason]`" \
                             f" as the reason is automatically sent to the user."
 
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
             try:
-                log_channel = self.bot.get_channel(config)
                 await log_channel.send(chan_message)
                 await ctx.send(f"{safe_name} is now b&. 👍")
             except:
@@ -223,9 +235,8 @@ class Moderation(commands.Cog):
                    f", it is recommended to use `{ctx.prefix}warn <user> [reason]`" \
                    f" as the reason is automatically sent to the user."
 
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
-            log_channel = self.bot.get_channel(config)
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
             try:
                 await log_channel.send(msg)
             except:
@@ -241,7 +252,7 @@ class Moderation(commands.Cog):
         try:
             await ctx.channel.purge(limit=message_count)
         except Exception as e:
-            self.bot.log.error(e)
+            print(e)
             return await ctx.send('❌ Cannot purge messages!')
 
         msg = f'🗑️ **{message_count} messages purged** in {ctx.channel.mention} | {ctx.channel.name}\n'
@@ -254,9 +265,8 @@ class Moderation(commands.Cog):
             #       f", it is recommended to use `{ctx.prefix}purge <message_count> [reason]`" \
             #       f" for documentation purposes."
 
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
-            log_channel = self.bot.get_channel(config)
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
             try:
                 await log_channel.send(msg)
             except:
@@ -292,9 +302,8 @@ class Moderation(commands.Cog):
                             f", it is recommended to use `{ctx.prefix}ban <user> [reason]`"\
                             f" as the reason is automatically sent to the user."
  
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
-            log_channel = self.bot.get_channel(config)
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
             try:
                 await log_channel.send(chan_message)
             except:
@@ -363,9 +372,8 @@ class Moderation(commands.Cog):
                             f"it is recommended to use `{ctx.prefix}mute <user> [reason]`"\
                             f" as the reason is automatically sent to the user."
 
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
-            log_channel = self.bot.get_channel(config)
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
             try:
                 await log_channel.send(chan_message)
             except:
@@ -395,9 +403,8 @@ class Moderation(commands.Cog):
                        f"{target.mention} | {safe_name}\n"\
                        f"🏷 __User ID__: {target.id}\n"
 
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
-            log_channel = self.bot.get_channel(config)
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
             try:
                 await log_channel.send(chan_message)
             except:
@@ -433,9 +440,8 @@ class Moderation(commands.Cog):
         else:
             chan_message += f"\nPlease add an explanation below. In the future, "\
                             f"it is recommended to use `{ctx.prefix}unban <user_id> [reason]`."
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
-            log_channel = self.bot.get_channel(config)
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
             try:
                 await log_channel.send(chan_message)
             except:
@@ -477,9 +483,8 @@ class Moderation(commands.Cog):
             chan_message += f"\nPlease add an explanation below. In the future"\
                             f", it is recommended to use "\
                             f"`{ctx.prefix}banid <user> [reason]`."
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
-            log_channel = self.bot.get_channel(config)
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
             try:
                 await log_channel.send(chan_message)
             except:
@@ -516,10 +521,9 @@ class Moderation(commands.Cog):
                             f", it is recommended to use " \
                             f"`{ctx.prefix}silentkick <user> [reason]`." 
 
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
-            log_channel = self.bot.get_channel(config)
+        if "log_channel" in ctx.guild_config:
             try:
+                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
                 await log_channel.send(chan_message)
             except:
                 pass  # w/e, dumbasses forgot to set it properly.
@@ -589,14 +593,12 @@ class Moderation(commands.Cog):
         await ctx.send(f"{safe_name} is now b&. "
                        f"It will expire {duration_text}. 👍")
 
-        config = read_guild_config(ctx.guild.id, "mod_log_channel")
-        if config is not False:
-            log_channel = self.bot.get_channel(config)
+        if "log_channel" in ctx.guild_config:
             try:
+                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
                 await log_channel.send(chan_message)
             except:
                 pass
-
 
 def setup(bot):
     bot.add_cog(Moderation(bot))
