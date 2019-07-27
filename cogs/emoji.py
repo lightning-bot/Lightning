@@ -94,7 +94,7 @@ class Emoji(commands.Cog):
     async def on_guild_emojis_update(self, guild, before, after):
         if guild.id is not ROO_EMOTES_1 or ROO_EMOTES_2:
             return
-        if guild.id is ROO_EMOTES_1:
+        if guild.id == ROO_EMOTES_1:
             emoji_chan = self.bot.get_channel(604332018569969665)
             rm_emoji = []
             for emoji_a in before:
@@ -108,7 +108,7 @@ class Emoji(commands.Cog):
             if len(mk_emoji) != 0:
                 await emoji_chan.send("Emoji Update: "
                                       ", ".join(mk_emoji))
-        if guild.id is ROO_EMOTES_2:
+        if guild.id == ROO_EMOTES_2:
             emoji_chan = self.bot.get_channel(604447946062299231)
             rm_emoji = []
             for emoji_a in before:
