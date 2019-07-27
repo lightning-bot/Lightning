@@ -110,12 +110,8 @@ class Emoji(commands.Cog):
                                       ", ".join(mk_emoji))
         if guild.id == ROO_EMOTES_2:
             emoji_chan = self.bot.get_channel(604447946062299231)
-            rm_emoji = []
-            for emoji_a in before:
-                rm_emoji.append(f"{emoji_a.name} -- `{emoji_a.id}``")
-            mk_emoji = []
-            for emoji_b in after:
-                mk_emoji.append(f"{emoji_b.name} -- `{emoji_b.id}``")
+            rm_emoji = [f"{emoji} -- `{emoji.id}`" for emoji in before if emoji not in after]
+            mk_emoji = [f"{emoji} -- `{emoji.id}`" for emoji in after if emoji not in before]
             if len(rm_emoji) != 0:
                 await emoji_chan.send("Emoji Update: "
                                       ", ".join(rm_emoji))
