@@ -3,6 +3,9 @@ import discord
 import io
 import db.mod_check
 
+ROO_EMOTES_1 = 604331487583535124
+ROO_EMOTES_2 = 604446987844190228
+
 class Emoji(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -86,6 +89,39 @@ class Emoji(commands.Cog):
 
         await emote.delete(reason=f"Emoji Removed by {ctx.author} (ID: {ctx.author.id})")
         await ctx.send("Emote is now deleted.")
+
+    @commands.Cog.listener()
+    async def on_guild_emojis_update(self, guild, before, after):
+        if guild.id is not ROO_EMOTES_1 or ROO_EMOTES_2:
+            return
+        if guild.id is ROO_EMOTES_1:
+            emoji_chan = self.bot.get_channel(604332018569969665)
+            rm_emoji = []
+            for emoji_a in before:
+                rm_emoji.append(f"{emoji_a.name} -- `{emoji_a.id}``")
+            mk_emoji = []
+            for emoji_b in after:
+                mk_emoji.append(f"{emoji_b.name} -- `{emoji_b.id}``")
+            if len(rm_emoji) != 0:
+                await emoji_chan.send("Emoji Update: "
+                                      ", ".join(mk_emoji))
+            if len(mk_emoji) != 0:
+                await emoji_chan.send("Emoji Update: "
+                                      ", ".join(mk_emoji))
+        if guild.id is ROO_EMOTES_2:
+            emoji_chan = self.bot.get_channel(604447946062299231)
+            rm_emoji = []
+            for emoji_a in before:
+                rm_emoji.append(f"{emoji_a.name} -- `{emoji_a.id}``")
+            mk_emoji = []
+            for emoji_b in after:
+                mk_emoji.append(f"{emoji_b.name} -- `{emoji_b.id}``")
+            if len(rm_emoji) != 0:
+                await emoji_chan.send("Emoji Update: "
+                                      ", ".join(mk_emoji))
+            if len(mk_emoji) != 0:
+                await emoji_chan.send("Emoji Update: "
+                                      ", ".join(mk_emoji))
 
 
 
