@@ -104,7 +104,7 @@ class Emoji(commands.Cog):
                 mk_emoji.append(f"{emoji_b.name} -- `{emoji_b.id}``")
             if len(rm_emoji) != 0:
                 await emoji_chan.send("Emoji Update: "
-                                      ", ".join(mk_emoji))
+                                      ", ".join(rm_emoji))
             if len(mk_emoji) != 0:
                 await emoji_chan.send("Emoji Update: "
                                       ", ".join(mk_emoji))
@@ -118,7 +118,7 @@ class Emoji(commands.Cog):
                 mk_emoji.append(f"{emoji_b.name} -- `{emoji_b.id}``")
             if len(rm_emoji) != 0:
                 await emoji_chan.send("Emoji Update: "
-                                      ", ".join(mk_emoji))
+                                      ", ".join(rm_emoji))
             if len(mk_emoji) != 0:
                 await emoji_chan.send("Emoji Update: "
                                       ", ".join(mk_emoji))
