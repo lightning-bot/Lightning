@@ -22,11 +22,7 @@
 # c) Prohibiting misrepresentation of the origin of that material, or
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version; or
-from database import StaffRoles, Base
-from database import BlacklistGuild, Base
-from database import Config, Base
-from database import Roles, Base
-from database import BlacklistUser, Base
+from database import StaffRoles, BlacklistGuild, Config, Roles, BlacklistUser, AutoRoles, Base
 from discord.ext.commands import Cog
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -41,6 +37,8 @@ def setup(bot):
     engine = create_engine('sqlite:///config/database.sqlite3')
     bot.db.dbsession = sessionmaker(bind=engine)
     Base.metadata.bind = engine
-    Base.metadata.create_all(engine, tables=[StaffRoles.__table__, BlacklistGuild.__table__, Roles.__table__, Config.__table__, BlacklistUser.__table__])
+    Base.metadata.create_all(engine, tables=[StaffRoles.__table__, BlacklistGuild.__table__, 
+                                             Roles.__table__, Config.__table__, 
+                                             BlacklistUser.__table__, AutoRoles.__table__])
     print(f'Database successfully loaded')
 

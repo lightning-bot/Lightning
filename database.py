@@ -5,7 +5,6 @@ from sqlalchemy import create_engine
 
 Base = declarative_base()
 
-
 class StaffRoles(Base):
     __tablename__ = "staff_roles"
     guild_id = Column(Integer, primary_key=True)
@@ -30,3 +29,9 @@ class BlacklistUser(Base):
     __tablename__ = "blacklisted_users"
     user_id = Column(Integer, primary_key=True)
     reason = Column(String)
+
+class AutoRoles(Base):
+    __tablename__ = "autoroles"
+    # Must always have a value
+    guild_id = Column(Integer, primary_key=True)
+    role_id = Column(Integer, primary_key=True)

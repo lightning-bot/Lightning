@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import db.per_guild_config
 from typing import Union
-from database import StaffRoles, Roles, Config
+from database import StaffRoles, Roles, Config, AutoRoles
 
 class Configuration(commands.Cog):
     """Server Configuration Commands"""
@@ -255,11 +255,10 @@ class Configuration(commands.Cog):
 
         session = self.bot.db.dbsession()
         try: # Here we go
-            is_mute_setup = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
+            session.query(Config).filter_by(guild_id=ctx.guild.id).one()
             session.close()
             return await ctx.send("❌ This server already has a mute role setup.")
         except:
-            is_mute_setup = None
             mute_db = Config(guild_id=ctx.guild.id, mute_role_id=role.id)
             session.merge(mute_db)
             session.commit()
@@ -283,6 +282,79 @@ class Configuration(commands.Cog):
             mute = None
             session.close()
             return await ctx.send("❌ This server does not have a mute role setup.")
+
+    @commands.group(aliases=['autoroles'])
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def autorole(self, ctx):
+        """Setup auto roles for the server"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    @commands.guild_only()
+    @autorole.command(name="set", aliases=['add'])
+    @commands.has_permissions(manage_roles=True)
+    async def setautoroles(self, ctx, *, role_name: str):
+        """Set an auto role for the server"""
+        role = discord.utils.get(ctx.guild.roles, name=role_name)
+        if not role:
+            return await ctx.send(":x: I couldn't find that role. **role_name is case sensitive**")
+
+        session = self.bot.db.dbsession()
+        query = session.query(AutoRoles).filter_by(guild_id=ctx.guild.id, role_id=role.id)
+        if query.one_or_none() is not None:
+            session.close()
+            return await ctx.send("❌ That Role is Already Set as an Auto Role!")
+        else:
+            ar = AutoRoles(guild_id=ctx.guild.id, role_id=role.id)
+            session.merge(ar)
+            session.commit()
+            session.close()
+            await ctx.send(f"Successfully added auto role for {role.name}")
+
+    @commands.guild_only()
+    @autorole.command(name='remove')
+    @commands.has_permissions(manage_roles=True)
+    async def removeautoroles(self, ctx, *, role_name: str):
+        """Removes a specific auto role that's configured"""
+        role = discord.utils.get(ctx.guild.roles, name=role_name)
+        if not role:
+            return await ctx.send(":x: I couldn't find that role. **role_name is case sensitive**")
+        session = self.bot.db.dbsession()
+        gd = session.query(AutoRoles).filter_by(guild_id=ctx.guild.id, role_id=role.id)
+        if gd.one_or_none() is None:
+            await ctx.send("Not a valid auto role.")
+            return
+        else:
+            gd.delete()
+            session.commit()
+            session.close()
+            await ctx.send(f"Successfully removed {role.name}")
+
+    @commands.guild_only()
+    @autorole.command(name='list', aliases=['show'])
+    @commands.has_permissions(manage_roles=True)
+    async def showautoroles(self, ctx):
+        """Lists all the auto roles this guild has"""
+        session = self.bot.db.dbsession()
+        embed = discord.Embed(title="Auto Roles", description="", color=discord.Color(0x5f9ff6))
+        for row in session.query(AutoRoles).filter_by(guild_id=ctx.guild.id):
+            role = discord.utils.get(ctx.guild.roles, id=row.role_id)
+            embed.description += f"\N{BULLET} {role.name} (ID: {role.id})\n"
+        if len(embed.description) == 0:
+            embed.description += "No Auto Roles are setup for this server!"
+        await ctx.send(embed=embed)
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        session = self.bot.db.dbsession()
+        query = session.query(AutoRoles).filter(AutoRoles.guild_id == member.guild.id)
+        roles = [discord.utils.get(member.guild.roles, id=row.role_id) for row in query.all()]
+        try:
+            await member.add_roles(*roles)
+        except:
+            pass
+
 
 def setup(bot):
     bot.add_cog(Configuration(bot))
