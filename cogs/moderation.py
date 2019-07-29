@@ -343,10 +343,9 @@ class Moderation(commands.Cog):
         session = self.bot.dbsession() # Check to see if mute role is setup
         try:
             role_id = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
-            role = discord.Object(id=role_id.mute_role_id)
+            role = discord.utils.get(ctx.guild.roles, id=role_id.mute_role_id)
         except:
-            role_id = None
-            return await ctx.send("❌ You need to setup a mute role.")
+            return await ctx.send("❌ You need to setup a mute role first.")
 
         userlog(ctx.guild, target.id, ctx.author, reason, "mutes", target.name)
         safe_name = await commands.clean_content().convert(ctx, str(target)) # Let's not make the mistake
@@ -390,12 +389,10 @@ class Moderation(commands.Cog):
         session = self.bot.dbsession() # Check to see if mute role is setup
         try:
             role_id = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
-            role = discord.Object(id=role_id.mute_role_id)
+            role = discord.utils.get(ctx.guild.roles, id=role_id.mute_role_id)
         except:
-            role_id = None
             return await ctx.send("❌ You don't have a mute role setup.")
         
-
         await target.remove_roles(role, reason=str(ctx.author))
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
