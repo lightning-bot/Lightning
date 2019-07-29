@@ -174,7 +174,7 @@ class Configuration(commands.Cog):
         if level.lower() not in ["helper", "moderator", "admin"]:
             return await ctx.send("Not a valid level! Level must be one of Helper, Moderator or Admin.")
 
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         permissions_db_object = StaffRoles(guild_id=ctx.guild.id, role_id=role.id, staff_perms=level.lower())
         session.merge(permissions_db_object)
         session.commit()
@@ -190,7 +190,7 @@ class Configuration(commands.Cog):
         :param ctx:
         :return:
         """
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         msg = "```css\n"
         for row in session.query(StaffRoles).filter_by(guild_id=ctx.guild.id):
             role = discord.utils.get(ctx.guild.roles, id=row.role_id)
@@ -205,7 +205,7 @@ class Configuration(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def delete_mod_roles(self, ctx):
         """Delete the set mod roles"""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         staff_roles = StaffRoles
         guild_delete = session.query(staff_roles).filter_by(guild_id=ctx.guild.id).delete()
         if guild_delete is None:
@@ -223,7 +223,7 @@ class Configuration(commands.Cog):
         role = discord.utils.get(ctx.guild.roles, name=role)
         if not role:
             return await ctx.send("❌ That role does not exist.")
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         roles = Roles(guild_id=ctx.guild.id, role_id=role.id)
         session.merge(roles)
         session.commit()
@@ -235,7 +235,7 @@ class Configuration(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def remove_toggleable_role(self, ctx):
         """This deletes all the toggleable roles you have set in this guild"""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         role = session.query(Roles).filter_by(guild_id=ctx.guild.id).delete()
         if role is None:
             await ctx.send("❌ There are no toggleable roles for this guild.")
@@ -253,7 +253,7 @@ class Configuration(commands.Cog):
         if not role:
             return await ctx.send(":x: I couldn't find that role.")
 
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         try: # Here we go
             session.query(Config).filter_by(guild_id=ctx.guild.id).one()
             session.close()
@@ -271,7 +271,7 @@ class Configuration(commands.Cog):
     async def delete_mute_role(self, ctx):
         """This deletes whatever mute role is set for your server. 
         """
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         try:
             mute = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
             session.delete(mute)
@@ -300,7 +300,7 @@ class Configuration(commands.Cog):
         if not role:
             return await ctx.send(":x: I couldn't find that role. **role_name is case sensitive**")
 
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         query = session.query(AutoRoles).filter_by(guild_id=ctx.guild.id, role_id=role.id)
         if query.one_or_none() is not None:
             session.close()
@@ -320,7 +320,7 @@ class Configuration(commands.Cog):
         role = discord.utils.get(ctx.guild.roles, name=role_name)
         if not role:
             return await ctx.send(":x: I couldn't find that role. **role_name is case sensitive**")
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         gd = session.query(AutoRoles).filter_by(guild_id=ctx.guild.id, role_id=role.id)
         if gd.one_or_none() is None:
             await ctx.send("Not a valid auto role.")
@@ -336,7 +336,7 @@ class Configuration(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def showautoroles(self, ctx):
         """Lists all the auto roles this guild has"""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         embed = discord.Embed(title="Auto Roles", description="", color=discord.Color(0x5f9ff6))
         for row in session.query(AutoRoles).filter_by(guild_id=ctx.guild.id):
             role = discord.utils.get(ctx.guild.roles, id=row.role_id)
@@ -347,7 +347,7 @@ class Configuration(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         query = session.query(AutoRoles).filter(AutoRoles.guild_id == member.guild.id)
         roles = [discord.utils.get(member.guild.roles, id=row.role_id) for row in query.all()]
         try:

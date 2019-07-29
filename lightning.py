@@ -10,6 +10,10 @@ import aiohttp
 from datetime import datetime
 import config
 from dhooks import Embed, Webhook
+from database import StaffRoles, BlacklistGuild, Config, Roles, BlacklistUser, AutoRoles, Base
+from discord.ext.commands import Cog
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 
 # Uses template from ave's botbase.py
@@ -55,6 +59,13 @@ bot.script_name = script_name
 failed_to_load_cogs = []
 success_cogs = []
 bot.successful_command = 0
+# Database related
+engine = create_engine('sqlite:///config/database.sqlite3')
+bot.dbsession = sessionmaker(bind=engine)
+Base.metadata.bind = engine
+Base.metadata.create_all(engine, tables=[StaffRoles.__table__, BlacklistGuild.__table__, 
+                                         Roles.__table__, Config.__table__, 
+                                         BlacklistUser.__table__, AutoRoles.__table__])
 
 # Here we load our extensions(cogs) listed above in [initial_extensions].
 if __name__ == '__main__':

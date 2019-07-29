@@ -14,7 +14,7 @@ class ToggleRoles(commands.Cog):
     @commands.bot_has_permissions(embed_links=True)
     async def get_toggleable_roles(self, ctx):
         """Lists all the toggleable roles this guild has"""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         embed = discord.Embed(title="Toggleable Role List", color=discord.Color.dark_purple())
         role_list = []
         for row in session.query(Roles).filter_by(guild_id=ctx.guild.id):
@@ -34,7 +34,7 @@ class ToggleRoles(commands.Cog):
     async def togglerole(self, ctx, *, role: discord.Role):
         """Toggle a role that this server has setup.
         Use '.get_toggleable_roles' for a list of roles that you can toggle."""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         roles_db = Roles
         add = session.query(roles_db).filter_by(role_id=role.id).all()
         member = ctx.author
@@ -55,7 +55,7 @@ class ToggleRoles(commands.Cog):
     async def untogglerole(self, ctx, *, role: discord.Role):
         """Untoggle a role that this server has setup.
         Use '.get_toggleable_roles' for a list of roles that you can untoggle."""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         roles_db = Roles
         add = session.query(roles_db).filter_by(role_id=role.id).all()
         member = ctx.author

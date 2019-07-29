@@ -5,7 +5,7 @@ description  = "Lightning+, the successor to Lightning(.js)"
 # List Cogs that should be loaded on start
 cogs = ['cogs.comics', 'cogs.owner', 'cogs.moderation', 'cogs.logger', 
 'cogs.extras', 'cogs.mod_userlog', 'cogs.setup',
-'cogs.weeb', 'cogs.info', 'cogs.mod_note', 'cogs.fun', 'db.databasestart', 'cogs.toggle_roles', 
+'cogs.weeb', 'cogs.info', 'cogs.mod_note', 'cogs.fun', 'cogs.toggle_roles', 
 'cogs.lockdown', 'cogs.memes', 'cogs.common', 'cogs.misc',
 'cogs.lightning-hub', 'cogs.timers', 'cogs.powerscrona', 'cogs.emoji']
 

@@ -340,7 +340,7 @@ class Moderation(commands.Cog):
                                   "they're a staff member.")
 
         # Rev up that chemotherapy, cause this part is cancer.
-        session = self.bot.db.dbsession() # Check to see if mute role is setup
+        session = self.bot.dbsession() # Check to see if mute role is setup
         try:
             role_id = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
             role = discord.Object(id=role_id.mute_role_id)
@@ -387,7 +387,7 @@ class Moderation(commands.Cog):
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def unmute(self, ctx, target: discord.Member):
         """Unmutes a user, Moderator+ only"""
-        session = self.bot.db.dbsession() # Check to see if mute role is setup
+        session = self.bot.dbsession() # Check to see if mute role is setup
         try:
             role_id = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
             role = discord.Object(id=role_id.mute_role_id)

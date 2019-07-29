@@ -62,7 +62,7 @@ class Owner(Cog):
             msg = ""
             await guild.leave()
 
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         blacklist = BlacklistGuild(guild_id=server_id)
         session.merge(blacklist)
         session.commit()
@@ -73,7 +73,7 @@ class Owner(Cog):
     @commands.command(name='unblacklistguild', aliases=['unblacklist-guild'])
     async def unblacklist_guild(self, ctx, server_id: int):
         """Unblacklist a guild from using the bot"""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         try:
             check_blacklist = session.query(BlacklistGuild).filter_by(guild_id=server_id).one()
             session.delete(check_blacklist)
@@ -89,7 +89,7 @@ class Owner(Cog):
     @commands.command(name="blacklistuser", aliases=["blacklist-user"])
     async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
         """Blacklist an user from using the bot"""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         if reason_for_blacklist:
             add_blacklistuser = BlacklistUser(user_id=userid, reason=reason_for_blacklist)
         else:
@@ -103,7 +103,7 @@ class Owner(Cog):
     @commands.command(name="unblacklistuser", aliases=['unblacklist-user'])
     async def unblacklist_user(self, ctx, userid: int):
         """Unblacklist an user from using the bot"""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         try:
             check_if_user_blacklisted = session.query(BlacklistUser).filter_by(user_id=userid).one()
             session.delete(check_if_user_blacklisted)
@@ -118,7 +118,7 @@ class Owner(Cog):
     @commands.command(name="blacklistsearch", aliases=["blacklist-search"])
     async def search_blacklist(self, ctx, guild_or_user_id: int):
         """Search the blacklist to see if a user or a guild is blacklisted"""
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         try:
             check_if_guild = session.query(BlacklistGuild).filter_by(guild_id=guild_or_user_id).one()
             session.close()
@@ -142,7 +142,7 @@ class Owner(Cog):
     #@commands.is_owner()
     #async def blacklisted_users_list(self, ctx):
     #    """Lists blacklisted users"""
-    #    session = self.bot.db.dbsession()
+    #    session = self.bot.dbsession()
     #    paginator = commands.Paginator(prefix="", suffix="")
     #    for row in session.query(BlacklistUser):
     #        paginator.add_line(f"`{row.user_id}` - Reason: {row.reason}")
@@ -453,7 +453,7 @@ class Owner(Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        session = self.bot.db.dbsession()
+        session = self.bot.dbsession()
         try:
             session.query(BlacklistGuild).filter_by(guild_id=guild.id).one()
             self.bot.log.info(f"Attempted to Join Blacklisted Guild | {guild.name} | ({guild.id})")
