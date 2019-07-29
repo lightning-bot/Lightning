@@ -26,40 +26,27 @@ class Info(commands.Cog):
     @commands.bot_has_permissions(embed_links=True)
     async def about(self, ctx):
         """Various information about the bot."""
-        #Snippet of code taken from RoboDanny. https://github.com/Rapptz/RoboDanny/blob/fb9c470b48e0333c58872d319cdbb9a42ec887c7/cogs/stats.py
-        cmd = r'git show -s HEAD~3..HEAD --format="[{}](https://github.com/LightSage/Lightning.py/commit/%H) %s (%cr)"'
-        if os.name == 'posix':
-            cmd = cmd.format(r'\`%h\`')
-        else:
-            cmd = cmd.format(r'`%h`')
-
-        try:
-            revision = os.popen(cmd).read().strip()
-        except OSError:
-            revision = 'Could not fetch due to memory error. Sorry. :('
         all_members = sum(1 for _ in ctx.bot.get_all_members())
         bot_owner = self.bot.get_user(self.bot.owner_id)
         embed = discord.Embed(title="Lightning", color=discord.Color(0xf74b06))
         embed.set_author(name="TwilightSage#7867", icon_url=bot_owner.avatar_url)
         embed.url = "https://github.com/LightSage/Lightning.py"
-        embed.description = f"Lightning.py, the successor to Lightning(.js)\n\n__Latest Changes__:\n{revision}"
+        embed.set_thumbnail(url=self.bot.user.avatar_url)
+        embed.description = f"Lightning.py, the successor to Lightning(.js)"
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
         embed.add_field(name="Python Version", value=f"{platform.python_implementation()} {platform.python_version()}")
         embed.add_field(name="Usage", value=f"{self.bot.successful_command} commands used since boot")
         embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)\n[Website](https://lightsage.gitlab.io/Lightning/home/)")
-        embed.set_footer(text=f"Lightning {self.bot.version}", icon_url=self.bot.user.avatar_url)
+        embed.set_footer(text=f"Lightning {self.bot.version}")
         await ctx.send(embed=embed)
-
-    @commands.command(hidden=True)
-    async def upvote(self, ctx):
-        """Gives a link to the DBL page"""
-        await ctx.send("You can vote for me here. <https://discordbots.org/bot/532220480577470464/vote>")
 
     @commands.command(aliases=['invite'])
     async def botinvite(self, ctx):
         """Invite Lightning to your server"""
-        await ctx.send("You can invite me to your server with this link.\n<https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=470150390&scope=bot>")
+        await ctx.send("You can invite me to your server with this link.\n"
+                       "<https://discordapp.com/api/oauth2/authorize?client_id="
+                       "532220480577470464&permissions=470150390&scope=bot>")
 
     @commands.command(hidden=True, aliases=['sourcecode'])
     async def source(self, ctx):
@@ -105,8 +92,6 @@ class Info(commands.Cog):
         embed = discord.Embed(title="Left Guild", color=discord.Color.red())
         self.bot.log.info(f"Left Guild | {guild.name} | {guild.id}")
         await self.send_guild_info(embed, guild)
-
-
 
 
 def setup(bot):
