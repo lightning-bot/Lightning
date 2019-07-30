@@ -26,11 +26,18 @@ class Configuration(commands.Cog):
         db.per_guild_config.write_guild_config(ctx.guild, ctx.guild_config, "config")
 
     # Snippet of code taken from Noirscape's kirigiri. https://git.catgirlsin.space/noirscape/kirigiri/src/branch/master/LICENSE
-    @commands.guild_only()
+    @commands.group(aliases=['logging'])
     @commands.has_permissions(administrator=True)
-    @commands.command(name="set-join-logs", aliases=['setjoinlogs', 'set-join-log'])
+    async def log(self, ctx):
+        """Setup various compact logging for the server"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    @commands.has_permissions(administrator=True)
+    @log.command(name="join-logs", aliases=['joinlogs'])
     async def setjoinlogs(self, ctx, channel: Union[discord.TextChannel, str]):
         """If enabled, tracks whenever users join or leave your server and sends it to the specified logging channel. 
+
         Compact Logs"""
         if channel == "disable":
             ctx.guild_config.pop("join_log_channel")
@@ -84,22 +91,8 @@ class Configuration(commands.Cog):
             ctx.guild_config["ban_embed_channel"] = channel.id
             await ctx.send(f"Server ban log channel has been set to {channel.mention} <:mayushii:562686801043521575>")
 
-# Beta Feature
-#    @commands.guild_only()
-#    @commands.has_permissions(administrator=True)
-#    @commands.command(name="setmodmailchannel")
-#    async def setmodmailchannel(self, ctx, channel: Union[discord.TextChannel, str]):
-#        """Set the Mod Mail Channel"""
-#        if channel == "disable":
-#            ctx.guild_config.pop("modmail_channel")
-#            await ctx.send("Mod Mail has been disabled")
-#        else:
-#            ctx.guild_config["modmail_channel"] = channel.id
-#           await ctx.send(f"Mod Mail has been set to {channel.mention}")
-
-    @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(name="set-mod-logs", aliases=['setmodlogs'])
+    @log.command(name="mod-logs", aliases=['modlogs'])
     async def set_mod_logs(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set where moderation actions should be logged"""
         if channel == "disable":
@@ -111,7 +104,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(name="set-role-logs", aliases=['setrolelogs'])
+    @log.command(name="role-logs", aliases=['rolelogs'])
     async def set_event_logs(self, ctx, channel: Union[discord.TextChannel, str]):
         """If enabled, tracks whenever users change their roles or get theirs changed and sends it to the specified logging channel.
         Compact Logs"""
@@ -124,7 +117,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(name='set-ban-logs', aliases=['setbanlog', 'setbanlogs'])
+    @log.command(name='ban-logs', aliases=['banlogs'])
     async def set_ban_logs(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set server ban log channel."""
         if channel == "disable":
@@ -136,7 +129,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(name="set-message-log-channel", aliases=['setmsglogging'])
+    @log.command(name="message-logs", aliases=['messagelogs'])
     async def setmsglogchannel(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set the Message Log Channel"""
         if channel == "disable":
@@ -148,7 +141,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @commands.command(name="set-invite-watch", aliases=['toggleinvitewatch', 'toggle-invite-watch'])
+    @log.command(name="invite-watch", aliases=['invitewatch'])
     async def set_invite_watch(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set the Invite Watching Channel"""
         if channel == "disable":
