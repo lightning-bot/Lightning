@@ -97,7 +97,7 @@ class Fun(commands.Cog):
                 data = await resp.json()
             else:
                 return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)") 
-        embed = discord.Embed(title="Meow <:meowawauu:559383939513581569>", 
+        embed = discord.Embed(title="Meow <:meowawauu:604760862049304608>", 
                               color=discord.Color.teal())
         embed.set_image(url=data['file'])
         embed.set_footer(text="Powered by random.cat", 
@@ -114,7 +114,7 @@ class Fun(commands.Cog):
                 dat = await resp.json()
             else:
                 return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)")
-        embed = discord.Embed(title="Meow <:meowawauu:559383939513581569>", 
+        embed = discord.Embed(title="Meow <:meowawauu:604760862049304608>", 
                               color=discord.Color(0x0c4189))
         for cat in dat: # There's only one but shrug.avi
             embed.set_image(url=cat['url'])
