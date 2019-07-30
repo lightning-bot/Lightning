@@ -7,7 +7,7 @@ This version is the successor to Lightning.js
 
 ## Features
 
-Go to https://lightsage.gitlab.io/Lightning/home/ for a list of current features.
+Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features.
 
 ---
 ## Planned Features

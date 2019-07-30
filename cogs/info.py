@@ -30,7 +30,7 @@ class Info(commands.Cog):
         bot_owner = self.bot.get_user(self.bot.owner_id)
         embed = discord.Embed(title="Lightning", color=discord.Color(0xf74b06))
         embed.set_author(name="TwilightSage#7867", icon_url=bot_owner.avatar_url)
-        embed.url = "https://github.com/LightSage/Lightning.py"
+        embed.url = "https://gitlab.com/LightSage/Lightning"
         embed.set_thumbnail(url=self.bot.user.avatar_url)
         embed.description = f"Lightning.py, the successor to Lightning(.js)"
         embed.add_field(name="Servers", value=len(self.bot.guilds))
