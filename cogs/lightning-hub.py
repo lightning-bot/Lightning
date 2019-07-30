@@ -7,6 +7,7 @@ import config
 from utils.bot_mgmt import check_if_botmgmt
 import github3
 import datetime
+from utils.checks import is_guild
 
 class LightningHub(commands.Cog):
     """Helper commands for Lightning Hub only."""
@@ -25,14 +26,11 @@ class LightningHub(commands.Cog):
     async def cog_after_invoke(self, ctx):
         db.per_guild_config.write_guild_config(ctx.guild, ctx.guild_config, "config")
 
-    @commands.guild_only()
-    @commands.command(hidden=True)
+    @commands.command()
+    @is_guild(527887739178188830)
     @commands.has_any_role("Trusted", "Verified")
     async def sr(self, ctx, *, text: str = ""):
         """Request staff assistance. Trusted and Verified only."""
-        if ctx.guild.id != 527887739178188830:
-            return
-        
         staff = self.bot.get_channel(536376192727646208)
         if text:
             # Prevent extra mentions. We'll clean this later.
@@ -43,14 +41,11 @@ class LightningHub(commands.Cog):
         await ctx.message.add_reaction("✅")
         await ctx.send("Online staff have been notified of your request.", delete_after=50)
 
-    @commands.guild_only()
-    @commands.command(hidden=True)
+    @commands.command()
+    @is_guild(527887739178188830)
     @commands.has_any_role("Helpers", "Staff")
     async def probate(self, ctx, target: discord.Member, *, reason: str = ""):
         """Probates a user. Staff only."""
-        if ctx.guild.id != 527887739178188830:
-            return
-
         mod_log_chan = self.bot.get_channel(552583376566091805)
         safe_name = await commands.clean_content().convert(ctx, str(target))
         role = discord.Object(id=546379342943617025)
@@ -79,14 +74,11 @@ class LightningHub(commands.Cog):
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now probated.")
 
-    @commands.guild_only()
-    @commands.command(hidden=True)
+    @commands.command()
+    @is_guild(527887739178188830)
     @commands.has_any_role("Helpers", "Staff")
     async def unprobate(self, ctx, target: discord.Member, *, reason: str = ""):
         """Removes probation role/unprobates the user. Staff only."""
-        if ctx.guild.id != 527887739178188830:
-            return
-
         mod_log_chan = self.bot.get_channel(552583376566091805)
         safe_name = await commands.clean_content().convert(ctx, str(target))
         role = discord.Object(id=546379342943617025)
@@ -123,15 +115,12 @@ class LightningHub(commands.Cog):
                 mod_log_chan = self.bot.get_channel(552583376566091805)
                 await mod_log_chan.send(msg)
 
-    @commands.command(hidden=True)
-    @commands.guild_only()
+    @commands.command()
+    @is_guild(527887739178188830)
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def autoprobate(self, ctx, status="on"):
         """Turns on or off auto probate. 
         Use "disable" to disable auto probate."""
-        if ctx.guild.id != 527887739178188830:
-            return
-
         if status == "disable":
             ctx.guild_config.pop("auto_probate")
             await ctx.send("Auto Probate is now disabled.")
@@ -139,13 +128,11 @@ class LightningHub(commands.Cog):
             ctx.guild_config["auto_probate"] = ctx.author.id
             await ctx.send(f"Auto Probate is now enabled\nTo turn off Auto Probate in the future, use `{ctx.prefix}autoprobate disable`")
 
-    @commands.command(hidden=True)
-    @commands.guild_only()
+    @commands.command()
+    @is_guild(527887739178188830)
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
     async def elevate(self, ctx):
         """Gains the elevated role. Use with care!"""
-        if ctx.guild.id != 527887739178188830:
-            return
         target = ctx.author
         mod_log_chan = self.bot.get_channel(552583376566091805)
         safe_name = await commands.clean_content().convert(ctx, str(target))
@@ -157,13 +144,11 @@ class LightningHub(commands.Cog):
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now elevated!")
 
-    @commands.command(hidden=True, aliases=['unelevate'])
-    @commands.guild_only()
+    @commands.command(aliases=['unelevate'])
+    @is_guild(527887739178188830)
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
     async def deelevate(self, ctx):
         """Removes the elevated role. Use with care."""
-        if ctx.guild.id != 527887739178188830:
-            return
         target = ctx.author
         mod_log_chan = self.bot.get_channel(552583376566091805)
         safe_name = await commands.clean_content().convert(ctx, str(target))
