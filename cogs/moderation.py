@@ -426,11 +426,11 @@ class Moderation(commands.Cog):
         if entity is None:
             return await ctx.send("❌ Not a valid previously-banned member.")
             # This is a mess :p
-        member = discord.Object(id=user_id)
+        member = await self.bot.fetch_user(user_id)
         await ctx.guild.unban(member, reason=str(ctx.author))
 
         chan_message = f"⭕ **Unban**: {ctx.author.mention} unbanned "\
-                       f"<@{user_id}>\n"\
+                       f"{member.mention} | {member}\n"\
                        f"🏷 __User ID__: {member.id}\n"
         if reason:
             chan_message += f"✏️ __Reason__: \"{reason}\""

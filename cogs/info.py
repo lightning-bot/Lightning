@@ -2,7 +2,6 @@ import discord
 import datetime
 from datetime import datetime
 import time
-import os
 import config
 import platform
 from discord.ext import commands
@@ -20,7 +19,8 @@ class Info(commands.Cog):
         if isinstance(ctx.channel, discord.DMChannel) or ctx.guild.id != 527887739178188830:
             return await ctx.send(f"**Here you go {ctx.author.mention} \n<https://discord.gg/cDPGuYd>**")
 
-        await ctx.send(f"{ctx.author.mention} You're asking for an invite in the support server? <:blobthonk:537791813990350873>\n~~There's an invite in <#567138592208453635> btw~~")
+        await ctx.send(f"{ctx.author.mention} You're asking for an invite in the support server? "
+                       "<:blobthonk:537791813990350873>\n~~There's an invite in <#567138592208453635> btw~~")
 
     @commands.command(aliases=['info', 'credits'])
     @commands.bot_has_permissions(embed_links=True)
@@ -36,8 +36,12 @@ class Info(commands.Cog):
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
         embed.add_field(name="Python Version", value=f"{platform.python_implementation()} {platform.python_version()}")
-        embed.add_field(name="Usage", value=f"{self.bot.successful_command} commands used since boot")
-        embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=8&scope=bot)\n[Support Server](https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/532220480577470464)\n[Website](https://lightsage.gitlab.io/Lightning/home/)")
+        embed.add_field(name="Stats", value=f"{self.bot.successful_command} commands used since boot.\n"
+                                            f"{len(self.bot.commands)} total commands.\n")
+        embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id="
+                                            "532220480577470464&permissions=8&scope=bot)\n[Support Server]"
+                                            "(https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/"
+                                            "532220480577470464)\n[Website](https://lightsage.gitlab.io/lightning/home/)")
         embed.set_footer(text=f"Lightning {self.bot.version}")
         await ctx.send(embed=embed)
 
