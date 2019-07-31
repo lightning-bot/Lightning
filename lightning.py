@@ -15,7 +15,6 @@ from discord.ext.commands import Cog
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-
 # Uses template from ave's botbase.py
 # botbase.py is under the MIT License. https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
 
@@ -78,11 +77,11 @@ if __name__ == '__main__':
         except Exception as e:
             log.error(f'Failed to load cog {extension}.')
             log.error(traceback.print_exc())
-            failed_to_load_cogs.append(extension)
+            unloaded_cogs.append(extension)
 
 def load_jis():
     bot.load_extension('jishaku')
-    log.info("Jishaku loaded")
+    success_cogs.append('jishaku')
 
 load_jis()
 
@@ -103,16 +102,6 @@ async def on_ready():
           f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}"\
           f"\nRunning on Python {platform.python_version()}"\
           f"\nI'm currently on **{bot.version}**"
-    if len(success_cogs) != 0:
-        info = "Cog Info:\n\n"
-        info += "Loaded Cogs:\n"
-        for s in success_cogs:
-            info += "{}\n".format(*s)
-        if len(failed_to_load_cogs) != 0:
-            for b in failed_to_load_cogs:
-                info += "Failed to load {}: `{}: {}`\n".format(*b)
-        url = await bot.haste(info) # Common Cog needs to be loaded so it can generate the haste
-        msg += f"\n__Information about cogs loaded and failed__ -> {url}"
 
     await bot.botlog_channel.send(msg)
 

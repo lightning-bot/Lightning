@@ -26,7 +26,13 @@ github_username = "" # Github Username
 github_repo = "" # Repository Name
 github_key = "" # Personal Access Token (OAUTH Token)
 gh_whitelisted_guilds = [527887739178188830,
-                         540978015811928075] # Guilds that can use Github Commands
+                         540978015811928075] # Guilds that can use Github/GitLab Commands
+
+# IP Address or URL of GitLab Instance
+gitlab_instance = ""
+gitlab_token = "" # Personal Access Token 
+                  # https://docs.gitlab.com/ce/user/profile/personal_access_tokens.html
+gitlab_project_id = ""
 
 # TheCatAPI Key (You can get one at thecatapi.com)
 catapi_token = ""

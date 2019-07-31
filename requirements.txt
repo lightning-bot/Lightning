@@ -9,3 +9,4 @@ parsedatetime
 dataset
 Pillow
 github3.py
+python-gitlab
