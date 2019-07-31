@@ -56,9 +56,11 @@ bot.log = log
 bot.config = config
 bot.help_command = commands.DefaultHelpCommand(dm_help = None)
 bot.script_name = script_name
-failed_to_load_cogs = []
 success_cogs = []
+unloaded_cogs = []
 bot.successful_command = 0
+bot.cog_loaded = success_cogs
+bot.cog_unloaded = unloaded_cogs
 # Database related
 engine = create_engine('sqlite:///config/database.sqlite3')
 bot.dbsession = sessionmaker(bind=engine)
@@ -76,7 +78,7 @@ if __name__ == '__main__':
         except Exception as e:
             log.error(f'Failed to load cog {extension}.')
             log.error(traceback.print_exc())
-            failed_to_load_cogs.append(extension, type(e).__name__, e)
+            failed_to_load_cogs.append(extension)
 
 def load_jis():
     bot.load_extension('jishaku')
