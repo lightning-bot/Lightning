@@ -52,7 +52,7 @@ class Memes(commands.Cog):
 
         await ctx.send(f"{member.mention} is now neo-banned!")
 
-    @commands.command(aliases=['discordcopypasta'])
+    @commands.command(aliases=['discordcopypasta'], hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def discordcopypaste(self, ctx, member: discord.Member=None):
         """Generates a discord copypaste
@@ -75,8 +75,12 @@ class Memes(commands.Cog):
                   " please stay safe."
 
         await ctx.send(org_msg)
+
+    @commands.command(hidden=True)
+    @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
+    async def bean(self, ctx):
+        """:fastbean:"""
+        await ctx.send(f"{ctx.author.display_name}: https://i.imgur.com/t1RFSL7.jpg")
        
-
-
 def setup(bot):
     bot.add_cog(Memes(bot))
