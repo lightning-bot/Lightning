@@ -51,8 +51,9 @@ def _callable_prefix(bot, message):
     else:
         guild_config = {}
     if "prefixes" in guild_config:
-        prefixes += guild_config["prefixes"]
-    return commands.when_mentioned_or(*prefixes)(bot, message)
+        prefixesc = default_prefix
+        prefixesc += guild_config["prefixes"]
+    return commands.when_mentioned_or(*prefixesc)(bot, message)
 
 
 initial_extensions = config.cogs
