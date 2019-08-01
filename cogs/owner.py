@@ -488,7 +488,11 @@ class Owner(Cog):
         try:
             session.query(BlacklistGuild).filter_by(guild_id=guild.id).one()
             self.bot.log.info(f"Attempted to Join Blacklisted Guild | {guild.name} | ({guild.id})")
-            await guild.owner.send("**Sorry, this guild is blacklisted.** To appeal your blacklist, join the support server. https://discord.gg/cDPGuYd")
+            try:
+                await guild.owner.send("**Sorry, this guild is blacklisted.** To appeal your blacklist, "
+                                       "join the support server. https://discord.gg/cDPGuYd")
+            except discord.Forbidden:
+                pass
             await guild.leave()
             return
         except:
@@ -496,11 +500,17 @@ class Owner(Cog):
 
         if guild_blacklist is None:
             msg = f"Thanks for adding me! I'm Lightning.\n"\
+                   "Discord's API Terms of Service requires me to tell you that I "\
+                   "log command usage and errors to a special channel.\n**Only commands and"\
+                   "errors are logged, no messages are logged, ever.**\n\n"\
                   f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
                   f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd"\
                   f" or see the setup guide"\
                   f" at <https://lightsage.gitlab.io/lightning/setup/>"
-            await guild.owner.send(msg)
+            try:
+                await guild.owner.send(msg)
+            except discord.Forbidden:
+                pass
             self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
         session.close()
             

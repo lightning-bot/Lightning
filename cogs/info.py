@@ -78,10 +78,11 @@ class Info(commands.Cog):
 
 
     async def send_guild_info(self, embed, guild):
+        bots = sum(member.bot for member in guild.members)
+        humans = guild.member_count - bots
         embed.add_field(name='Guild Name', value=guild.name)
         embed.add_field(name='Guild ID', value=guild.id)
-        member_count = guild.member_count
-        embed.add_field(name='Member Count', value=str(member_count))
+        embed.add_field(name='Member Count', value=f"Bots: {bots}\nHumans: {humans}")
         embed.add_field(name='Owner', value=f"{guild.owner} | ID: {guild.owner.id}")
         log_channel = self.bot.get_channel(config.error_channel)
         await log_channel.send(embed=embed)
