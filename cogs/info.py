@@ -55,7 +55,7 @@ class Info(commands.Cog):
     @commands.command(hidden=True, aliases=['sourcecode'])
     async def source(self, ctx):
         """My source code"""
-        await ctx.send("This is my source code. https://github.com/LightSage/Lightning.py")
+        await ctx.send("This is my source code. https://gitlab.com/LightSage/Lightning")
 
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
