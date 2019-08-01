@@ -502,7 +502,7 @@ class Owner(Cog):
             msg = f"Thanks for adding me! I'm Lightning.\n"\
                    "Discord's API Terms of Service requires me to tell you that I "\
                    "log command usage and errors to a special channel.\n**Only commands and"\
-                   "errors are logged, no messages are logged, ever.**\n\n"\
+                   " errors are logged, no messages are logged, ever.**\n\n"\
                   f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
                   f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd"\
                   f" or see the setup guide"\
