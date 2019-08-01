@@ -3,6 +3,16 @@ from discord.ext import commands
 import db.per_guild_config
 from typing import Union
 from database import StaffRoles, Roles, Config, AutoRoles
+from utils.custom_prefixes import add_prefix, remove_prefix, get_guild_prefixes
+
+class Prefix(commands.Converter):
+    # Based off R. Danny's Converter
+    async def convert(self, ctx, argument):
+        user_id = ctx.bot.user.id
+        if argument.startswith((f'<@{user_id}>', f'<@!{user_id}>')):
+            await ctx.send("That is a reserved prefix already in use.")
+            raise commands.BadArgument('That is a reserved prefix already in use.')
+        return argument
 
 class Configuration(commands.Cog):
     """Server Configuration Commands"""
@@ -336,6 +346,59 @@ class Configuration(commands.Cog):
             embed.description += f"\N{BULLET} {role.name} (ID: {role.id})\n"
         if len(embed.description) == 0:
             embed.description += "No Auto Roles are setup for this server!"
+        await ctx.send(embed=embed)
+
+    @commands.group(aliases=['prefixes'])
+    @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    async def prefix(self, ctx):
+        """Setup custom prefixes"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+    
+    @prefix.command(name="add")
+    @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    async def addprefix(self, ctx, prefix: Prefix):
+        """Adds a custom prefix.
+
+
+        To have a prefix with a word (or words), you should quote it and 
+        end it with a space, e.g. "lightning " to set the prefix 
+        to "lightning ". This is because Discord removes spaces when sending 
+        messages so the spaces are not preserved."""
+        if len(get_guild_prefixes(ctx.guild)) < 10:
+            add_prefix(ctx.guild, prefix)
+        else:
+            return await ctx.send("You can only have 10 custom prefixes per guild! Please remove one.")
+        await ctx.send(f"Added `{prefix}`")
+
+    @prefix.command(name="remove")
+    @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    async def rmprefix(self, ctx, prefix: Prefix):
+        """Removes a custom prefix.
+        
+        The inverse of the prefix add command.
+        
+        To remove word/multi-word prefixes, you need to quote it.
+        Example: l.prefix remove "lightning " removes the "lightning " prefix
+        """
+        if prefix in get_guild_prefixes(ctx.guild):
+            remove_prefix(ctx.guild, prefix)
+        else:
+            return await ctx.send(f"`{prefix}` was never added as a custom prefix.")
+        await ctx.send(f"Removed `{prefix}`")
+
+    @prefix.command(name="list")
+    @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    async def listprefixes(self, ctx):
+        """Lists all the custom prefixes this server has"""
+        embed = discord.Embed(title=f"Custom Prefixes Set for {ctx.guild.name}", description="", 
+                              color=discord.Color(0xd1486d))
+        for p in get_guild_prefixes(ctx.guild):
+            embed.description += f"- `{p}`\n"
         await ctx.send(embed=embed)
 
     @commands.Cog.listener()

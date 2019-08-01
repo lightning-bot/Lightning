@@ -1,6 +1,7 @@
 # Basic Configuration
 token = "insert-token-here"
 description  = "Lightning+, the successor to Lightning(.js)"
+default_prefix = ['.']
 
 # List Cogs that should be loaded on start
 cogs = ['cogs.comics', 'cogs.owner', 'cogs.moderation', 'cogs.logger', 

@@ -14,6 +14,7 @@ from database import StaffRoles, BlacklistGuild, Config, Roles, BlacklistUser, A
 from discord.ext.commands import Cog
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import db.per_guild_config
 
 # Uses template from ave's botbase.py
 # botbase.py is under the MIT License. https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
@@ -39,10 +40,16 @@ log.setLevel(logging.INFO)
 log.addHandler(file_handler)
 log.addHandler(stdout_handler)
 
-default_prefix = '.', 'l.'
+default_prefix = config.default_prefix
 
 def _callable_prefix(bot, message):
     prefixes = default_prefix
+    if db.per_guild_config.exist_guild_config(message.guild, "prefixes"):
+        guild_config = db.per_guild_config.get_guild_config(message.guild, "prefixes")
+    else:
+        guild_config = {}
+    if "prefixes" in guild_config:
+        prefixes += guild_config["prefixes"]
     return commands.when_mentioned_or(*prefixes)(bot, message)
 
 
