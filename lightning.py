@@ -43,17 +43,17 @@ log.addHandler(stdout_handler)
 default_prefix = config.default_prefix
 
 def _callable_prefix(bot, message):
-    prefixes = default_prefix
+    prefixed = default_prefix
     if message.guild is None:
-        return commands.when_mentioned_or(*prefixes)(bot, message)
+        return commands.when_mentioned_or(*prefixed)(bot, message)
     if db.per_guild_config.exist_guild_config(message.guild, "prefixes"):
         guild_config = db.per_guild_config.get_guild_config(message.guild, "prefixes")
     else:
-        guild_config = {}
+        return commands.when_mentioned_or(*prefixed)(bot, message)
     if "prefixes" in guild_config:
-        prefixesc = default_prefix
-        prefixesc += guild_config["prefixes"]
-    return commands.when_mentioned_or(*prefixesc)(bot, message)
+        prefixesc = guild_config["prefixes"]
+        prefixesc += default_prefix
+        return commands.when_mentioned_or(*prefixesc)(bot, message)
 
 
 initial_extensions = config.cogs
