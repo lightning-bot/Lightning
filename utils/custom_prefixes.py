@@ -14,11 +14,10 @@ def set_prefixes(guild, contents):
         json.dump(contents, f)
 
 def get_guild_prefixes(guild):
-    with open(f"config/{guild.id}/prefixes.json", "r") as f:
-        rst = json.load(f)
-        if "prefixes" in rst:
-            return rst["prefixes"]
-        return False
+    rst = get_prefixes(guild)
+    if "prefixes" in rst:
+        return rst["prefixes"]
+    return {}
 
 def add_prefix(guild, prefix):
     px = str(prefix)
