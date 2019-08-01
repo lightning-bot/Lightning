@@ -4,7 +4,7 @@ import io
 import db.mod_check
 from discord.ext.commands import Cog
 
-ROO_EMOTES = [604331487583535124, 604446987844190228]
+ROO_EMOTES = [604331487583535124, 604446987844190228, 606517600167526498]
 
 class Emoji(commands.Cog):
     def __init__(self, bot):
@@ -108,6 +108,18 @@ class Emoji(commands.Cog):
                 await emoji_chan.send(msg)
         if guild.id == ROO_EMOTES[1]:
             emoji_chan = self.bot.get_channel(604447679635783690)
+            rm_emoji = [f"{emoji} -- `{emoji.id}`" for emoji in before if emoji not in after]
+            mk_emoji = [f"{emoji} -- `{emoji}`" for emoji in after if emoji not in before]
+            if len(rm_emoji) != 0:
+                msg = "⚠ Emoji Removed: "
+                msg += ", ".join(rm_emoji)
+                await emoji_chan.send(msg)
+            if len(mk_emoji) != 0:
+                msg = "✅ Emoji Added: "
+                msg += ", ".join(mk_emoji)
+                await emoji_chan.send(msg)
+        if guild.id == ROO_EMOTES[2]:
+            emoji_chan = self.bot.get_channel(606517971430539276)
             rm_emoji = [f"{emoji} -- `{emoji.id}`" for emoji in before if emoji not in after]
             mk_emoji = [f"{emoji} -- `{emoji}`" for emoji in after if emoji not in before]
             if len(rm_emoji) != 0:
