@@ -44,6 +44,8 @@ default_prefix = config.default_prefix
 
 def _callable_prefix(bot, message):
     prefixes = default_prefix
+    if message.guild is None:
+        return commands.when_mentioned_or(*prefixes)(bot, message)
     if db.per_guild_config.exist_guild_config(message.guild, "prefixes"):
         guild_config = db.per_guild_config.get_guild_config(message.guild, "prefixes")
     else:
