@@ -33,6 +33,7 @@ class Emoji(commands.Cog):
             await ctx.send_help(ctx.command)
 
     @emoji.command()
+    @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
     async def add(self, ctx, emoji_name, *, url):
@@ -56,6 +57,7 @@ class Emoji(commands.Cog):
             return await ctx.send("Something went wrong trying to fetch the url. Try again later(?)")
 
     @emoji.command()
+    @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
     async def copy(self, ctx, emoji: discord.PartialEmoji):
@@ -78,6 +80,7 @@ class Emoji(commands.Cog):
             return await ctx.send("Something went wrong trying to fetch the url. Try again later(?)")
 
     @emoji.command()
+    @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
     async def delete(self, ctx, emote: discord.Emoji):
