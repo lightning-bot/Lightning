@@ -19,6 +19,6 @@ def is_one_of_guilds(guilds: list):
     async def predicate(ctx):
         if not ctx.guild:
             return False
-        if ctx.guild.id is in guilds:
+        if ctx.guild.id in guilds:
             return True
     return commands.check(predicate)
