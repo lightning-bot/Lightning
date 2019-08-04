@@ -14,3 +14,11 @@ def is_git_whitelisted(ctx):
         return False
     guild = (ctx.guild.id in config.gh_whitelisted_guilds)
     return (guild)
+
+def is_one_of_guilds(guilds: list):
+    async def predicate(ctx):
+        if not ctx.guild:
+            return False
+        if ctx.guild.id is in guilds:
+            return True
+    return commands.check(predicate)

@@ -3,6 +3,7 @@ import discord
 import io
 import db.mod_check
 from discord.ext.commands import Cog
+from utils.checks import is_one_of_guilds
 
 ROO_EMOTES = [604331487583535124, 604446987844190228, 606517600167526498]
 
@@ -92,6 +93,21 @@ class Emoji(commands.Cog):
 
         await emote.delete(reason=f"Emoji Removed by {ctx.author} (ID: {ctx.author.id})")
         await ctx.send("Emote is now deleted.")
+
+    @commands.command()
+    @is_one_of_guilds(ROO_EMOTES)
+    @commands.has_permissions(administrator=True)
+    async def listrooemojis(self, ctx):
+        """Prints a fancy list of the Roo Server's emotes"""
+        if len(ctx.guild.emojis) == 0:
+            return await ctx.send("This server has no emotes!")
+            
+        paginator = commands.Paginator(suffix='', prefix='')
+        for emoji in ctx.guild.emojis:
+            paginator.add_line(f'{emoji} -- `{emoji}`')
+
+        for page in paginator.pages:
+            await ctx.send(page)
 
     @Cog.listener()
     async def on_guild_emojis_update(self, guild, before, after):
