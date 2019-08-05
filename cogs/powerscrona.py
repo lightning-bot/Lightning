@@ -162,7 +162,7 @@ class PowersCronManagement(commands.Cog):
                             guild = self.bot.get_guild(jobtype['guild_id'])
                             user = guild.get_member(jobtype['user_id'])
                             role = guild.get_role(jobtype['role_id'])
-                            remove_restriction(guild, user.id, role)
+                            remove_restriction(guild, user.id, role.id)
                             await user.remove_roles(role, reason="PowersCron: "
                                                     "Timed Mute Expired.")
                             # Delete the scheduled unmute
