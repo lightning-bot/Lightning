@@ -10,7 +10,6 @@ class Comics(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
-        self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.command(aliases=['gc'])
     @commands.bot_has_permissions(embed_links=True)
@@ -61,7 +60,15 @@ class Comics(Cog):
         embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['rgc'])
+    @commands.group(name="random-comic")
+    async def random_comic(self, ctx):
+        """Displays a random comic"""
+        if ctx.invoked_subcommand is None:
+            listcomics = ['garfield', 'usacres', 'peanuts', 'nonsequitur',
+                          'garfieldminusgarfield']
+            await ctx.invoke(self.bot.get_command(f"random {listcomics}"))
+
+    @random_comic.command(name="garfield", aliases=['rgc'])
     @commands.bot_has_permissions(embed_links=True)
     async def random_garfieldcomic(self, ctx):
         """Displays a random garfield comic
@@ -78,7 +85,7 @@ class Comics(Cog):
         embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['ruac'])
+    @random_comic.command(name="usacres", aliases=['ruac'])
     async def random_usacrescomic(self, ctx):
         """Displays a random US Acres comic
         
@@ -94,7 +101,7 @@ class Comics(Cog):
         embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['rpc'])
+    @random_comic.command(name="peanuts", aliases=['rpc'])
     async def random_peanutscomic(self, ctx):
         """Displays a random Peanuts comic
         
@@ -110,7 +117,7 @@ class Comics(Cog):
         embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['rgmgc'])
+    @random_comic.command(name="garfieldminusgarfield", aliases=['rgmgc'])
     async def random_garfieldminusgarfieldcomic(self, ctx):
         """Displays a random Garfield Minus Garfield comic
         
@@ -126,7 +133,7 @@ class Comics(Cog):
         embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['rnsc'])
+    @random_comic.command(name="nonsequitur", aliases=['rnsc'])
     async def random_nonsequiturcomic(self, ctx):
         """Displays a random Non Sequitur comic
         
@@ -141,10 +148,6 @@ class Comics(Cog):
         embed.set_image(url=img_url)
         embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
-
-
-
-
 
 
 def setup(bot):
