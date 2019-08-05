@@ -11,6 +11,7 @@ from enum import Enum
 import subprocess
 import random
 import json
+from utils.restrictions import remove_restriction
 
 # We'll use a Enum just for the sake of not redo-ing this status switching code.
 class Names(Enum):
@@ -117,8 +118,8 @@ class PowersCronManagement(commands.Cog):
     @commands.is_owner()
     @commands.command(aliases=['stopstatus'])
     async def stop_ss(self, ctx):
-        """Stops the status rotation loop gracefully"""
-        self.status_rotate.stop()
+        """Stops the status rotation loop"""
+        self.status_rotate.cancel()
         await ctx.send("Status Switcher has been halted! 🛑")
 
     @commands.is_owner()
@@ -157,7 +158,18 @@ class PowersCronManagement(commands.Cog):
                             self.db['cron_jobs'].delete(job_type="timeban", 
                                                         expiry=expiry2, 
                                                         user_id=jobtype['user_id'])
-
+                        elif jobtype['job_type'] == "timemute":
+                            guild = self.bot.get_guild(jobtype['guild_id'])
+                            user = guild.get_member(jobtype['user_id'])
+                            role = guild.get_role(jobtype['role_id'])
+                            remove_restriction(guild, user.id, role)
+                            await user.remove_roles(role, reason="PowersCron: "
+                                                    "Timed Mute Expired.")
+                            # Delete the scheduled unmute
+                            self.db['cron_jobs'].delete(job_type="timemute", 
+                                                        expiry=expiry2,
+                                                        guild_id=jobtype['guild_id'],
+                                                        user_id=jobtype['user_id'])
             except:
                 # Keep jobs for now if they errored
                 self.bot.log.error(f"PowersCron ERROR: "

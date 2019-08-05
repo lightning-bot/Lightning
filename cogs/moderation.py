@@ -597,5 +597,85 @@ class Moderation(commands.Cog):
             except:
                 pass
 
+    @commands.guild_only()
+    @commands.command()
+    @commands.bot_has_permissions(manage_roles=True)
+    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    async def timemute(self, ctx, target: discord.Member, 
+                       duration: str, *, reason: str = ""):
+        """Mutes a user for a specified amount of time. Moderators+"""
+        # Hedge-proofing the code
+        if target == self.bot.user:
+            return await ctx.send("You can't do mod actions on me.")
+        elif target == ctx.author.id:
+            return await ctx.send("You can't do mod actions on yourself.")
+        elif db.mod_check.member_at_least_has_staff_role(target):
+            return await ctx.send("I can't mute this user as "
+                                  "they're a staff member.")
+
+        session = self.bot.dbsession() # Check to see if mute role is setup
+        try:
+            role_id = session.query(Config).filter_by(guild_id=ctx.guild.id).one()
+            role = discord.utils.get(ctx.guild.roles, id=role_id.mute_role_id)
+        except:
+            session.close()
+            return await ctx.send("❌ You need to setup a mute role first.")
+
+        expiry_timestamp = self.bot.parse_time(duration)
+        expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
+        duration_text = self.bot.get_relative_timestamp(time_to=expiry_datetime,
+                                                        include_to=True,
+                                                        humanized=True)
+
+        userlog(ctx.guild, target.id, ctx.author, 
+                        f"{reason} (Timed, until "
+                        f"{duration_text})",
+                        "mutes", target.name)
+        safe_name = await commands.clean_content().convert(ctx, str(target)) # Let's not make the mistake
+        dm_message = f"You were muted on {ctx.guild.name}!"
+        if reason:
+            dm_message += f" The given reason is: \"{reason}\"."
+        dm_message += f"\n\nThis mute will expire {duration_text}."
+
+        try:
+            await target.send(dm_message)
+        except discord.errors.Forbidden:
+            # Prevents mute issues in cases where user blocked bot
+            # or has DMs disabled
+            pass
+
+        await target.add_roles(role, reason=str(ctx.author))
+
+        chan_message = f"🔇 **Timed Mute**: {ctx.author.mention} muted "\
+                       f"{target.mention} for {duration_text} | {safe_name}\n"\
+                       f"🏷 __User ID__: {target.id}\n"
+        if reason:
+            chan_message += f"✏️ __Reason__: \"{reason}\""
+        else:
+            chan_message += "\nPlease add an explanation below. In the future, "\
+                            f"it is recommended to use `{ctx.prefix}timemute <user> "\
+                            "<duration> [reason]`"\
+                            " as the reason is automatically sent to the user."
+        j_add = datetime.utcnow()
+
+        table = self.db["cron_jobs"]
+        table.insert(dict(job_type="timemute", 
+                     guild_id=ctx.guild.id,
+                     user_id=target.id,
+                     role_id=role.id,
+                     expiry=expiry_timestamp,
+                     job_added=j_add))
+
+        if "log_channel" in ctx.guild_config:
+            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            try:
+                await log_channel.send(chan_message)
+            except:
+                pass  # w/e, dumbasses forgot to set send perms properly.
+        add_restriction(ctx.guild, target.id, role.id)
+        session.close()
+        await ctx.send(f"{target.mention} can no longer speak. "
+                       f"It will expire {duration_text}.")
+
 def setup(bot):
     bot.add_cog(Moderation(bot))
