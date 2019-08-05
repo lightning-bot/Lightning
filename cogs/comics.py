@@ -66,7 +66,7 @@ class Comics(Cog):
         if ctx.invoked_subcommand is None:
             listcomics = ['garfield', 'usacres', 'peanuts', 'nonsequitur',
                           'garfieldminusgarfield']
-            await ctx.invoke(self.bot.get_command(f"random {listcomics}"))
+            await ctx.invoke(self.bot.get_command(f"random-comic {listcomics}"))
 
     @random_comic.command(name="garfield", aliases=['rgc'])
     @commands.bot_has_permissions(embed_links=True)
