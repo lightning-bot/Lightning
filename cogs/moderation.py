@@ -486,7 +486,7 @@ class Moderation(commands.Cog):
                 await log_channel.send(chan_message)
             except:
                 pass  # w/e, dumbasses forgot to set send perms properly.
-        await ctx.send(f"{safe_name} is now b&. 👍")
+        await ctx.send(f"{user} | {safe_name} is now b&. 👍")
 
     @commands.guild_only()
     @commands.bot_has_permissions(kick_members=True)
