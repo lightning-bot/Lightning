@@ -4,6 +4,7 @@ import io
 import db.mod_check
 from discord.ext.commands import Cog
 from utils.checks import is_one_of_guilds
+from utils.paginators_jsk import paginator_reg_nops
 
 ROO_EMOTES = [604331487583535124, 604446987844190228, 606517600167526498]
 
@@ -27,7 +28,7 @@ class Emoji(commands.Cog):
         else:
             return await ctx.send("No Emote Found!")
 
-    @commands.group()
+    @commands.group(aliases=['emote'])
     async def emoji(self, ctx):
         """Emoji management commands"""
         if ctx.invoked_subcommand is None:
@@ -93,6 +94,16 @@ class Emoji(commands.Cog):
 
         await emote.delete(reason=f"Emoji Removed by {ctx.author} (ID: {ctx.author.id})")
         await ctx.send("Emote is now deleted.")
+
+    @commands.guild_only()
+    @commands.bot_has_permissions(add_reactions=True)
+    @emoji.command(name='list', aliases=['all'])
+    async def listemotes(self, ctx):
+        """Sends a paginator with a fancy list of the server's emotes"""
+        page = []
+        for emoji in ctx.guild.emojis:
+            page.append(f'{emoji} -- `{emoji}`')
+        await paginator_reg_nops(self.bot, ctx, size=1000, page_list=page)
 
     @commands.command()
     @is_one_of_guilds(ROO_EMOTES)
