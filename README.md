@@ -12,7 +12,7 @@ Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features
 ---
 ## Planned Features
 
-- [ ] Moderation: Time Mute (relies on PowersCron)
+- [ ] Better Help Command
 
 <details>
 <summary>Completed Features</summary>
@@ -37,6 +37,7 @@ Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features
 - [x] PowersCron: Allow reminder author to delete their own reminders
 - [x] PowersCron: Management Cog (PCA/PCM)
 - [x] PowersCron: 6 Hour Data Backup 
+- [x] Moderation: Time Mute (relies on PowersCron)
 
 
 </p>
