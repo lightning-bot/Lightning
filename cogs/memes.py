@@ -81,6 +81,11 @@ class Memes(commands.Cog):
     async def bean(self, ctx):
         """:fastbean:"""
         await ctx.send(f"{ctx.author.display_name}: https://i.imgur.com/t1RFSL7.jpg")
+
+    @commands.command(hidden=True)
+    async def peng(self, ctx):
+        """Uhhh ping?"""
+        await ctx.send(f"My ping is uhhh `{random.randint(31,150)}ms`")
        
 def setup(bot):
     bot.add_cog(Memes(bot))
