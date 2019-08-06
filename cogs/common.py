@@ -34,7 +34,6 @@ from discord.ext.commands import Cog
 class Common(Cog):
     def __init__(self, bot):
         self.bot = bot
-
         self.bot.slice_message = self.slice_message
         self.max_split_length = 3
         self.bot.hex_to_int = self.hex_to_int
@@ -47,8 +46,6 @@ class Common(Cog):
         self.bot.parse_time = self.parse_time
         self.bot.haste = self.haste
         self.bot.call_shell = self.call_shell
-        self.bot.log.info(f'{self.qualified_name} loaded')
-
 
     def parse_time(self, delta_str):
         cal = parsedatetime.Calendar()
@@ -157,7 +154,7 @@ class Common(Cog):
         if len(text) > size * self.max_split_length:
             haste_url = await self.haste(text)
             return [f"Message exceeded the max split "
-                    f"length "
+                    f"length"
                     f", go to haste: <{haste_url}>"]
         reply_list = []
         size_wo_fix = size - len(prefix) - len(suffix)
