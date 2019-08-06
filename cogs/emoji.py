@@ -11,7 +11,6 @@ ROO_EMOTES = [604331487583535124, 604446987844190228, 606517600167526498]
 class Emoji(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.bot.log.info(f'{self.qualified_name} loaded')
 
     def aiobytesfinalize(self, image):
         file_e = io.BytesIO()
