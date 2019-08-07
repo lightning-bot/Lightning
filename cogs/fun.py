@@ -6,6 +6,7 @@ from discord.ext import commands
 import random
 import math
 import config
+from datetime import datetime
 
 
 class Fun(commands.Cog):
@@ -140,7 +141,31 @@ class Fun(commands.Cog):
         """( ͡° ͜ʖ ͡°)"""
         await ctx.send("( ͡° ͜ʖ ͡°)")
 
+    @commands.command()
+    async def xkcd(self, ctx, xkcd_number: int=None):
+        """Returns an embed with information about the specified xkcd comic.
 
+        If no value is supplied or the value isn't found, it gives the latest xkcd instead."""
+        xkcd_latest = await self.bot.aiojson("https://xkcd.com/info.0.json")
+        xkcd_max = xkcd_latest.get("num")
+
+        if xkcd_number is not None and int(xkcd_number) > 0 and int(xkcd_number) < xkcd_max:
+            entry = int(xkcd_number)
+        else:
+            entry = xkcd_max
+
+        xkcd = await self.bot.aiojson(f"https://xkcd.com/{entry}/info.0.json")
+        if xkcd is False:
+            return await ctx.send("Something went wrong grabbing that XKCD!")
+
+        timestamp = datetime.strptime(f"{xkcd['year']}-{xkcd['month']}-{xkcd['day']}",
+                                      "%Y-%m-%d")
+        embed = discord.Embed(title=f"xkcd {xkcd['num']}: {xkcd['safe_title']}",
+                              url=f"https://xkcd.com/{xkcd['num']}",
+                              timestamp=timestamp, color=discord.Color(0x96A8C8))
+        embed.set_image(url=xkcd["img"])
+        embed.set_footer(text=xkcd["alt"])
+        await ctx.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(Fun(bot))
