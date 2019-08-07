@@ -101,8 +101,8 @@ def member_at_least_has_staff_role(member: discord.Member, min_role: str="Helper
     staff_roles = []
     for role in role_list:
         try:
-            staff_roles.append(
-                session.query(StaffRoles).filter_by(guild_id=member.guild.id, staff_perms=role).one().role_id)
+            for q in session.query(StaffRoles).filter_by(guild_id=member.guild.id, staff_perms=role).all():
+                staff_roles.append(q.role_id)
         except:
             pass
 
