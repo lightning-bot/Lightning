@@ -14,3 +14,8 @@ pyflakes:
   - pip install pyflakes
   - echo $($NEW_COMMIT) # What's new in the commit
   - pyflakes "$($NEW_COMMIT)"
+
+PyFlakes (All Code):
+  script:
+  - pip install pyflakes
+  - pyflakes .
