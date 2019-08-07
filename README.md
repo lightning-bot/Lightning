@@ -12,7 +12,7 @@ Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features
 ---
 ## Planned Features
 
-- [ ] Better Help Command
+- [ ] Tags
 
 <details>
 <summary>Completed Features</summary>
@@ -38,7 +38,7 @@ Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features
 - [x] PowersCron: Management Cog (PCA/PCM)
 - [x] PowersCron: 6 Hour Data Backup 
 - [x] Moderation: Time Mute (relies on PowersCron)
-
+- [x] Better Help Command
 
 </p>
 </details>
@@ -58,7 +58,7 @@ This bot uses parts and ideas from other Discord Bots:
 - [Kirigiri](https://git.catgirlsin.space/noirscape/kirigiri) by Noirscape. (For the per_guild_config and staff role database)
 - [Robocop-NG](https://github.com/reswitched/robocop-ng) by Ave and TomGER. (Moderation Commands & Restrictions)
 - [Kurisu](https://github.com/nh-server/Kurisu) by ihaveahax/ihaveamac and 916253. (For the compact logging format)
-- [RoboDanny](https://github.com/Rapptz/RoboDanny) by Rapptz/Danny. (For Ideas, Unban Handler, and other things)
+- [RoboDanny](https://github.com/Rapptz/RoboDanny) by Rapptz/Danny. (For Ideas, Unban Handler, Paginators, and other things)
 
 
 Extended special thanks to:
