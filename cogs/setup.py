@@ -183,7 +183,7 @@ class Configuration(commands.Cog):
         session.merge(permissions_db_object)
         session.commit()
         session.close()
-        await ctx.send(f"Successfully set the {level} rank to the {target} role! <:mayushii:562686801043521575>")
+        await ctx.send(f"Successfully set the {level} rank to the {role_name} role! <:mayushii:562686801043521575>")
 
     @commands.guild_only()
     @commands.command(name="get-mod-roles", aliases=['getmodroles', 'getmodrole'])
