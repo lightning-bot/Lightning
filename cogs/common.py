@@ -126,10 +126,12 @@ class Common(Cog):
                 return await data.json(content_type=content_type)
             else:
                 self.bot.log.error(f"HTTP Error {data.status} "
-                                   "while getting {url}")
+                                   f"while getting {url}")
+                return False
         except:
             self.bot.log.error(f"Error while getting {url} "
                                f"on aiogetbytes: {traceback.format_exc()}")
+            return False
 
     def hex_to_int(self, color_hex: str):
         """Turns a given hex color into an integer"""
