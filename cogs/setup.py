@@ -164,13 +164,14 @@ class Configuration(commands.Cog):
     @commands.guild_only()
     @commands.command(name="set-mod-role", aliases=['setmodroles', 'set-mod-roles'])
     @commands.has_permissions(administrator=True)
-    async def set_mod_role(self, ctx, target: str, level: str):
+    async def set_mod_role(self, ctx, level: str, *, role_name: str):
         """
         Set the various mod roles.
-        :param target: Target role to set. Case specific.
-        :param level: Any of "Helper", "Moderator" or "Admin".
+
+        :param level: Any of "Helper", "Moderator" or "Admin". 
+        :param role: Target role to set. Case specific.
         """
-        role = discord.utils.get(ctx.guild.roles, name=target)
+        role = discord.utils.get(ctx.guild.roles, name=role_name)
         if not role:
             return await ctx.send(":x: That role does not exist.")
 
