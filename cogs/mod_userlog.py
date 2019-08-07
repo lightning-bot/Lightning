@@ -26,7 +26,6 @@
 
 import discord
 from discord.ext import commands
-import json
 from db.user_log import get_userlog, set_userlog, userlog_event_types
 import db.per_guild_config
 import db.mod_check

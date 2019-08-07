@@ -3,9 +3,6 @@ import discord
 import db.per_guild_config
 import db.mod_check
 from utils.restrictions import add_restriction, remove_restriction
-import config
-from utils.bot_mgmt import check_if_botmgmt
-import datetime
 from utils.checks import is_guild
 
 class LightningHub(commands.Cog):

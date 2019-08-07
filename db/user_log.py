@@ -20,11 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Changes to this is erasing the mutes
 import json
 import time
 import os
-import db.per_guild_config
 
 userlog_event_types = {"warns": "Warn",
                        "bans": "Ban",

@@ -2,7 +2,6 @@ import dataset
 import time
 from datetime import datetime
 from discord.ext import commands
-import asyncio
 import traceback
 import discord
 import config

@@ -3,7 +3,6 @@ from discord.ext.commands import Cog
 import db.per_guild_config
 import datetime
 import re
-from humanize import naturaldate
 from utils.restrictions import get_user_restrictions
 
 class Logger(Cog):
@@ -136,9 +135,6 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(message.guild, "config"):
             config = db.per_guild_config.get_guild_config(message.guild, "config")
             if "message_log_channel" in config:
-                escape = discord.utils.escape_markdown(message.clean_content, 
-                                                            as_needed=False, 
-                                                            ignore_links=True)
                 msg = "🗑️ **Message deleted**: \n"\
                       f"Author: {self.bot.escape_message(message.author.name)} "\
                       f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"

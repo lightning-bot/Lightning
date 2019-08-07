@@ -11,7 +11,6 @@ from datetime import datetime
 import config
 from dhooks import Embed, Webhook
 from database import StaffRoles, BlacklistGuild, Config, Roles, BlacklistUser, AutoRoles, Base
-from discord.ext.commands import Cog
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import db.per_guild_config
@@ -85,7 +84,7 @@ if __name__ == '__main__':
             bot.load_extension(extension)
             success_cogs.append(extension)
         except Exception as e:
-            log.error(f'Failed to load cog {extension}.')
+            log.error(f'Failed to load cog {extension}. {e}')
             log.error(traceback.print_exc())
             unloaded_cogs.append(extension)
 
