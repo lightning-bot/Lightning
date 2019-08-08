@@ -71,7 +71,7 @@ class Utility(commands.Cog):
         if limit > 750: # Safe Value
             return await ctx.send("Too big! Lower the value!")
         log_t = f"Archive of {ctx.channel} (ID: {ctx.channel.id}) "\
-                f"made on {datetime.datetime.utcnow()}\n\n\n"
+                f"made on {datetime.utcnow()}\n\n\n"
         async with ctx.typing():
             async for log in ctx.channel.history(limit=limit):
                 # .strftime('%X/%H:%M:%S') but no for now
