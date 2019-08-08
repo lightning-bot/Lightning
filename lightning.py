@@ -209,7 +209,8 @@ async def on_command_error(ctx, error):
 async def on_message(message):
     if message.author.bot:
         return
-
+    if str(message.author.id) in bot.get_blacklist():
+        return
     ctx = await bot.get_context(message)
     await bot.invoke(ctx)
 

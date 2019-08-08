@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from discord.ext.commands import Cog
 import traceback
 import inspect
 import re
@@ -11,27 +10,40 @@ import random
 import config
 import io
 from utils.bot_mgmt import add_botmanager, check_if_botmgmt, remove_botmanager
+from utils.paginators_jsk import paginator_reg
+import os
+import json
 
-class Owner(Cog):
+class Owner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.last_eval_result = None
         self.previous_eval_code = None
-        self.bot.log.info(f'{self.qualified_name} loaded')
-        
+        self.bot.get_blacklist = self.grab_blacklist
+
+    def grab_blacklist(self):
+        os.makedirs("config", exist_ok=True)
+        if os.path.isfile("config/user_blacklist.json"):
+            with open("config/user_blacklist.json", "r") as blacklist:
+                return json.load(blacklist)
+        else:
+            return {}
+
+    def blacklist_dump(self, json_returned):
+        os.makedirs("config", exist_ok=True)
+        with open("config/user_blacklist.json", "w") as f:
+            return json.dump(json_returned, f)
+
     @commands.is_owner()
     @commands.command()
     async def shell(self, ctx, *, command: str):
         """Runs a command in the terminal/shell"""
         shell_out = await self.bot.call_shell(command)
-        sliced_message = await self.bot.slice_message(shell_out,
-                                                      prefix="```",
-                                                      suffix="```")
-        for msg in sliced_message:
-            await ctx.send(msg)
+        sliced_message = await self.bot.slice_message(shell_out)
+        await paginator_reg(self.bot, ctx, size=1985, page_list=sliced_message)
     
     @commands.is_owner()
-    @commands.command(hidden=True)
+    @commands.command()
     async def fetchlog(self, ctx):
         """Returns log"""
         log_channel = self.bot.get_channel(config.error_channel)
@@ -47,12 +59,20 @@ class Owner(Cog):
     async def getmodlogjson(self, ctx, guild_id: int):
         """Gets the guild id's userlog.json file"""
         try:
-            await ctx.send(f"Here's the userlog.json for `{guild_id}`", file=discord.File(f"config/{guild_id}/userlog.json"))
+            await ctx.send(f"Here's the userlog.json for `{guild_id}`", 
+                           file=discord.File(f"config/{guild_id}/userlog.json"))
         except:
             await ctx.send(f"`{guild_id}` doesn't have a userlog.json yet. Check back later.")
 
+    @commands.group()
     @commands.check(check_if_botmgmt)
-    @commands.command(name='blacklistguild')
+    async def blacklist(self, ctx):
+        """Blacklisting Management"""
+        if ctx.invoked_subcommand is None:
+            return await ctx.send_help(ctx.command)
+    
+    @commands.check(check_if_botmgmt)
+    @blacklist.command(name='addguild', aliases=['guildadd'])
     async def blacklist_guild(self, ctx, server_id: int):
         """Blacklist a guild from using the bot"""
         guild = self.bot.get_guild(server_id)
@@ -70,7 +90,7 @@ class Owner(Cog):
         await ctx.send(msg + f'✅ Successfully blacklisted guild `{server_id}`')
 
     @commands.check(check_if_botmgmt)
-    @commands.command(name='unblacklistguild', aliases=['unblacklist-guild'])
+    @blacklist.command(name='removeguild', aliases=['unblacklist-guild'])
     async def unblacklist_guild(self, ctx, server_id: int):
         """Unblacklist a guild from using the bot"""
         session = self.bot.dbsession()
@@ -86,36 +106,33 @@ class Owner(Cog):
             return await ctx.send(f":x: `{server_id}` isn't blacklisted!")
 
     @commands.check(check_if_botmgmt)
-    @commands.command(name="blacklistuser", aliases=["blacklist-user"])
+    @blacklist.command(name="adduser", aliases=["blacklist-user"])
     async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
         """Blacklist an user from using the bot"""
-        session = self.bot.dbsession()
+        bl = self.grab_blacklist()
+        if str(userid) in bl:
+            return await ctx.send("User already blacklisted!")
         if reason_for_blacklist:
-            add_blacklistuser = BlacklistUser(user_id=userid, reason=reason_for_blacklist)
+            rb = reason_for_blacklist
         else:
-            add_blacklistuser = BlacklistUser(user_id=userid, reason="No Reason Provided")
-        session.merge(add_blacklistuser)
-        session.commit()
-        session.close()
+            rb = "No Reason Provided"
+        bl[str(userid)] = rb
+        self.blacklist_dump(bl)
         await ctx.send(f"✅ Successfully blacklisted user `{userid}`")
 
     @commands.check(check_if_botmgmt)
-    @commands.command(name="unblacklistuser", aliases=['unblacklist-user'])
+    @blacklist.command(name="removeuser", aliases=['unblacklist-user'])
     async def unblacklist_user(self, ctx, userid: int):
         """Unblacklist an user from using the bot"""
-        session = self.bot.dbsession()
-        try:
-            check_if_user_blacklisted = session.query(BlacklistUser).filter_by(user_id=userid).one()
-            session.delete(check_if_user_blacklisted)
-            session.commit()
-            session.close()
-            await ctx.send(f"✅ `{userid}` successfully unblacklisted!")
-        except:
-            session.close()
-            return await ctx.send(f"❌ `{userid}` isn't blacklisted!")
+        bl = self.grab_blacklist()
+        if str(userid) not in bl:
+            return await ctx.send("User is not blacklisted!")
+        bl.pop(str(userid))
+        self.blacklist_dump(bl)
+        await ctx.send(f"✅ Successfully unblacklisted user `{userid}`")
 
     @commands.check(check_if_botmgmt)
-    @commands.command(name="blacklistsearch", aliases=["blacklist-search"])
+    @blacklist.command(name="search")
     async def search_blacklist(self, ctx, guild_or_user_id: int):
         """Search the blacklist to see if a user or a guild is blacklisted"""
         session = self.bot.dbsession()
@@ -125,12 +142,14 @@ class Owner(Cog):
             await ctx.send(f"✅ Guild ID `{guild_or_user_id}` is currently blacklisted.")
         except:
             check_if_guild = None
+            session.close()
 
         if check_if_guild is None:
             try:
-                check_if_user = session.query(BlacklistUser).filter_by(user_id=guild_or_user_id).one()
-                session.close()
-                await ctx.send(f"✅ User ID `{guild_or_user_id}` is currently blacklisted.") #(Reason: {check_if_user.reason})
+                bl = self.grab_blacklist()
+                if str(guild_or_user_id) in bl:
+                    await ctx.send(f"✅ User ID `{guild_or_user_id}` is currently blacklisted.\n"
+                                   f"Reason: {bl[str(guild_or_user_id)]}")
             except:
                 check_if_user = None
         # If nothing found in either tables, return
@@ -149,7 +168,6 @@ class Owner(Cog):
     #    for page in paginator.pages:
     #        await ctx.send(page)
 
-
     @commands.is_owner()
     @commands.command()
     async def logout(self, ctx):
@@ -159,7 +177,7 @@ class Owner(Cog):
         await self.bot.logout()
 
     @commands.is_owner()
-    @commands.command(hidden=True)
+    @commands.command()
     async def leaveguild(self, ctx, server_id: int):
         """Leaves the guild via ID"""
         server = self.bot.get_guild(server_id)
@@ -168,8 +186,10 @@ class Owner(Cog):
         await server.leave()
         await ctx.send(f'Successfully left {server.name}')
     
-    @commands.is_owner() # Robocop-ng's eval commands. MIT Licensed. https://github.com/reswitched/robocop-ng/blob/master/LICENSE
-    @commands.command(name='eval', hidden=True)
+    # Robocop-ng's eval commands. MIT Licensed. 
+    # https://github.com/reswitched/robocop-ng/blob/master/LICENSE
+    @commands.is_owner()
+    @commands.command(name='eval')
     async def _eval(self, ctx, *, code: str):
         """Evaluates some code, Owner only."""
         try:
