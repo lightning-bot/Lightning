@@ -9,7 +9,6 @@ class LightningHub(commands.Cog):
     """Helper commands for Lightning Hub only."""
     def __init__(self, bot):
         self.bot = bot
-        self.bot.log.info(f'{self.qualified_name} loaded')
 
     # Snippet of Code taken from Noirscape's kirigiri. https://git.catgirlsin.space/noirscape/kirigiri/src/branch/master/LICENSE
     async def cog_before_invoke(self, ctx):

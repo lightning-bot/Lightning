@@ -4,13 +4,11 @@ import colorsys
 import random
 from discord.ext import commands
 
-
 class Weeb(commands.Cog):
     """Weeb Features"""
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
-        self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.command(name='headpat')
     @commands.bot_has_permissions(embed_links=True)
