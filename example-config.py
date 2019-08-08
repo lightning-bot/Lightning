@@ -4,11 +4,11 @@ description  = "Lightning+, the successor to Lightning(.js)"
 default_prefix = ['.']
 
 # List Cogs that should be loaded on start
-cogs = ['cogs.comics', 'cogs.owner', 'cogs.moderation', 'cogs.logger', 
-'cogs.extras', 'cogs.mod_userlog', 'cogs.setup',
-'cogs.weeb', 'cogs.info', 'cogs.mod_note', 'cogs.fun', 'cogs.toggle_roles', 
-'cogs.lockdown', 'cogs.memes', 'cogs.common', 'cogs.misc',
-'cogs.lightning-hub', 'cogs.timers', 'cogs.powerscrona', 'cogs.emoji']
+cogs = ['cogs.comics', 'cogs.common', 'cogs.emoji', 'cogs.fun', 
+'cogs.git', 'cogs.lightning-hub', 'cogs.lockdown',
+'cogs.logger', 'cogs.memes', 'cogs.meta', 'cogs.mod_note', 'cogs.mod_userlog', 
+'cogs.moderation', 'cogs.owner', 'cogs.powerscrona', 'cogs.setup',
+'cogs.timers', 'cogs.toggle_roles', 'cogs.utility', 'cogs.weeb'] #, 'cogs.tags'
 
 # Bot Errors/Logs Channel. 
 error_channel = 567109464184979502
