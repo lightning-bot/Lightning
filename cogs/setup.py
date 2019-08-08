@@ -162,7 +162,7 @@ class Configuration(commands.Cog):
             await ctx.send(f"Invite watching will be sent to {channel.mention}. Please note that this doesn't delete invites. <:mayushii:562686801043521575>")
 
     @commands.guild_only()
-    @commands.command(name="set-mod-role", aliases=['setmodroles', 'set-mod-roles'])
+    @commands.command(name="set-mod-role", aliases=['setmodroles', 'set-mod-roles', 'setmodrole'])
     @commands.has_permissions(administrator=True)
     async def set_mod_role(self, ctx, level: str, *, role_name: str):
         """
