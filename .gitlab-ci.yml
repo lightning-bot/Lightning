@@ -19,3 +19,4 @@ PyFlakes (All Code):
   script:
   - pip install pyflakes
   - pyflakes .
+  allow_failure: true
