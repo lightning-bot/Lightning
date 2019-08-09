@@ -52,8 +52,9 @@ class PowersCronManagement(commands.Cog):
 
     async def send_db(self):
         back_chan = self.bot.get_channel(config.powerscron_backups)
+        files = ["config/powerscron.sqlite3", "config/database.sqlite3"]
         await back_chan.send("6 hour data backup:", 
-                             file=discord.File("config/powerscron.sqlite3"))
+                             files=[discord.File(f) for f in files])
 
     @commands.check(check_if_botmgmt)
     @commands.command()
