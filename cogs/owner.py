@@ -4,7 +4,7 @@ import traceback
 import inspect
 import re
 import asyncio
-from database import BlacklistGuild, BlacklistUser
+from database import BlacklistGuild
 from utils.restrictions import add_restriction
 import random
 import config
@@ -534,7 +534,5 @@ class Owner(commands.Cog):
             self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
         session.close()
             
-
-
 def setup(bot):
     bot.add_cog(Owner(bot))
