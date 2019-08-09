@@ -229,7 +229,7 @@ class Tags(commands.Cog):
         session.commit()
         session.close()
         safe_tag = await commands.clean_content().convert(ctx, str(tag))
-        await ctx.send(f"✅ Aliased tag: {tag} to {alias}")
+        await ctx.send(f"✅ Aliased tag: {safe_tag} to {alias}")
 
     @tag.command(name='random')
     async def tag_random(self, ctx):
