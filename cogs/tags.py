@@ -1,6 +1,5 @@
 from discord.ext import commands
 from database import TagsTable, TagAlias
-import time
 import discord
 import datetime
 import random
@@ -479,7 +478,7 @@ class Tags(commands.Cog):
             return await ctx.send('Cancelling.')
         
         if msg.attachments:
-            tagcontent = f'{tagcontent}\n{msg.attachments[0].url}'
+            tagcontent = f'{msg.content}\n{msg.attachments[0].url}'
         else:
             tagcontent = msg.content
 
