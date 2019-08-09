@@ -25,13 +25,27 @@ class Config(Base):
     guild_id = Column(Integer, primary_key=True)
     mute_role_id = Column(Integer)
 
-class BlacklistUser(Base):
-    __tablename__ = "blacklisted_users"
-    user_id = Column(Integer, primary_key=True)
-    reason = Column(String)
-
 class AutoRoles(Base):
     __tablename__ = "autoroles"
     # Must always have a value
     guild_id = Column(Integer, primary_key=True)
     role_id = Column(Integer, primary_key=True)
+
+class TagsTable(Base):
+    __tablename__ = "tags"
+    guild_id = Column(Integer, primary_key=True)
+    tag_name = Column(String, primary_key=True)
+    tag_content = Column(String, primary_key=True)
+    tag_owner = Column(Integer, primary_key=True)
+    tag_uses = Column(Integer, primary_key=True)
+    tag_created = Column(DateTime, primary_key=True)
+
+class TagAlias(Base):
+    __tablename__ = "tag_aliases"
+    guild_id = Column(Integer, primary_key=True)
+    tag_name = Column(String, ForeignKey('tags.tag_name'))
+    tag_alias = Column(String, primary_key=True)
+    tag_owner = Column(Integer, primary_key=True)
+    tag_created = Column(DateTime, primary_key=True)
+    # Stupid Value Thing
+    tag_is_alias = Column(String, primary_key=True)

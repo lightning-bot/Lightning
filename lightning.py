@@ -10,7 +10,7 @@ import aiohttp
 from datetime import datetime
 import config
 from dhooks import Embed, Webhook
-from database import StaffRoles, BlacklistGuild, Config, Roles, BlacklistUser, AutoRoles, Base
+import database
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import db.per_guild_config
@@ -72,10 +72,11 @@ bot.cog_unloaded = unloaded_cogs
 # Database related
 engine = create_engine('sqlite:///config/database.sqlite3')
 bot.dbsession = sessionmaker(bind=engine)
-Base.metadata.bind = engine
-Base.metadata.create_all(engine, tables=[StaffRoles.__table__, BlacklistGuild.__table__, 
-                                         Roles.__table__, Config.__table__, 
-                                         BlacklistUser.__table__, AutoRoles.__table__])
+database.Base.metadata.bind = engine
+tables_list = [database.StaffRoles.__table__, database.BlacklistGuild.__table__, 
+database.Roles.__table__, database.Config.__table__,
+database.AutoRoles.__table__, database.TagsTable.__table__, database.TagAlias.__table__]
+database.Base.metadata.create_all(engine, tables=tables_list)
 
 # Here we load our extensions(cogs) listed above in [initial_extensions].
 if __name__ == '__main__':
