@@ -8,7 +8,6 @@ from database import BlacklistGuild
 from utils.restrictions import add_restriction
 import random
 import config
-import io
 from utils.bot_mgmt import add_botmanager, check_if_botmgmt, remove_botmanager
 from utils.paginators_jsk import paginator_reg
 import os
@@ -49,10 +48,13 @@ class Owner(commands.Cog):
         log_channel = self.bot.get_channel(config.error_channel)
         await ctx.message.add_reaction("✅")
         try:
-            await ctx.author.send("Here's the current log file:", file=discord.File(f"{self.bot.script_name}.log"))
+            await ctx.author.send("Here's the current log file:", 
+                                  file=discord.File(f"{self.bot.script_name}.log"))
         except discord.errors.Forbidden:
-            await ctx.send(f"💢 I couldn't send the log file in your DMs so I sent it to the bot's logging channel.")
-            await log_channel.send("Here's the current log file:", file=discord.File(f"{self.bot.script_name}.log"))
+            await ctx.send("💢 I couldn't send the log file in your DMs so I "
+                           "sent it to the bot\'s logging channel.")
+            await log_channel.send("Here's the current log file:", 
+                                   file=discord.File(f"{self.bot.script_name}.log"))
     
     @commands.check(check_if_botmgmt)
     @commands.command(name="fetchguilduserlog")
