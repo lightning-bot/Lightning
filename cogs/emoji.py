@@ -109,6 +109,7 @@ class Emoji(commands.Cog):
         """Gives some info on an emote. Unicode emoji are not supported!"""
         embed = discord.Embed(title=f"Emoji Info for {emote.name}", color=discord.Color(0xFFFF00))
         if emote.is_custom_emoji():
+            embed.description = f"[Emoji Link]({emote.url})"
             embed.add_field(name="ID", value=emote.id)
             embed.set_thumbnail(url=emote.url)
         await ctx.send(embed=embed)
