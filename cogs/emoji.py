@@ -104,6 +104,15 @@ class Emoji(commands.Cog):
             page.append(f'{emoji} -- `{emoji}`')
         await paginator_reg_nops(self.bot, ctx, size=1000, page_list=page)
 
+    @emoji.command()
+    async def info(self, ctx, emote: discord.PartialEmoji):
+        """Gives some info on an emote. Unicode emoji are not supported!"""
+        embed = discord.Embed(title=f"Emoji Info for {emote.name}", color=discord.Color(0xFFFF00))
+        if emote.is_custom_emoji():
+            embed.add_field(name="ID", value=emote.id)
+            embed.set_thumbnail(url=emote.url)
+        await ctx.send(embed=embed)
+
     @commands.command()
     @is_one_of_guilds(ROO_EMOTES)
     @commands.has_permissions(administrator=True)
