@@ -191,11 +191,14 @@ class Common(Cog):
                                        stdout=subprocess.PIPE, 
                                        stderr=subprocess.PIPE)
             stdout, stderr = process.communicate()
-            
-        msg1 = f"[stderr]\n{stderr.decode('utf-8')}\n---\n"\
-               f"[stdout]\n{stdout.decode('utf-8')}"
-               
-        return msg1
+
+        if stdout and stderr:
+            return f"[stderr]\n{stderr.decode('utf-8')}\n---\n"\
+                   f"[stdout]\n{stdout.decode('utf-8')}"
+        elif stdout:
+            return f"[stdout]\n{stdout.decode('utf-8')}"
+        elif stderr:
+            return f"[stderr]\n{stderr.decode('utf-8')}"
 
 def setup(bot):
     bot.add_cog(Common(bot))
