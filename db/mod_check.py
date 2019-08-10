@@ -47,7 +47,7 @@ def __close_session(session, sessionmake, engine):
 
 def check_if_at_least_has_staff_role(min_role: str):
     """
-    Check that verifies if a user has the needed staff level.
+    Checks and verifies if a user has the needed staff level
 
     min_role is either admin, mod or helper.
 
@@ -61,6 +61,17 @@ def check_if_at_least_has_staff_role(min_role: str):
 
     return commands.check(predicate)
 
+def is_staff_and_has_perms(min_role: str, **perms):
+    """
+    Checks and verifies if a user has the needed staff level or permission
+    """
+    def predicate(ctx):
+        if member_at_least_has_staff_role(ctx.author, min_role):
+            return True
+        permissions = ctx.author.guild_permissions
+        return all(getattr(permissions, perms, None) == value for perms, value in perms.items())
+
+    return commands.check(predicate)
 
 def is_role_staff_role(role):
     """Check if role is a staff role"""
