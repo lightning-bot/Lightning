@@ -58,12 +58,13 @@ class Timers(commands.Cog):
         duration_text = self.bot.get_relative_timestamp(time_to=expiry_datetime,
                                                         include_to=True,
                                                         humanized=True)
+        safe_description = await commands.clean_content().convert(ctx, str(description))
 
         j_add = datetime.utcnow()
 
         table = self.db["cron_jobs"]
         table.insert(dict(job_type="reminder", author=ctx.author.id,
-                     channel=ctx.channel.id, remind_text=description,
+                     channel=ctx.channel.id, remind_text=safe_description,
                      expiry=expiry_timestamp, job_added=j_add)) #, guild_id=ctx.guild.id
         await ctx.send(f"{ctx.author.mention}: I'll remind you in {duration_text}.")
 
