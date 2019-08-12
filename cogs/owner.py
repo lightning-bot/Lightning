@@ -99,7 +99,7 @@ class Owner(commands.Cog):
         """Returns the prefixes set for a certain guild"""
         msg = f"Prefixes for {guildid}\n\n"
         if "prefixes" in get_guildid_prefixes(guildid):
-            for p in get_guildid_prefixes(guildid):
+            for p in get_guildid_prefixes(guildid)["prefixes"]:
                 msg += f"- {p}\n"
         else:
             msg = "No Prefixes!"
