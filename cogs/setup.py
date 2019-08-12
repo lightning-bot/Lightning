@@ -424,7 +424,7 @@ class Configuration(commands.Cog):
         embed = discord.Embed(title=f"Custom Prefixes Set for {ctx.guild.name}", description="", 
                               color=discord.Color(0xd1486d))
         for p in get_guild_prefixes(ctx.guild):
-            embed.description += f"- `{p}`\n"
+            embed.description += f"- {p}\n"
         await ctx.send(embed=embed)
 
     @commands.Cog.listener()
