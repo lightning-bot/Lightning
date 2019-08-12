@@ -12,7 +12,6 @@ Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features
 ---
 ## Planned Features
 
-- [ ] Tags
 
 <details>
 <summary>Completed Features</summary>
@@ -39,6 +38,7 @@ Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features
 - [x] PowersCron: 6 Hour Data Backup 
 - [x] Moderation: Time Mute (relies on PowersCron)
 - [x] Better Help Command
+- [x] Tags 
 
 </p>
 </details>
@@ -51,6 +51,34 @@ Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features
 If you want to invite Lightning to your guild, use this link https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=470150390&scope=bot.
 
 ---
+## License
+AGPL v3 with additional terms 7b and 7c in effect.
+```
+# Lightning.py - The Successor to Lightning.js
+# Copyright (C) 2019 - LightSage
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation at version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# In addition, clauses 7b and 7c are in effect for this program.
+#
+# b) Requiring preservation of specified reasonable legal notices or
+# author attributions in that material or in the Appropriate Legal
+# Notices displayed by works containing it; or
+#
+# c) Prohibiting misrepresentation of the origin of that material, or
+# requiring that modified versions of such material be marked in
+# reasonable ways as different from the original version
+```
 ## Credits 
 
 This bot uses parts and ideas from other Discord Bots:
