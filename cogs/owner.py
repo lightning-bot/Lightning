@@ -38,7 +38,7 @@ from utils.paginators_jsk import paginator_reg
 import os
 import json
 import shutil
-from utils.custom_prefixes import get_guild_prefixes
+from utils.custom_prefixes import get_guildid_prefixes
 
 class Owner(commands.Cog):
     def __init__(self, bot):
@@ -98,8 +98,11 @@ class Owner(commands.Cog):
     async def getguildprefixes(self, ctx, guildid: int):
         """Returns the prefixes set for a certain guild"""
         msg = f"Prefixes for {guildid}\n\n"
-        for p in get_guild_prefixes(guildid):
-            msg += f"- {p}\n"
+        if "prefixes" in get_guildid_prefixes(guildid):
+            for p in get_guildid_prefixes(guildid):
+                msg += f"- {p}\n"
+        else:
+            msg = "No Prefixes!"
         await ctx.send("```" + msg + "```")
 
     @commands.group()

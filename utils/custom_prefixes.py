@@ -39,6 +39,13 @@ def set_prefixes(guild, contents):
     with open(f"config/{guild.id}/prefixes.json", "w") as f:
         json.dump(contents, f)
 
+def get_guildid_prefixes(guild):
+    if os.path.isfile(f"config/{guild}/prefixes.json"):
+        with open(f"config/{guild}/prefixes.json", "r") as f:
+            return json.load(f)
+    else:
+        return {}
+
 def get_guild_prefixes(guild):
     rst = get_prefixes(guild)
     if "prefixes" in rst:
