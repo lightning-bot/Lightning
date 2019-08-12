@@ -38,6 +38,7 @@ from utils.paginators_jsk import paginator_reg
 import os
 import json
 import shutil
+from utils.custom_prefixes import get_guild_prefixes
 
 class Owner(commands.Cog):
     def __init__(self, bot):
@@ -60,7 +61,7 @@ class Owner(commands.Cog):
             return json.dump(json_returned, f)
 
     @commands.is_owner()
-    @commands.command()
+    @commands.command(aliases=['sh'])
     async def shell(self, ctx, *, command: str):
         """Runs a command in the terminal/shell"""
         shell_out = await self.bot.call_shell(command)
@@ -91,6 +92,15 @@ class Owner(commands.Cog):
                            file=discord.File(f"config/{guild_id}/userlog.json"))
         except:
             await ctx.send(f"`{guild_id}` doesn't have a userlog.json yet. Check back later.")
+
+    @commands.check(check_if_botmgmt)
+    @commands.command(aliases=['getguildprefix', 'ggp'])
+    async def getguildprefixes(self, ctx, guildid: int):
+        """Returns the prefixes set for a certain guild"""
+        msg = f"Prefixes for {guildid}\n\n"
+        for p in get_guild_prefixes(guildid):
+            msg += f"- {p}\n"
+        await ctx.send("```" + msg + "```")
 
     @commands.group()
     @commands.check(check_if_botmgmt)
