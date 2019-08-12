@@ -12,6 +12,7 @@ from utils.bot_mgmt import add_botmanager, check_if_botmgmt, remove_botmanager
 from utils.paginators_jsk import paginator_reg
 import os
 import json
+import shutil
 
 class Owner(commands.Cog):
     def __init__(self, bot):
@@ -242,7 +243,6 @@ class Owner(commands.Cog):
                                              suffix="```")
             for msg in sliced_message:
                 await ctx.send(msg)
-
 
     @commands.is_owner()
     @commands.group()
@@ -503,6 +503,17 @@ class Owner(commands.Cog):
 
         for page in paginator.pages:
             await ctx.send(page) 
+
+    @commands.command(aliases=['rgf'])
+    @commands.is_owner()
+    async def removeguildfolder(self, ctx, guildid: int):
+        """Removes a guild's configuration folder"""
+        if os.path.isdir(f"config/{guildid}/"):
+            # Remove the directory
+            shutil.rmtree(f"config/{guildid}/")
+            await ctx.send(f"Removed {guildid}")
+        else:
+            return await ctx.send("Invalid Path!")
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
