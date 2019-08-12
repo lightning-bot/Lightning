@@ -412,7 +412,7 @@ class Configuration(commands.Cog):
         if prefix in get_guild_prefixes(ctx.guild):
             remove_prefix(ctx.guild, prefix)
         else:
-            return await ctx.send(f"`{prefix}` was never added as a custom prefix.")
+            return await ctx.send(f"{prefix} was never added as a custom prefix.")
         await ctx.send(f"Removed `{prefix}`")
 
     @prefix.command(name="list")
