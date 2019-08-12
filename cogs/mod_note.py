@@ -36,7 +36,6 @@ class ModNote(Cog):
         """Note cog for adding a note to user. 
         Useful for not taking moderation action, but for keeping notes on a user."""
         self.bot = bot
-        self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Helper")

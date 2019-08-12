@@ -35,7 +35,6 @@ class Timers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
-        self.bot.log.info(f'{self.qualified_name} loaded')
 
     @commands.command(aliases=["addreminder", "timer"])
     async def remind(self, ctx, when: str, *, description: str = "something"):
