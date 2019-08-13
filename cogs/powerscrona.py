@@ -69,6 +69,7 @@ class PowersCronManagement(commands.Cog):
         self.cron_6_hours.start()
         self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
         self.cron_hourly.start()
+        self.discordbotlist = dbl.Client(self.bot, config.dbl_token)
 
     # Here we cancel our loops on cog unload
     def cog_unload(self):
@@ -258,9 +259,9 @@ class PowersCronManagement(commands.Cog):
     @tasks.loop(hours=1)
     async def cron_hourly(self):
         try:
-            dblpy = dbl.Client(self.bot, config.dbl_token)
             self.bot.log.info("Attempting to Post Guild Count to DBL")
-            await dblpy.post_guild_count()
+            await self.discordbotlist.post_guild_count()
+            self.bot.log.info("Successfully posted guild count!")
         except Exception as e:
             self.bot.log.error(f"PowersCron Hourly ERROR: {e}\n---\n"
                                f"{traceback.print_exc()}")
