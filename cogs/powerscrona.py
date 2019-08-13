@@ -68,7 +68,6 @@ class PowersCronManagement(commands.Cog):
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
         self.cron_6_hours.start()
         self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
-        self.dblpy = dbl.Client(self.bot, config.dbl_token)
         self.cron_hourly.start()
 
     # Here we cancel our loops on cog unload
@@ -259,8 +258,9 @@ class PowersCronManagement(commands.Cog):
     @tasks.loop(hours=1)
     async def cron_hourly(self):
         try:
+            dblpy = dbl.Client(self.bot, config.dbl_token)
             self.bot.log.info("Attempting to Post Guild Count to DBL")
-            await self.dblpy.post_guild_count()
+            await dblpy.post_guild_count()
         except Exception as e:
             self.bot.log.error(f"PowersCron Hourly ERROR: {e}\n---\n"
                                f"{traceback.print_exc()}")
@@ -269,7 +269,7 @@ class PowersCronManagement(commands.Cog):
             webhook = wbhk(config.powerscron_errors, adapter=adp)
             await webhook.execute(f"PowersCron Hourly has Errored!\n"
                                   f"```{traceback.format_exc()}```")
-        #await asyncio.sleep(3600)
+        await asyncio.sleep(3600)
     
     @cron_hourly.before_loop
     async def cron_hourly_before_loop(self):
