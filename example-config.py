@@ -12,7 +12,7 @@ cogs = ['cogs.comics', 'cogs.common', 'cogs.emoji', 'cogs.fun',
 
 # Bot Errors/Logs Channel. 
 error_channel = 567109464184979502
-powerscron_errors = 575708612454907924
+powerscron_errors = "INSERT_WEBHOOK_URL"
 # Channel that sends the powerscron db file every 6 hrs
 powerscron_backups = 603389648211017738
 

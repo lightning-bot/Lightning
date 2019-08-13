@@ -200,9 +200,11 @@ class PowersCronManagement(commands.Cog):
                 # Keep jobs for now if they errored
                 self.bot.log.error(f"PowersCron ERROR: "
                                    f"{traceback.format_exc()}")
-                log_channel = self.bot.get_channel(config.powerscron_errors)
-                await log_channel.send(f"PowersCron has Errored! "
-                                       f"```{traceback.format_exc()}```")
+                wbhk = discord.Webhook.from_url
+                adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
+                webhook = wbhk(config.powerscron_errors, adapter=adp)
+                await webhook.execute(f"PowersCron has Errored!\n"
+                                      f"```{traceback.format_exc()}```")
 
             await asyncio.sleep(5)
 
