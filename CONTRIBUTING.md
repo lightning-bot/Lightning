@@ -2,6 +2,8 @@
 
 First and foremost, thanks for taking the time to contribute! 👍
 
+At the time of writing this (August 13, 2019), I'm currently looking for a server to host Lightning on. If you have one that can host this bot, please join the support server and DM TwilightSage#7867.
+
 ## I just have a question!!!
 
 > Please don't make an issue just to ask a question. You'll get a faster answer using the resources below. 
@@ -9,6 +11,13 @@ First and foremost, thanks for taking the time to contribute! 👍
 There's an official Discord server and a site.
 - [Lightning Hub Discord Server](https://discord.gg/cDPGuYd)
 - [Lightning Site](https://lightsage.gitlab.io/lightning/home)
+
+## I'm not a developer, but would like to help out!
+
+There's a few ways you can help:
+- Adding the bot to your server and spreading the word about Lightning
+- Upvote the bot on [DiscordBotList](https://discordbots.org/bot/532220480577470464)
+- Let us know your opinion on our [Support Server](https://discord.gg/cDPGuYd)!
 
 ## Setting up a development environment
 
