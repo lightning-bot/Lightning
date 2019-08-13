@@ -34,7 +34,6 @@ from discord.ext import commands
 import aiohttp
 from datetime import datetime
 import config
-from dhooks import Embed, Webhook
 import database
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -171,13 +170,16 @@ async def on_command_error(ctx, error):
     log.error(err_msg)
 
     if not isinstance(error, commands.CommandNotFound):
-        err2 = f"Error with \"{ctx.message.content}\" from "\
-               f"\"{ctx.message.author} ({ctx.message.author.id}) "\
-               f"of type {type(error)}: {error_text}"
-        hook = Webhook(config.webhookurl) # Log Errors
-        embed = Embed(description=f"{err2}", color=0xff0000, timestamp='now')
-        embed.set_title(title="ERROR")
-        hook.send(embed=embed)
+        webhook = discord.Webhook.from_url
+        adp = discord.AsyncWebhookAdapter(bot.aiosession)
+        try:
+            webhook = webhook(config.webhookurl, adapter=adp)
+            embed = discord.Embed(title="⚠ Error", description=err_msg, 
+                                  color=discord.Color(0xff0000), 
+                                  timestamp=datetime.utcnow())
+            await webhook.execute(embed=embed)
+        except:
+            pass
 
     if isinstance(error, commands.NoPrivateMessage):
         return await ctx.send("This command doesn't work in DMs.")
