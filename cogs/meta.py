@@ -372,8 +372,10 @@ class Meta(commands.Cog):
         embed.add_field(name='Guild ID', value=guild.id)
         embed.add_field(name='Member Count', value=f"Bots: {bots}\nHumans: {humans}")
         embed.add_field(name='Owner', value=f"{guild.owner} | ID: {guild.owner.id}")
-        log_channel = self.bot.get_channel(config.error_channel)
-        await log_channel.send(embed=embed)
+        wbhk = discord.Webhook.from_url
+        adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
+        webhook = wbhk(config.webhook_glog, adapter=adp)
+        await webhook.execute(embed=embed)
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):

@@ -18,6 +18,8 @@ powerscron_backups = 603389648211017738
 
 #Sends errors to Webhook
 webhookurl = "INSERT_LINK_HERE"
+# Send Guild Joins and Leaves to a channel
+webhook_glog = "INSERT_WEBHOOK_URL"
 
 # Bot Owner ID
 owner_id = "INSERT_ID_HERE"
