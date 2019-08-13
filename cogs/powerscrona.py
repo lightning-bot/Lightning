@@ -37,6 +37,7 @@ import subprocess
 import random
 import json
 from utils.restrictions import remove_restriction
+import dbl
 
 # We'll use a Enum just for the sake of not redo-ing this status switching code.
 class Names(Enum):
@@ -67,13 +68,15 @@ class PowersCronManagement(commands.Cog):
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
         self.cron_6_hours.start()
         self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
-        self.bot.log.info(f'{self.qualified_name} loaded')
+        self.dblpy = dbl.Client(self.bot, config.dbl_token)
+        self.cron_hourly.start()
 
     # Here we cancel our loops on cog unload
     def cog_unload(self):
         self.dispatch_jobs.cancel()
         self.status_rotate.cancel()
         self.cron_6_hours.cancel()
+        self.cron_hourly.cancel()
 
     async def send_db(self):
         back_chan = self.bot.get_channel(config.powerscron_backups)
@@ -238,17 +241,38 @@ class PowersCronManagement(commands.Cog):
 
     @tasks.loop(hours=6)
     async def cron_6_hours(self):
-        errors_chan = self.bot.get_channel(config.powerscron_errors)
         while not self.bot.is_closed():
             try:
                 await self.send_db()
             except:
-                await errors_chan.send("PowersCron 6 Hours has Errored:"
-                                       f"```{traceback.format_exc()}```")
+                wbhk = discord.Webhook.from_url
+                adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
+                webhook = wbhk(config.powerscron_errors, adapter=adp)
+                await webhook.execute("PowersCron 6 Hours has Errored:"
+                                      f"```{traceback.format_exc()}```")
             await asyncio.sleep(21600) # 6 Hours
 
     @cron_6_hours.before_loop
     async def c_6hr_prep(self):
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(hours=1)
+    async def cron_hourly(self):
+        try:
+            self.bot.log.info("Attempting to Post Guild Count to DBL")
+            await self.dblpy.post_guild_count()
+        except Exception as e:
+            self.bot.log.error(f"PowersCron Hourly ERROR: {e}\n---\n"
+                               f"{traceback.print_exc()}")
+            wbhk = discord.Webhook.from_url
+            adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
+            webhook = wbhk(config.powerscron_errors, adapter=adp)
+            await webhook.execute(f"PowersCron Hourly has Errored!\n"
+                                  f"```{traceback.format_exc()}```")
+        asyncio.sleep(3600)
+    
+    @cron_hourly.before_loop
+    async def before_loop(self):
         await self.bot.wait_until_ready()
 
 def setup(bot):
