@@ -269,10 +269,10 @@ class PowersCronManagement(commands.Cog):
             webhook = wbhk(config.powerscron_errors, adapter=adp)
             await webhook.execute(f"PowersCron Hourly has Errored!\n"
                                   f"```{traceback.format_exc()}```")
-        asyncio.sleep(3600)
+        #await asyncio.sleep(3600)
     
     @cron_hourly.before_loop
-    async def before_loop(self):
+    async def cron_hourly_before_loop(self):
         await self.bot.wait_until_ready()
 
 def setup(bot):
