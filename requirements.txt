@@ -2,11 +2,10 @@ sqlalchemy
 jishaku
 discord.py
 python-dateutil
-aiohttp
 beautifulsoup4
 parsedatetime
 dataset
 Pillow
 github3.py
 python-gitlab
-dbl
+dblpy
