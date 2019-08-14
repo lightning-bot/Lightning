@@ -327,7 +327,8 @@ class Meta(commands.Cog):
         hours, remainder = divmod(int(delta_uptime.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
         days, hours = divmod(hours, 24)
-        await ctx.send(f"My uptime is: {days}d, {hours}h, {minutes}m, {seconds}s <:meowbox:563009533530734592>")
+        await ctx.send(f"My uptime is: {days}d, {hours}h, {minutes}m, {seconds}s "
+                       "<:meowbox:563009533530734592>")
 
     @commands.guild_only()
     @commands.command(aliases=['server'])
@@ -339,7 +340,8 @@ class Meta(commands.Cog):
         embed.add_field(name="ID", value=guild.id)
         if guild.icon:
             embed.set_thumbnail(url=guild.icon_url)
-        embed.add_field(name="Creation", value=guild.created_at)
+        tmp = guild.created_at.strftime("%Y-%m-%d %H:%M")
+        embed.add_field(name="Creation", value=f"{tmp} UTC")
         member_by_status = Counter(str(m.status) for m in guild.members) 
         # Little snippet taken from R. Danny. Under the MIT License
         sta = f'<:online:572962188114001921> {member_by_status["online"]} ' \
