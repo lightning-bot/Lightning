@@ -137,7 +137,7 @@ async def on_ready():
           f"\nRunning on Python {platform.python_version()}"\
           f"\nI'm currently on **{bot.version}**"
 
-    await bot.botlog_channel.send(msg)
+    await bot.botlog_channel.send(msg, delete_after=250)
 
 @bot.event
 async def on_command(ctx):
