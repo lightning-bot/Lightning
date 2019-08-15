@@ -33,7 +33,7 @@ from database import BlacklistGuild
 from utils.restrictions import add_restriction
 import random
 import config
-from utils.bot_mgmt import add_botmanager, check_if_botmgmt, remove_botmanager
+from utils.bot_mgmt import add_botmanager, check_if_botmgmt, remove_botmanager, read_bm
 from utils.paginators_jsk import paginator_reg
 import os
 import json
@@ -151,7 +151,9 @@ class Owner(commands.Cog):
     async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
         """Blacklist an user from using the bot"""
         bl = self.grab_blacklist()
-        if str(userid) in bl:
+        if read_bm(userid):
+            return await ctx.send("You cannot blacklist a bot manager!")
+        elif str(userid) in bl:
             return await ctx.send("User already blacklisted!")
         if reason_for_blacklist:
             rb = reason_for_blacklist
@@ -406,8 +408,8 @@ class Owner(commands.Cog):
             
     @commands.command(aliases=['status']) #'play'
     @commands.is_owner()
-    async def playing(self, ctx, *gamename):
-        """Sets playing message. Owner only."""
+    async def playing(self, ctx, *, gamename: str = ""):
+        """Sets the bot's playing message. Owner only."""
         await self.bot.change_presence(activity=discord.Game(name=f'{" ".join(gamename)}'))
         await ctx.send(f'Successfully changed status to `{gamename}`')
 
@@ -434,6 +436,7 @@ class Owner(commands.Cog):
     @commands.check(check_if_botmgmt)
     @commands.group(invoke_without_command=True)
     async def curl(self, ctx, url: str):
+        """Curls a site"""
         text = await self.bot.aioget(url)
         if len(text) > 1990: # Safe Number
             haste_url = await self.bot.haste(text)
@@ -455,12 +458,14 @@ class Owner(commands.Cog):
     @commands.is_owner()
     @commands.command()
     async def addbotmanager(self, ctx, uid: discord.Member):
+        """Adds a user ID to the bot manager list"""
         add_botmanager(uid.id)
         await ctx.send(f"{uid} is now a bot manager")
 
     @commands.is_owner()
     @commands.command()
     async def removebotmanager(self, ctx, uid: discord.Member):
+        """Removes a user ID from the bot manager list"""
         remove_botmanager(uid.id)
         await ctx.send(f"{uid} is no longer a bot manager")
 

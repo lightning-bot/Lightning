@@ -158,7 +158,8 @@ async def on_error(event_method, *args, **kwargs):
 
 # Error handling thanks to Ave's botbase.py and Robocop from Reswitched.
 # botbase.py is under the MIT License. https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
-# https://gitlab.com/ao/dpyBotBase and Robocop-ng is under the MIT License too. https://github.com/reswitched/robocop-ng
+# https://gitlab.com/ao/dpyBotBase and Robocop-ng is under the MIT License too. 
+# https://github.com/reswitched/robocop-ng
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -231,7 +232,7 @@ async def on_command_error(ctx, error):
                               "Please resolve that, then "
                               "run the command again.")
     elif isinstance(error, commands.CommandNotFound):
-        return
+        return # We don't need to say anything
 
 @bot.event
 async def on_message(message):
