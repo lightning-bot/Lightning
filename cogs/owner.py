@@ -151,7 +151,7 @@ class Owner(commands.Cog):
     async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
         """Blacklist an user from using the bot"""
         bl = self.grab_blacklist()
-        if read_bm(userid):
+        if read_bm(userid) is not False:
             return await ctx.send("You cannot blacklist a bot manager!")
         elif str(userid) in bl:
             return await ctx.send("User already blacklisted!")
