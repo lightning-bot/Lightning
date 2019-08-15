@@ -37,7 +37,7 @@ class Comics(Cog):
         self.bot = bot
         self.session = aiohttp.ClientSession()
 
-    @commands.command(aliases=['gc'], enabled=False)
+    @commands.command(aliases=['gc'], enabled=False, hidden=True)
     @commands.bot_has_permissions(embed_links=True)
     async def garfieldcomic(self, ctx, *, date=None):
         """Gets a comic by date posted. (Interactive)

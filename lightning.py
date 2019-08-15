@@ -204,11 +204,13 @@ async def on_command_error(ctx, error):
                               "as it's only for the owner of the bot!")
     elif isinstance(error, commands.CheckFailure):
         return await ctx.send(f"{ctx.author.mention}: Check failed. "
-                              "You might not have the right permissions "
+                              "You do not have the right permissions "
                               "to run this command.")
     elif isinstance(error, discord.NotFound):
         return await ctx.send("❌ I wasn't able to find that ID.")
-
+    elif isinstance(error, commands.DisabledCommand):
+        return await ctx.send(f"{ctx.author.mention}: This command is currently "
+                              "disabled!")
     help_text = f"Usage of this command is: ```{ctx.prefix}"\
                 f"{ctx.invoked_subcommand} "\
                 f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
