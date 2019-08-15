@@ -39,3 +39,6 @@ gitlab_project_id = ""
 
 # TheCatAPI Key (You can get one at thecatapi.com)
 catapi_token = ""
+
+# DiscordBotsList Token (DBL)
+dbl_token = ""
