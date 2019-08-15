@@ -66,6 +66,8 @@ class Emoji(commands.Cog):
         """Adds the URL as an emoji to the guild
         
         Helpers+"""
+        if len(emoji_name) > 32:
+            return await ctx.send("Emoji name cannot be longer than 32 characters!")
         emoji_link = await self.bot.aiogetbytes(url)
         if emoji_link is not False:
             emoji_aio = self.aiobytesfinalize(emoji_link)
