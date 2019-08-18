@@ -272,9 +272,9 @@ class Meta(commands.Cog):
     async def about(self, ctx):
         """Various information about the bot."""
         all_members = sum(1 for _ in ctx.bot.get_all_members())
-        bot_owner = self.bot.get_user(self.bot.owner_id)
         embed = discord.Embed(title="Lightning", color=discord.Color(0xf74b06))
-        embed.set_author(name="TwilightSage#7867", icon_url=bot_owner.avatar_url)
+        bot_owner = self.bot.get_user(self.bot.owner_id)
+        embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url)
         embed.url = "https://gitlab.com/LightSage/Lightning"
         embed.set_thumbnail(url=self.bot.user.avatar_url)
         embed.description = f"Lightning.py, the successor to Lightning(.js)"
