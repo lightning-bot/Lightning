@@ -33,6 +33,7 @@ from collections import Counter
 from utils.paginator import Pages
 import asyncio
 import itertools
+import time
 
 class NonGuildUser(commands.Converter):
     async def convert(self, ctx, argument):
@@ -314,11 +315,13 @@ class Meta(commands.Cog):
     @commands.command()
     async def ping(self, ctx):
         """Calculates the ping time."""
-        await ctx.trigger_typing()
+        before = time.monotonic()
+        tmpmsg = await ctx.send('Calculating...')
+        after = time.monotonic()
         latencyms = round(self.bot.latency * 1000)
-        embed = discord.Embed(title="🏓 Ping Time:", color=discord.Color.dark_red())
-        embed.add_field(name="Latency", value=f"{latencyms}ms")
-        await ctx.send(embed=embed)
+        rtt_ms = (after - before) * 1000
+        msg = f"🏓 Ping:\nRound Time Trip: `{rtt_ms:.1f} ms` | Latency: `{latencyms} ms`"
+        await tmpmsg.edit(content=msg)
 
     @commands.command()
     async def uptime(self, ctx):
