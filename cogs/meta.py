@@ -319,8 +319,8 @@ class Meta(commands.Cog):
         tmpmsg = await ctx.send('Calculating...')
         after = time.monotonic()
         latencyms = round(self.bot.latency * 1000)
-        rtt_ms = (after - before) * 1000
-        msg = f"🏓 Ping:\nRound Time Trip: `{rtt_ms:.1f} ms` | Latency: `{latencyms} ms`"
+        rtt_ms = round((after - before) * 1000)
+        msg = f"🏓 Ping:\nRound Time Trip: `{rtt_ms} ms` | Latency: `{latencyms} ms`"
         await tmpmsg.edit(content=msg)
 
     @commands.command()
