@@ -51,7 +51,7 @@ class PowersCronManagement(commands.Cog):
         self.cron_6_hours.start()
         self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
         self.cron_hourly.start()
-        self.discordbotlist = dbl.Client(self.bot, config.dbl_token)
+        self.discordbotlist = dbl.DBLClient(self.bot, config.dbl_token)
 
     # Here we cancel our loops on cog unload
     def cog_unload(self):
@@ -197,6 +197,11 @@ class PowersCronManagement(commands.Cog):
                                                         expiry=expiry2,
                                                         guild_id=jobtype['guild_id'],
                                                         user_id=jobtype['user_id'])
+                        elif jobtype['job_type'] == "guild_clean":
+                            clean = self.bot.get_cog('guild_cleanup')
+                            if not clean:
+                                return
+                            clean.clean_guilds_dump()
             except:
                 # Keep jobs for now if they errored
                 self.bot.log.error(f"PowersCron ERROR: "
