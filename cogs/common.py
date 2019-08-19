@@ -46,6 +46,7 @@ class Common(Cog):
         self.bot.parse_time = self.parse_time
         self.bot.haste = self.haste
         self.bot.call_shell = self.call_shell
+        self.bot.get_utc_timestamp = self.get_utc_timestamp
 
     def parse_time(self, delta_str):
         cal = parsedatetime.Calendar()
@@ -78,6 +79,34 @@ class Common(Cog):
                               f"({str(time_to).split('.')[0]} UTC)"
                 return str_with_to
             return humanized_string
+        else:
+            epoch = datetime.datetime.utcfromtimestamp(0)
+            epoch_from = (time_from - epoch).total_seconds()
+            epoch_to = (time_to - epoch).total_seconds()
+            second_diff = epoch_to - epoch_from
+            result_string = str(datetime.timedelta(
+                seconds=second_diff)).split('.')[0]
+            return result_string
+
+    def get_utc_timestamp(self, time_from=None, time_to=None,
+                          include_from=False,
+                          include_to=False):
+        # Setting default value to utcnow() makes it show time from cog load
+        # which is not what we want
+        if not time_from:
+            time_from = datetime.datetime.utcnow()
+        if not time_to:
+            time_to = datetime.datetime.utcnow()
+        if include_from and include_to:
+            str_with_from_and_to = f"{str(time_from).split('.')[0]} "\
+                                   f"- {str(time_to).split('.')[0]}"
+            return str_with_from_and_to
+        elif include_from:
+            str_with_from = f"{str(time_from).split('.')[0]} UTC"
+            return str_with_from
+        elif include_to:
+            str_with_to = f"{str(time_to).split('.')[0]} UTC"
+            return str_with_to
         else:
             epoch = datetime.datetime.utcfromtimestamp(0)
             epoch_from = (time_from - epoch).total_seconds()
