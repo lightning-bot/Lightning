@@ -268,7 +268,7 @@ class Mod(commands.Cog):
             return await ctx.send('❌ Cannot purge messages!')
 
         msg = f'🗑️ **{message_count} messages purged** in {ctx.channel.mention} | {ctx.channel.name}\n'
-        msg += f'Purger was {ctx.author.mention} | {ctx.author} | {ctx.author.id} \n'
+        msg += f'Purger was {ctx.author.mention} | {ctx.author}\n'
         if reason:
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
