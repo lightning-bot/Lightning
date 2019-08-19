@@ -32,28 +32,11 @@ import asyncio
 import traceback
 import discord
 from utils.bot_mgmt import check_if_botmgmt
-from enum import Enum
 import subprocess
 import random
 import json
 from utils.restrictions import remove_restriction
 import dbl
-
-# We'll use a Enum just for the sake of not redo-ing this status switching code.
-class Names(Enum):
-    SERVERS = 0
-    GIT_COMMIT = 1
-    VERSION = 2
-    DEF_HELP = 3
-    MEMBERS = 4
-    MUSIC = 5
-
-    def change(self):
-        num = list(self.__class__)
-        index = num.index(self) + 1
-        if index >= len(num):
-            index = 0
-        return num[index]
 
 STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
 C_HASH = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('UTF-8')
@@ -62,13 +45,12 @@ class PowersCronManagement(commands.Cog):
     """Commands that help manage PowersCron's Cron Jobs"""
     def __init__(self, bot):
         self.bot = bot
-        self.stats_ran = random.choice(list(Names))
-        self.music = json.load(open('resources/music_list.json', 'r'))
+        self.statuses = json.load(open('resources/status_switching.json', 'r', encoding='utf8'))
         self.status_rotate.start()
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
         self.cron_6_hours.start()
         self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
-        self.cron_hourly.start()
+        #self.cron_hourly.start()
         self.discordbotlist = dbl.Client(self.bot, config.dbl_token)
 
     # Here we cancel our loops on cog unload
@@ -77,6 +59,22 @@ class PowersCronManagement(commands.Cog):
         self.status_rotate.cancel()
         self.cron_6_hours.cancel()
         self.cron_hourly.cancel()
+
+    async def randomize_status(self):
+        ext_list = [f"on commit {C_HASH}", [3, f"{len(self.bot.guilds)} servers"], 
+                    f"on {self.bot.version}"]
+        msg = random.randint(1, 2)
+        if msg == 1:
+            msg = random.choice(self.statuses)
+        elif msg == 2:
+            msg = random.choice(ext_list)
+        g_type = 0
+        if isinstance(msg, list):
+            g_type, msg = msg
+
+        st_msg = f"{msg} "
+        self.bot.log.info(f"Status Changed: {msg}")
+        await self.bot.change_presence(activity=discord.Activity(type=g_type, name=st_msg))
 
     async def send_db(self):
         back_chan = self.bot.get_channel(config.powerscron_backups)
@@ -213,31 +211,13 @@ class PowersCronManagement(commands.Cog):
 
     @tasks.loop(minutes=7)
     async def status_rotate(self):
-        await self.bot.wait_until_ready()           
         while not self.bot.is_closed():
-            if self.stats_ran is Names.SERVERS:
-                act_name = f"{len(self.bot.guilds)} servers"
-                act_type = discord.ActivityType.watching
-            if self.stats_ran is Names.GIT_COMMIT:
-                act_name = f"Running on commit {C_HASH}"
-                act_type = discord.ActivityType.playing
-            if self.stats_ran is Names.VERSION:
-                act_name = f"on {self.bot.version}"
-                act_type = discord.ActivityType.playing
-            if self.stats_ran is Names.DEF_HELP:
-                act_name = f"for l.help"
-                act_type = discord.ActivityType.watching
-            if self.stats_ran is Names.MEMBERS:
-                act_name = f"{len(self.bot.users)} users"
-                act_type = discord.ActivityType.watching
-            if self.stats_ran is Names.MUSIC:
-                act_name = f"♬ {random.choice(self.music)}"
-                act_type = discord.ActivityType.playing
-
-            
-            await self.bot.change_presence(activity=discord.Activity(name=act_name, type=act_type))
-            self.stats_ran = self.stats_ran.change()
+            await self.randomize_status()
             await asyncio.sleep(7 * 60) # Use our same value here
+
+    @status_rotate.before_loop
+    async def sr_prep(self):
+        await self.bot.wait_until_ready()
 
     @tasks.loop(hours=6)
     async def cron_6_hours(self):
