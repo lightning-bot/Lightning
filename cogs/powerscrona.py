@@ -50,7 +50,7 @@ class PowersCronManagement(commands.Cog):
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
         self.cron_6_hours.start()
         self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
-        #self.cron_hourly.start()
+        self.cron_hourly.start()
         self.discordbotlist = dbl.Client(self.bot, config.dbl_token)
 
     # Here we cancel our loops on cog unload
