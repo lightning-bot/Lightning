@@ -62,12 +62,6 @@ class Mod(commands.Cog):
             await ctx.send(safe_error)
         elif isinstance(error, commands.UserInputError):
             await ctx.send(safe_error)
-    
-    async def cog_before_invoke(self, ctx):
-        if db.per_guild_config.exist_guild_config(ctx.guild, "config"):
-            ctx.guild_config = db.per_guild_config.get_guild_config(ctx.guild, "config")
-        else:
-            ctx.guild_config = {}
 
     def mod_reason(self, ctx, reason: str):
         if reason:
