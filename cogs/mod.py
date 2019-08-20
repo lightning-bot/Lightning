@@ -78,6 +78,19 @@ class Mod(commands.Cog):
             raise ReasonTooLong('Reason is too long!')
         return to_return
 
+    async def log_send(self, ctx, message):
+        if db.per_guild_config.exist_guild_config(ctx.guild, "config"):
+            guild_config = db.per_guild_config.get_guild_config(ctx.guild, "config")
+        else:
+            guild_config = {}
+        
+        if "log_channel" in guild_config:
+            try:
+                log_channel = self.bot.get_channel(guild_config["log_channel"])
+                await log_channel.send(message)
+            except:
+                pass
+
     @commands.guild_only() # This isn't needed but w/e :shrugkitty:
     @commands.bot_has_permissions(kick_members=True)
     @db.mod_check.check_if_at_least_has_staff_role("Moderator")
@@ -122,13 +135,7 @@ class Mod(commands.Cog):
                             f", it is recommended to use " \
                             f"`{ctx.prefix}kick <user> [reason]`" \
                             f" as the reason is automatically sent to the user."
-
-        if "log_channel" in ctx.guild_config:
-            try:
-                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-                await log_channel.send(chan_message)
-            except:
-                pass
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only() # This isn't needed but w/e :shrugkitty:
     @commands.bot_has_permissions(ban_members=True)
@@ -174,13 +181,7 @@ class Mod(commands.Cog):
             chan_message += f"\nPlease add an explanation below. In the future" \
                             f", it is recommended to use `{ctx.prefix}ban <user> [reason]`" \
                             f" as the reason is automatically sent to the user."
-
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(chan_message)
-            except:
-                pass  # w/e, dumbasses forgot to set send perms properly.
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
     @commands.bot_has_permissions(kick_members=True, ban_members=True)
@@ -247,13 +248,7 @@ class Mod(commands.Cog):
             msg += f"\nPlease add an explanation below. In the future" \
                    f", it is recommended to use `{ctx.prefix}warn <user> [reason]`" \
                    f" as the reason is automatically sent to the user."
-
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(msg)
-            except:
-                pass
+        await self.log_send(ctx, msg)
 
     @commands.guild_only()
     @commands.bot_has_permissions(manage_messages=True)
@@ -276,13 +271,7 @@ class Mod(commands.Cog):
             #msg += f"\nPlease add an explanation below. In the future" \
             #       f", it is recommended to use `{ctx.prefix}purge <message_count> [reason]`" \
             #       f" for documentation purposes."
-
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(msg)
-            except:
-                pass
+        await self.log_send(ctx, msg)
 
     @commands.guild_only()
     @commands.bot_has_permissions(ban_members=True)
@@ -313,13 +302,7 @@ class Mod(commands.Cog):
             chan_message += f"\nPlease add an explanation below. In the future"\
                             f", it is recommended to use `{ctx.prefix}ban <user> [reason]`"\
                             f" as the reason is automatically sent to the user."
- 
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(chan_message)
-            except:
-                pass  # w/e, dumbasses forgot to set send perms properly.
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
     @commands.command(aliases=["nick"])
@@ -384,15 +367,9 @@ class Mod(commands.Cog):
             chan_message += f"\nPlease add an explanation below. In the future, "\
                             f"it is recommended to use `{ctx.prefix}mute <user> [reason]`"\
                             f" as the reason is automatically sent to the user."
-
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(chan_message)
-            except:
-                pass  # w/e, dumbasses forgot to set send perms properly.
         add_restriction(ctx.guild, target.id, role.id)
         await ctx.send(f"{target.mention} can no longer speak.")
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
     @commands.command()
@@ -416,13 +393,7 @@ class Mod(commands.Cog):
 
         remove_restriction(ctx.guild, target.id, role.id)
         await ctx.send(f"{target.mention} can now speak again.")
-
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(chan_message)
-            except:
-                pass  # w/e, dumbasses forgot to set send perms properly.
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
     @commands.command()
@@ -454,13 +425,8 @@ class Mod(commands.Cog):
         else:
             chan_message += f"\nPlease add an explanation below. In the future, "\
                             f"it is recommended to use `{ctx.prefix}unban <user_id> [reason]`."
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(chan_message)
-            except:
-                pass  # w/e, dumbasses forgot to set send perms properly.
         await ctx.send(f"{user_id} is now unbanned.")
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
     @commands.command(aliases=['hackban'])
@@ -499,13 +465,7 @@ class Mod(commands.Cog):
             chan_message += f"\nPlease add an explanation below. In the future"\
                             f", it is recommended to use "\
                             f"`{ctx.prefix}banid <user> [reason]`."
-        
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(chan_message)
-            except:
-                pass  # w/e, dumbasses forgot to set send perms properly.
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
     @commands.bot_has_permissions(kick_members=True)
@@ -536,13 +496,7 @@ class Mod(commands.Cog):
             chan_message += f"\nPlease add an explanation below. In the future" \
                             f", it is recommended to use " \
                             f"`{ctx.prefix}silentkick <user> [reason]`." 
-
-        if "log_channel" in ctx.guild_config:
-            try:
-                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-                await log_channel.send(chan_message)
-            except:
-                pass  # w/e, dumbasses forgot to set it properly.
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
     @commands.bot_has_permissions(ban_members=True)
@@ -613,13 +567,7 @@ class Mod(commands.Cog):
 
         await ctx.send(f"{safe_name} is now b&. "
                        f"It will expire {duration_text}. 👍")
-
-        if "log_channel" in ctx.guild_config:
-            try:
-                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-                await log_channel.send(chan_message)
-            except:
-                pass
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
     @commands.command()
@@ -699,12 +647,7 @@ class Mod(commands.Cog):
         session.close()
         await ctx.send(f"{target.mention} can no longer speak. "
                        f"It will expire {duration_text}.")
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
-            try:
-                await log_channel.send(chan_message)
-            except:
-                pass
+        await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
     @db.mod_check.check_if_at_least_has_staff_role("Helper")
