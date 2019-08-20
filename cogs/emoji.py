@@ -61,7 +61,7 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @db.mod_check.check_if_at_least_has_staff_role("Helper")
+    @db.mod_check.is_staff_or_has_perms("Helper", manage_emojis=True)
     async def add(self, ctx, emoji_name, *, url):
         """Adds the URL as an emoji to the guild
         
@@ -87,7 +87,7 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @db.mod_check.check_if_at_least_has_staff_role("Helper")
+    @db.mod_check.is_staff_or_has_perms("Helper", manage_emojis=True)
     async def copy(self, ctx, emoji: discord.PartialEmoji):
         """ "Copies" an emoji and adds it to the guild.
         
@@ -110,7 +110,7 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    @db.mod_check.is_staff_or_has_perms("Helper", manage_emojis=True)
     async def delete(self, ctx, emote: discord.Emoji):
         """Deletes an emoji from the guild
         
