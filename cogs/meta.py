@@ -393,6 +393,25 @@ class Meta(commands.Cog):
         self.bot.log.info(f"Left Guild | {guild.name} | {guild.id}")
         await self.send_guild_info(embed, guild)
 
+    @commands.Cog.listener()
+    async def on_guild_unavailable(self, guild):
+        if not self.bot.is_ready():
+            return
+        embed = discord.Embed(title="🚧 Guild Unavailable", 
+                              color=discord.Color.red())
+        self.bot.log.info(f"🚧 Guild Unavailable | {guild.name} "
+                          f"| {guild.id}")
+        await self.send_guild_info(embed, guild)
+
+    @commands.Cog.listener()
+    async def on_guild_available(self, guild):
+        if not self.bot.is_ready():
+            return
+        embed = discord.Embed(title="✅ Guild Available", 
+                              color=discord.Color.green())
+        self.bot.log.info(f"✅ Guild Available | {guild.name} "
+                          f"| {guild.id}")
+        await self.send_guild_info(embed, guild)
 
 def setup(bot):
     bot.add_cog(Meta(bot))
