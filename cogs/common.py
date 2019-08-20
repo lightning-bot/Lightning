@@ -222,12 +222,15 @@ class Common(Cog):
             stdout, stderr = process.communicate()
 
         if stdout and stderr:
-            return f"[stderr]\n{stderr.decode('utf-8')}\n---\n"\
+            return f"$ {shell_command}\n\n[stderr]\n"\
+                   f"{stderr.decode('utf-8')}\n===\n"\
                    f"[stdout]\n{stdout.decode('utf-8')}"
         elif stdout:
-            return f"[stdout]\n{stdout.decode('utf-8')}"
+            return f"$ {shell_command}\n\n"\
+                   f"[stdout]\n{stdout.decode('utf-8')}"
         elif stderr:
-            return f"[stderr]\n{stderr.decode('utf-8')}"
+            return f"$ {shell_command}\n\n"\
+                   f"[stderr]\n{stderr.decode('utf-8')}"
 
 def setup(bot):
     bot.add_cog(Common(bot))
