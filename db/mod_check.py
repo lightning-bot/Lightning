@@ -61,7 +61,7 @@ def check_if_at_least_has_staff_role(min_role: str):
 
     return commands.check(predicate)
 
-def is_staff_and_has_perms(min_role: str, **perms):
+def is_staff_or_has_perms(min_role: str, **perms):
     """
     Checks and verifies if a user has the needed staff level or permission
     """
@@ -70,7 +70,6 @@ def is_staff_and_has_perms(min_role: str, **perms):
             return True
         permissions = ctx.author.guild_permissions
         return all(getattr(permissions, perms, None) == value for perms, value in perms.items())
-
     return commands.check(predicate)
 
 def is_role_staff_role(role):
