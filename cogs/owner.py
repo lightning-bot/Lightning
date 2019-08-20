@@ -365,11 +365,15 @@ class Owner(commands.Cog):
                  aliases=['chkupdate', 'cupdate', 'chku'])
     async def check_updates(self, ctx):
         """Checks to see which packages are outdated"""
-        await ctx.send("I\'m figuring this out.")
-        out = await self.bot.call_shell("pip3 list --outdated")
+        tmp = await ctx.send("I\'m figuring this out.")
+        async with ctx.typing():
+            out = await self.bot.call_shell("pip3 list --outdated")
         slice_msg = await self.bot.slice_message(out,
                                                  prefix="```",
                                                  suffix="```")
+        if len(slice_msg) == 1:
+            return await tmp.edit(content=slice_msg[0])
+        await tmp.delete()
         for msg in slice_msg:
             await ctx.send(msg)
 
