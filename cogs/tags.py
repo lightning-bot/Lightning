@@ -240,7 +240,7 @@ class Tags(commands.Cog):
             return await ctx.send(embed=embed)
 
     @tag.command(name='alias')
-    async def tag_alias(self, ctx, alias: TagName, tag: str):
+    async def tag_alias(self, ctx, alias: TagName, *, tag: str):
         """Adds an alias to a tag"""
         session = self.bot.dbsession()
         query = self.find_tag(ctx, session, alias)
