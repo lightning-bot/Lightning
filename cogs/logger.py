@@ -29,6 +29,7 @@ import db.per_guild_config
 import datetime
 import re
 from utils.restrictions import get_user_restrictions
+import resources.botemojis as em
 
 class Logger(Cog):
     """Logs user actions"""
@@ -74,7 +75,7 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
             if "join_log_embed_channel" in config:
-                embed = discord.Embed(title="<:member_join:613361413272109076> Member Join", 
+                embed = discord.Embed(title=f"{em.member_join} Member Join", 
                                       timestamp=datetime.datetime.utcnow(), color=discord.Color.green())
                 embed.description = f"{member.mention} | {member}\n🕓 __Account Creation__: "\
                                     f"{member.created_at}\n🏷 __User ID__: {member.id}"
@@ -83,7 +84,7 @@ class Logger(Cog):
                 except:
                     pass
             if "join_log_channel" in config:
-                msg = f"<:member_join:613361413272109076>"\
+                msg = f"{em.member_join}"\
                       f" **Member Join**: {member.mention} | "\
                  f"{member}\n"\
                  f"🕓 __Account Creation__: {member.created_at}\n"\
@@ -100,7 +101,7 @@ class Logger(Cog):
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
             if "join_log_embed_channel" in config:
-                embed = discord.Embed(title="<:member_leave:613363354357989376> Member Leave", 
+                embed = discord.Embed(title=f"{em.member_leave} Member Leave", 
                                       timestamp=datetime.datetime.utcnow(), color=discord.Color.red())
                 embed.description = f"{member.mention} | {member}\n🏷 __User ID__: {member.id}"
                 try:
@@ -108,7 +109,7 @@ class Logger(Cog):
                 except:
                     pass
             if "join_log_channel" in config:
-                msg = f"<:member_leave:613363354357989376> "\
+                msg = f"{em.member_leave} "\
                      f"**Member Leave**: {member.mention} | "\
                     f"{member}\n"\
                     f"📅 Left Date: {datetime.datetime.utcnow()}\n"\
