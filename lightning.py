@@ -84,6 +84,8 @@ initial_extensions = config.cogs
 # Create config folder if not found
 if not os.path.exists("config"):
     os.makedirs("config")
+if not os.path.exists("cogs"):
+    os.makedirs("cogs")
 
 bot = commands.Bot(command_prefix=_callable_prefix, description=config.description)
 bot.launch_time = datetime.utcnow()
@@ -106,22 +108,32 @@ database.Roles.__table__, database.Config.__table__,
 database.AutoRoles.__table__, database.TagsTable.__table__, database.TagAlias.__table__]
 database.Base.metadata.create_all(engine, tables=tables_list)
 
+def auto_append_cogs():
+    """Automatically append all extra cogs not loaded
+    as unloaded"""
+    for ext in os.listdir("cogs"):
+        if ext.endswith(".py") and ext[:3] not in success_cogs:
+            unloaded_cogs.append(f"cogs.{ext[:-3]}")
+
 # Here we load our extensions(cogs) listed above in [initial_extensions].
 if __name__ == '__main__':
-    for extension in initial_extensions:
+    for ext in initial_extensions:
         try:
-            bot.load_extension(extension)
-            success_cogs.append(extension)
+            bot.load_extension(ext)
+            success_cogs.append(ext)
         except Exception as e:
-            log.error(f'Failed to load cog {extension}. {e}')
+            log.error(f'Failed to load cog {ext}. {e}')
             log.error(traceback.print_exc())
-            unloaded_cogs.append(extension)
+            unloaded_cogs.append(ext)
+    try:
+        bot.load_extension('jishaku')
+        success_cogs.append('jishaku')
+    except Exception as e:
+        log.error(f"Failed to load jishaku. {e}")
+        log.error(traceback.print_exc())
+        unloaded_cogs.append("jishaku")
 
-def load_jis():
-    bot.load_extension('jishaku')
-    success_cogs.append('jishaku')
-
-load_jis()
+auto_append_cogs()
 
 version_num = "v1.3"
 bot.version = version_num
