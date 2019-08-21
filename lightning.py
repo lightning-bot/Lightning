@@ -35,9 +35,8 @@ import aiohttp
 from datetime import datetime
 import config
 import database
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import db.per_guild_config
+import asyncpg
 
 # Uses template from ave's botbase.py
 # botbase.py is under the MIT License. https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
@@ -100,13 +99,7 @@ bot.successful_command = 0
 bot.cog_loaded = success_cogs
 bot.cog_unloaded = unloaded_cogs
 # Database related
-engine = create_engine('sqlite:///config/database.sqlite3')
-bot.dbsession = sessionmaker(bind=engine)
-database.Base.metadata.bind = engine
-tables_list = [database.StaffRoles.__table__, database.BlacklistGuild.__table__, 
-database.Roles.__table__, database.Config.__table__,
-database.AutoRoles.__table__, database.TagsTable.__table__, database.TagAlias.__table__]
-database.Base.metadata.create_all(engine, tables=tables_list)
+bot.db = await asyncpg.create_pool(config.database_connection)
 
 def auto_append_cogs():
     """Automatically append all extra cogs not loaded

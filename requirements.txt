@@ -10,3 +10,4 @@ github3.py
 python-gitlab
 dblpy
 psycopg2
+asyncpg
