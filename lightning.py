@@ -81,6 +81,10 @@ def _callable_prefix(bot, message):
 
 initial_extensions = config.cogs
 
+# Create config folder if not found
+if not os.path.exists("config"):
+    os.makedirs("config")
+
 bot = commands.Bot(command_prefix=_callable_prefix, description=config.description)
 bot.launch_time = datetime.utcnow()
 
@@ -248,10 +252,5 @@ async def on_message(message):
 @bot.event
 async def on_command_completion(ctx):
     bot.successful_command += 1
-
-# Create config folder if not found
-if not os.path.exists("config"):
-    os.makedirs("config")
-
 
 bot.run(config.token, bot=True, reconnect=True)
