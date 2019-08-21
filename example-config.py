@@ -2,6 +2,7 @@
 token = "insert-token-here"
 description  = "Lightning+, the successor to Lightning(.js)"
 default_prefix = ['.']
+database_connection = "postgresql://user:password@host/lightning"
 
 # List Cogs that should be loaded on start
 cogs = ['cogs.comics', 'cogs.common', 'cogs.emoji', 'cogs.fun', 
