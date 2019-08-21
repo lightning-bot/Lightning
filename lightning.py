@@ -112,7 +112,7 @@ def auto_append_cogs():
     """Automatically append all extra cogs not loaded
     as unloaded"""
     for ext in os.listdir("cogs"):
-        external = f"cogs.{ext[:3]}"
+        external = f"cogs.{ext[:-3]}"
         if ext.endswith(".py") and external not in success_cogs:
             unloaded_cogs.append(f"cogs.{ext[:-3]}")
 
