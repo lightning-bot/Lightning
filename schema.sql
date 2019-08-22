@@ -1,4 +1,6 @@
-DROP TABLE IF EXISTS cronjobs;
+-- Created for PostgreSQL 11
+
+DROP TABLE IF EXISTS cronjobs, staff_roles;
 
 CREATE TABLE cronjobs
 (
@@ -7,4 +9,11 @@ CREATE TABLE cronjobs
     created timestamp without time zone,
     event TEXT,
     extra JSONB
+);
+
+CREATE TABLE staff_roles
+(
+    guild_id BIGINT PRIMARY KEY,
+    role_id BIGINT NOT NULL,
+    perms TEXT NOT NULL
 );
