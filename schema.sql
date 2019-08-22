@@ -13,7 +13,8 @@ CREATE TABLE cronjobs
 
 CREATE TABLE staff_roles
 (
-    guild_id BIGINT PRIMARY KEY,
+    guild_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
-    perms TEXT NOT NULL
+    perms TEXT NOT NULL,
+    CONSTRAINT staff_roles_pkey PRIMARY KEY (guild_id, role_id, perms)
 );
