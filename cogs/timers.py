@@ -23,18 +23,17 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import dataset
 import time
 from datetime import datetime
 from discord.ext import commands
 import traceback
 import discord
 import config
+import json
 
 class Timers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
 
     @commands.command(aliases=["addreminder", "timer"])
     async def remind(self, ctx, when: str, *, description: str = "something"):
@@ -59,36 +58,44 @@ class Timers(commands.Cog):
                                                         humanized=True)
         safe_description = await commands.clean_content().convert(ctx, str(description))
 
-        j_add = datetime.utcnow()
-
-        table = self.db["cron_jobs"]
-        table.insert(dict(job_type="reminder", author=ctx.author.id,
-                     channel=ctx.channel.id, remind_text=safe_description,
-                     expiry=expiry_timestamp, job_added=j_add)) #, guild_id=ctx.guild.id
+        query = """INSERT INTO cronjobs (event, created, expiry, extra)
+                   VALUES ($1, $2, $3, $4::jsonb);
+                """
+        to_dump = {"reminder_text": safe_description, 
+                   "author": ctx.author.id, "channel": ctx.channel.id}
+        await self.bot.db.execute(query, "reminder", datetime.utcnow(), 
+                                  expiry_datetime, 
+                                  json.dumps(to_dump))
         await ctx.send(f"{ctx.author.mention}: I'll remind you in {duration_text}.")
 
     @commands.command(aliases=['listreminds', 'listtimers'])
     async def listreminders(self, ctx):
         """Lists up to 10 of your reminders"""
-        table = self.db["cron_jobs"].find(author=ctx.author.id, _limit=10)
-        # bc this is 2 queries
-        ctable = self.db["cron_jobs"].count(author=ctx.author.id)
+        query = """SELECT id, expiry, extra
+                   FROM cronjobs
+                   WHERE event = 'reminder'
+                   AND extra ->> 'author' = $1
+                   ORDER BY expiry
+                   LIMIT 10;
+                """
+        rem = await self.bot.db.fetch(query, str(ctx.author.id))
         embed = discord.Embed(title="Reminders", color=discord.Color(0xf74b06))
-        if ctable == 0:
+        if len(rem) == 0:
             embed.description = "No reminders were found!"
             return await ctx.send(embed=embed)
         # Kinda hacky-ish code
         try:
-            for job in table:
-                #if job['author'] == ctx.author.id:
-                expiry_timestr = datetime.utcfromtimestamp(job['expiry'])
+            for job in rem:
+                #expiry_timestr = datetime.utcfromtimestamp(job['expiry'])
                         #.strftime('%Y-%m-%d %H:%M:%S (UTC)')
-                duration_text = self.bot.get_relative_timestamp(time_to=expiry_timestr,
+                ext = json.loads(job['extra'])
+                duration_text = self.bot.get_relative_timestamp(time_to=job['expiry'],
                                                                 include_to=True,
                                                                 humanized=True)
                 embed.add_field(name=f"{job['id']}: In {duration_text}", 
-                                value=f"{job['remind_text']}")
+                                value=f"{ext['reminder_text']}")
         except:
+            self.bot.log.error(traceback.format_exc())
             log_channel = self.bot.get_channel(config.powerscron_errors)
             await log_channel.send(f"PowersCron has Errored! "
                                    f"```{traceback.format_exc()}```")
@@ -104,16 +111,15 @@ class Timers(commands.Cog):
 
         You must own the reminder to remove it"""
 
-        query_s = self.db['cron_jobs'].find_one(job_type="reminder", 
-                                                author=ctx.author.id,
-                                                id=reminder_id)
-        if query_s is None:
+        query = """DELETE FROM cronjobs
+                   WHERE id = $1
+                   AND event = 'reminder'
+                   AND extra ->> 'author' = $2;
+                """
+        result = await self.bot.db.execute(query, reminder_id, str(ctx.author.id))
+        if result == 'DELETE 0':
             await ctx.message.add_reaction("❌")
-            return await ctx.send(f"I couldn't delete a reminder with that ID!")
-        else:
-            self.db['cron_jobs'].delete(job_type="reminder", 
-                                        author=ctx.author.id,
-                                        id=reminder_id)
+            return await ctx.send(f"I couldn't delete a reminder with that ID!")            
 
         await ctx.send(f"Successfully deleted reminder (ID: {reminder_id})")
         await ctx.message.add_reaction("✅") # For whatever reason
