@@ -225,6 +225,7 @@ class Meta(commands.Cog):
         self.original_help_command = bot.help_command
         bot.help_command = PaginatedHelpCommand()
         bot.help_command.cog = self
+        self.bot.unavailable_guilds = []
 
     def cog_unload(self):
         self.bot.help_command = self.original_help_command
@@ -397,10 +398,13 @@ class Meta(commands.Cog):
     async def on_guild_unavailable(self, guild):
         if not self.bot.is_ready():
             return
+        if guild.id in self.unavailable_guilds:
+            return
         embed = discord.Embed(title="🚧 Guild Unavailable", 
                               color=discord.Color.red())
         self.bot.log.info(f"🚧 Guild Unavailable | {guild.name} "
                           f"| {guild.id}")
+        self.unavailable_guilds.append(guild.id)
         await self.send_guild_info(embed, guild)
 
     @commands.Cog.listener()
@@ -411,6 +415,7 @@ class Meta(commands.Cog):
                               color=discord.Color.green())
         self.bot.log.info(f"✅ Guild Available | {guild.name} "
                           f"| {guild.id}")
+        self.unavailable_guilds.remove(guild.id)
         await self.send_guild_info(embed, guild)
 
 def setup(bot):
