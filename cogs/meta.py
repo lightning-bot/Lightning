@@ -225,7 +225,7 @@ class Meta(commands.Cog):
         self.original_help_command = bot.help_command
         bot.help_command = PaginatedHelpCommand()
         bot.help_command.cog = self
-        self.bot.unavailable_guilds = []
+        self.unavailable_guilds = []
 
     def cog_unload(self):
         self.bot.help_command = self.original_help_command
