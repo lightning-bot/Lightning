@@ -37,9 +37,11 @@ import config
 import database
 import db.per_guild_config
 import asyncpg
+import asyncio
 
-# Uses template from ave's botbase.py
-# botbase.py is under the MIT License. https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
+# Uses logging template from ave's botbase.py
+# botbase.py is under the MIT License. 
+# https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
 
 script_name = os.path.basename(__file__).split('.')[0]
 
@@ -77,7 +79,6 @@ def _callable_prefix(bot, message):
         prefixesc += default_prefix
         return commands.when_mentioned_or(*prefixesc)(bot, message)
 
-
 initial_extensions = config.cogs
 
 # Create config folder if not found
@@ -86,177 +87,165 @@ if not os.path.exists("config"):
 if not os.path.exists("cogs"):
     os.makedirs("cogs")
 
-bot = commands.Bot(command_prefix=_callable_prefix, description=config.description)
-bot.launch_time = datetime.utcnow()
+class LightningBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix=_callable_prefix, 
+                         description=config.description)
+        self.version = "v1.4A"
+        self.log = log
+        self.launch_time = datetime.utcnow()
+        self.script_name = script_name
+        self.success_cogs = []
+        self.unloaded_cogs = []
+        self.successful_command = 0
 
-bot.log = log
-bot.config = config
-bot.help_command = commands.DefaultHelpCommand(dm_help = None)
-bot.script_name = script_name
-success_cogs = []
-unloaded_cogs = []
-bot.successful_command = 0
-bot.cog_loaded = success_cogs
-bot.cog_unloaded = unloaded_cogs
-# Database related
-bot.db = await asyncpg.create_pool(config.database_connection)
-
-def auto_append_cogs():
-    """Automatically append all extra cogs not loaded
-    as unloaded"""
-    for ext in os.listdir("cogs"):
-        external = f"cogs.{ext[:-3]}"
-        if ext.endswith(".py") and external not in success_cogs:
-            unloaded_cogs.append(f"cogs.{ext[:-3]}")
-
-# Here we load our extensions(cogs) listed above in [initial_extensions].
-if __name__ == '__main__':
-    for ext in initial_extensions:
+        for ext in initial_extensions:
+            try:
+                self.load_extension(ext)
+                self.success_cogs.append(ext)
+            except Exception as e:
+                log.error(f'Failed to load cog {ext}. {e}')
+                log.error(traceback.print_exc())
+                self.unloaded_cogs.append(ext)
         try:
-            bot.load_extension(ext)
-            success_cogs.append(ext)
+            self.load_extension('jishaku')
+            self.success_cogs.append('jishaku')
         except Exception as e:
-            log.error(f'Failed to load cog {ext}. {e}')
+            log.error(f"Failed to load jishaku. {e}")
             log.error(traceback.print_exc())
-            unloaded_cogs.append(ext)
-    try:
-        bot.load_extension('jishaku')
-        success_cogs.append('jishaku')
-    except Exception as e:
-        log.error(f"Failed to load jishaku. {e}")
-        log.error(traceback.print_exc())
-        unloaded_cogs.append("jishaku")
+            self.unloaded_cogs.append("jishaku")
 
-auto_append_cogs()
+    async def auto_append_cogs(self):
+        """Automatically append all extra cogs not loaded
+            as unloaded"""
+        for ext in os.listdir("cogs"):
+            external = f"cogs.{ext[:-3]}"
+            if ext.endswith(".py") and external not in self.success_cogs:
+                self.unloaded_cogs.append(f"cogs.{ext[:-3]}")
 
-version_num = "v1.3"
-bot.version = version_num
+    async def on_ready(self):
+        aioh = {"User-Agent": f"{script_name}/1.0'"}
+        self.aiosession = aiohttp.ClientSession(headers=aioh)
+        self.app_info = await self.application_info()
+        self.botlog_channel = self.get_channel(config.error_channel)
 
-@bot.event
-async def on_ready():
-    aioh = {"User-Agent": f"{script_name}/1.0'"}
-    bot.aiosession = aiohttp.ClientSession(headers=aioh)
-    bot.app_info = await bot.application_info()
-    bot.botlog_channel = bot.get_channel(config.error_channel)
+        log.info(f'\nLogged in as: {self.user.name} - '
+                f'{self.user.id}\ndpy version: '
+                f'{discord.__version__}\nVersion: {self.version}\n')
+        summary = f"{len(self.guilds)} guild(s) and {len(self.users)} user(s)"
+        msg = f"{self.user.name} has started! "\
+              f"I can see {summary}\n\nDiscord.py Version: "\
+              f"{discord.__version__}"\
+              f"\nRunning on Python {platform.python_version()}"\
+              f"\nI'm currently on **{self.version}**"
+        # Create a database pool
+        self.db = await asyncpg.create_pool(config.database_connection, 
+                                            command_timeout=60)
+        await self.botlog_channel.send(msg, delete_after=250)
 
-    log.info(f'\nLogged in as: {bot.user.name} - '
-             f'{bot.user.id}\ndpy version: {discord.__version__}\nVersion: {bot.version}\n')
-    summary = f"{len(bot.guilds)} guild(s) and {len(bot.users)} user(s)"
-    msg = f"{bot.user.name} has started! "\
-          f"I can see {summary}\n\nDiscord.py Version: {discord.__version__}"\
-          f"\nRunning on Python {platform.python_version()}"\
-          f"\nI'm currently on **{bot.version}**"
+    async def process_command_usage(self, message):
+        if str(message.author.id) in self.get_blacklist():
+            return
+        ctx = await self.get_context(message)
+        await self.invoke(ctx)
 
-    await bot.botlog_channel.send(msg, delete_after=250)
+    async def on_message(self, message):
+        if message.author.bot:
+            return
+        await self.process_command_usage(message)
 
-@bot.event
-async def on_command(ctx):
-    log_text = f"{ctx.message.author} ({ctx.message.author.id}): "\
-               f"\"{ctx.message.content}\" "
-    if ctx.guild:  # was too long for tertiary if
-        log_text += f"on \"{ctx.channel.name}\" ({ctx.channel.id}) "\
-                    f"at \"{ctx.guild.name}\" ({ctx.guild.id})"
-    else:
-        log_text += f"on DMs ({ctx.channel.id})"
-    log.info(log_text)
+    async def on_command(self, ctx):
+        log_text = f"{ctx.message.author} ({ctx.message.author.id}): "\
+                   f"\"{ctx.message.content}\" "
+        if ctx.guild:  # was too long for tertiary if
+            log_text += f"on \"{ctx.channel.name}\" ({ctx.channel.id}) "\
+                        f"at \"{ctx.guild.name}\" ({ctx.guild.id})"
+        else:
+            log_text += f"on DMs ({ctx.channel.id})"
+        log.info(log_text)
 
+    # Error Handling mostly based on Robocop-NG (MIT Licensed)
+    # https://github.com/reswitched/robocop-ng/blob/master/Robocop.py
+    async def on_error(self, event_method, *args, **kwargs):
+        log.error(f"Error on {event_method}: {sys.exc_info()}")
 
-@bot.event
-async def on_error(event_method, *args, **kwargs):
-    log.error(f"Error on {event_method}: {sys.exc_info()}")
+    async def on_command_error(self, ctx, error):
+        error_text = str(error)
 
+        err_msg = f"Error with \"{ctx.message.content}\" from "\
+                  f"\"{ctx.message.author} ({ctx.message.author.id}) "\
+                  f"of type {type(error)}: {error_text}"
+        log.error(err_msg)
 
-# Error handling thanks to Ave's botbase.py and Robocop from Reswitched.
-# botbase.py is under the MIT License. https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
-# https://gitlab.com/ao/dpyBotBase and Robocop-ng is under the MIT License too. 
-# https://github.com/reswitched/robocop-ng
+        if not isinstance(error, commands.CommandNotFound):
+            webhook = discord.Webhook.from_url
+            adp = discord.AsyncWebhookAdapter(self.aiosession)
+            try:
+                webhook = webhook(config.webhookurl, adapter=adp)
+                embed = discord.Embed(title="⚠ Error",
+                                      description=err_msg,
+                                      color=discord.Color(0xff0000),
+                                      timestamp=datetime.utcnow())
+                await webhook.execute(embed=embed)
+            except:
+                pass
 
-@bot.event
-async def on_command_error(ctx, error):
-    error_text = str(error)
-
-    err_msg = f"Error with \"{ctx.message.content}\" from "\
-              f"\"{ctx.message.author} ({ctx.message.author.id}) "\
-              f"of type {type(error)}: {error_text}"
-    log.error(err_msg)
-
-    if not isinstance(error, commands.CommandNotFound):
-        webhook = discord.Webhook.from_url
-        adp = discord.AsyncWebhookAdapter(bot.aiosession)
-        try:
-            webhook = webhook(config.webhookurl, adapter=adp)
-            embed = discord.Embed(title="⚠ Error", description=err_msg, 
-                                  color=discord.Color(0xff0000), 
-                                  timestamp=datetime.utcnow())
-            await webhook.execute(embed=embed)
-        except:
-            pass
-
-    if isinstance(error, commands.NoPrivateMessage):
-        return await ctx.send("This command doesn't work in DMs.")
-    elif isinstance(error, commands.MissingPermissions):
-        roles_needed = '\n- '.join(error.missing_perms)
-        return await ctx.send(f"{ctx.author.mention}: You don't have the right"
-                              " permissions to run this command. You need: "
-                              f"```- {roles_needed}```")
-    elif isinstance(error, commands.BotMissingPermissions):
-        roles_needed = '\n-'.join(error.missing_perms)
-        return await ctx.send(f"{ctx.author.mention}: Bot doesn't have "
-                              "the right permissions to run this command. "
-                              "Please add the following permissions: "
-                              f"```- {roles_needed}```")
-    elif isinstance(error, commands.CommandOnCooldown):
-        return await ctx.send(f"{ctx.author.mention}: ⚠ You're being "
-                              "ratelimited. Try again in "
-                              f"{error.retry_after:.1f} seconds.")
-    elif isinstance(error, commands.NotOwner):
-        return await ctx.send(f"{ctx.author.mention}: ❌ You cannot use this command "
-                              "as it's only for the owner of the bot!")
-    elif isinstance(error, commands.CheckFailure):
-        return await ctx.send(f"{ctx.author.mention}: Check failed. "
-                              "You do not have the right permissions "
-                              "to run this command.")
-    elif isinstance(error, discord.NotFound):
-        return await ctx.send("❌ I wasn't able to find that ID.")
-    elif isinstance(error, commands.DisabledCommand):
-        return await ctx.send(f"{ctx.author.mention}: This command is currently "
-                              "disabled!")
-    help_text = f"Usage of this command is: ```{ctx.prefix}"\
-                f"{ctx.invoked_subcommand} "\
-                f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
-                f"{ctx.command}` for more info about this command."    
-    if ctx.invoked_subcommand is None:
+        if isinstance(error, commands.NoPrivateMessage):
+            return await ctx.send("This command doesn't work in DMs.")
+        elif isinstance(error, commands.MissingPermissions):
+            roles_needed = '\n- '.join(error.missing_perms)
+            return await ctx.send(f"{ctx.author.mention}: You don't have the right"
+                                  " permissions to run this command. You need: "
+                                  f"```- {roles_needed}```")
+        elif isinstance(error, commands.BotMissingPermissions):
+            roles_needed = '\n-'.join(error.missing_perms)
+            return await ctx.send(f"{ctx.author.mention}: Bot doesn't have "
+                                  "the right permissions to run this command. "
+                                  "Please add the following permissions: "
+                                  f"```- {roles_needed}```")
+        elif isinstance(error, commands.CommandOnCooldown):
+            return await ctx.send(f"{ctx.author.mention}: ⚠ You're being "
+                                  "ratelimited. Try again in "
+                                  f"{error.retry_after:.1f} seconds.")
+        elif isinstance(error, commands.NotOwner):
+            return await ctx.send(f"{ctx.author.mention}: ❌ You cannot use this command "
+                                  "as it's only for the owner of the bot!")
+        elif isinstance(error, commands.CheckFailure):
+            return await ctx.send(f"{ctx.author.mention}: Check failed. "
+                                  "You do not have the right permissions "
+                                  "to run this command.")
+        elif isinstance(error, discord.NotFound):
+            return await ctx.send("❌ I wasn't able to find that ID.")
+        elif isinstance(error, commands.DisabledCommand):
+            return await ctx.send(f"{ctx.author.mention}: This command is currently "
+                                  "disabled!")
         help_text = f"Usage of this command is: ```{ctx.prefix}"\
-                    f"{ctx.invoked_with} "\
+                    f"{ctx.invoked_subcommand} "\
                     f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
-                    f"{ctx.command.name}` for more info about this command."
-    if isinstance(error, commands.BadArgument):
-        return await ctx.send(f"{ctx.author.mention}: You gave incorrect "
-                              f"arguments. {help_text}")
-    elif isinstance(error, commands.MissingRequiredArgument):
-        return await ctx.send(f"{ctx.author.mention}: You gave incomplete "
-                              f"arguments. {help_text}")
-    elif isinstance(error, commands.CommandInvokeError) and\
+                    f"{ctx.command}` for more info about this command."    
+        if ctx.invoked_subcommand is None:
+            help_text = f"Usage of this command is: ```{ctx.prefix}"\
+                        f"{ctx.invoked_with} "\
+                        f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
+                        f"{ctx.command.name}` for more info about this command."
+        if isinstance(error, commands.BadArgument):
+            return await ctx.send(f"{ctx.author.mention}: You gave incorrect "
+                                  f"arguments. {help_text}")
+        elif isinstance(error, commands.MissingRequiredArgument):
+            return await ctx.send(f"{ctx.author.mention}: You gave incomplete "
+                                  f"arguments. {help_text}")
+        elif isinstance(error, commands.CommandInvokeError) and\
             ("Cannot send messages to this user" in error_text):
-        return await ctx.send(f"{ctx.author.mention}: I can't DM you.\n"
-                              "You might have me blocked or have DMs "
-                              f"blocked globally or for {ctx.guild.name}.\n"
-                              "Please resolve that, then "
-                              "run the command again.")
-    elif isinstance(error, commands.CommandNotFound):
-        return # We don't need to say anything
+            return await ctx.send(f"{ctx.author.mention}: I can't DM you.\n"
+                                  "You might have me blocked or have DMs "
+                                  f"blocked globally or for {ctx.guild.name}.\n"
+                                  "Please resolve that, then "
+                                  "run the command again.")
+        elif isinstance(error, commands.CommandNotFound):
+            return # We don't need to say anything
 
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-    if str(message.author.id) in bot.get_blacklist():
-        return
-    ctx = await bot.get_context(message)
-    await bot.invoke(ctx)
-
-@bot.event
-async def on_command_completion(ctx):
-    bot.successful_command += 1
-
-bot.run(config.token, bot=True, reconnect=True)
+    async def on_command_completion(self, ctx):
+        self.successful_command += 1
+        
+if __name__ == '__main__':
+    LightningBot().run(config.token, bot=True, reconnect=True)
