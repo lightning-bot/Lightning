@@ -18,3 +18,9 @@ CREATE TABLE staff_roles
     perms TEXT NOT NULL,
     CONSTRAINT staff_roles_pkey PRIMARY KEY (guild_id, role_id, perms)
 );
+
+CREATE TABLE userlogs
+(
+    guild_id BIGINT PRIMARY KEY,
+    userlog JSONB
+);
