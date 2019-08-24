@@ -58,14 +58,15 @@ class Timers(commands.Cog):
                                                         humanized=True)
         safe_description = await commands.clean_content().convert(ctx, str(description))
 
-        query = """INSERT INTO cronjobs (event, created, expiry, extra)
-                   VALUES ($1, $2, $3, $4::jsonb);
-                """
+        timer = self.bot.get_cog('PowersCronManagement')
+        if not timer:
+            return await ctx.send("Sorry, the timer system "
+                                  "(PowersCron) is currently unavailable.")
         to_dump = {"reminder_text": safe_description, 
                    "author": ctx.author.id, "channel": ctx.channel.id}
-        await self.bot.db.execute(query, "reminder", datetime.utcnow(), 
-                                  expiry_datetime, 
-                                  json.dumps(to_dump))
+        await timer.add_job("reminder", datetime.utcnow(), 
+                              expiry_datetime, 
+                              json.dumps(to_dump))
         await ctx.send(f"{ctx.author.mention}: I'll remind you in {duration_text}.")
 
     @commands.command(aliases=['listreminds', 'listtimers'])
