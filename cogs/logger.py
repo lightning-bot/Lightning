@@ -67,10 +67,19 @@ class Logger(Cog):
     async def on_member_join(self, member):
         await self.bot.wait_until_ready()
         try:
-            rsts = get_user_restrictions(member.guild, member.id)
-            roles = [discord.utils.get(member.guild.roles, id=rst) for rst in rsts]
+            query = """SELECT role_id 
+                    FROM user_restrictions 
+                    WHERE user_id=$1
+                    AND guild_id=$2;
+                    """
+            rsts = await self.bot.db.fetch(query, member.id, member.guild.id)
+            tmp = []
+            for r in rsts:
+                tmp.append(r[0])
+            roles = [discord.utils.get(member.guild.roles, id=rst) for rst in tmp]
             await member.add_roles(*roles)
-        except:
+        except Exception as e:
+            self.bot.log.error(e)
             pass
         if db.per_guild_config.exist_guild_config(member.guild, "config"):
             config = db.per_guild_config.get_guild_config(member.guild, "config")
