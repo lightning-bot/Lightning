@@ -1,7 +1,9 @@
 -- Created for PostgreSQL 11
 
-DROP TABLE IF EXISTS cronjobs, staff_roles;
+DROP TABLE IF EXISTS cronjobs, staff_roles, userlogs, user_restrictions;
 
+-- Just store the timestamps as utcnow(). 
+-- Makes my life easier
 CREATE TABLE cronjobs
 (
     id SERIAL PRIMARY KEY,
@@ -23,4 +25,12 @@ CREATE TABLE userlogs
 (
     guild_id BIGINT PRIMARY KEY,
     userlog JSONB
+);
+
+CREATE TABLE user_restrictions
+(
+    guild_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    CONSTRAINT user_restrictions_pkey PRIMARY KEY (guild_id, user_id, role_id)
 );
