@@ -23,7 +23,6 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import dataset
 import time
 import config
 from datetime import datetime
@@ -38,6 +37,9 @@ import json
 from utils.restrictions import remove_restriction
 import dbl
 
+class RemoveRestrictionError(Exception):
+    pass
+
 STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
 C_HASH = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('UTF-8')
 
@@ -45,11 +47,11 @@ class PowersCronManagement(commands.Cog):
     """Commands that help manage PowersCron's Cron Jobs"""
     def __init__(self, bot):
         self.bot = bot
-        self.statuses = json.load(open('resources/status_switching.json', 'r', encoding='utf8'))
+        self.statuses = json.load(open('resources/status_switching.json', 
+                                  'r', encoding='utf8'))
         self.status_rotate.start()
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
-        self.cron_6_hours.start()
-        self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
+        #self.cron_6_hours.start()
         self.cron_hourly.start()
         self.discordbotlist = dbl.DBLClient(self.bot, config.dbl_token)
 
@@ -57,8 +59,39 @@ class PowersCronManagement(commands.Cog):
     def cog_unload(self):
         self.dispatch_jobs.cancel()
         self.status_rotate.cancel()
-        self.cron_6_hours.cancel()
+        #Not being used since we moved over to postgresql
+        #self.cron_6_hours.cancel() 
         self.cron_hourly.cancel()
+
+    async def cog_command_error(self, ctx, error):
+        if isinstance(error, RemoveRestrictionError):
+            self.bot.log.error(error)
+
+    async def add_job(self, event: str, created, expiry, extra):
+        """Adds a job/pending timer to the PowersCron System
+        
+        Arguments
+        -------------
+        event: str
+            The name of the event to trigger. 
+            Valid events are timed_restriction, timeban, and, reminder
+        created: datetime.datetime
+            The creation of the timer.
+        expiry: datetime.datetime
+            When the job should be done.
+        extra: json
+            Extra info related to the timer
+        """
+        if extra:
+            query = """INSERT INTO cronjobs (event, created, expiry, extra)
+                       VALUES ($1, $2, $3, $4::jsonb);
+                    """
+            await self.bot.db.execute(query, event, created, expiry, extra)
+        else:
+            query = """INSERT INTO cronjobs (event, created, expiry)
+                       VALUES ($1, $2, $3);
+                    """
+            await self.bot.db.execute(query, event, created, expiry)
 
     async def randomize_status(self):
         ext_list = [f"on commit {C_HASH}", [3, f"{len(self.bot.guilds)} servers"], 
@@ -76,36 +109,63 @@ class PowersCronManagement(commands.Cog):
         self.bot.log.info(f"Status Changed: {msg}")
         await self.bot.change_presence(activity=discord.Activity(type=g_type, name=st_msg))
 
-    async def send_db(self):
-        back_chan = self.bot.get_channel(config.powerscron_backups)
-        files = ["config/powerscron.sqlite3", "config/database.sqlite3"]
-        await back_chan.send("6 hour data backup:", 
-                             files=[discord.File(f) for f in files])
-
-    @commands.check(check_if_botmgmt)
-    @commands.command()
-    async def fetchcrondb(self, ctx):
-        """Fetches the PowersCron Database File"""
-        try:
-            await ctx.author.send("Here's the current database file:", 
-                                  file=discord.File("config/powerscron.sqlite3"))
-        except discord.errors.Forbidden:
-            return await ctx.send(f"💢 I couldn't send the log "
-                                  "file in your DMs. Please resolve this.")
+    async def process_jobs(self, jobtype):
+        if jobtype['event'] == "reminder":
+            ext = json.loads(jobtype['extra'])
+            channel = self.bot.get_channel(ext['channel'])
+            await channel.send(f"<@{ext['author']}>: "
+                               "You asked to be reminded "
+                               "on "
+                               f"{jobtype['created'].strftime(STIMER)} "
+                               f"about `{ext['reminder_text']}`")
+                            # Delete the timer
+            query = "DELETE FROM cronjobs WHERE id=$1;"
+            await self.bot.db.execute(query, jobtype['id'])
+        elif jobtype['event'] == "timeban":
+            ext = json.loads(jobtype['extra'])
+            guid = self.bot.get_guild(ext['guild_id'])
+            uid = await self.bot.fetch_user(ext['user_id'])
+            await guid.unban(uid, reason="PowersCron: "
+                            "Timed Ban Expired.")
+            # Delete the scheduled unban
+            query = "DELETE FROM cronjobs WHERE id=$1;"
+            await self.bot.db.execute(query, jobtype['id'])
+        elif jobtype['event'] == "timed_restriction":
+            mod = self.bot.get_cog('Mod')
+            if not mod:
+                raise RemoveRestrictionError("Cannot remove role "
+                                             "as `cogs.mod` is not loaded")
+            ext = json.loads(jobtype['extra'])
+            guild = self.bot.get_guild(ext['guild_id'])
+            user = guild.get_member(ext['user_id'])
+            role = guild.get_role(ext['role_id'])
+            await mod.remove_user_restriction(guild.id, 
+                                              user.id, 
+                                              role.id)
+            await user.remove_roles(role, reason="PowersCron: "
+                                    "Timed Mute Expired.")
+                            # Delete the scheduled unmute
+            query = "DELETE FROM cronjobs WHERE id=$1;"
+            await self.bot.db.execute(query, jobtype['id'])
+        #elif jobtype['job_type'] == "guild_clean":
+        #    clean = self.bot.get_cog('guild_cleanup')
+        #    if not clean:
+        #        return
+        #    clean.clean_guilds_dump()
 
     @commands.check(check_if_botmgmt)
     @commands.command(aliases=['deletejobs'])
-    async def deletejob(self, ctx, jobtype: str, timestamp: int, job_id: int):
+    async def deletejob(self, ctx, jobtype: str, job_id: int):
         """Deletes a job from the database
         
         You'll need to provide:
         - Type (The type of job it is. Ex: timeban)
-        - Timestamp (The timestamp of the job)
         - ID (The ID of the Job.)
-
-        You can get this from fetchcrondb
         """
-        self.db['cron_jobs'].delete(job_type=jobtype, expiry=timestamp, id=job_id)
+        query = """DELETE FROM cronjobs 
+                WHERE event=$1 AND id=$2
+                """
+        await self.bot.db.execute(query, jobtype, job_id)
         await ctx.send(f"Successfully deleted {jobtype} with an ID of {job_id}")
 
     @commands.check(check_if_botmgmt)
@@ -116,22 +176,26 @@ class PowersCronManagement(commands.Cog):
         Jobtypes can be either:
         - reminder
         - timeban
-        - timemute
+        - timed_restriction
         """
-        table = self.db["cron_jobs"].find(job_type=jobtype, _limit=10)
-        ctable = self.db["cron_jobs"].count(job_type=jobtype)
+        query = """SELECT id, expiry, extra
+                   FROM cronjobs
+                   WHERE event=$1
+                   ORDER BY expiry
+                   LIMIT 10;
+                """
+        table = await self.bot.db.fetch(query, jobtype)
         embed = discord.Embed(title="Active PowersCron Jobs", color=discord.Color(0xf74b06))
+        if len(table) == 0:
+            embed.set_footer(text=f"0 running jobs for {jobtype}")
         try:
-            embed.set_footer(text=f"There are currently {ctable} running"
-                                  f" PowersCron Jobs for {jobtype}")
             for job in table:
-                expiry_timestr = datetime.utcfromtimestamp(job['expiry'])
-                duration_text = self.bot.get_relative_timestamp(time_to=expiry_timestr,
+                duration_text = self.bot.get_relative_timestamp(time_to=job['expiry'],
                                                                 include_to=True,
                                                                 humanized=True)
-                embed.add_field(name=f"{job['job_type']} {job['id']}", 
-                                value=f"{duration_text}\nRaw Timestamp:"
-                                      f" {job['expiry']}")
+                embed.add_field(name=f"{jobtype} {job['id']}", 
+                                value=f"Expiry: {duration_text}\n"
+                                      f"Extra Details: {job['extra']}")
         except:
             self.bot.log.error(f"PowersCron ERROR: "
                                f"{traceback.format_exc()}")
@@ -159,49 +223,14 @@ class PowersCronManagement(commands.Cog):
     async def do_jobs(self):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
-            jobs = self.db['cron_jobs'].all()
-            timestamp = time.time()
+            query = """SELECT * FROM cronjobs;
+                    """
+            jobs = await self.bot.db.fetch(query)
+            timestamp = datetime.utcnow()
             try:
                 for jobtype in jobs:
-                    expiry2 = jobtype['expiry']
-                    if timestamp > expiry2:
-                        if jobtype['job_type'] == "reminder":
-                            channel = self.bot.get_channel(jobtype['channel'])
-                            await channel.send(f"<@{jobtype['author']}>: "
-                                               "You asked to be reminded "
-                                               "on "
-                                               f"{jobtype['job_added'].strftime(STIMER)} "
-                                               f"about `{jobtype['remind_text']}`")
-                            # Delete the timer
-                            self.db['cron_jobs'].delete(author=jobtype['author'], 
-                                                        expiry=expiry2,
-                                                        job_type="reminder")
-                        elif jobtype['job_type'] == "timeban":
-                            guid = self.bot.get_guild(jobtype['guild_id'])
-                            uid = await self.bot.fetch_user(jobtype['user_id'])
-                            await guid.unban(uid, reason="PowersCron: "
-                                             "Timed Ban Expired.")
-                            # Delete the scheduled unban
-                            self.db['cron_jobs'].delete(job_type="timeban", 
-                                                        expiry=expiry2, 
-                                                        user_id=jobtype['user_id'])
-                        elif jobtype['job_type'] == "timemute":
-                            guild = self.bot.get_guild(jobtype['guild_id'])
-                            user = guild.get_member(jobtype['user_id'])
-                            role = guild.get_role(jobtype['role_id'])
-                            remove_restriction(guild, jobtype['user_id'], jobtype['role_id'])
-                            await user.remove_roles(role, reason="PowersCron: "
-                                                    "Timed Mute Expired.")
-                            # Delete the scheduled unmute
-                            self.db['cron_jobs'].delete(job_type="timemute", 
-                                                        expiry=expiry2,
-                                                        guild_id=jobtype['guild_id'],
-                                                        user_id=jobtype['user_id'])
-                        elif jobtype['job_type'] == "guild_clean":
-                            clean = self.bot.get_cog('guild_cleanup')
-                            if not clean:
-                                return
-                            clean.clean_guilds_dump()
+                    if timestamp > jobtype['expiry']:
+                        await self.process_jobs(jobtype)
             except:
                 # Keep jobs for now if they errored
                 self.bot.log.error(f"PowersCron ERROR: "
