@@ -113,12 +113,26 @@ class PowersCronManagement(commands.Cog):
         if jobtype['event'] == "reminder":
             ext = json.loads(jobtype['extra'])
             channel = self.bot.get_channel(ext['channel'])
-            await channel.send(f"<@{ext['author']}>: "
-                               "You asked to be reminded "
-                               "on "
-                               f"{jobtype['created'].strftime(STIMER)} "
-                               f"about `{ext['reminder_text']}`")
-                            # Delete the timer
+            uid = await self.bot.fetch_user(ext['author'])
+            try:
+                await channel.send(f"{uid.mention}: "
+                                    "You asked to be reminded "
+                                    "on "
+                                   f"{jobtype['created'].strftime(STIMER)} "
+                                   f"about `{ext['reminder_text']}`")
+            # Attempt to DM User if we failed to send Reminder
+            except discord.errors.Forbidden:
+                try:
+                    await uid.send(f"{uid.mention}: "
+                                    "You asked to be reminded "
+                                    "on "
+                                   f"{jobtype['created'].strftime(STIMER)} "
+                                   f"about `{ext['reminder_text']}`")
+                except:
+                    # Optionally add to the db as a failed job
+                    self.bot.log.error(f"Failed to remind {ext['author']}.")
+                    pass
+            # Delete the timer
             query = "DELETE FROM cronjobs WHERE id=$1;"
             await self.bot.db.execute(query, jobtype['id'])
         elif jobtype['event'] == "timeban":
