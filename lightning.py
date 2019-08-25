@@ -34,7 +34,6 @@ from discord.ext import commands
 import aiohttp
 from datetime import datetime
 import config
-import database
 import db.per_guild_config
 import asyncpg
 import asyncio
@@ -221,16 +220,17 @@ class LightningBot(commands.Bot):
             return await ctx.send("❌ I wasn't able to find that ID.")
         elif isinstance(error, commands.DisabledCommand):
             return await ctx.send(f"{ctx.author.mention}: This command is currently "
-                                  "disabled!")
-        help_text = f"Usage of this command is: ```{ctx.prefix}"\
-                    f"{ctx.invoked_subcommand} "\
-                    f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
-                    f"{ctx.command}` for more info about this command."    
+                                  "disabled!")   
         if ctx.invoked_subcommand is None:
             help_text = f"Usage of this command is: ```{ctx.prefix}"\
                         f"{ctx.invoked_with} "\
                         f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
                         f"{ctx.command.name}` for more info about this command."
+        else:
+            help_text = f"Usage of this command is: ```{ctx.prefix}"\
+                        f"{ctx.invoked_subcommand} "\
+                        f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
+                        f"{ctx.command}` for more info about this command." 
         if isinstance(error, commands.BadArgument):
             return await ctx.send(f"{ctx.author.mention}: You gave incorrect "
                                   f"arguments. {help_text}")
