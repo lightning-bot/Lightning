@@ -38,6 +38,13 @@ import db.per_guild_config
 import asyncpg
 import asyncio
 
+try:
+    import uvloop
+except ImportError:
+    pass
+else:
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
 # Uses logging template from ave's botbase.py
 # botbase.py is under the MIT License. 
 # https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
@@ -114,6 +121,12 @@ class LightningBot(commands.Bot):
             log.error(traceback.print_exc())
             self.unloaded_cogs.append("jishaku")
 
+    async def create_pool(self, dbs, **kwargs):
+        """Creates a connection pool"""
+        # Mainly prevent multiple pools
+        pool = await asyncpg.create_pool(dbs, **kwargs)
+        return pool
+
     async def auto_append_cogs(self):
         """Automatically append all extra cogs not loaded
             as unloaded"""
@@ -137,9 +150,6 @@ class LightningBot(commands.Bot):
               f"{discord.__version__}"\
               f"\nRunning on Python {platform.python_version()}"\
               f"\nI'm currently on **{self.version}**"
-        # Create a database pool
-        self.db = await asyncpg.create_pool(config.database_connection, 
-                                            command_timeout=60)
         await self.botlog_channel.send(msg, delete_after=250)
 
     async def process_command_usage(self, message):
@@ -251,4 +261,8 @@ class LightningBot(commands.Bot):
         self.successful_command += 1
         
 if __name__ == '__main__':
-    LightningBot().run(config.token, bot=True, reconnect=True)
+    loop = asyncio.get_event_loop()
+    bot = LightningBot()
+    bot.db = loop.run_until_complete(bot.create_pool(config.database_connection, 
+                                     command_timeout=60))
+    bot.run(config.token, bot=True, reconnect=True)
