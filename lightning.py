@@ -93,6 +93,16 @@ if not os.path.exists("config"):
 if not os.path.exists("cogs"):
     os.makedirs("cogs")
 
+class LightningContext(commands.Context):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    async def safe_send(self, content=None, **kwargs):
+        # I hope this saves my life forever. :blobsweat:
+        if content is not None:
+            content = await commands.clean_content().convert(self, str(content))
+        return await super().send(content=content, **kwargs)
+
 class LightningBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=_callable_prefix, 
@@ -158,7 +168,7 @@ class LightningBot(commands.Bot):
             return self.log.error("Owner Cog Is Not Loaded.")
         if str(message.author.id) in bl.grab_blacklist():
             return
-        ctx = await self.get_context(message)
+        ctx = await self.get_context(message, cls=LightningContext)
         await self.invoke(ctx)
 
     async def on_message(self, message):
