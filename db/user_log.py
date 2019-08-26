@@ -38,7 +38,7 @@ async def get_userlog(bot, guild):
             """
     async with bot.db.acquire() as con:
         ret = await con.fetchrow(query, guild.id)
-    if ret['userlog']:
+    if ret:
         return json.loads(ret['userlog'])
     else:
         return {}
