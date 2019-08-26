@@ -86,12 +86,20 @@ class PowersCronManagement(commands.Cog):
             query = """INSERT INTO cronjobs (event, created, expiry, extra)
                        VALUES ($1, $2, $3, $4::jsonb);
                     """
-            await self.bot.db.execute(query, event, created, expiry, extra)
+            connect = await self.bot.db.acquire()
+            try:
+                await connect.execute(query, event, created, expiry, extra)
+            finally:
+                await self.bot.db.release(connect)
         else:
             query = """INSERT INTO cronjobs (event, created, expiry)
                        VALUES ($1, $2, $3);
                     """
-            await self.bot.db.execute(query, event, created, expiry)
+            connect = await self.bot.db.acquire()
+            try:
+                await connect.execute(query, event, created, expiry)
+            finally:
+                await self.bot.db.release(connect)
 
     async def randomize_status(self):
         ext_list = [f"on commit {C_HASH}", [3, f"{len(self.bot.guilds)} servers"], 
@@ -177,9 +185,13 @@ class PowersCronManagement(commands.Cog):
         - ID (The ID of the Job.)
         """
         query = """DELETE FROM cronjobs 
-                WHERE event=$1 AND id=$2
+                WHERE event=$1 AND id=$2;
                 """
-        await self.bot.db.execute(query, jobtype, job_id)
+        connect = await self.bot.db.acquire()
+        try:
+            await connect.execute(query, jobtype, job_id)
+        finally:
+            await self.bot.db.release(connect)
         await ctx.send(f"Successfully deleted {jobtype} with an ID of {job_id}")
 
     @commands.check(check_if_botmgmt)
@@ -198,7 +210,11 @@ class PowersCronManagement(commands.Cog):
                    ORDER BY expiry
                    LIMIT 10;
                 """
-        table = await self.bot.db.fetch(query, jobtype)
+        con = await self.bot.db.acquire()
+        try:
+            table = await con.fetch(query, jobtype)
+        finally:
+            await self.bot.db.release(con)
         embed = discord.Embed(title="Active PowersCron Jobs", color=discord.Color(0xf74b06))
         if len(table) == 0:
             embed.set_footer(text=f"0 running jobs for {jobtype}")
@@ -239,11 +255,12 @@ class PowersCronManagement(commands.Cog):
         while not self.bot.is_closed():
             query = """SELECT * FROM cronjobs;
                     """
-            jobs = await self.bot.db.fetch(query)
+            async with self.bot.db.acquire() as con:
+                jobs = await con.fetch(query)
             timestamp = datetime.utcnow()
             try:
                 for jobtype in jobs:
-                    if timestamp > jobtype['expiry']:
+                    if timestamp >= jobtype['expiry']:
                         await self.process_jobs(jobtype)
             except:
                 # Keep jobs for now if they errored
