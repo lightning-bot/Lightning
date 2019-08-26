@@ -36,8 +36,9 @@ async def get_userlog(bot, guild):
     query = """SELECT * FROM userlogs 
                WHERE guild_id=$1
             """
-    ret = await bot.db.fetchrow(query, guild.id)
-    if ret:
+    async with bot.db.acquire() as con:
+        ret = await con.fetchrow(query, guild.id)
+    if ret['userlog']:
         return json.loads(ret['userlog'])
     else:
         return {}
@@ -46,16 +47,19 @@ async def set_userlog(bot, guild, contents):
     query = """INSERT INTO userlogs
                VALUES ($1, $2)"""
     try:
-        await bot.db.execute(query, guild.id,
-                             json.dumps(contents))
+        async with bot.db.acquire() as con:
+            await con.execute(query, guild.id,
+                              json.dumps(contents))
     except:
         query = """UPDATE userlogs
                    SET userlog=$1
                    WHERE guild_id=$2
         """
-        await bot.db.execute(query,
-                             json.dumps(contents),
-                             guild.id)
+        async with bot.db.acquire() as con:
+            async with con.transaction():
+                await con.execute(query,
+                                  json.dumps(contents),
+                                  guild.id)
 
 async def userlog(bot, guild, uid, issuer, reason, event_type, uname: str = ""):
         userlogs = await get_userlog(bot, guild)
