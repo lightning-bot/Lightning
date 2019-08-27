@@ -26,7 +26,7 @@
 
 import discord
 from discord.ext import commands
-from db.user_log import get_userlog, set_userlog, userlog_event_types
+from utils.user_log import get_userlog, set_userlog, userlog_event_types
 import db.per_guild_config
 from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_has_staff_role
 
