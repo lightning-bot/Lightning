@@ -26,9 +26,10 @@
 from discord.ext import commands
 import discord
 import db.per_guild_config
-import db.mod_check
 from utils.restrictions import add_restriction, remove_restriction
-from utils.checks import is_guild
+from utils.checks import is_guild, has_staff_role
+from datetime import datetime
+import json
 
 class LightningHub(commands.Cog):
     """Helper commands for Lightning Hub only."""
@@ -136,7 +137,7 @@ class LightningHub(commands.Cog):
 
     @commands.command()
     @is_guild(527887739178188830)
-    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    @has_staff_role("Moderator")
     async def autoprobate(self, ctx, status="on"):
         """Turns on or off auto probate. 
         Use "disable" to disable auto probate."""
@@ -149,7 +150,7 @@ class LightningHub(commands.Cog):
 
     @commands.command()
     @is_guild(527887739178188830)
-    @db.mod_check.check_if_at_least_has_staff_role("Helper")
+    @has_staff_role("Helper")
     async def elevate(self, ctx):
         """Gains the elevated role. Use with care!"""
         target = ctx.author
@@ -165,7 +166,7 @@ class LightningHub(commands.Cog):
 
     @commands.command(aliases=['unelevate'])
     @is_guild(527887739178188830)
-    @db.mod_check.check_if_at_least_has_staff_role("Helper")
+    @has_staff_role("Helper")
     async def deelevate(self, ctx):
         """Removes the elevated role. Use with care."""
         target = ctx.author
@@ -178,6 +179,80 @@ class LightningHub(commands.Cog):
 
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now unelevated!")
+
+    @commands.command()
+    @is_guild(527887739178188830)
+    @has_staff_role("Helper")
+    async def block(self, ctx, member: discord.Member, 
+                    channels: commands.Greedy[discord.TextChannel], 
+                    *, reason: str = ""):
+        """Blocks a user from a channel or channels"""
+        for channel in channels:
+            await channel.set_permissions(member, read_messages=False, send_messages=False, 
+                                          reason=reason)
+        chans = ", ".join(x.mention for x in channels)
+        await ctx.send(f"Blocked {member.mention} from viewing {chans}")
+        mod_log_chan = self.bot.get_channel(552583376566091805)
+        safe_name = await commands.clean_content().convert(ctx, str(member))
+        msg = f"🚫 **Channel Block**: {ctx.author.mention} blocked "\
+              f"{member.mention} | {safe_name} from viewing {chans}"
+        if reason:
+            msg += f"✏️ __Reason__: \"{reason}\""
+        else:
+            msg += f"\nPlease add an explanation below. In the future" \
+                    f", it is recommended to use " \
+                    f"`{ctx.prefix}block {ctx.command.signature}`" 
+        await mod_log_chan.send(msg)
+
+    @commands.command(aliases=['timeblock'])
+    @is_guild(527887739178188830)
+    @has_staff_role("Helper")
+    async def tempblock(self, ctx, member: discord.Member, 
+                        channels: commands.Greedy[discord.TextChannel], 
+                        duration, *, reason: str = ""):
+        """Temp Blocks a user from a channel or channels"""
+        idlist = []
+        for channel in channels:
+            await channel.set_permissions(member, read_messages=False, send_messages=False, 
+                                          reason=reason)
+            idlist.append(channel.id)
+        chans = ", ".join(x.mention for x in channels)
+        expiry_timestamp = self.bot.parse_time(duration)
+        expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
+        duration_text = self.bot.get_relative_timestamp(time_to=expiry_datetime,
+                                                        include_to=True,
+                                                        humanized=True)
+        timer = self.bot.get_cog('PowersCronManagement')
+        if not timer:
+            return await ctx.send("Sorry, the timer system "
+                                  "(PowersCron) is currently unavailable.")
+        ext = {"guild_id": ctx.guild.id, "user_id": member.id, 
+               "channels": idlist}
+        await timer.add_job("timeblock", datetime.utcnow(), 
+                            expiry_datetime, json.dumps(ext))
+        await ctx.send(f"Temp blocked {member.mention} from viewing "
+                       f"{chans} until {duration_text}.")
+        dm_message = f"You were temporarily blocked on {ctx.guild.name} "\
+                     f"from viewing {chans}!"
+        if reason:
+            dm_message += f" The given reason is: \"{reason}\"."
+        dm_message += f"\n\nThis block will expire {duration_text}."
+        try:
+            await member.send(dm_message)
+        except discord.errors.Forbidden:
+            pass
+        mod_log_chan = self.bot.get_channel(552583376566091805)
+        safe_name = await commands.clean_content().convert(ctx, str(member))
+        msg = f"🚫 **Temporary Channel Block**: {ctx.author.mention} blocked "\
+              f"{member.mention} | {safe_name} from viewing {chans}"\
+              f"\nBlock expires at {duration_text}"
+        if reason:
+            msg += f"✏️ __Reason__: \"{reason}\""
+        else:
+            msg += f"\nPlease add an explanation below. In the future" \
+                   f", it is recommended to use " \
+                   f"`{ctx.prefix}tempblock {ctx.command.signature}`" 
+        await mod_log_chan.send(msg)
 
 def setup(bot):
     bot.add_cog(LightningHub(bot))

@@ -169,6 +169,24 @@ class PowersCronManagement(commands.Cog):
                             # Delete the scheduled unmute
             query = "DELETE FROM cronjobs WHERE id=$1;"
             await self.bot.db.execute(query, jobtype['id'])
+        elif jobtype['event'] == "timeblock":
+            ext = json.loads(jobtype['extra'])
+            guild = self.bot.get_guild(ext['guild_id'])
+            member = guild.get_member(ext['user_id'])
+            for channel in ext['channels']:
+                try:
+                    ch = guild.get_channel(channel)
+                    await ch.set_permissions(member, 
+                                             read_messages=None, 
+                                             send_messages=None, 
+                                             reason="PowersCron: "
+                                             "Auto Unblock")
+                except:
+                    self.bot.log.error(traceback.format_exc())
+                    pass
+            async with self.bot.db.acquire() as con:
+                query = "DELETE FROM cronjobs WHERE id=$1;"
+                await con.execute(query, jobtype['id'])
         #elif jobtype['job_type'] == "guild_clean":
         #    clean = self.bot.get_cog('guild_cleanup')
         #    if not clean:
@@ -203,6 +221,7 @@ class PowersCronManagement(commands.Cog):
         - reminder
         - timeban
         - timed_restriction
+        - timeblock
         """
         query = """SELECT id, expiry, extra
                    FROM cronjobs
