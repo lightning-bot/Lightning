@@ -77,7 +77,7 @@ class Logger(Cog):
             for r in rsts:
                 tmp.append(r[0])
             roles = [discord.utils.get(member.guild.roles, id=rst) for rst in tmp]
-            await member.add_roles(*roles)
+            await member.add_roles(*roles, reason="Reapply Role Restrictions")
         except Exception as e:
             self.bot.log.error(e)
             pass

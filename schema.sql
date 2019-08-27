@@ -34,3 +34,23 @@ CREATE TABLE user_restrictions
     role_id BIGINT NOT NULL,
     CONSTRAINT user_restrictions_pkey PRIMARY KEY (guild_id, user_id, role_id)
 );
+
+CREATE TABLE guild_mod_config
+(
+    guild_id BIGINT PRIMARY KEY,
+    mute_role_id BIGINT,
+    log_channels JSONB
+);
+
+CREATE TABLE toggleable_roles
+(
+    guild_id BIGINT PRIMARY KEY,
+    role_id BIGINT
+);
+
+CREATE TABLE auto_roles
+(
+    guild_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    CONSTRAINT auto_roles_pkey PRIMARY KEY (guild_id, role_id)
+);
