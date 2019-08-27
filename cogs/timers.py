@@ -65,8 +65,8 @@ class Timers(commands.Cog):
         to_dump = {"reminder_text": safe_description, 
                    "author": ctx.author.id, "channel": ctx.channel.id}
         await timer.add_job("reminder", datetime.utcnow(), 
-                              expiry_datetime, 
-                              json.dumps(to_dump))
+                            expiry_datetime, 
+                            json.dumps(to_dump))
         await ctx.send(f"{ctx.author.mention}: I'll remind you in {duration_text}.")
 
     @commands.command(aliases=['listreminds', 'listtimers'])
