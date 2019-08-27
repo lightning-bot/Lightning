@@ -48,7 +48,7 @@ class PowersCronManagement(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.statuses = json.load(open('resources/status_switching.json', 
-                                  'r', encoding='utf8'))
+                                       'r', encoding='utf8'))
         self.status_rotate.start()
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
         #self.cron_6_hours.start()
