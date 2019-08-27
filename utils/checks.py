@@ -97,11 +97,14 @@ async def member_at_least_has_staff_role(self, member: discord.Member, min_role:
             """
     staff_roles = []
     for role in role_list:
-        output = await self.bot.db.fetch(query, member.guild.id, role)
-        if len(output) != 0:
-            staff_roles.append(output)
-    tmp = [r[0] for r in staff_roles[0]]
+        async with self.bot.db.acquire() as con:
+            out = await con.fetch(query, member.guild.id, role)
+        for role_id in out:
+            staff_roles.append(role_id)
     user_roles = [role.id for role in member.roles]
+    if len(staff_roles) == 0:
+        return False
+    tmp = [r[0] for r in staff_roles]
     if any(role in user_roles for role in tmp):
         return True
     else:
