@@ -26,33 +26,54 @@
 import aiohttp
 import discord
 from discord.ext import commands
-# import io
-# from PIL import Image, ImageFilter
+import io
+from PIL import Image, ImageDraw, ImageFont
 import random
 import math
 import config
 from datetime import datetime
-
+import textwrap
 
 class Fun(commands.Cog):
     """Fun Stuff"""
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
-        self.bot.log.info(f'{self.qualified_name} loaded')
 
     def c_to_f(self, c):
         """stolen from Robocop-ng. """
         return math.floor(9.0 / 5.0 * c + 32)
 
-   # async def get_image(self, ctx, url)
+    def make_kcdt(self, text: str):
+        img = Image.open("resources/templates/kurisudrawtemp.png")
+        dafont = ImageFont.truetype(font="resources/fonts/arialrounded.ttf", 
+                                    size=42, encoding="unic")
+        draw = ImageDraw.Draw(img)
+        # Shoutouts to that person on stackoverflow that I don't remember
+        y_text = 163
+        lines = textwrap.wrap(text, width=17)
+        for line in lines:
+            if y_text >= 350:
+                break
+            line_width, line_height = dafont.getsize(line)
+            draw.multiline_text((234, y_text), 
+                                line, font=dafont, 
+                                fill="black")#align="center")
+            y_text += line_height
+        finalbuffer = io.BytesIO()
+        img.save(finalbuffer, 'png')
+        finalbuffer.seek(0)
+        return finalbuffer
 
-    #def final_image(self, image): # Image Sav
-    #    image_file = io.BytesIO()
-    #    image.save(image_file, format="png")
-    #    image_file.seek(0)
-    #    return image_file
-
+    @commands.command(aliases=['kurisudraw'])
+    @commands.has_permissions(attach_files=True)
+    async def kurisuwhiteboard(self, ctx, *, text: str):
+        """Kurisu can solve this, can you?"""
+        async with ctx.typing():
+            img_buff = await ctx.bot.loop.run_in_executor(None, 
+                                                          self.make_kcdt, 
+                                                          text)
+            await ctx.send(file=discord.File(img_buff, filename="kurisudraw.png"))
 
     @commands.command(name="8ball")
     @commands.cooldown(rate=1, per=4.0, type=commands.BucketType.channel)
