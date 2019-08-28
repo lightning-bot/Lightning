@@ -65,6 +65,16 @@ class Fun(commands.Cog):
         finalbuffer.seek(0)
         return finalbuffer
 
+    def make_jpegify(self, url):
+        img = Image.open(io.BytesIO(url))
+
+        buff = io.BytesIO()
+        img.convert("RGB").save(buff, "jpeg", 
+                                quality=random.randrange(1, 15))
+        buff.seek(0)
+
+        return buff
+
     @commands.command(aliases=['kurisudraw'])
     @commands.has_permissions(attach_files=True)
     async def kurisuwhiteboard(self, ctx, *, text: str):
@@ -74,6 +84,24 @@ class Fun(commands.Cog):
                                                           self.make_kcdt, 
                                                           text)
             await ctx.send(file=discord.File(img_buff, filename="kurisudraw.png"))
+    
+    @commands.command()
+    @commands.has_permissions(attach_files=True)
+    async def jpegify(self, ctx, url: str = None):
+        """Jpegify's an image"""
+        async with ctx.typing():
+            if url is None:
+                async for message in ctx.channel.history(limit=5):
+                    for attachment in message.attachments:
+                        url = attachment.proxy_url
+            if url:
+                image_url = await self.bot.aiogetbytes(url)
+                image_buffer = await ctx.bot.loop.run_in_executor(None,
+                                                                  self.make_jpegify,
+                                                                  image_url)
+                await ctx.send(file=discord.File(image_buffer, filename="jpegify.jpeg"))
+            else:
+                return await ctx.send(f"Please provide an image!")
 
     @commands.command(name="8ball")
     @commands.cooldown(rate=1, per=4.0, type=commands.BucketType.channel)
