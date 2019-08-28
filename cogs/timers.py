@@ -23,40 +23,38 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import time
 from datetime import datetime
 from discord.ext import commands
 import traceback
 import discord
 import config
 import json
+import utils.time
 
 class Timers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=["addreminder", "timer"])
-    async def remind(self, ctx, when: str, *, description: str = "something"):
+    @commands.command(usage="<when>", aliases=["addreminder", "timer"])
+    async def remind(self, ctx, *, when: utils.time.UserFriendlyTime(default='something')):
         """Reminds you of something after a certain date.
+
+        The input can be any direct date (e.g. YYYY-MM-DD) 
+        or a human readable offset.
         
         Examples:
-        - ".remind 1d do essay" (1 day)
-        - ".remind 1h do dishes" (1 hour)
+        - ".remind in 2 days do essay" (2 days)
+        - ".remind 1 hour do dishes" (1 hour)
         - ".remind 60s clean" (60 seconds)
+
+        Times are in UTC.
         """
-        current_timestamp = time.time()
-        expiry_timestamp = self.bot.parse_time(when)
-
-        if current_timestamp + 4 > expiry_timestamp:
-            await ctx.send(f"{ctx.author.mention}: Minimum "
-                            "remind interval is 5 seconds.")
-            return
-
-        expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
-        duration_text = self.bot.get_relative_timestamp(time_to=expiry_datetime,
+        # Shoutouts to R.Danny for the UserFriendlyTime Code
+        duration_text = self.bot.get_relative_timestamp(time_from=ctx.message.created_at,
+                                                        time_to=when.dt,
                                                         include_to=True,
                                                         humanized=True)
-        safe_description = await commands.clean_content().convert(ctx, str(description))
+        safe_description = await commands.clean_content().convert(ctx, str(when.arg))
 
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
@@ -65,9 +63,10 @@ class Timers(commands.Cog):
         to_dump = {"reminder_text": safe_description, 
                    "author": ctx.author.id, "channel": ctx.channel.id}
         await timer.add_job("reminder", datetime.utcnow(), 
-                            expiry_datetime, 
+                            when.dt, 
                             json.dumps(to_dump))
-        await ctx.send(f"{ctx.author.mention}: I'll remind you in {duration_text}.")
+        await ctx.send(f"{ctx.author.mention}: I'll remind you "
+                       f"{duration_text} about {safe_description}.")
 
     @commands.command(aliases=['listreminds', 'listtimers'])
     async def listreminders(self, ctx):
@@ -87,13 +86,12 @@ class Timers(commands.Cog):
         # Kinda hacky-ish code
         try:
             for job in rem:
-                #expiry_timestr = datetime.utcfromtimestamp(job['expiry'])
                         #.strftime('%Y-%m-%d %H:%M:%S (UTC)')
                 ext = json.loads(job['extra'])
                 duration_text = self.bot.get_relative_timestamp(time_to=job['expiry'],
                                                                 include_to=True,
                                                                 humanized=True)
-                embed.add_field(name=f"{job['id']}: In {duration_text}", 
+                embed.add_field(name=f"{job['id']}: {duration_text}", 
                                 value=f"{ext['reminder_text']}")
         except:
             self.bot.log.error(traceback.format_exc())
@@ -105,6 +103,7 @@ class Timers(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(aliases=['deletetimer', 'removereminder'])
+    @commands.bot_has_permissions(add_reactions=True)
     async def deletereminder(self, ctx, *, reminder_id: int):
         """Deletes a reminder by ID.
         
@@ -124,6 +123,12 @@ class Timers(commands.Cog):
 
         await ctx.send(f"Successfully deleted reminder (ID: {reminder_id})")
         await ctx.message.add_reaction("✅") # For whatever reason
+
+    @commands.command(name="current-utc-time")
+    async def currentutctime(self, ctx):
+        """Sends the current time in UTC"""
+        await ctx.send(f"It is currently "
+                       f"`{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC`")
 
 def setup(bot):
     bot.add_cog(Timers(bot))
