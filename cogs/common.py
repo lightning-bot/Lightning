@@ -24,7 +24,7 @@
 import asyncio
 import traceback
 import datetime
-import humanize
+import arrow
 import time
 import math
 import parsedatetime
@@ -60,11 +60,14 @@ class Common(Cog):
         # Setting default value to utcnow() makes it show time from cog load
         # which is not what we want
         if not time_from:
-            time_from = datetime.datetime.utcnow()
+            time_from = arrow.utcnow()
         if not time_to:
-            time_to = datetime.datetime.utcnow()
+            time_to = arrow.utcnow()
         if humanized:
-            humanized_string = humanize.naturaltime(time_from - time_to)
+            # Monkey patch to get a bit more humanized
+            #patch = time_to + datetime.timedelta(0,1)
+            arrow_time = arrow.get(time_to)
+            humanized_string = arrow_time.humanize(time_from)
             if include_from and include_to:
                 str_with_from_and_to = f"{humanized_string} "\
                                        f"({str(time_from).split('.')[0]} "\

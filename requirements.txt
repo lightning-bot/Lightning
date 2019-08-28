@@ -11,3 +11,4 @@ python-gitlab
 dblpy
 psycopg2
 asyncpg
+arrow
