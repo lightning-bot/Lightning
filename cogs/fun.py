@@ -50,13 +50,14 @@ class Fun(commands.Cog):
                                     size=42, encoding="unic")
         draw = ImageDraw.Draw(img)
         # Shoutouts to that person on stackoverflow that I don't remember
-        y_text = 163
-        lines = textwrap.wrap(text, width=17)
+        y_text = 228
+        wdmax = 560
+        lines = textwrap.wrap(text, width=20)
         for line in lines:
-            if y_text >= 350:
+            if y_text >= 390:
                 break
-            line_width, line_height = dafont.getsize(line)
-            draw.multiline_text((234, y_text), 
+            line_width, line_height = draw.textsize(line, font=dafont)
+            draw.multiline_text(((wdmax - line_width) / 2, y_text), 
                                 line, font=dafont, 
                                 fill="black")#align="center")
             y_text += line_height
