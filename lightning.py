@@ -165,9 +165,12 @@ class LightningBot(commands.Bot):
     async def process_command_usage(self, message):
         bl = self.get_cog('Owner')
         if not bl:
-            return self.log.error("Owner Cog Is Not Loaded.")
-        if str(message.author.id) in bl.grab_blacklist():
-            return
+            self.log.error("Owner Cog Is Not Loaded.")
+        if bl:
+            if str(message.author.id) in bl.grab_blacklist():
+                return
+            if str(message.guild.id) in bl.grab_blacklist_guild():
+                return
         ctx = await self.get_context(message, cls=LightningContext)
         await self.invoke(ctx)
 
