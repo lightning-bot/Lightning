@@ -29,8 +29,6 @@ import traceback
 import inspect
 import re
 import asyncio
-from database import BlacklistGuild
-from utils.restrictions import add_restriction
 import random
 import config
 from utils.bot_mgmt import add_botmanager, check_if_botmgmt, remove_botmanager, read_bm
@@ -39,6 +37,7 @@ import os
 import json
 import shutil
 from utils.custom_prefixes import get_guildid_prefixes
+from utils.paginator import TextPages
 
 class Owner(commands.Cog):
     def __init__(self, bot):
@@ -55,18 +54,25 @@ class Owner(commands.Cog):
         else:
             return {}
 
-    def blacklist_dump(self, json_returned):
+    def blacklist_dump(self, filepath, json_returned):
         os.makedirs("config", exist_ok=True)
-        with open("config/user_blacklist.json", "w") as f:
+        with open(f"config/{filepath}.json", "w") as f:
             return json.dump(json_returned, f)
+
+    def grab_blacklist_guild(self):
+        if os.path.isfile("config/guild_blacklist.json"):
+            with open("config/guild_blacklist.json", "r") as blacklist:
+                return json.load(blacklist)
+        else:
+            return {}
 
     @commands.is_owner()
     @commands.command(aliases=['sh'])
     async def shell(self, ctx, *, command: str):
         """Runs a command in the terminal/shell"""
         shell_out = await self.bot.call_shell(command)
-        sliced_message = await self.bot.slice_message(shell_out)
-        await paginator_reg(self.bot, ctx, size=1985, page_list=sliced_message)
+        pages = TextPages(ctx, shell_out)
+        await pages.paginate()
     
     @commands.is_owner()
     @commands.command()
@@ -114,7 +120,7 @@ class Owner(commands.Cog):
     
     @commands.check(check_if_botmgmt)
     @blacklist.command(name='addguild', aliases=['guildadd'])
-    async def blacklist_guild(self, ctx, server_id: int):
+    async def blacklist_guild(self, ctx, server_id: int, *, reason: str = ""):
         """Blacklist a guild from using the bot"""
         guild = self.bot.get_guild(server_id)
         if guild is None:
@@ -122,29 +128,27 @@ class Owner(commands.Cog):
         else:
             msg = ""
             await guild.leave()
-
-        session = self.bot.dbsession()
-        blacklist = BlacklistGuild(guild_id=server_id)
-        session.merge(blacklist)
-        session.commit()
-        session.close()
+        bl = self.grab_blacklist_guild()
+        if str(server_id) in bl:
+            return await ctx.send(f"Guild is already blacklisted")
+        if reason:
+            tr = reason
+        else:
+            tr = "No Reason Provided"
+        bl[str(server_id)] = tr
+        self.blacklist_dump("guild_blacklist", bl)
         await ctx.send(msg + f'✅ Successfully blacklisted guild `{server_id}`')
 
     @commands.check(check_if_botmgmt)
     @blacklist.command(name='removeguild', aliases=['unblacklist-guild'])
     async def unblacklist_guild(self, ctx, server_id: int):
         """Unblacklist a guild from using the bot"""
-        session = self.bot.dbsession()
-        try:
-            check_blacklist = session.query(BlacklistGuild).filter_by(guild_id=server_id).one()
-            session.delete(check_blacklist)
-            session.commit()
-            session.close()
-            await ctx.send(f"✅ `{server_id}` successfully unblacklisted!")
-        except:
-            check_blacklist = None
-            session.close()
-            return await ctx.send(f":x: `{server_id}` isn't blacklisted!")
+        bl = self.grab_blacklist_guild()
+        if str(server_id) not in bl:
+            return await ctx.send(f"Guild is not blacklisted!")
+        bl.pop(str(server_id))
+        self.blacklist_dump("guild_blacklist", bl)
+        await ctx.send(f"✅ `{server_id}` successfully unblacklisted!")
 
     @commands.check(check_if_botmgmt)
     @blacklist.command(name="adduser", aliases=["blacklist-user"])
@@ -160,7 +164,7 @@ class Owner(commands.Cog):
         else:
             rb = "No Reason Provided"
         bl[str(userid)] = rb
-        self.blacklist_dump(bl)
+        self.blacklist_dump("user_blacklist", bl)
         await ctx.send(f"✅ Successfully blacklisted user `{userid}`")
 
     @commands.check(check_if_botmgmt)
@@ -171,34 +175,22 @@ class Owner(commands.Cog):
         if str(userid) not in bl:
             return await ctx.send("User is not blacklisted!")
         bl.pop(str(userid))
-        self.blacklist_dump(bl)
+        self.blacklist_dump("user_blacklist", bl)
         await ctx.send(f"✅ Successfully unblacklisted user `{userid}`")
 
     @commands.check(check_if_botmgmt)
     @blacklist.command(name="search")
-    async def search_blacklist(self, ctx, guild_or_user_id: int):
+    async def search_blacklist(self, ctx, id: int):
         """Search the blacklist to see if a user or a guild is blacklisted"""
-        session = self.bot.dbsession()
-        try:
-            check_if_guild = session.query(BlacklistGuild).filter_by(guild_id=guild_or_user_id).one()
-            session.close()
-            await ctx.send(f"✅ Guild ID `{guild_or_user_id}` is currently blacklisted.")
-        except:
-            check_if_guild = None
-            session.close()
-
-        if check_if_guild is None:
-            try:
-                bl = self.grab_blacklist()
-                if str(guild_or_user_id) in bl:
-                    await ctx.send(f"✅ User ID `{guild_or_user_id}` is currently blacklisted.\n"
-                                   f"Reason: {bl[str(guild_or_user_id)]}")
-            except:
-                check_if_user = None
-        # If nothing found in either tables, return
-        if check_if_user is None:
-            session.close()
-            await ctx.send(f"💢 No matches found for `{guild_or_user_id}`.")
+        bl = self.grab_blacklist()
+        if str(id) in bl:
+            return await ctx.send(f"✅ User ID `{id}` is currently blacklisted.\n"
+                                  f"Reason: {bl[str(id)]}")
+        bl = self.grab_blacklist_guild()
+        if str(id) in bl:
+            return await ctx.send(f"✅ Guild ID `{id}` is currently blacklisted.\n"
+                                  f"Reason: {bl[str(id)]}")
+        await ctx.send("No matches found!")
 
     #@commands.command(name="blacklistuserlist", aliases=["blacklisteduserlist"])
     #@commands.is_owner()
@@ -414,7 +406,7 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def playing(self, ctx, *, gamename: str = ""):
         """Sets the bot's playing message. Owner only."""
-        await self.bot.change_presence(activity=discord.Game(name=f'{" ".join(gamename)}'))
+        await self.bot.change_presence(activity=discord.Game(name=gamename))
         await ctx.send(f'Successfully changed status to `{gamename}`')
 
     @commands.command(aliases=['bye', 'exit'])
@@ -423,6 +415,7 @@ class Owner(commands.Cog):
         """Stop the Bot."""
         shutdown_messages = ['Shutting Down...', "See ya!", "RIP", "Turning off...."]
         await ctx.send(f"👋 {random.choice(shutdown_messages)}")
+        await self.bot.db.close()
         await self.bot.close()
 
     @commands.command()
@@ -431,33 +424,13 @@ class Owner(commands.Cog):
         """Direct messages a user""" # No checks yet
         await user_id.send(message)
 
-    @commands.command(name="addrestriction", aliases=['addrestrict'])
-    @commands.is_owner()
-    async def add_restriction_to_user(self, ctx, member: discord.Member, *, role: discord.Role):
-        add_restriction(ctx.guild, member.id, role.id)
-        await ctx.send(f"Applied {role.id} | {role.name} to {member}")
-
     @commands.check(check_if_botmgmt)
-    @commands.group(invoke_without_command=True)
+    @commands.command()
     async def curl(self, ctx, url: str):
-        """Curls a site"""
+        """Curls a site, returning its contents."""
         text = await self.bot.aioget(url)
-        if len(text) > 1990: # Safe Number
-            haste_url = await self.bot.haste(text)
-            return await ctx.send(f"Message exceeded character limit. See the haste {haste_url}")
-        await ctx.send(f"```md\n{text}```")
-
-    @commands.check(check_if_botmgmt)
-    @curl.command(name='raw')
-    async def curl_raw(self, ctx, url: str):
-        text = await self.bot.aiogetbytes(url)
-
-        sliced_message = await self.bot.slice_message(f"{url}\n\n{text}",
-                                                      prefix="```",
-                                                      suffix="```")
-
-        for msg in sliced_message:
-            await ctx.send(msg)
+        pages = TextPages(ctx, f"{text}")
+        await pages.paginate()
 
     @commands.is_owner()
     @commands.command()
@@ -473,29 +446,28 @@ class Owner(commands.Cog):
         remove_botmanager(uid.id)
         await ctx.send(f"{uid} is no longer a bot manager")
 
-    @commands.is_owner()
-    @commands.command()
-    async def fetchdb(self, ctx):
-        """Fetches the database files"""
-        await ctx.send(file=discord.File("config/powerscron.sqlite3"))
-        await ctx.send(file=discord.File("config/database.sqlite3"))
+    async def error_on_cog_method(self, ctx, cog, method: str, ext):
+        msg =  f"\N{WARNING SIGN} {method} error for "\
+               f"`cogs.{cog}`"
+        pages = TextPages(ctx, f"{ext}")
+        await ctx.send(msg)
+        await pages.paginate()
 
     @commands.command(name='load')
     @commands.is_owner()
     async def c_load(self, ctx, *, cog: str):
         """Load a Cog."""
         cogx = "cogs." + cog
-        if cogx in self.bot.cog_loaded:
+        if cogx in self.bot.success_cogs:
             return await ctx.send(f'`{cogx}` is already loaded.')
         try:
             self.bot.load_extension("cogs." + cog)
-        except Exception as e:
-            self.bot.cog_unloaded.append("cogs." + cog)
-            await ctx.send(f'💢 There was an error loading the cog \n'
-                           f'**ERROR:** ```{type(e).__name__} - {e}```')
+        except Exception:
+            self.bot.unloaded_cogs.append("cogs." + cog)
+            return await self.error_on_cog_method(ctx, cog, "Load", traceback.format_exc())
         else:
-            self.bot.cog_loaded.append("cogs." + cog)
-            self.bot.cog_unloaded.remove("cogs." + cog)
+            self.bot.success_cogs.append("cogs." + cog)
+            self.bot.unloaded_cogs.remove("cogs." + cog)
             self.bot.log.info(f"{ctx.author} loaded the cog `{cog}`")
             await ctx.send(f'✅ Successfully loaded `cogs.{cog}`')
 
@@ -505,13 +477,12 @@ class Owner(commands.Cog):
         """Unloads a Cog."""
         try:
             self.bot.unload_extension("cogs." + cog)
-        except Exception as e:
-            await ctx.send(f'💢 There was an error unloading the cog \n'
-                           f'**ERROR:** ```{type(e).__name__} - {e}```')
+        except Exception:
+            return await self.error_on_cog_method(ctx, cog, "Unload", traceback.format_exc())
         else:
             self.bot.log.info(f"{ctx.author} unloaded the cog `{cog}`")
-            self.bot.cog_unloaded.append("cogs." + cog)
-            self.bot.cog_loaded.remove("cogs." + cog)    
+            self.bot.unloaded_cogs.append("cogs." + cog)
+            self.bot.success_cogs.remove("cogs." + cog)    
             await ctx.send(f'✅ Successfully unloaded `cogs.{cog}`')
 
     @commands.command(name='reload')
@@ -521,15 +492,14 @@ class Owner(commands.Cog):
         try:
             self.bot.unload_extension("cogs." + cog)
             self.bot.load_extension("cogs." + cog)
-        except Exception as e:
-            self.bot.cog_loaded.remove("cogs." + cog)
-            self.bot.cog_unloaded.append("cogs." + cog)
-            return await ctx.send(f'💢 There was an error reloading the cog \n'
-                           f'**ERROR:** ```{type(e).__name__} - {e}```')
+        except Exception:
+            self.bot.success_cogs.remove("cogs." + cog)
+            self.bot.unloaded_cogs.append("cogs." + cog)
+            return await self.error_on_cog_method(ctx, cog, "Reload", traceback.format_exc())
         else:
             self.bot.log.info(f"{ctx.author} reloaded the cog `{cog}`")  
-            self.bot.cog_loaded.remove("cogs." + cog)
-            self.bot.cog_loaded.append("cogs." + cog)   
+            self.bot.success_cogs.remove("cogs." + cog)
+            self.bot.success_cogs.append("cogs." + cog)   
             await ctx.send(f'✅ Successfully reloaded `cogs.{cog}`')
 
     @commands.command(aliases=['list-cogs'])
@@ -538,12 +508,12 @@ class Owner(commands.Cog):
         """Lists the currently loaded cogs"""
         paginator = commands.Paginator(prefix="", suffix="")
         paginator.add_line("✅ __Loaded Cogs:__")
-        for cog in self.bot.cog_loaded:
+        for cog in self.bot.success_cogs:
             paginator.add_line(f"- {cog}")
         
         paginator.add_line(":x: __Unloaded Cogs:__")
-        if len(self.bot.cog_unloaded) != 0:
-            for cog in self.bot.cog_unloaded:
+        if len(self.bot.unloaded_cogs) != 0:
+            for cog in self.bot.unloaded_cogs:
                 paginator.add_line(f"- {cog}")
         else:
             paginator.add_line("None")
@@ -564,9 +534,8 @@ class Owner(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        session = self.bot.dbsession()
-        try:
-            session.query(BlacklistGuild).filter_by(guild_id=guild.id).one()
+        bl = self.grab_blacklist_guild()
+        if str(guild.id) in bl:
             self.bot.log.info(f"Attempted to Join Blacklisted Guild | {guild.name} | ({guild.id})")
             try:
                 await guild.owner.send("**Sorry, this guild is blacklisted.** To appeal your blacklist, "
@@ -575,10 +544,8 @@ class Owner(commands.Cog):
                 pass
             await guild.leave()
             return
-        except:
-            guild_blacklist = None
 
-        if guild_blacklist is None:
+        else:
             msg = f"Thanks for adding me! I'm Lightning.\n"\
                    "Discord's API Terms of Service requires me to tell you that I "\
                    "log command usage and errors to a special channel.\n**Only commands and"\
@@ -592,7 +559,6 @@ class Owner(commands.Cog):
             except discord.Forbidden:
                 pass
             self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
-        session.close()
             
 def setup(bot):
     bot.add_cog(Owner(bot))
