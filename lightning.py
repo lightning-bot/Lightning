@@ -241,22 +241,16 @@ class LightningBot(commands.Bot):
         elif isinstance(error, commands.DisabledCommand):
             return await ctx.send(f"{ctx.author.mention}: This command is currently "
                                   "disabled!")   
-        if ctx.invoked_subcommand is None:
-            help_text = f"Usage of this command is: ```{ctx.prefix}"\
-                        f"{ctx.invoked_with} "\
-                        f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
-                        f"{ctx.command.name}` for more info about this command."
-        else:
-            help_text = f"Usage of this command is: ```{ctx.prefix}"\
-                        f"{ctx.invoked_subcommand} "\
-                        f"{ctx.command.signature}```\nPlease see `{ctx.prefix}help "\
-                        f"{ctx.command}` for more info about this command." 
+        help_text = f"\n\nPlease see `{ctx.prefix}help "\
+                    f"{ctx.command}` for more info about this command." 
         if isinstance(error, commands.BadArgument):
+            content = await commands.clean_content().convert(ctx, str(error))
             return await ctx.send(f"{ctx.author.mention}: You gave incorrect "
-                                  f"arguments. {help_text}")
+                                  f"arguments. `{content}` {help_text}")
         elif isinstance(error, commands.MissingRequiredArgument):
+            content = await commands.clean_content().convert(ctx, str(error))
             return await ctx.send(f"{ctx.author.mention}: You gave incomplete "
-                                  f"arguments. {help_text}")
+                                  f"arguments. `{content}` {help_text}")
         elif isinstance(error, commands.CommandInvokeError) and\
             ("Cannot send messages to this user" in error_text):
             return await ctx.send(f"{ctx.author.mention}: I can't DM you.\n"
@@ -266,9 +260,6 @@ class LightningBot(commands.Bot):
                                   "run the command again.")
         elif isinstance(error, commands.CommandNotFound):
             return # We don't need to say anything
-
-    async def on_command_completion(self, ctx):
-        self.successful_command += 1
         
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
