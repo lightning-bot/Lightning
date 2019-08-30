@@ -34,7 +34,6 @@ from utils.bot_mgmt import check_if_botmgmt
 import subprocess
 import random
 import json
-from utils.restrictions import remove_restriction
 import dbl
 
 class RemoveRestrictionError(Exception):
@@ -88,7 +87,7 @@ class PowersCronManagement(commands.Cog):
                     """
             connect = await self.bot.db.acquire()
             try:
-                await connect.execute(query, event, created, expiry, extra)
+                await connect.execute(query, event, created, expiry, json.dumps(extra))
             finally:
                 await self.bot.db.release(connect)
         else:
@@ -235,8 +234,10 @@ class PowersCronManagement(commands.Cog):
         finally:
             await self.bot.db.release(con)
         embed = discord.Embed(title="Active PowersCron Jobs", color=discord.Color(0xf74b06))
-        if len(table) == 0:
-            embed.set_footer(text=f"0 running jobs for {jobtype}")
+        query = """SELECT COUNT(*) FROM cronjobs WHERE event=$1"""
+        async with self.bot.db.acquire() as con:
+            result = await con.fetch(query, jobtype)
+        embed.set_footer(text=f"{result[0][0]} running jobs for {jobtype}")
         try:
             for job in table:
                 duration_text = self.bot.get_relative_timestamp(time_to=job['expiry'],

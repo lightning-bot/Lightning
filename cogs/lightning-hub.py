@@ -229,7 +229,7 @@ class LightningHub(commands.Cog):
         ext = {"guild_id": ctx.guild.id, "user_id": member.id, 
                "channels": idlist}
         await timer.add_job("timeblock", datetime.utcnow(), 
-                            expiry_datetime, json.dumps(ext))
+                            expiry_datetime, ext)
         await ctx.send(f"Temp blocked {member.mention} from viewing "
                        f"{chans} until {duration_text}.")
         dm_message = f"You were temporarily blocked on {ctx.guild.name} "\
