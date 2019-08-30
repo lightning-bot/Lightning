@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS cronjobs, staff_roles, userlogs, user_restrictions, tags, c
 CREATE TABLE cronjobs
 (
     id SERIAL PRIMARY KEY,
-    expiry timestamp without time zone DEFAULT (now() at time zone 'utc'), --DEFAULT (now() at time zone 'utc'),
+    expiry timestamp without time zone,
     created timestamp without time zone DEFAULT (now() at time zone 'utc'),
     event TEXT,
     extra JSONB
