@@ -23,7 +23,6 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-from config import database_connection
 #import click
 from lightning import LightningBot
 import asyncio
