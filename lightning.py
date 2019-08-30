@@ -39,13 +39,6 @@ import asyncpg
 import asyncio
 from utils.bot_mgmt import read_bm
 
-try:
-    import uvloop
-except ImportError:
-    pass
-else:
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
 # Uses logging template from ave's botbase.py
 # botbase.py is under the MIT License. 
 # https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
@@ -176,6 +169,9 @@ class LightningBot(commands.Bot):
             if not bl:
                 self.log.error("Owner Cog Is Not Loaded.")
             if bl:
+                # If owner cog is loaded, grab blacklist and blacklist the user
+                # who is spamming and notify us of the person who just got
+                # blacklisted for spamming.
                 td = bl.grab_blacklist()
                 if str(message.author.id) in td:
                     return
@@ -295,10 +291,3 @@ class LightningBot(commands.Bot):
                                   "run the command again.")
         elif isinstance(error, commands.CommandNotFound):
             return # We don't need to say anything
-        
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    bot = LightningBot()
-    bot.db = loop.run_until_complete(bot.create_pool(config.database_connection, 
-                                     command_timeout=60))
-    bot.run(config.token, bot=True, reconnect=True)
