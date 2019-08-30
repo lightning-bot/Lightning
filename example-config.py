@@ -3,6 +3,8 @@ token = "insert-token-here"
 description  = "Lightning+, the successor to Lightning(.js)"
 default_prefix = ['.']
 database_connection = "postgresql://user:password@host/lightning"
+# How many times can commands be spammed before the bot auto-blacklists
+spam_count = 5
 
 # List Cogs that should be loaded on start
 cogs = ['cogs.comics', 'cogs.common', 'cogs.emoji', 'cogs.fun', 
@@ -21,6 +23,8 @@ powerscron_backups = 603389648211017738
 webhookurl = "INSERT_LINK_HERE"
 # Send Guild Joins and Leaves to a channel
 webhook_glog = "INSERT_WEBHOOK_URL"
+# Send info on an auto user blacklist
+webhook_blacklist_alert = "WEBHOOK_URL"
 
 # Bot Owner ID
 owner_id = "INSERT_ID_HERE"

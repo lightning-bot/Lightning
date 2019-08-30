@@ -37,6 +37,7 @@ import config
 import db.per_guild_config
 import asyncpg
 import asyncio
+from utils.bot_mgmt import read_bm
 
 try:
     import uvloop
@@ -114,6 +115,7 @@ class LightningBot(commands.Bot):
         self.success_cogs = []
         self.unloaded_cogs = []
         self.successful_command = 0
+        self.command_spammers = {}
 
         for ext in initial_extensions:
             try:
@@ -162,7 +164,37 @@ class LightningBot(commands.Bot):
               f"\nI'm currently on **{self.version}**"
         await self.botlog_channel.send(msg, delete_after=250)
 
+    async def auto_blacklist_check(self, message):
+        if read_bm(message.author.id) is not False:
+            return
+        try:
+            self.command_spammers[str(message.author.id)] += 1
+        except KeyError:
+            self.command_spammers[str(message.author.id)] = 1
+        if self.command_spammers[str(message.author.id)] >= config.spam_count:
+            bl = self.get_cog('Owner')
+            if not bl:
+                self.log.error("Owner Cog Is Not Loaded.")
+            if bl:
+                td = bl.grab_blacklist()
+                if str(message.author.id) in td:
+                    return
+                td[str(message.author.id)] = "Automatic blacklist on command spam"
+                bl.blacklist_dump("user_blacklist", td)
+                embed = discord.Embed(title="🚨 Auto User Blacklist", 
+                                      color=discord.Color.red())
+                embed.description=f"User: {message.author}\n"\
+                                  f"Spammed Commands "\
+                                  f"Count: {self.command_spammers[str(message.author.id)]}"
+                wbhk = discord.Webhook.from_url
+                adp = discord.AsyncWebhookAdapter(self.aiosession)
+                webhook = wbhk(config.webhook_blacklist_alert, adapter=adp)
+                self.log.info(f"User automatically blacklisted for command spam |"
+                              f" {message.author} | ID: {message.author.id}")
+                await webhook.execute(embed=embed)
+
     async def process_command_usage(self, message):
+        await self.auto_blacklist_check(message)
         bl = self.get_cog('Owner')
         if not bl:
             self.log.error("Owner Cog Is Not Loaded.")
@@ -223,7 +255,7 @@ class LightningBot(commands.Bot):
                                   " permissions to run this command. You need: "
                                   f"```- {roles_needed}```")
         elif isinstance(error, commands.BotMissingPermissions):
-            roles_needed = '\n-'.join(error.missing_perms)
+            roles_needed = '\n -'.join(error.missing_perms)
             return await ctx.send(f"{ctx.author.mention}: Bot doesn't have "
                                   "the right permissions to run this command. "
                                   "Please add the following permissions: "
