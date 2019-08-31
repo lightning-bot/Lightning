@@ -26,10 +26,8 @@
 from discord.ext import commands
 import discord
 import db.per_guild_config
-from utils.restrictions import add_restriction, remove_restriction
 from utils.checks import is_guild, has_staff_role
 from datetime import datetime
-import json
 
 class LightningHub(commands.Cog):
     """Helper commands for Lightning Hub only."""
@@ -90,7 +88,11 @@ class LightningHub(commands.Cog):
             msg += f"\n\n{target.mention} has their DMs off and I was unable to send the reason."# Experimental
             pass
 
-        add_restriction(ctx.guild, target.id, role.id)
+        mod = self.bot.get_cog('Mod')
+        if not mod:
+            return await ctx.send("Cannot add restriction "
+                                  "as `cogs.mod` is not loaded")
+        await mod.set_user_restrictions(ctx.guild.id, target.id, role.id)
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now probated.")
 
@@ -112,7 +114,11 @@ class LightningHub(commands.Cog):
                     f", it is recommended to use " \
                     f"`{ctx.prefix}unprobate <user> [reason]`" 
 
-        remove_restriction(ctx.guild, target.id, role.id)
+        mod = self.bot.get_cog('Mod')
+        if not mod:
+            return await ctx.send("Cannot remove restriction "
+                                  "as `cogs.mod` is not loaded")
+        await mod.remove_user_restriction(ctx.guild.id, target.id, role.id)
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now unprobated.")
 
