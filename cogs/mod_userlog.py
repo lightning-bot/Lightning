@@ -34,8 +34,6 @@ from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod_user.py
 # robocop-ng is MIT licensed
 
-# Changes made to this. -Added :blobaww: to no entries
-
 class ModUserLog(commands.Cog):
     """
     Companion to moderation cog.
@@ -48,12 +46,6 @@ class ModUserLog(commands.Cog):
     """
     def __init__(self, bot):
         self.bot = bot
-
-    async def cog_before_invoke(self, ctx):
-        if db.per_guild_config.exist_guild_config(ctx.guild, "config"):
-            ctx.guild_config = db.per_guild_config.get_guild_config(ctx.guild, "config")
-        else:
-            ctx.guild_config = {}
 
     async def get_userlog_embed_for_id(self, uid: str, name: str, guild, own: bool = False,
                                  event=""):
@@ -181,13 +173,15 @@ class ModUserLog(commands.Cog):
         """Clears all events of given type for a user, Admins only."""
         msg = await self.clear_event_from_id(str(target.id), event, guild=ctx.guild)
         await ctx.send(msg)
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+        mod = self.bot.get_cog('Mod')
+        if not mod:
+            return
+        else:
             safe_name = await commands.clean_content().convert(ctx, str(target))                              
             msg = f"🗑 **Cleared {event}**: {ctx.author.mention} cleared" \
                   f" all {event} events of {target.mention} | " \
                   f"{safe_name}"
-            await log_channel.send(msg)
+            await mod.log_send(ctx, msg)
 
     @commands.guild_only()
     @has_staff_role("Admin")
@@ -196,11 +190,13 @@ class ModUserLog(commands.Cog):
         """Clears all events of given type for a userid, Admins only."""
         msg = await self.clear_event_from_id(str(target), event, guild=ctx.guild)
         await ctx.send(msg)
-        if "log_channel" in ctx.guild_config:
-            log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+        mod = self.bot.get_cog('Mod')
+        if not mod:
+            return
+        else:
             msg = f"🗑 **Cleared {event}**: {ctx.author.mention} cleared" \
                   f" all {event} events of <@{target}> "
-            await log_channel.send(msg)
+            await mod.log_send(ctx, msg)
 
     @commands.guild_only()
     @has_staff_role("Admin")
@@ -215,14 +211,16 @@ class ModUserLog(commands.Cog):
         # This is hell.
         if isinstance(del_event, discord.Embed):
             await ctx.send(f"{target.mention} has a {event_name} removed!")
-            if "log_channel" in ctx.guild_config:
-                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            mod = self.bot.get_cog('Mod')
+            if not mod:
+                return
+            else:
                 safe_name = await commands.clean_content().convert(ctx, str(target))
                 msg = f"🗑 **Deleted {event_name}**: " \
                       f"{ctx.author.mention} removed " \
                       f"{event_name} {idx} from {target.mention} | " \
                       f"{safe_name}"
-                await log_channel.send(msg, embed=del_event)
+                await mod.log_send(ctx, msg)
         else:
             await ctx.send(del_event)
 
@@ -238,12 +236,14 @@ class ModUserLog(commands.Cog):
         # This is hell.
         if isinstance(del_event, discord.Embed):
             await ctx.send(f"<@{target}> has a {event_name} removed!")
-            if "log_channel" in ctx.guild_config:
-                log_channel = self.bot.get_channel(ctx.guild_config["log_channel"])
+            mod = self.bot.get_cog('Mod')
+            if not mod:
+                return
+            else:
                 msg = f"🗑 **Deleted {event_name}**: " \
                       f"{ctx.author.mention} removed " \
                       f"{event_name} {idx} from <@{target}> "
-                await log_channel.send(msg, embed=del_event)
+                await mod.log_send(ctx, msg)
         else:
             await ctx.send(del_event)
 
