@@ -1,4 +1,3 @@
-sqlalchemy
 jishaku
 discord.py
 python-dateutil
@@ -9,6 +8,5 @@ Pillow
 github3.py
 python-gitlab
 dblpy
-psycopg2
 asyncpg
 arrow
