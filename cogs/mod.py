@@ -844,5 +844,25 @@ class Mod(commands.Cog):
         log_message = f"🔓 **Hard Unlock** in {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
         await self.log_send(ctx, log_message)
 
+    @commands.Cog.listener()
+    async def on_timeban_job_complete(self, jobinfo):
+        ext = json.loads(jobinfo['extra'])
+        guid = self.bot.get_guild(ext['guild_id'])
+        uid = await self.bot.fetch_user(ext['user_id'])
+        await guid.unban(uid, reason="PowersCron: "
+                            "Timed Ban Expired.")
+
+    @commands.Cog.listener()
+    async def on_timed_restriction_job_complete(self, jobinfo):
+        ext = json.loads(jobinfo['extra'])
+        guild = self.bot.get_guild(ext['guild_id'])
+        user = guild.get_member(ext['user_id'])
+        role = guild.get_role(ext['role_id'])
+        await self.remove_user_restriction(guild.id, 
+                                           user.id, 
+                                           role.id)
+        await user.remove_roles(role, reason="PowersCron: "
+                                "Timed Restriction Expired.")
+
 def setup(bot):
     bot.add_cog(Mod(bot))

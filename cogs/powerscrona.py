@@ -35,6 +35,7 @@ import subprocess
 import random
 import json
 import dbl
+import os
 
 class RemoveRestrictionError(Exception):
     pass
@@ -73,7 +74,8 @@ class PowersCronManagement(commands.Cog):
         -------------
         event: str
             The name of the event to trigger. 
-            Valid events are timed_restriction, timeban, and, reminder
+            Valid events are timed_restriction, timeban, timeblock, 
+            guild_clean, and, reminder
         created: datetime.datetime
             The creation of the timer.
         expiry: datetime.datetime
@@ -116,82 +118,6 @@ class PowersCronManagement(commands.Cog):
         self.bot.log.info(f"Status Changed: {msg}")
         await self.bot.change_presence(activity=discord.Activity(type=g_type, name=st_msg))
 
-    async def process_jobs(self, jobtype):
-        if jobtype['event'] == "reminder":
-            ext = json.loads(jobtype['extra'])
-            channel = self.bot.get_channel(ext['channel'])
-            uid = await self.bot.fetch_user(ext['author'])
-            try:
-                await channel.send(f"{uid.mention}: "
-                                    "You asked to be reminded "
-                                    "on "
-                                   f"{jobtype['created'].strftime(STIMER)} "
-                                   f"about `{ext['reminder_text']}`")
-            # Attempt to DM User if we failed to send Reminder
-            except discord.errors.Forbidden:
-                try:
-                    await uid.send(f"{uid.mention}: "
-                                    "You asked to be reminded "
-                                    "on "
-                                   f"{jobtype['created'].strftime(STIMER)} "
-                                   f"about `{ext['reminder_text']}`")
-                except:
-                    # Optionally add to the db as a failed job
-                    self.bot.log.error(f"Failed to remind {ext['author']}.")
-                    pass
-            # Delete the timer
-            query = "DELETE FROM cronjobs WHERE id=$1;"
-            await self.bot.db.execute(query, jobtype['id'])
-        elif jobtype['event'] == "timeban":
-            ext = json.loads(jobtype['extra'])
-            guid = self.bot.get_guild(ext['guild_id'])
-            uid = await self.bot.fetch_user(ext['user_id'])
-            await guid.unban(uid, reason="PowersCron: "
-                            "Timed Ban Expired.")
-            # Delete the scheduled unban
-            query = "DELETE FROM cronjobs WHERE id=$1;"
-            await self.bot.db.execute(query, jobtype['id'])
-        elif jobtype['event'] == "timed_restriction":
-            mod = self.bot.get_cog('Mod')
-            if not mod:
-                raise RemoveRestrictionError("Cannot remove role "
-                                             "as `cogs.mod` is not loaded")
-            ext = json.loads(jobtype['extra'])
-            guild = self.bot.get_guild(ext['guild_id'])
-            user = guild.get_member(ext['user_id'])
-            role = guild.get_role(ext['role_id'])
-            await mod.remove_user_restriction(guild.id, 
-                                              user.id, 
-                                              role.id)
-            await user.remove_roles(role, reason="PowersCron: "
-                                    "Timed Mute Expired.")
-                            # Delete the scheduled unmute
-            query = "DELETE FROM cronjobs WHERE id=$1;"
-            await self.bot.db.execute(query, jobtype['id'])
-        elif jobtype['event'] == "timeblock":
-            ext = json.loads(jobtype['extra'])
-            guild = self.bot.get_guild(ext['guild_id'])
-            member = guild.get_member(ext['user_id'])
-            for channel in ext['channels']:
-                try:
-                    ch = guild.get_channel(channel)
-                    await ch.set_permissions(member, 
-                                             read_messages=None, 
-                                             send_messages=None, 
-                                             reason="PowersCron: "
-                                             "Auto Unblock")
-                except:
-                    self.bot.log.error(traceback.format_exc())
-                    pass
-            async with self.bot.db.acquire() as con:
-                query = "DELETE FROM cronjobs WHERE id=$1;"
-                await con.execute(query, jobtype['id'])
-        #elif jobtype['job_type'] == "guild_clean":
-        #    clean = self.bot.get_cog('guild_cleanup')
-        #    if not clean:
-        #        return
-        #    clean.clean_guilds_dump()
-
     @commands.check(check_if_botmgmt)
     @commands.command(aliases=['deletejobs'])
     async def deletejob(self, ctx, jobtype: str, job_id: int):
@@ -233,7 +159,8 @@ class PowersCronManagement(commands.Cog):
             table = await con.fetch(query, jobtype)
         finally:
             await self.bot.db.release(con)
-        embed = discord.Embed(title="Active PowersCron Jobs", color=discord.Color(0xf74b06))
+        embed = discord.Embed(title="Active PowersCron Jobs", color=0xf74b06)
+        # It just works:tm:
         query = """SELECT COUNT(*) FROM cronjobs WHERE event=$1"""
         async with self.bot.db.acquire() as con:
             result = await con.fetch(query, jobtype)
@@ -281,7 +208,12 @@ class PowersCronManagement(commands.Cog):
             try:
                 for jobtype in jobs:
                     if timestamp >= jobtype['expiry']:
-                        await self.process_jobs(jobtype)
+                        # Dispatch the job and delete it.
+                        async with self.bot.db.acquire() as con:
+                            query = "DELETE FROM cronjobs WHERE id=$1;"
+                            await con.execute(query, jobtype['id'])
+                        self.bot.dispatch(f"{jobtype['event']}_job_complete", 
+                                          jobtype)
             except:
                 # Keep jobs for now if they errored
                 self.bot.log.error(f"PowersCron ERROR: "
@@ -340,6 +272,31 @@ class PowersCronManagement(commands.Cog):
     @cron_hourly.before_loop
     async def cron_hourly_before_loop(self):
         await self.bot.wait_until_ready()
+
+    # LightningClean - Lightning's File Cleanup System
+    def guild_cleanup(self):
+        os.makedirs("config", exist_ok=True)
+        if os.path.isfile("config/guilds_to_clean.json"):
+            with open("config/guilds_to_clean.json", "r") as blacklist:
+                return json.load(blacklist)
+        else:
+            return {"guildids": []}
+
+    def clean_guilds_dump(self, json_returned):
+        os.makedirs("config", exist_ok=True)
+        with open("config/guilds_to_clean.json", "w") as f:
+            return json.dump(json_returned, f)
+
+    @commands.Cog.listener()
+    async def on_guild_leave(self, guild):
+        to_clean = self.guild_cleanup()
+        gid = str(guild.id)
+        if gid not in to_clean['guildids']:
+            to_clean['guildids'].append(gid)
+            dec = self.bot.parse_time("30 days")
+            await self.add_job("guild_clean", datetime.utcnow(), dec, 
+                               {"guild_id": guild.id})
+        self.clean_guilds_dump(to_clean)
 
 def setup(bot):
     bot.add_cog(PowersCronManagement(bot))

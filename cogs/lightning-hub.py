@@ -28,6 +28,7 @@ import discord
 import db.per_guild_config
 from utils.checks import is_guild, has_staff_role
 from datetime import datetime
+import json
 
 class LightningHub(commands.Cog):
     """Helper commands for Lightning Hub only."""
@@ -259,6 +260,23 @@ class LightningHub(commands.Cog):
                    f", it is recommended to use " \
                    f"`{ctx.prefix}tempblock {ctx.command.signature}`" 
         await mod_log_chan.send(msg)
+
+    @commands.Cog.listener()
+    async def on_timeblock_job_complete(self, jobinfo):
+        ext = json.loads(jobinfo['extra'])
+        guild = self.bot.get_guild(ext['guild_id'])
+        member = guild.get_member(ext['user_id'])
+        for channel in ext['channels']:
+            try:
+                ch = guild.get_channel(channel)
+                await ch.set_permissions(member, 
+                                         read_messages=None, 
+                                         send_messages=None, 
+                                         reason="PowersCron: "
+                                         "Auto Unblock")
+            except:
+                #self.bot.log.error(traceback.format_exc())
+                pass
 
 def setup(bot):
     bot.add_cog(LightningHub(bot))

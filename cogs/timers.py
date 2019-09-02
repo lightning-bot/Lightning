@@ -31,7 +31,9 @@ import config
 import json
 import utils.time
 
-class Timers(commands.Cog):
+STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
+
+class Reminders(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -129,5 +131,29 @@ class Timers(commands.Cog):
         await ctx.send(f"It is currently "
                        f"`{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC`")
 
+    @commands.Cog.listener()
+    async def on_reminder_job_complete(self, jobinfo):
+        ext = json.loads(jobinfo['extra'])
+        channel = self.bot.get_channel(ext['channel'])
+        uid = await self.bot.fetch_user(ext['author'])
+        try:
+            await channel.send(f"{uid.mention}: "
+                                "You asked to be reminded "
+                                "on "
+                               f"{jobinfo['created'].strftime(STIMER)} "
+                               f"about `{ext['reminder_text']}`")
+        # Attempt to DM User if we failed to send Reminder
+        except discord.errors.Forbidden:
+            try:
+                await uid.send(f"{uid.mention}: "
+                                "You asked to be reminded "
+                                "on "
+                               f"{jobinfo['created'].strftime(STIMER)} "
+                               f"about `{ext['reminder_text']}`")
+            except:
+                # Optionally add to the db as a failed job
+                self.bot.log.error(f"Failed to remind {ext['author']}.")
+                pass
+
 def setup(bot):
-    bot.add_cog(Timers(bot))
+    bot.add_cog(Reminders(bot))
