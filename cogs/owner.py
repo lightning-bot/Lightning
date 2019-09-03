@@ -145,7 +145,7 @@ class Owner(commands.Cog):
     async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
         """Blacklist an user from using the bot"""
         bl = self.grab_blacklist()
-        if read_bm(userid) is not False:
+        if userid in config.bot_managers:
             return await ctx.send("You cannot blacklist a bot manager!")
         elif str(userid) in bl:
             return await ctx.send("User already blacklisted!")
@@ -522,10 +522,7 @@ class Owner(commands.Cog):
             return
 
         else:
-            msg = f"Thanks for adding me! I'm Lightning.\n"\
-                   "Discord's API Terms of Service requires me to tell you that I "\
-                   "log command usage and errors to a special channel.\n**Only commands and"\
-                   " errors are logged, no messages are logged, ever.**\n\n"\
+            msg = f"Thanks for adding me! I'm Lightning.\n\n"\
                   f"To setup Lightning, type `l.help Configuration` in your server to begin setup.\n\n"\
                   f"Need help? Either join the Lightning Discord Server. https://discord.gg/cDPGuYd"\
                   f" or see the setup guide"\
