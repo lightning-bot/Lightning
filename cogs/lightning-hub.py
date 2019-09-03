@@ -26,9 +26,10 @@
 from discord.ext import commands
 import discord
 import db.per_guild_config
-from utils.checks import is_guild, has_staff_role
+from utils.checks import is_guild, has_staff_role, is_bot_manager_or_staff
 from datetime import datetime
 import json
+import config
 
 class LightningHub(commands.Cog):
     """Helper commands for Lightning Hub only."""
@@ -260,6 +261,136 @@ class LightningHub(commands.Cog):
                    f", it is recommended to use " \
                    f"`{ctx.prefix}tempblock {ctx.command.signature}`" 
         await mod_log_chan.send(msg)
+
+    @commands.group(invoke_without_command=True)
+    @is_guild(527887739178188830)
+    async def ticket(self, ctx, *, info: str):
+        """Creates a bug ticket. Please provide a detailed description."""
+        query = """INSERT INTO bug_tickets (status, ticket_info, created)
+                   VALUES ($1, $2, $3)
+                   RETURNING id;
+                """
+        if ctx.message.attachments:
+            for message in ctx.message.attachments:
+                info += f" {message.url}\n"
+        ext = {"text": info, "author_id": ctx.author.id}
+        async with self.bot.db.acquire() as con:
+            id = await con.fetchrow(query, "Received", json.dumps(ext), ctx.message.created_at)
+        e = discord.Embed(title=f"Bug Report - ID: {id[0]}", description=info)
+        e.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+        e.timestamp = datetime.utcnow()
+        e.set_footer(text="Status: Received")
+        ch = self.bot.get_channel(config.bug_reports_channel)
+        msg = await ch.send(embed=e)
+        query = """UPDATE bug_tickets 
+                   SET guild_id=$2, channel_id=$3, message_id=$4 
+                   WHERE id=$1;
+                """
+        async with self.bot.db.acquire() as con:
+            await con.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
+        await ctx.safe_send(f"Created a bug ticket with ID {id[0]}. "
+                            "You can see updates on your ticket by looking in the "
+                           f"bug-reports channel or by using `.ticket info {id[0]}`")
+
+    @ticket.command(name="info")
+    @is_guild(527887739178188830)
+    async def ticket_info(self, ctx, ticket_id: int):
+        """Gives you information on a ticket"""
+        query = """SELECT guild_id, channel_id, message_id, ticket_info, status, created
+                   FROM bug_tickets WHERE id=$1;"""
+        async with self.bot.db.acquire() as con:
+            res = await con.fetchrow(query, ticket_id)
+        if res is None:
+            return await ctx.send("Invalid Ticket ID!")
+        ext = json.loads(res['ticket_info'])
+        embed = discord.Embed(title="Ticket Info", description=ext['text'], 
+                              color=0xf74b06)
+        uid = await self.bot.fetch_user(ext['author_id'])
+        embed.set_author(name=uid, icon_url=uid.avatar_url)
+        embed.timestamp = res['created']
+        embed.set_footer(text=f"Status: {res['status']}")
+        await ctx.send(embed=embed)
+        
+    async def update_ticket_embed(self, id, info, status, color):
+        guid = self.bot.get_guild(info['guild_id'])
+        cid = guid.get_channel(info['channel_id'])
+        mid = await cid.fetch_message(info['message_id'])
+        ext = json.loads(info['ticket_info'])
+        embed = discord.Embed(title=f"Bug Report - ID: {id}", description=ext['text'], 
+                              color=color)
+        uid = await self.bot.fetch_user(ext['author_id'])
+        embed.set_author(name=uid, icon_url=uid.avatar_url)
+        embed.timestamp = mid.created_at
+        embed.set_footer(text=f"Status: {status}")
+        await mid.edit(embed=embed)
+
+    @ticket.group(aliases=['update'])
+    @is_guild(527887739178188830)
+    @is_bot_manager_or_staff("Helper")
+    async def status(self, ctx):
+        """Updates a ticket's status"""
+        if ctx.invoked_subcommand is None:
+            return await ctx.send_help(ctx.command)
+
+    @status.command(name="yellow", aliases=['y'])
+    @is_guild(527887739178188830)
+    @is_bot_manager_or_staff("Helper")
+    async def ticket_status_y(self, ctx, ticket_id: int, *, status: str):
+        """Updates a ticket's status to a yellow color
+        
+        Status should be "Identified"
+        """
+        query = """SELECT guild_id, channel_id, message_id, ticket_info 
+                   FROM bug_tickets WHERE id=$1;"""
+        async with self.bot.db.acquire() as con:
+            res = await con.fetchrow(query, ticket_id)
+        if res is None:
+            return await ctx.send("Couldn't find that id!")
+        query = """UPDATE bug_tickets SET status=$1 WHERE id=$2"""
+        async with self.bot.db.acquire() as con:
+            await con.execute(query, status, ticket_id)
+        await self.update_ticket_embed(ticket_id, res, status, 0xf1c40f)
+        await ctx.send(f"Updated ticket {ticket_id}.")
+
+    @status.command(name="green", aliases=['g'])
+    @is_guild(527887739178188830)
+    @is_bot_manager_or_staff("Helper")
+    async def ticket_status_g(self, ctx, ticket_id: int, *, status: str):
+        """Updates a ticket's status to a green color
+        
+        Status should be "Resolved" 
+        """
+        query = """SELECT guild_id, channel_id, message_id, ticket_info 
+                   FROM bug_tickets WHERE id=$1;"""
+        async with self.bot.db.acquire() as con:
+            res = await con.fetchrow(query, ticket_id)
+        if res is None:
+            return await ctx.send("Couldn't find that id!")
+        query = """UPDATE bug_tickets SET status=$1 WHERE id=$2"""
+        async with self.bot.db.acquire() as con:
+            await con.execute(query, status, ticket_id)
+        await self.update_ticket_embed(ticket_id, res, status, 0x2ecc71)
+        await ctx.send(f"Updated ticket {ticket_id}.")
+
+    @status.command(name="red", aliases=['r'])
+    @is_guild(527887739178188830)
+    @is_bot_manager_or_staff("Helper")
+    async def ticket_status_r(self, ctx, ticket_id: int, *, status: str):
+        """Updates a ticket's status to a red color
+        
+        Status can be "Investigating" or "Bad Ticket"/"No Info Provided"
+        """
+        query = """SELECT guild_id, channel_id, message_id, ticket_info 
+                   FROM bug_tickets WHERE id=$1;"""
+        async with self.bot.db.acquire() as con:
+            res = await con.fetchrow(query, ticket_id)
+        if res is None:
+            return await ctx.send("Couldn't find that id!")
+        query = """UPDATE bug_tickets SET status=$1 WHERE id=$2"""
+        async with self.bot.db.acquire() as con:
+            await con.execute(query, status, ticket_id)
+        await self.update_ticket_embed(ticket_id, res, status, 0xe74c3c)
+        await ctx.send(f"Updated ticket {ticket_id}.")
 
     @commands.Cog.listener()
     async def on_timeblock_job_complete(self, jobinfo):

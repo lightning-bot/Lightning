@@ -1,6 +1,6 @@
 -- Created for PostgreSQL 11
 
-DROP TABLE IF EXISTS cronjobs, staff_roles, userlogs, user_restrictions, tags, commands_usage;
+DROP TABLE IF EXISTS cronjobs, staff_roles, userlogs, user_restrictions, tags, commands_usage,  bug_tickets;
 
 -- Just store the timestamps as utcnow(). 
 -- Makes my life easier
@@ -88,3 +88,14 @@ CREATE INDEX IF NOT EXISTS commands_usage_guild_id_idx ON commands_usage (guild_
 CREATE INDEX IF NOT EXISTS commands_usage_user_id_idx ON commands_usage (user_id);
 CREATE INDEX IF NOT EXISTS commands_usage_used_at_idx ON commands_usage (used_at);
 CREATE INDEX IF NOT EXISTS commands_usage_command_name_idx ON commands_usage (command_name);
+
+CREATE TABLE bug_tickets
+(
+    id SERIAL PRIMARY KEY,
+    guild_id BIGINT,
+    channel_id BIGINT,
+    message_id BIGINT,
+    status TEXT,
+    created TIMESTAMP WITHOUT TIME ZONE,
+    ticket_info JSONB
+);
