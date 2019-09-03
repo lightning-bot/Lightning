@@ -77,6 +77,28 @@ def is_staff_or_has_perms(min_role: str, **perms):
         return all(getattr(permissions, perms, None) == value for perms, value in perms.items())
     return commands.check(predicate)
 
+def is_bot_manager_or_staff(min_role: str):
+    async def predicate(ctx):
+        sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
+        if ctx.author.id in config.bot_mangers:
+            return True
+        owner = await ctx.bot.is_owner(ctx.author)
+        return any(sr or owner)
+    return commands.check(predicate)
+
+def is_bot_manager(ctx):
+    """Check function to see if author is a bot manager or owner"""
+    async def predicate(ctx):
+        if not ctx.guild:
+            return False
+        owner = await ctx.bot.is_owner(ctx.author)
+        if owner:
+            return True
+        if ctx.author.id in config.bot_mangers:
+            return True
+    return commands.check(predicate)
+        
+
 # A check function based off of Kirigiri.
 # Under the AGPL v3 License, 
 # https://git.catgirlsin.space/noirscape/kirigiri/src/branch/master/LICENSE

@@ -37,7 +37,6 @@ import config
 import db.per_guild_config
 import asyncpg
 import asyncio
-from utils.bot_mgmt import read_bm
 
 # Uses logging template from ave's botbase.py
 # botbase.py is under the MIT License. 
@@ -158,7 +157,7 @@ class LightningBot(commands.Bot):
         await self.botlog_channel.send(msg, delete_after=250)
 
     async def auto_blacklist_check(self, message):
-        if read_bm(message.author.id) is not False:
+        if message.author.id in config.bot_managers:
             return
         try:
             self.command_spammers[str(message.author.id)] += 1

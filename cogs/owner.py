@@ -31,7 +31,7 @@ import re
 import asyncio
 import random
 import config
-from utils.bot_mgmt import add_botmanager, check_if_botmgmt, remove_botmanager, read_bm
+from utils.checks import is_bot_manager
 from utils.paginators_jsk import paginator_reg
 import os
 import json
@@ -88,18 +88,8 @@ class Owner(commands.Cog):
                            "sent it to the bot\'s logging channel.")
             await log_channel.send("Here's the current log file:", 
                                    file=discord.File(f"{self.bot.script_name}.log"))
-    
-    @commands.check(check_if_botmgmt)
-    @commands.command(name="fetchguilduserlog")
-    async def getmodlogjson(self, ctx, guild_id: int):
-        """Gets the guild id's userlog.json file"""
-        try:
-            await ctx.send(f"Here's the userlog.json for `{guild_id}`", 
-                           file=discord.File(f"config/{guild_id}/userlog.json"))
-        except:
-            await ctx.send(f"`{guild_id}` doesn't have a userlog.json yet. Check back later.")
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.command(aliases=['getguildprefix', 'ggp'])
     async def getguildprefixes(self, ctx, guildid: int):
         """Returns the prefixes set for a certain guild"""
@@ -112,13 +102,13 @@ class Owner(commands.Cog):
         await ctx.send("```" + msg + "```")
 
     @commands.group()
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     async def blacklist(self, ctx):
         """Blacklisting Management"""
         if ctx.invoked_subcommand is None:
             return await ctx.send_help(ctx.command)
     
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @blacklist.command(name='addguild', aliases=['guildadd'])
     async def blacklist_guild(self, ctx, server_id: int, *, reason: str = ""):
         """Blacklist a guild from using the bot"""
@@ -139,7 +129,7 @@ class Owner(commands.Cog):
         self.blacklist_dump("guild_blacklist", bl)
         await ctx.send(msg + f'✅ Successfully blacklisted guild `{server_id}`')
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @blacklist.command(name='removeguild', aliases=['unblacklist-guild'])
     async def unblacklist_guild(self, ctx, server_id: int):
         """Unblacklist a guild from using the bot"""
@@ -150,7 +140,7 @@ class Owner(commands.Cog):
         self.blacklist_dump("guild_blacklist", bl)
         await ctx.send(f"✅ `{server_id}` successfully unblacklisted!")
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @blacklist.command(name="adduser", aliases=["blacklist-user"])
     async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
         """Blacklist an user from using the bot"""
@@ -167,7 +157,7 @@ class Owner(commands.Cog):
         self.blacklist_dump("user_blacklist", bl)
         await ctx.send(f"✅ Successfully blacklisted user `{userid}`")
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @blacklist.command(name="removeuser", aliases=['unblacklist-user'])
     async def unblacklist_user(self, ctx, userid: int):
         """Unblacklist an user from using the bot"""
@@ -178,7 +168,7 @@ class Owner(commands.Cog):
         self.blacklist_dump("user_blacklist", bl)
         await ctx.send(f"✅ Successfully unblacklisted user `{userid}`")
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @blacklist.command(name="search")
     async def search_blacklist(self, ctx, id: int):
         """Search the blacklist to see if a user or a guild is blacklisted"""
@@ -424,27 +414,13 @@ class Owner(commands.Cog):
         """Direct messages a user""" # No checks yet
         await user_id.send(message)
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.command()
     async def curl(self, ctx, url: str):
         """Curls a site, returning its contents."""
         text = await self.bot.aioget(url)
         pages = TextPages(ctx, f"{text}")
         await pages.paginate()
-
-    @commands.is_owner()
-    @commands.command()
-    async def addbotmanager(self, ctx, uid: discord.Member):
-        """Adds a user ID to the bot manager list"""
-        add_botmanager(uid.id)
-        await ctx.send(f"{uid} is now a bot manager")
-
-    @commands.is_owner()
-    @commands.command()
-    async def removebotmanager(self, ctx, uid: discord.Member):
-        """Removes a user ID from the bot manager list"""
-        remove_botmanager(uid.id)
-        await ctx.send(f"{uid} is no longer a bot manager")
 
     async def error_on_cog_method(self, ctx, cog, method: str, ext):
         msg =  f"\N{WARNING SIGN} {method} error for "\
