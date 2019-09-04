@@ -115,3 +115,4 @@ db/jsonf.py
 /stabilite
 stabilite_config.py
 /resources/fonts
+/resources/templates
