@@ -47,6 +47,22 @@ class Common(Cog):
         self.bot.haste = self.haste
         self.bot.call_shell = self.call_shell
         self.bot.get_utc_timestamp = self.get_utc_timestamp
+        self.bot.humanized_time = self.humanized_time
+
+    def humanized_time(self, time_from=None, time_to=None, distance=True, 
+                       include_timedate=False):
+        if not time_from:
+            time_from = arrow.utcnow()
+        if not time_to:
+            time_to = arrow.utcnow()
+        arrow_time = arrow.get(time_to)
+        if distance is True:
+            str_ret = arrow_time.humanize(time_from, only_distance=True)
+        else:
+            str_ret = arrow_time.humanize(time_from)
+        if include_timedate is True:
+            return f"{str_ret} ({str(time_to).split('.')[0]} UTC)"
+        return str_ret
 
     def parse_time(self, delta_str):
         cal = parsedatetime.Calendar()
