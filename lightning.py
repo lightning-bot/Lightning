@@ -100,7 +100,7 @@ class LightningBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=_callable_prefix, 
                          description=config.description)
-        self.version = "v1.4A"
+        self.version = "v2.0A"
         self.log = log
         self.launch_time = datetime.utcnow()
         self.script_name = script_name
@@ -113,15 +113,15 @@ class LightningBot(commands.Bot):
             try:
                 self.load_extension(ext)
                 self.success_cogs.append(ext)
-            except Exception as e:
-                log.error(f'Failed to load cog {ext}. {e}')
+            except Exception:
+                log.error(f'Failed to load cog {ext}.')
                 log.error(traceback.print_exc())
                 self.unloaded_cogs.append(ext)
         try:
             self.load_extension('jishaku')
             self.success_cogs.append('jishaku')
-        except Exception as e:
-            log.error(f"Failed to load jishaku. {e}")
+        except Exception:
+            log.error(f"Failed to load jishaku.")
             log.error(traceback.print_exc())
             self.unloaded_cogs.append("jishaku")
 
