@@ -25,73 +25,122 @@
 
 import discord
 from discord.ext import commands
-from database import Roles
+from utils.paginators_jsk import paginator_embed
 
 class ToggleRoles(commands.Cog):
-    """Role Cog"""
     def __init__(self, bot):
         self.bot = bot
-        
-    @commands.guild_only()
-    @commands.command(aliases=['gettoggleableroles', 'list_toggleable_roles'])
-    @commands.bot_has_permissions(embed_links=True)
-    async def get_toggleable_roles(self, ctx):
-        """Lists all the toggleable roles this guild has"""
-        session = self.bot.dbsession()
-        embed = discord.Embed(title="Toggleable Role List", color=discord.Color.dark_purple())
-        role_list = []
-        for row in session.query(Roles).filter_by(guild_id=ctx.guild.id):
-            role = discord.utils.get(ctx.guild.roles, id=row.role_id)
-            embed.description = ""
-            role_list.append(role)
-            for s in role_list:
-                embed.description += f"{s.mention} | Role ID {s.id}\n"
-        embed.set_footer(text=f"{ctx.guild.name}")
-        session.close()
-        await ctx.send(embed=embed)
 
-    
+    async def cog_check(self, ctx):
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage()
+        return True
+
     @commands.guild_only()
-    @commands.command(aliases=['roleme'], pass_context=True)
+    @commands.group(aliases=['roleme'], invoke_without_command=True)
     @commands.bot_has_permissions(manage_roles=True)
     async def togglerole(self, ctx, *, role: discord.Role):
-        """Toggle a role that this server has setup.
-        Use '.get_toggleable_roles' for a list of roles that you can toggle."""
-        session = self.bot.dbsession()
-        roles_db = Roles
-        add = session.query(roles_db).filter_by(role_id=role.id).all()
+        """Toggles a role that this server has setup.
+
+        Use '.togglerole list' for a list of roles that you can toggle."""
+        query = """SELECT role_id FROM toggleable_roles WHERE guild_id=$1 AND role_id=$2"""
+        async with self.bot.db.acquire() as con:
+            res = await con.fetchval(query, ctx.guild.id, role.id)
+
         member = ctx.author
         if role in member.roles:
             return await ctx.send("You already have that role.")
 
-        if add:
+        if res:
             await member.add_roles(role, reason="Toggled Role")
-            session.close()
             return await ctx.send(f"{member.mention} now has the role **{role.name}** 🎉")
         else:
-            session.close()
             return await ctx.send("That role is not toggleable.")
 
     @commands.guild_only()
-    @commands.command(aliases=['unroleme'], pass_context=True)
+    @togglerole.command(name="add", aliases=["set"])
+    @commands.has_permissions(manage_roles=True)
     @commands.bot_has_permissions(manage_roles=True)
-    async def untogglerole(self, ctx, *, role: discord.Role):
-        """Untoggle a role that this server has setup.
-        Use '.get_toggleable_roles' for a list of roles that you can untoggle."""
-        session = self.bot.dbsession()
-        roles_db = Roles
-        add = session.query(roles_db).filter_by(role_id=role.id).all()
+    async def set_toggleable_roles(self, ctx, *, role: discord.Role):
+        """Adds a role to the list of toggleable roles for members"""
+        if role > ctx.author.top_role:
+            return await ctx.send('That role is higher than your highest role.')
+        if role > ctx.me.top_role:
+            return await ctx.send('Role is higher than my highest role.')
+        query = """INSERT INTO toggleable_roles (guild_id, role_id)
+                   VALUES ($1, $2);
+                """
+        async with self.bot.db.acquire() as con:
+            try:
+                await con.execute(query, ctx.guild.id, role.id)
+            except:
+                return await ctx.send("That role is already added as a toggleable role.")
+        await ctx.safe_send(f"Added {role.name} as a toggleable role!")
+
+    @commands.guild_only()
+    @togglerole.command(name="purge")
+    @commands.has_permissions(manage_roles=True)
+    async def purge_toggleable_role(self, ctx):
+        """Deletes all the toggleable roles you have set in this guild"""
+        query = """DELETE FROM toggleable_roles WHERE guild_id=$1;"""
+        async with self.bot.db.acquire() as con:
+            await con.execute(query, ctx.guild.id)
+        await ctx.send("All toggleable roles have been deleted.")
+
+    @commands.guild_only()
+    @togglerole.command(name="delete")
+    @commands.has_permissions(manage_roles=True)
+    async def rm_t_role(self, ctx, *, role: discord.Role):
+        """Removes a role from the toggleable role list"""
+        query = """DELETE FROM toggleable_roles 
+                   WHERE guild_id=$1
+                   AND role_id=$2;
+                """
+        async with self.bot.db.acquire() as con:
+            res = await con.execute(query, ctx.guild.id, role.id)
+        if res == 'DELETE 0':
+            return await ctx.safe_send(f"{role.name} was never set as a toggleable role!")
+        await ctx.safe_send(f"Successfully removed {role.name} from the "
+                            "list of toggleable roles")
+        
+    @commands.guild_only()
+    @togglerole.command(name="list", aliases=['get'])
+    async def get_toggleable_roles(self, ctx):
+        """Lists all the toggleable roles this guild has"""
+        embed = discord.Embed(title="Toggleable Role List", color=discord.Color.dark_purple())
+        role_list = []
+        query = """SELECT role_id FROM toggleable_roles WHERE guild_id=$1;
+                """
+        async with self.bot.db.acquire() as con:
+            res = await con.fetch(query, ctx.guild.id)
+        if len(res) == 0:
+            return await ctx.send("This guild does not have any toggleable roles.")
+        for row in res:
+            role = discord.utils.get(ctx.guild.roles, id=row[0])
+            role_list.append(role)
+        pages = []
+        for s in role_list:
+            pages.append(f"{s.mention} | Role ID {s.id}")
+        await paginator_embed(self.bot, ctx, embed, size=200, page_list=pages)
+    
+    @commands.guild_only()
+    @togglerole.command(name="remove")
+    @commands.bot_has_permissions(manage_roles=True)
+    async def removetogglerole(self, ctx, *, role: discord.Role):
+        """Untoggles a role that this server has setup.
+
+        Use '.togglerole list' for a list of roles that you can untoggle."""
+        query = """SELECT role_id FROM toggleable_roles WHERE guild_id=$1 AND role_id=$2"""
+        async with self.bot.db.acquire() as con:
+            res = await con.fetchval(query, ctx.guild.id, role.id)
         member = ctx.author
 
-        if role in member.roles and add:
+        if role in member.roles and res:
             await member.remove_roles(role, reason="Untoggled Role")
-            session.close()
             return await ctx.send(f"{member.mention} You have untoggled the role **{role.name}**")
-        elif role not in member.roles and add:
-            session.close()
+        elif role not in member.roles and res:
             return await ctx.send(f"You do not have {role.name}.")
         else:
-            session.close()
             return await ctx.send("That role is not toggleable.")
 
 
