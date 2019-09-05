@@ -1,6 +1,6 @@
 -- Created for PostgreSQL 11
 
-DROP TABLE IF EXISTS cronjobs, staff_roles, userlogs, user_restrictions, tags, commands_usage,  bug_tickets;
+DROP TABLE IF EXISTS cronjobs, staff_roles, userlogs, user_restrictions, tags, commands_usage, bug_tickets, toggleable_roles;
 
 -- Just store the timestamps as utcnow(). 
 -- Makes my life easier
@@ -44,8 +44,9 @@ CREATE TABLE guild_mod_config
 
 CREATE TABLE toggleable_roles
 (
-    guild_id BIGINT PRIMARY KEY,
-    role_id BIGINT
+    guild_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    CONSTRAINT toggleable_roles_pkey PRIMARY KEY (guild_id, role_id)
 );
 
 CREATE TABLE auto_roles
