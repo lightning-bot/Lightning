@@ -117,7 +117,8 @@ class Reminders(commands.Cog):
                    AND event = 'reminder'
                    AND extra ->> 'author' = $2;
                 """
-        result = await self.bot.db.execute(query, reminder_id, str(ctx.author.id))
+        async with self.bot.db.acquire() as con:
+            result = await con.execute(query, reminder_id, str(ctx.author.id))
         if result == 'DELETE 0':
             await ctx.message.add_reaction("❌")
             return await ctx.send(f"I couldn't delete a reminder with that ID!")            
