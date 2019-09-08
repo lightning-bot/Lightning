@@ -434,16 +434,13 @@ class Owner(commands.Cog):
     async def c_load(self, ctx, *, cog: str):
         """Load a Cog."""
         cogx = "cogs." + cog
-        if cogx in self.bot.success_cogs:
+        if cogx in list(self.bot.extensions.keys()):
             return await ctx.send(f'`{cogx}` is already loaded.')
         try:
             self.bot.load_extension("cogs." + cog)
         except Exception:
-            self.bot.unloaded_cogs.append("cogs." + cog)
             return await self.error_on_cog_method(ctx, cog, "Load", traceback.format_exc())
         else:
-            self.bot.success_cogs.append("cogs." + cog)
-            self.bot.unloaded_cogs.remove("cogs." + cog)
             self.bot.log.info(f"{ctx.author} loaded the cog `{cog}`")
             await ctx.send(f'✅ Successfully loaded `cogs.{cog}`')
 
@@ -456,9 +453,7 @@ class Owner(commands.Cog):
         except Exception:
             return await self.error_on_cog_method(ctx, cog, "Unload", traceback.format_exc())
         else:
-            self.bot.log.info(f"{ctx.author} unloaded the cog `{cog}`")
-            self.bot.unloaded_cogs.append("cogs." + cog)
-            self.bot.success_cogs.remove("cogs." + cog)    
+            self.bot.log.info(f"{ctx.author} unloaded the cog `{cog}`")  
             await ctx.send(f'✅ Successfully unloaded `cogs.{cog}`')
 
     @commands.command(name='reload')
@@ -469,13 +464,9 @@ class Owner(commands.Cog):
             self.bot.unload_extension("cogs." + cog)
             self.bot.load_extension("cogs." + cog)
         except Exception:
-            self.bot.success_cogs.remove("cogs." + cog)
-            self.bot.unloaded_cogs.append("cogs." + cog)
             return await self.error_on_cog_method(ctx, cog, "Reload", traceback.format_exc())
         else:
-            self.bot.log.info(f"{ctx.author} reloaded the cog `{cog}`")  
-            self.bot.success_cogs.remove("cogs." + cog)
-            self.bot.success_cogs.append("cogs." + cog)   
+            self.bot.log.info(f"{ctx.author} reloaded the cog `{cog}`")   
             await ctx.send(f'✅ Successfully reloaded `cogs.{cog}`')
 
     @commands.command(aliases=['list-cogs'])
@@ -484,15 +475,8 @@ class Owner(commands.Cog):
         """Lists the currently loaded cogs"""
         paginator = commands.Paginator(prefix="", suffix="")
         paginator.add_line("✅ __Loaded Cogs:__")
-        for cog in self.bot.success_cogs:
+        for cog in list(self.bot.extensions.keys()):
             paginator.add_line(f"- {cog}")
-        
-        paginator.add_line(":x: __Unloaded Cogs:__")
-        if len(self.bot.unloaded_cogs) != 0:
-            for cog in self.bot.unloaded_cogs:
-                paginator.add_line(f"- {cog}")
-        else:
-            paginator.add_line("None")
 
         for page in paginator.pages:
             await ctx.send(page) 

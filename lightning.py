@@ -104,40 +104,26 @@ class LightningBot(commands.Bot):
         self.log = log
         self.launch_time = datetime.utcnow()
         self.script_name = script_name
-        self.success_cogs = []
-        self.unloaded_cogs = []
         self.successful_command = 0
         self.command_spammers = {}
 
         for ext in initial_extensions:
             try:
                 self.load_extension(ext)
-                self.success_cogs.append(ext)
             except Exception:
                 log.error(f'Failed to load cog {ext}.')
                 log.error(traceback.print_exc())
-                self.unloaded_cogs.append(ext)
         try:
             self.load_extension('jishaku')
-            self.success_cogs.append('jishaku')
         except Exception:
             log.error(f"Failed to load jishaku.")
             log.error(traceback.print_exc())
-            self.unloaded_cogs.append("jishaku")
 
     async def create_pool(self, dbs, **kwargs):
         """Creates a connection pool"""
         # Mainly prevent multiple pools
         pool = await asyncpg.create_pool(dbs, **kwargs)
         return pool
-
-    async def auto_append_cogs(self):
-        """Automatically append all extra cogs not loaded
-            as unloaded"""
-        for ext in os.listdir("cogs"):
-            external = f"cogs.{ext[:-3]}"
-            if ext.endswith(".py") and external not in self.success_cogs:
-                self.unloaded_cogs.append(f"cogs.{ext[:-3]}")
 
     async def on_ready(self):
         aioh = {"User-Agent": f"{script_name}/1.0'"}
