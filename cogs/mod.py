@@ -29,6 +29,7 @@ from utils.user_log import userlog
 from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_has_staff_role
 from datetime import datetime
 import json
+import asyncio
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
@@ -90,9 +91,34 @@ class Mod(commands.Cog):
             except:
                 pass
 
-    async def set_user_restrictions(self, guild_id: int, user_id, role_id):
+    async def logid_send(self, guild_id: int, message):
+        """Async Function to use a provided guild ID instead of relying 
+        on context (ctx). This is more for being used for Mod Log Cases"""
+        query = """SELECT * FROM guild_mod_config
+                   WHERE guild_id=$1;
+                """
+        async with self.bot.db.acquire() as con:
+            ret = await con.fetchrow(query, guild_id)
+        if ret:
+            guild_config = json.loads(ret['log_channels'])
+        else:
+            guild_config = {}
+
+        if "modlog_chan" in guild_config:
+            try:
+                log_channel = self.bot.get_channel(guild_config["modlog_chan"])
+                msg = await log_channel.send(message)
+                return msg
+            except:
+                pass
+
+    async def set_user_restrictions(self, guild_id: int, user_id: int, role_id: int):
         query = """INSERT INTO user_restrictions (guild_id, user_id, role_id)
-                   VALUES ($1, $2, $3);
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (guild_id, user_id, role_id)
+                   DO UPDATE SET guild_id = EXCLUDED.guild_id,
+                   role_id = EXCLUDED.role_id,
+                   user_id = EXCLUDED.user_id;
                 """
         con = await self.bot.db.acquire()
         try:
@@ -112,6 +138,55 @@ class Mod(commands.Cog):
             await con.execute(query, guild_id, user_id, role_id)
         finally:
             await self.bot.db.release(con)
+
+    async def add_modlog_entry(self, guild_id, action: str, mod, target, reason: str):
+        """Adds a case to the mod log
+        
+        Arguments:
+        --------------
+        guild_id: `int`
+            The guild id of where the action was done.
+        action: `str`
+            The type of action that was done.
+            Actions can be one of the following: Ban, Kick, Mute, Unmute, Unban, Warn
+        mod:
+            The responsible moderator who did the action
+        target:
+            The member that got an action taken against them
+        reason: `str`
+            The reason why an action was taken
+        """
+        safe_name = await commands.clean_content().convert(self.bot, str(target))
+        if action == "Ban":
+            message = f"⛔ **Ban**: {mod.mention} banned " \
+                      f"{target.mention} | {safe_name}\n" \
+                      f"🏷 __User ID__: {target.id}\n"
+        elif action == "Kick":
+            message =  f"👢 **Kick**: {mod.mention} kicked " \
+                       f"{target.mention} | {safe_name}\n" \
+                       f"🏷 __User ID__: {target.id}\n"
+        # Send the initial message then edit it with our reason.
+        if reason:
+            message += f"✏️ __Reason__: \"{reason}\""
+        else:
+            message += f"*Responsible moderator* please add a reason to the case."\
+                       f" `l.case "
+
+
+    #@commands.Cog.listener()
+    #async def on_member_ban(self, guild, user):
+        # Wait for Audit Log to update
+    #    await asyncio.sleep(0.5)
+        # Cap off at 25 for safety measures
+    #    async for entry in guild.audit_logs(limit=25, action=discord.AuditLogAction.ban):
+    #        if entry.target == user:
+    #            author = entry.user
+    #            reason = entry.reason if entry.reason else ""
+    #            break
+        # If author of the entry is the bot itself, don't log since 
+        # this would've been already logged.
+    #    if entry.target.id != self.bot.user.id:
+    #        await self.add_modlog_entry(guild.id, "Ban", author, user, reason)
 
     @commands.guild_only() # This isn't needed but w/e :shrugkitty:
     @commands.bot_has_permissions(kick_members=True)
@@ -691,6 +766,10 @@ class Mod(commands.Cog):
             pass
         reason_duration = self.bot.get_utc_timestamp(time_to=expiry_datetime,
                                                      include_to=True)
+        reason_time = self.bot.humanized_time(time_from=ctx.message.created_at, 
+                                              time_to=expiry_datetime, 
+                                              distance=True,
+                                              include_timedate=True)
         if reason:
             opt_reason = f"{reason} (Timemute expires at {reason_duration})"
         else:
@@ -699,12 +778,12 @@ class Mod(commands.Cog):
         await target.add_roles(role, reason=f"{self.mod_reason(ctx, opt_reason)}")
 
         chan_message = f"🔇 **Timed Mute**: {ctx.author.mention} muted "\
-                       f"{target.mention} for {duration_text} | {safe_name}\n"\
+                       f"{target.mention} for {reason_time} | {safe_name}\n"\
                        f"🏷 __User ID__: {target.id}\n"
         if reason:
             chan_message += f"✏️ __Reason__: \"{reason}\""
         else:
-            chan_message += "\n\nPlease add an explanation below. In the future, "\
+            chan_message += "\nPlease add an explanation below. In the future, "\
                             f"it is recommended to use `{ctx.prefix}timemute <user> "\
                             "<duration> [reason]`"\
                             " as the reason is automatically sent to the user."
