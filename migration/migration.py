@@ -129,7 +129,8 @@ class Migration(commands.Cog):
             async with self.bot.db.acquire() as con:
                 try:
                     await con.execute(query, r['guild_id'], r['role_id'], r['staff_perms'])
-                except:
+                except Exception as e:
+                    self.bot.log.error(e)
                     failed += 1
         sub = data["count"] - failed
         await ctx.send(f"{sub} were migrated. "
