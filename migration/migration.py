@@ -121,7 +121,7 @@ class Migration(commands.Cog):
     async def migrate_staffroles(self, ctx):
         """Migrates staff roles to psql."""
         failed = 0
-        query = """INSERT INTO staff_roles VALUES (guild_id, role_id, perms)
+        query = """INSERT INTO staff_roles (guild_id, role_id, perms)
                 VALUES ($1, $2, $3);
                 """
         data = json.load(open("migration/output/staff_roles.json", "r"))
