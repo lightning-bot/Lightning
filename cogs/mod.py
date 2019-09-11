@@ -31,6 +31,7 @@ from datetime import datetime
 import json
 import asyncio
 from utils.time import natural_timedelta
+import io
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
@@ -89,6 +90,24 @@ class Mod(commands.Cog):
             try:
                 log_channel = self.bot.get_channel(guild_config["modlog_chan"])
                 await log_channel.send(message)
+            except:
+                pass
+
+    async def purged_log_send(self, ctx, file_to_send):
+        query = """SELECT * FROM guild_mod_config
+                   WHERE guild_id=$1;
+                """
+        async with self.bot.db.acquire() as con:
+            ret = await con.fetchrow(query, ctx.guild.id)
+        if ret:
+            guild_config = json.loads(ret['log_channels'])
+        else:
+            guild_config = {}
+
+        if "modlog_chan" in guild_config:
+            try:
+                log_channel = self.bot.get_channel(guild_config["modlog_chan"])
+                await log_channel.send(file=file_to_send)
             except:
                 pass
 
@@ -188,6 +207,25 @@ class Mod(commands.Cog):
         # this would've been already logged.
     #    if entry.target.id != self.bot.user.id:
     #        await self.add_modlog_entry(guild.id, "Ban", author, user, reason)
+
+    async def purged_txt(self, ctx, limit):
+        log_t = f"Archive of {ctx.channel} (ID: {ctx.channel.id}) "\
+                f"made on {datetime.utcnow()}\n\n\n"
+        async with ctx.typing():
+            async for log in ctx.channel.history(limit=limit):
+                # .strftime('%X/%H:%M:%S') but no for now
+                log_t += f"[{log.created_at}]: {log.author} - {log.clean_content}"
+                if log.attachments:
+                    for attach in log.attachments:
+                        log_t += f"{attach.url}\n"
+                else:
+                    log_t += "\n"
+            
+        aiostring = io.StringIO()
+        aiostring.write(log_t)
+        aiostring.seek(0)
+        aiofile = discord.File(aiostring, filename=f"{ctx.channel}_archive.txt")
+        return aiofile
 
     @commands.guild_only() # This isn't needed but w/e :shrugkitty:
     @commands.bot_has_permissions(kick_members=True)
@@ -372,6 +410,7 @@ class Mod(commands.Cog):
         In order to use this command, You must either have 
         Manage Messages permission or a role that
         is assigned as a Moderator or above in the bot."""
+        fi = await self.purged_txt(ctx, message_count)
         try:
             await ctx.channel.purge(limit=message_count)
         except Exception as e:
@@ -385,6 +424,7 @@ class Mod(commands.Cog):
         else:
             pass
         await self.log_send(ctx, msg)
+        await self.purged_log_send(ctx, fi)
 
     @commands.guild_only()
     @commands.bot_has_permissions(ban_members=True)
