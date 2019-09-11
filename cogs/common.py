@@ -30,6 +30,8 @@ import math
 import parsedatetime
 import subprocess
 from discord.ext.commands import Cog
+import discord
+import json
 
 class Common(Cog):
     def __init__(self, bot):
@@ -48,6 +50,34 @@ class Common(Cog):
         self.bot.call_shell = self.call_shell
         self.bot.get_utc_timestamp = self.get_utc_timestamp
         self.bot.humanized_time = self.humanized_time
+        self.bot.create_error_ticket = self.create_error_ticket
+
+    async def create_error_ticket(self, ctx, title, information):
+        query = """INSERT INTO bug_tickets (status, ticket_info, created)
+                   VALUES ($1, $2, $3)
+                   RETURNING id;
+                """
+        ext = {"text": information, "author_id": ctx.author.id}
+        async with self.bot.db.acquire() as con:
+            id = await con.fetchrow(query, "Received", json.dumps(ext), datetime.datetime.utcnow())
+        e = discord.Embed(title=f"{title} Report - ID: {id[0]}", description=information)
+        e.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+        e.timestamp = datetime.datetime.utcnow()
+        e.set_footer(text="Status: Received")
+        ch = self.bot.get_channel(self.bot.config.bug_reports_channel)
+        msg = await ch.send(embed=e)
+        query = """UPDATE bug_tickets 
+                   SET guild_id=$2, channel_id=$3, message_id=$4 
+                   WHERE id=$1;
+                """
+        async with self.bot.db.acquire() as con:
+            await con.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
+        msg = f"Created a bug ticket with ID {id[0]}. "\
+               "You can see updates on your ticket by joining "\
+               "the [support server](https://discord.gg/cDPGuYd) and looking in the "\
+              f"reports channel."
+        embed=discord.Embed(title="Uh oh, my powers overloaded.", description=msg)
+        await ctx.send(embed=embed)
 
     def humanized_time(self, time_from=None, time_to=None, distance=True, 
                        include_timedate=False):

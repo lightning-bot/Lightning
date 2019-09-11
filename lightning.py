@@ -130,6 +130,7 @@ class LightningBot(commands.Bot):
         self.aiosession = aiohttp.ClientSession(headers=aioh)
         self.app_info = await self.application_info()
         self.botlog_channel = self.get_channel(config.error_channel)
+        self.config = config
 
         log.info(f'\nLogged in as: {self.user.name} - '
                 f'{self.user.id}\ndpy version: '
