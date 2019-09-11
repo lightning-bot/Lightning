@@ -61,6 +61,8 @@ def has_staff_role(min_role: str):
         - Admin: Server management.
     """
     async def predicate(ctx):
+        if not ctx.guild:
+            return False
         sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
         return sr
     return commands.check(predicate)
@@ -70,6 +72,8 @@ def is_staff_or_has_perms(min_role: str, **perms):
     Checks and verifies if a user has the needed staff level or permission
     """
     async def predicate(ctx):
+        if not ctx.guild:
+            return False
         sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
         if sr:
             return True
