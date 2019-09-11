@@ -30,7 +30,7 @@ from discord.ext import commands, tasks
 import asyncio
 import traceback
 import discord
-from utils.bot_mgmt import check_if_botmgmt
+from utils.checks import is_bot_manager
 import subprocess
 import random
 import json
@@ -67,15 +67,24 @@ class PowersCronManagement(commands.Cog):
         if isinstance(error, RemoveRestrictionError):
             self.bot.log.error(error)
 
+    async def short_timers(self, seconds, timerinfo):
+        """A short loop for the bot to process small timers 
+        that are 5 seconds or less"""
+        await asyncio.sleep(seconds)
+        async with self.bot.db.acquire() as con:
+            query = "DELETE FROM timers WHERE id=$1;"
+            await con.execute(query, timerinfo['id'])
+        self.bot.dispatch(f"{timerinfo['event']}_job_complete", timerinfo)
+
     async def add_job(self, event: str, created, expiry, extra):
-        """Adds a job/pending timer to the PowersCron System
+        """Adds a job/pending timer to the Timer System
         
-        Arguments
+        Arguments:
         -------------
         event: str
             The name of the event to trigger. 
             Valid events are timed_restriction, timeban, timeblock, 
-            guild_clean, and, reminder
+            guild_clean, and reminder
         created: datetime.datetime
             The creation of the timer.
         expiry: datetime.datetime
@@ -84,23 +93,34 @@ class PowersCronManagement(commands.Cog):
             Extra info related to the timer
         """
         if extra:
-            query = """INSERT INTO cronjobs (event, created, expiry, extra)
-                       VALUES ($1, $2, $3, $4::jsonb);
+            query = """INSERT INTO timers (event, created, expiry, extra)
+                       VALUES ($1, $2, $3, $4::jsonb)
+                       RETURNING id;
                     """
             connect = await self.bot.db.acquire()
             try:
-                await connect.execute(query, event, created, expiry, json.dumps(extra))
+                id = await connect.fetchrow(query, event, created, expiry, json.dumps(extra))
             finally:
                 await self.bot.db.release(connect)
         else:
-            query = """INSERT INTO cronjobs (event, created, expiry)
-                       VALUES ($1, $2, $3);
+            query = """INSERT INTO timers (event, created, expiry)
+                       VALUES ($1, $2, $3)
+                       RETURNING id;
                     """
             connect = await self.bot.db.acquire()
             try:
-                await connect.execute(query, event, created, expiry)
+                id = await connect.fetchrow(query, event, created, expiry)
             finally:
                 await self.bot.db.release(connect)
+        # Adding temporary timers in the database for those 
+        # moments when the bot decides to go down.
+        #stime = (expiry - created).total_seconds()
+        #if stime <= 60:
+        #    timer = {"id": id[0], "event": event, 'created': created, 
+        #             'expiry': expiry, "extra": json.dumps(extra)}
+            # A loop for small timers
+        #    self.bot.loop.create_task(self.short_timers(stime, timer))
+        #    return
 
     async def randomize_status(self):
         ext_list = [f"on commit {C_HASH}", [3, f"{len(self.bot.guilds)} servers"], 
@@ -115,19 +135,18 @@ class PowersCronManagement(commands.Cog):
             g_type, msg = msg
 
         st_msg = f"{msg} "
-        self.bot.log.info(f"Status Changed: {msg}")
         await self.bot.change_presence(activity=discord.Activity(type=g_type, name=st_msg))
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.command(aliases=['deletejobs'])
     async def deletejob(self, ctx, jobtype: str, job_id: int):
-        """Deletes a job from the database
+        """Deletes a job/timer from the database
         
         You'll need to provide:
         - Type (The type of job it is. Ex: timeban)
         - ID (The ID of the Job.)
         """
-        query = """DELETE FROM cronjobs 
+        query = """DELETE FROM timers 
                 WHERE event=$1 AND id=$2;
                 """
         connect = await self.bot.db.acquire()
@@ -137,7 +156,7 @@ class PowersCronManagement(commands.Cog):
             await self.bot.db.release(connect)
         await ctx.send(f"Successfully deleted {jobtype} with an ID of {job_id}")
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.command()
     async def listjobs(self, ctx, jobtype: str = "reminder"):
         """Lists up to 10 jobs of a certain jobtype
@@ -149,7 +168,7 @@ class PowersCronManagement(commands.Cog):
         - timeblock
         """
         query = """SELECT id, expiry, extra
-                   FROM cronjobs
+                   FROM timers
                    WHERE event=$1
                    ORDER BY expiry
                    LIMIT 10;
@@ -159,12 +178,12 @@ class PowersCronManagement(commands.Cog):
             table = await con.fetch(query, jobtype)
         finally:
             await self.bot.db.release(con)
-        embed = discord.Embed(title="Active PowersCron Jobs", color=0xf74b06)
+        embed = discord.Embed(title="Active Timers", color=0xf74b06)
         # It just works:tm:
-        query = """SELECT COUNT(*) FROM cronjobs WHERE event=$1"""
+        query = """SELECT COUNT(*) FROM timers WHERE event=$1"""
         async with self.bot.db.acquire() as con:
             result = await con.fetch(query, jobtype)
-        embed.set_footer(text=f"{result[0][0]} running jobs for {jobtype}")
+        embed.set_footer(text=f"{result[0][0]} running timers for {jobtype}")
         try:
             for job in table:
                 duration_text = self.bot.get_relative_timestamp(time_to=job['expiry'],
@@ -200,31 +219,34 @@ class PowersCronManagement(commands.Cog):
     async def do_jobs(self):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
-            query = """SELECT * FROM cronjobs;
-                    """
+            query = """SELECT * FROM timers;"""
             async with self.bot.db.acquire() as con:
                 jobs = await con.fetch(query)
             timestamp = datetime.utcnow()
             try:
                 for jobtype in jobs:
+                    if len(jobtype) == 0:
+                        # Can we close our loop?
+                        self._timers_chk = None
+                        return
                     if timestamp >= jobtype['expiry']:
                         # Dispatch the job and delete it.
                         async with self.bot.db.acquire() as con:
-                            query = "DELETE FROM cronjobs WHERE id=$1;"
+                            query = "DELETE FROM timers WHERE id=$1;"
                             await con.execute(query, jobtype['id'])
                         self.bot.dispatch(f"{jobtype['event']}_job_complete", 
                                           jobtype)
             except:
                 # Keep jobs for now if they errored
-                self.bot.log.error(f"PowersCron ERROR: "
+                self.bot.log.error(f"Timers ERROR: "
                                    f"{traceback.format_exc()}")
                 wbhk = discord.Webhook.from_url
                 adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
                 webhook = wbhk(config.powerscron_errors, adapter=adp)
-                await webhook.execute(f"PowersCron has Errored!\n"
+                await webhook.execute(f"Timers has Errored!\n"
                                       f"```{traceback.format_exc()}```")
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(1)
 
     @tasks.loop(minutes=7)
     async def status_rotate(self):
