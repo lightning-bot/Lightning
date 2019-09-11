@@ -52,10 +52,7 @@ class Reminders(commands.Cog):
         Times are in UTC.
         """
         # Shoutouts to R.Danny for the UserFriendlyTime Code
-        duration_text = self.bot.get_relative_timestamp(time_from=ctx.message.created_at,
-                                                        time_to=when.dt,
-                                                        include_to=True,
-                                                        humanized=True)
+        duration_text = utils.time.natural_timedelta(when.dt, source=ctx.message.created_at)
         safe_description = await commands.clean_content().convert(ctx, str(when.arg))
 
         timer = self.bot.get_cog('PowersCronManagement')
@@ -64,16 +61,16 @@ class Reminders(commands.Cog):
                                   "(PowersCron) is currently unavailable.")
         to_dump = {"reminder_text": safe_description, 
                    "author": ctx.author.id, "channel": ctx.channel.id}
-        await timer.add_job("reminder", datetime.utcnow(), 
+        await timer.add_job("reminder", ctx.message.created_at, 
                             when.dt, to_dump)
-        await ctx.send(f"{ctx.author.mention}: I'll remind you "
+        await ctx.send(f"{ctx.author.mention}: I'll remind you in "
                        f"{duration_text} about {safe_description}.")
 
     @commands.command(aliases=['listreminds', 'listtimers'])
     async def listreminders(self, ctx):
         """Lists up to 10 of your reminders"""
         query = """SELECT id, expiry, extra
-                   FROM cronjobs
+                   FROM timers
                    WHERE event = 'reminder'
                    AND extra ->> 'author' = $1
                    ORDER BY expiry
@@ -87,12 +84,9 @@ class Reminders(commands.Cog):
         # Kinda hacky-ish code
         try:
             for job in rem:
-                        #.strftime('%Y-%m-%d %H:%M:%S (UTC)')
                 ext = json.loads(job['extra'])
-                duration_text = self.bot.get_relative_timestamp(time_to=job['expiry'],
-                                                                include_to=True,
-                                                                humanized=True)
-                embed.add_field(name=f"{job['id']}: {duration_text}", 
+                timed_txt = utils.time.natural_timedelta(job['expiry'], suffix=True)
+                embed.add_field(name=f"{job['id']}: In {timed_txt}", 
                                 value=f"{ext['reminder_text']}")
         except:
             self.bot.log.error(traceback.format_exc())
@@ -112,7 +106,7 @@ class Reminders(commands.Cog):
 
         You must own the reminder to remove it"""
 
-        query = """DELETE FROM cronjobs
+        query = """DELETE FROM timers
                    WHERE id = $1
                    AND event = 'reminder'
                    AND extra ->> 'author' = $2;
@@ -137,19 +131,20 @@ class Reminders(commands.Cog):
         ext = json.loads(jobinfo['extra'])
         channel = self.bot.get_channel(ext['channel'])
         uid = await self.bot.fetch_user(ext['author'])
+        timed_txt = utils.time.natural_timedelta(jobinfo['created'],
+                                                 source=jobinfo['expiry'],
+                                                 suffix=True)
         try:
             await channel.send(f"{uid.mention}: "
                                 "You asked to be reminded "
-                                "on "
-                               f"{jobinfo['created'].strftime(STIMER)} "
+                               f"{timed_txt} "
                                f"about `{ext['reminder_text']}`")
         # Attempt to DM User if we failed to send Reminder
         except discord.errors.Forbidden:
             try:
                 await uid.send(f"{uid.mention}: "
                                 "You asked to be reminded "
-                                "on "
-                               f"{jobinfo['created'].strftime(STIMER)} "
+                               f"{timed_txt} "
                                f"about `{ext['reminder_text']}`")
             except:
                 # Optionally add to the db as a failed job
