@@ -26,10 +26,10 @@
 from discord.ext import commands
 import discord
 import io
-import db.mod_check
 from discord.ext.commands import Cog
-from utils.checks import is_one_of_guilds
+from utils.checks import is_one_of_guilds, is_staff_or_has_perms, has_staff_role
 from utils.paginators_jsk import paginator_reg_nops
+import random
 
 ROO_EMOTES = [604331487583535124, 604446987844190228, 606517600167526498, 610921560068456448]
 
@@ -48,7 +48,12 @@ class Emoji(commands.Cog):
         """Posts either an animated emoji or non-animated emoji if found"""
         emoji = discord.utils.get(self.bot.emojis, name=emojiname)
         if emoji:
-            await ctx.send(emoji)
+            return await ctx.send(emoji)
+        emojiname = emojiname.lower()
+        rand = list(filter(lambda m: emojiname in m.name.lower(), self.bot.emojis))
+        if rand:
+            em = random.choice(rand)
+            await ctx.send(em)
         else:
             return await ctx.send("No Emote Found!")
 
@@ -61,7 +66,7 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @db.mod_check.is_staff_or_has_perms("Helper", manage_emojis=True)
+    @is_staff_or_has_perms("Helper", manage_emojis=True)
     async def add(self, ctx, emoji_name, *, url):
         """Adds the URL as an emoji to the guild
         
@@ -87,7 +92,7 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @db.mod_check.is_staff_or_has_perms("Helper", manage_emojis=True)
+    @is_staff_or_has_perms("Helper", manage_emojis=True)
     async def copy(self, ctx, emoji: discord.PartialEmoji):
         """ "Copies" an emoji and adds it to the guild.
         
@@ -110,7 +115,7 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @db.mod_check.is_staff_or_has_perms("Helper", manage_emojis=True)
+    @is_staff_or_has_perms("Helper", manage_emojis=True)
     async def delete(self, ctx, emote: discord.Emoji):
         """Deletes an emoji from the guild
         

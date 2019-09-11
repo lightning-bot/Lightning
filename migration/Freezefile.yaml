@@ -1,0 +1,19 @@
+# To be used with datafreeze
+common:
+
+  database: "sqlite:///config/database.sqlite3"
+  prefix: migration/output
+  format: json
+
+exports:
+
+  - query: "SELECT * FROM blacklist_guild"
+    filename: "blacklist-guilds.json"
+  - query: "SELECT * FROM autoroles"
+    filename: "autoroles.json"
+  - query: "SELECT * FROM roles"
+    filename: "roles.json"
+  - query: "SELECT * FROM staff_roles"
+    filename: "staff_roles.json"
+  - query: "SELECT * FROM guild_configuration"
+    filename: "mute_roles.json"

@@ -32,22 +32,37 @@ userlog_event_types = {"warns": "Warn",
                        }
 
 
-def get_userlog(guild):
-    if os.path.isfile(f"config/{guild.id}/userlog.json"):
-        with open(f"config/{guild.id}/userlog.json", "r") as f:
-            return json.load(f)
+async def get_userlog(bot, guild):
+    query = """SELECT * FROM userlogs 
+               WHERE guild_id=$1
+            """
+    async with bot.db.acquire() as con:
+        ret = await con.fetchrow(query, guild.id)
+    if ret:
+        return json.loads(ret['userlog'])
     else:
         return {}
 
+async def set_userlog(bot, guild, contents):
+    query = """INSERT INTO userlogs
+               VALUES ($1, $2)"""
+    try:
+        async with bot.db.acquire() as con:
+            await con.execute(query, guild.id,
+                              json.dumps(contents))
+    except:
+        query = """UPDATE userlogs
+                   SET userlog=$1
+                   WHERE guild_id=$2
+        """
+        async with bot.db.acquire() as con:
+            async with con.transaction():
+                await con.execute(query,
+                                  json.dumps(contents),
+                                  guild.id)
 
-def set_userlog(guild, contents):
-    os.makedirs(f"config/{guild.id}", exist_ok=True)
-    with open(f"config/{guild.id}/userlog.json", "w") as f:
-        json.dump(contents, f)
-
-
-def userlog(guild, uid, issuer, reason, event_type, uname: str = ""):
-        userlogs = get_userlog(guild)
+async def userlog(bot, guild, uid, issuer, reason, event_type, uname: str = ""):
+        userlogs = await get_userlog(bot, guild)
         uid = str(uid)
         if uid not in userlogs:
             userlogs[uid] = {"warns": [],
@@ -67,5 +82,5 @@ def userlog(guild, uid, issuer, reason, event_type, uname: str = ""):
         if event_type not in userlogs[uid]:
             userlogs[uid][event_type] = []
         userlogs[uid][event_type].append(log_data)
-        set_userlog(guild, userlogs)
+        await set_userlog(bot, guild, userlogs)
         return len(userlogs[uid][event_type])

@@ -27,10 +27,9 @@ from discord.ext import commands
 import discord
 import github3
 import config
-from utils.bot_mgmt import check_if_botmgmt
 import datetime
 import gitlab
-from utils.checks import is_git_whitelisted
+from utils.checks import is_git_whitelisted, is_bot_manager
 
 class Git(commands.Cog):
     """Helper Commands for GitHub/GitLab Related Things."""
@@ -40,7 +39,7 @@ class Git(commands.Cog):
         self.gl = gitlab.Gitlab(config.gitlab_instance, private_token=config.gitlab_token)
 
     @commands.guild_only()
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.group(aliases=['gh'])
     @commands.check(is_git_whitelisted)
     async def github(self, ctx):
@@ -48,7 +47,7 @@ class Git(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     @github.command(aliases=['issuecomment', 'ic'])
     async def commentonissue(self, ctx, issue_number: int, *, comment: str):
@@ -63,7 +62,7 @@ class Git(commands.Cog):
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @github.command()
     @commands.check(is_git_whitelisted)
     async def issuestatus(self, ctx, issue_number: int, status: str):
@@ -79,7 +78,7 @@ class Git(commands.Cog):
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @github.command()
     @commands.check(is_git_whitelisted)
     async def closeandcomment(self, ctx, issue_number: int, *, comment: str):
@@ -95,7 +94,7 @@ class Git(commands.Cog):
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @github.command()
     @commands.check(is_git_whitelisted)
     async def stats(self, ctx, number: int):
@@ -119,7 +118,7 @@ class Git(commands.Cog):
         await tmp.edit(content=f"Here you go! <{issue.html_url}>")
         await ctx.send(embed=embed)
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     @github.command(aliases=['rls'])
     async def ratelimitstats(self, ctx):
@@ -132,7 +131,7 @@ class Git(commands.Cog):
         await tmp.delete()
         await ctx.send(embed=embed)
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @github.command()
     @commands.check(is_git_whitelisted)
     async def archivepins(self, ctx):
@@ -170,7 +169,7 @@ class Git(commands.Cog):
         #for pm in pins: # Unpin our pins(?)
         #    await pm.unpin()
 
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.command()
     @commands.check(is_git_whitelisted)
     async def archivegist(self, ctx, limit: int):
@@ -199,7 +198,7 @@ class Git(commands.Cog):
         await ctx.send(f"You can find an archive of this channel's history at {gist.html_url}")
 
     @commands.group(aliases=['gl'])
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def gitlab(self, ctx):
         """Commands that help with GitLab things"""
@@ -207,7 +206,7 @@ class Git(commands.Cog):
             await ctx.send_help(ctx.command)
 
     @gitlab.command()
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def close(self, ctx, number: int):
         """Closes an issue"""
@@ -221,7 +220,7 @@ class Git(commands.Cog):
         await ctx.send(f"Successfully closed {number}")
 
     @gitlab.command(aliases=['pc'])
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def pipelinecancel(self, ctx, pipeline_number: int):
         """Cancels a pipeline by ID"""
@@ -235,7 +234,7 @@ class Git(commands.Cog):
         await ctx.send(f"Successfully cancelled pipeline {pipeline_number}")
 
     @gitlab.command()
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def listpipelines(self, ctx):
         """Lists all the pipelines for the repository"""
@@ -255,7 +254,7 @@ class Git(commands.Cog):
             await ctx.send(page)
 
     @gitlab.command(aliases=['lp'])
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def latestpipeline(self, ctx):
         """Grabs the most recent pipeline's ID and URL"""
@@ -272,7 +271,7 @@ class Git(commands.Cog):
         await ctx.send(embed=embed)
 
     @gitlab.command(aliases=['mrc'])
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def mrchange(self, ctx, mr_id: int, event: str):
         """Closes or Reopens a MR. Pass either `close` or `reopen` """
@@ -286,7 +285,7 @@ class Git(commands.Cog):
         await ctx.send(f"Successfully changed !{mr_id}. {mr.web_url}")
 
     @gitlab.command(aliases=['lc'])
-    @commands.check(check_if_botmgmt)
+    @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def labelcreate(self, ctx, label_name: str, color: str):
         """Creates a label"""
@@ -298,6 +297,8 @@ class Git(commands.Cog):
         await ctx.send(f"Succesfully created {l.name} (Color: {l.color})")
 
     @gitlab.command()
+    @commands.check(is_bot_manager)
+    @commands.check(is_git_whitelisted)
     async def merge(self, ctx, mr_id: int):
         """Merges a Merge Request"""
         try:

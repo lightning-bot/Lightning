@@ -23,72 +23,73 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import dataset
-import time
 from datetime import datetime
 from discord.ext import commands
 import traceback
 import discord
 import config
+import json
+import utils.time
 
-class Timers(commands.Cog):
+STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
+
+class Reminders(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = dataset.connect('sqlite:///config/powerscron.sqlite3')
 
-    @commands.command(aliases=["addreminder", "timer"])
-    async def remind(self, ctx, when: str, *, description: str = "something"):
+    @commands.command(usage="<when>", aliases=["addreminder", "timer"])
+    async def remind(self, ctx, *, when: utils.time.UserFriendlyTime(default='something')):
         """Reminds you of something after a certain date.
+
+        The input can be any direct date (e.g. YYYY-MM-DD) 
+        or a human readable offset.
         
         Examples:
-        - ".remind 1d do essay" (1 day)
-        - ".remind 1h do dishes" (1 hour)
+        - ".remind in 2 days do essay" (2 days)
+        - ".remind 1 hour do dishes" (1 hour)
         - ".remind 60s clean" (60 seconds)
+
+        Times are in UTC.
         """
-        current_timestamp = time.time()
-        expiry_timestamp = self.bot.parse_time(when)
+        # Shoutouts to R.Danny for the UserFriendlyTime Code
+        duration_text = utils.time.natural_timedelta(when.dt, source=ctx.message.created_at)
+        safe_description = await commands.clean_content().convert(ctx, str(when.arg))
 
-        if current_timestamp + 4 > expiry_timestamp:
-            await ctx.send(f"{ctx.author.mention}: Minimum "
-                            "remind interval is 5 seconds.")
-            return
-
-        expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
-        duration_text = self.bot.get_relative_timestamp(time_to=expiry_datetime,
-                                                        include_to=True,
-                                                        humanized=True)
-        safe_description = await commands.clean_content().convert(ctx, str(description))
-
-        j_add = datetime.utcnow()
-
-        table = self.db["cron_jobs"]
-        table.insert(dict(job_type="reminder", author=ctx.author.id,
-                     channel=ctx.channel.id, remind_text=safe_description,
-                     expiry=expiry_timestamp, job_added=j_add)) #, guild_id=ctx.guild.id
-        await ctx.send(f"{ctx.author.mention}: I'll remind you in {duration_text}.")
+        timer = self.bot.get_cog('PowersCronManagement')
+        if not timer:
+            return await ctx.send("Sorry, the timer system "
+                                  "(PowersCron) is currently unavailable.")
+        to_dump = {"reminder_text": safe_description, 
+                   "author": ctx.author.id, "channel": ctx.channel.id}
+        await timer.add_job("reminder", ctx.message.created_at, 
+                            when.dt, to_dump)
+        await ctx.send(f"{ctx.author.mention}: I'll remind you in "
+                       f"{duration_text} about {safe_description}.")
 
     @commands.command(aliases=['listreminds', 'listtimers'])
     async def listreminders(self, ctx):
         """Lists up to 10 of your reminders"""
-        table = self.db["cron_jobs"].find(author=ctx.author.id, _limit=10)
-        # bc this is 2 queries
-        ctable = self.db["cron_jobs"].count(author=ctx.author.id)
+        query = """SELECT id, expiry, extra
+                   FROM timers
+                   WHERE event = 'reminder'
+                   AND extra ->> 'author' = $1
+                   ORDER BY expiry
+                   LIMIT 10;
+                """
+        rem = await self.bot.db.fetch(query, str(ctx.author.id))
         embed = discord.Embed(title="Reminders", color=discord.Color(0xf74b06))
-        if ctable == 0:
+        if len(rem) == 0:
             embed.description = "No reminders were found!"
             return await ctx.send(embed=embed)
         # Kinda hacky-ish code
         try:
-            for job in table:
-                #if job['author'] == ctx.author.id:
-                expiry_timestr = datetime.utcfromtimestamp(job['expiry'])
-                        #.strftime('%Y-%m-%d %H:%M:%S (UTC)')
-                duration_text = self.bot.get_relative_timestamp(time_to=expiry_timestr,
-                                                                include_to=True,
-                                                                humanized=True)
-                embed.add_field(name=f"{job['id']}: In {duration_text}", 
-                                value=f"{job['remind_text']}")
+            for job in rem:
+                ext = json.loads(job['extra'])
+                timed_txt = utils.time.natural_timedelta(job['expiry'], suffix=True)
+                embed.add_field(name=f"{job['id']}: In {timed_txt}", 
+                                value=f"{ext['reminder_text']}")
         except:
+            self.bot.log.error(traceback.format_exc())
             log_channel = self.bot.get_channel(config.powerscron_errors)
             await log_channel.send(f"PowersCron has Errored! "
                                    f"```{traceback.format_exc()}```")
@@ -97,6 +98,7 @@ class Timers(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(aliases=['deletetimer', 'removereminder'])
+    @commands.bot_has_permissions(add_reactions=True)
     async def deletereminder(self, ctx, *, reminder_id: int):
         """Deletes a reminder by ID.
         
@@ -104,19 +106,50 @@ class Timers(commands.Cog):
 
         You must own the reminder to remove it"""
 
-        query_s = self.db['cron_jobs'].find_one(job_type="reminder", 
-                                                author=ctx.author.id,
-                                                id=reminder_id)
-        if query_s is None:
+        query = """DELETE FROM timers
+                   WHERE id = $1
+                   AND event = 'reminder'
+                   AND extra ->> 'author' = $2;
+                """
+        async with self.bot.db.acquire() as con:
+            result = await con.execute(query, reminder_id, str(ctx.author.id))
+        if result == 'DELETE 0':
             await ctx.message.add_reaction("❌")
-            return await ctx.send(f"I couldn't delete a reminder with that ID!")
-        else:
-            self.db['cron_jobs'].delete(job_type="reminder", 
-                                        author=ctx.author.id,
-                                        id=reminder_id)
+            return await ctx.send(f"I couldn't delete a reminder with that ID!")            
 
         await ctx.send(f"Successfully deleted reminder (ID: {reminder_id})")
         await ctx.message.add_reaction("✅") # For whatever reason
 
+    @commands.command(name="current-utc-time")
+    async def currentutctime(self, ctx):
+        """Sends the current time in UTC"""
+        await ctx.send(f"It is currently "
+                       f"`{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC`")
+
+    @commands.Cog.listener()
+    async def on_reminder_job_complete(self, jobinfo):
+        ext = json.loads(jobinfo['extra'])
+        channel = self.bot.get_channel(ext['channel'])
+        uid = await self.bot.fetch_user(ext['author'])
+        timed_txt = utils.time.natural_timedelta(jobinfo['created'],
+                                                 source=jobinfo['expiry'],
+                                                 suffix=True)
+        try:
+            await channel.send(f"{uid.mention}: "
+                                "You asked to be reminded "
+                               f"{timed_txt} "
+                               f"about `{ext['reminder_text']}`")
+        # Attempt to DM User if we failed to send Reminder
+        except discord.errors.Forbidden:
+            try:
+                await uid.send(f"{uid.mention}: "
+                                "You asked to be reminded "
+                               f"{timed_txt} "
+                               f"about `{ext['reminder_text']}`")
+            except:
+                # Optionally add to the db as a failed job
+                self.bot.log.error(f"Failed to remind {ext['author']}.")
+                pass
+
 def setup(bot):
-    bot.add_cog(Timers(bot))
+    bot.add_cog(Reminders(bot))

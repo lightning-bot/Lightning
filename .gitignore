@@ -106,7 +106,7 @@ venv.bak/
 .mypy_cache/
 
 # Ignore files
-config.py
+/config.py
 cogs/checks.py
 lightning.log
 /addons
@@ -114,3 +114,6 @@ lightning.log
 db/jsonf.py
 /stabilite
 stabilite_config.py
+/resources/fonts
+/resources/templates
+/migration/output

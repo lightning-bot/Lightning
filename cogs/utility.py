@@ -27,11 +27,12 @@ import discord
 import random
 from datetime import datetime
 from discord.ext import commands
-import db.mod_check
+from utils.checks import is_staff_or_has_perms, has_staff_role
 import io
 import asyncio
 import colorsys
 from PIL import Image
+from utils.converters import SafeSend
 
 class Utility(commands.Cog):
     """Utility Commands"""
@@ -47,8 +48,8 @@ class Utility(commands.Cog):
         
     @commands.command(aliases=['say'])
     @commands.guild_only()
-    @db.mod_check.check_if_at_least_has_staff_role("Helper")
-    async def speak(self, ctx, channel: discord.TextChannel, *, inp):
+    @has_staff_role("Helper")
+    async def speak(self, ctx, channel: discord.TextChannel, *, inp: SafeSend):
         """Say something through the bot to the specified channel. Staff only."""
         await channel.trigger_typing()
         await channel.send(inp)
@@ -89,7 +90,7 @@ class Utility(commands.Cog):
 
     @commands.command()
     @commands.cooldown(rate=1, per=250.0, type=commands.BucketType.channel)
-    @db.mod_check.check_if_at_least_has_staff_role("Admin")
+    @has_staff_role("Admin")
     async def archive(self, ctx, limit: int):
         """Archives the current channel's contents.
         Admins only!"""
@@ -184,7 +185,7 @@ class Utility(commands.Cog):
     @announce.command()
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
-    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    @has_staff_role("Moderator")
     async def interactive(self, ctx, channel: discord.TextChannel):
         """Interactive Announcement Embed Generator. Moderators only."""
         def check(ms):
@@ -216,7 +217,7 @@ class Utility(commands.Cog):
 
     @announce.command()
     @commands.guild_only()
-    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    @has_staff_role("Moderator")
     async def simple(self, ctx, channel: discord.TextChannel, *, text):
         """Make a simple announcement""" # Basically the speak command, but mentions the author.
         await channel.send(f"Announcement from {ctx.author.mention}:\n\n{text}")
@@ -224,7 +225,7 @@ class Utility(commands.Cog):
     @announce.command(aliases=['rcembed', 'colorembed'])
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
-    @db.mod_check.check_if_at_least_has_staff_role("Moderator")
+    @has_staff_role("Moderator")
     async def random(self, ctx, channel: discord.TextChannel):
         """Chooses a random color and uses it for the embed. (Interactive) """
         def check(ms):

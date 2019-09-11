@@ -28,9 +28,10 @@ from database import TagsTable, TagAlias
 import discord
 import datetime
 import random
-from db.mod_check import check_if_at_least_has_staff_role
+from utils.checks import has_staff_role
 from utils.paginators_jsk import paginator_embed
 import asyncio
+import asyncpg
 
 # R.Danny's Tag Converter.
 # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/tags.py#L93
@@ -60,78 +61,39 @@ class Tags(commands.Cog):
             raise commands.NoPrivateMessage()
         return True
 
-    def find_tag(self, ctx, session, tag: str):
-        # 1st look through TagAlias
-        query = session.query(TagAlias).filter_by(guild_id=ctx.guild.id, tag_alias=tag).one_or_none()
-        if query is None:
-            # 2nd attempt look through the TagTable
-            query2 = session.query(TagsTable).filter_by(guild_id=ctx.guild.id, 
-                                                        tag_name=tag).one_or_none()
-            if query2 is None:
-                return False
-            else:
-                return query2
+    async def get_tag(self, ctx, name):
+        query = """SELECT tag_name, tag_content
+                FROM tags WHERE guild_id=$1 
+                AND tag_name=$2
+                INNER JOIN tag_aliases ON tag_aliases.tag_points_to = tags.tag_name;
+                """
+        async with self.bot.db.acquire() as con:
+            tag = await con.fetchrow(query, ctx.guild.id, name)
+        if tag:
+            return tag
         else:
-            query3 = session.query(TagsTable).filter_by(guild_id=ctx.guild.id, 
-                                                        tag_name=query.tag_name).one_or_none()
-            return query3
+            raise Exception("Could not find that tag") 
 
-    def grab_random_tag(self, ctx, session):
-        query = session.query(TagsTable).filter_by(guild_id=ctx.guild.id).all()
-        # Prepare list
-        querylist = []
-        for t in query:
-            querylist.append(t.tag_name)
-        if len(querylist) == 0:
-            return None
-        title = random.choice(querylist)
-        # Query the database again
-        rand = session.query(TagsTable).filter_by(guild_id=ctx.guild.id, tag_name=title).one_or_none()
-        return rand
+    async def create_tag(self, ctx, name, content):
+        query = """INSERT INTO tags (guild_id, tag_name, tag_content, tag_author, created_at)
+                   VALUES ($1, $2, $3, $4, $5);
+                """
 
-    def check_if_alias(self, ctx, session, tag: str):
-        """Dumb function that return False or the query"""
-        # 1st look through TagAlias
-        query = session.query(TagAlias).filter_by(guild_id=ctx.guild.id, tag_alias=tag).one_or_none()
-        if query is None:
-            # 2nd attempt look through the TagTable
-            query2 = session.query(TagsTable).filter_by(guild_id=ctx.guild.id, 
-                                                        tag_name=tag).one_or_none()
-            if query2 is None:
-                return False
+        async with ctx.acquire():
+            tr = ctx.db.transaction()
+            await tr.start()
+
+            try:
+                await ctx.db.execute(query, ctx.guild.id, name, content, ctx.author.id, ctx.message.created_at)
+            except asyncpg.UniqueViolationError:
+                await tr.rollback()
+                await ctx.send('This tag already exists.')
+            except:
+                await tr.rollback()
+                await ctx.send('Could not create tag.')
             else:
-                return False
-        else:
-            return query
-
-    def check_if_tag(self, ctx, session, tag: str):
-        # 1st look through TagAlias
-        query = session.query(TagAlias).filter_by(guild_id=ctx.guild.id, 
-                                                  tag_alias=tag).one_or_none()
-        if query is None:
-            # 2nd attempt look through the TagTable
-            query2 = session.query(TagsTable).filter_by(guild_id=ctx.guild.id, 
-                                                        tag_name=tag).one_or_none()
-            if query2 is None:
-                return False
-            else:
-                return query2
-        else:
-            return None
-
-    def delete_tag(self, ctx, session, tag: str):
-        # 1st look through TagAlias
-        query = session.query(TagAlias).filter_by(guild_id=ctx.guild.id, tag_alias=tag).one_or_none()
-        if query is None:
-            # 2nd attempt look through the TagTable
-            query2 = session.query(TagsTable).filter_by(guild_id=ctx.guild.id, 
-                                                        tag_name=tag).one_or_none()
-            if query2 is None:
-                return False
-            else:
-                return query2
-        else:
-            return query
+                await tr.commit()
+                await ctx.send(f'Tag {name} successfully created.')
 
     async def tag_list(self, ctx, session, user=False, **kwargs):
         """Function to get all tags and return them back"""
@@ -176,20 +138,19 @@ class Tags(commands.Cog):
         if tag is None:
             return await ctx.send_help(ctx.command)
         if ctx.invoked_subcommand is None:
-            session = self.bot.dbsession()
-            query = self.find_tag(ctx, session, tag)
-            if query is not False:
-                safe_tag_content = await commands.clean_content().convert(ctx, str(query.tag_content))
-                query.tag_uses = query.tag_uses + 1
-                session.commit()
-                session.close()
-                return await ctx.send(safe_tag_content)
-            else:
-                session.close()
-                return await ctx.send("Tag not found!")
+            try:
+                tag = await self.get_tag(ctx, tag)
+            except Exception as e:
+                return await ctx.send(e)
+
+            await ctx.send(tag['tag_content'])
+            query = "UPDATE tags SET uses = uses + 1 WHERE name = $1 AND guild_id=$2"
+            async with self.bot.db.acquire() as con:
+                await con.execute(query, tag['tag_name'])
+            
     
     @tag.command(name='create')
-    async def tag_create(self, ctx, name: TagName, *, content: str):
+    async def tag_create(self, ctx, name: TagName, *, content: commands.clean_content):
         """Creates a tag that's owned by you.
         
         This tag is server-specific and cannot be used in other servers.
@@ -197,18 +158,9 @@ class Tags(commands.Cog):
         Note that server staff can delete your tag."""
         if len(content) > 1990:
             return await ctx.send("Reached maximum characters!")
-        session = self.bot.dbsession()
-        safe_tag = await commands.clean_content().convert(ctx, str(name))
-        query = self.find_tag(ctx, session, name)
-        if query is not False:
-            return await ctx.send("Tag/Alias already exists!")
-        timestamp = datetime.datetime.utcnow()
-        create_tag = TagsTable(guild_id=ctx.guild.id, tag_name=name, tag_owner=ctx.author.id,
-                               tag_content=content, tag_uses=0, tag_created=timestamp)
-        session.merge(create_tag)
-        session.commit()
-        session.close()
-        await ctx.send(f"✅ Created tag {safe_tag}")
+        safe_name = await commands.clean_content().convert(ctx, str(name))
+        await self.create_tag(ctx, safe_name, content)
+        await ctx.send(f"✅ Created tag {safe_name}")
 
     @tag.command(name='info')
     async def tag_info(self, ctx, *, tag: str):
@@ -242,18 +194,22 @@ class Tags(commands.Cog):
     @tag.command(name='alias')
     async def tag_alias(self, ctx, alias: TagName, *, tag: str):
         """Adds an alias to a tag"""
-        session = self.bot.dbsession()
-        query = self.find_tag(ctx, session, alias)
-        if query is not False:
-            return await ctx.send("Tag/Alias already exists!")
-        timestamp = datetime.datetime.utcnow()
-        talias = TagAlias(guild_id=ctx.guild.id, tag_name=tag, tag_alias=alias, 
-                          tag_owner=ctx.author.id, tag_created=timestamp, tag_is_alias=True)
-        session.merge(talias)
-        session.commit()
-        session.close()
-        safe_tag = await commands.clean_content().convert(ctx, str(tag))
-        await ctx.send(f"✅ Aliased tag: {safe_tag} to {alias}")
+        query = """INSERT INTO tag_aliases (guild_id, tag_name, tag_author, tag_points_to)
+                   SELECT $1, $4, tag_lookup.location_id, tag_lookup.tag_id
+                   FROM tag_lookup
+                   WHERE tag_lookup.location_id=$3 AND LOWER(tag_lookup.name)=$2;
+                """
+
+        try:
+            status = await ctx.db.execute(query, ctx.guild.id, tag.lower(), ctx.author.id, alias)
+        except asyncpg.UniqueViolationError:
+            await ctx.send('A tag with this name already exists.')
+        else:
+            # The status returns INSERT N M, where M is the number of rows inserted.
+            if status[-1] == '0':
+                await ctx.send(f'A tag with the name of "{tag}" does not exist.')
+            else:
+                await ctx.safe_send(f'✅ Tag alias "{alias}" that points to "{tag}" successfully created.')
 
     @tag.command(name='random')
     async def tag_random(self, ctx):
@@ -294,7 +250,7 @@ class Tags(commands.Cog):
         await ctx.send(f"Transferred tag ownership to {safe_name}.")
 
     @tag.command(name="purge")
-    @check_if_at_least_has_staff_role("Moderator")
+    @has_staff_role("Moderator")
     async def tag_purge(self, ctx, member: discord.Member):
         """Removes all tags made by a member. Moderator+"""
         session = self.bot.dbsession()

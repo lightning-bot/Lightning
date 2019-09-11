@@ -27,13 +27,16 @@ import discord
 from datetime import datetime
 import config
 import platform
-from discord.ext import commands
+from discord.ext import commands, tasks
 from typing import Union
 from collections import Counter
 from utils.paginator import Pages
 import asyncio
 import itertools
 import time
+import json
+import resources.botemojis as emoji
+from utils.checks import is_bot_manager
 
 class NonGuildUser(commands.Converter):
     async def convert(self, ctx, argument):
@@ -225,10 +228,26 @@ class Meta(commands.Cog):
         self.original_help_command = bot.help_command
         bot.help_command = PaginatedHelpCommand()
         bot.help_command.cog = self
+        self.number_places = (
+            '\N{FIRST PLACE MEDAL}',
+            '\N{SECOND PLACE MEDAL}',
+            '\N{THIRD PLACE MEDAL}',
+            '4\N{combining enclosing keycap}',
+            '5\N{combining enclosing keycap}',
+            '6\N{combining enclosing keycap}',
+            '7\N{combining enclosing keycap}',
+            '8\N{combining enclosing keycap}',
+            '9\N{combining enclosing keycap}',
+            '\N{KEYCAP TEN}')
+        self.bulk_command_insertion.start()
+        # Protect our data
+        self.dump_lock = asyncio.Lock(loop=bot.loop)
+        self.data_todump = []
         self.unavailable_guilds = []
 
     def cog_unload(self):
         self.bot.help_command = self.original_help_command
+        self.bulk_command_insertion.stop()
 
     @commands.command()
     async def avatar(self, ctx, *, member: Union[discord.Member, NonGuildUser] = None):
@@ -266,38 +285,70 @@ class Meta(commands.Cog):
         embed.add_field(name="Activity:", value=f"{member.activity.name if member.activity else None}", inline=True)
         embed.add_field(name="Joined:", value=f"{var2} UTC\n"
                         f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.joined_at, humanized=True)}")
-        embed.add_field(name="Highest Role:", value=f"{member.top_role}\n")
+        roles = [x.mention for x in member.roles]
+        if f"<@&{ctx.guild.id}>" in roles:
+            roles.remove(f"<@&{ctx.guild.id}>")
+        embed.add_field(name=f"Roles [{len(roles)}]", value=", ".join(roles) if len(roles) < 10 else "Cannot show all roles")
         embed.set_footer(text=f'User ID: {member.id}')
         await ctx.send(embed=embed)
 
     @commands.command(aliases=['info', 'credits'])
     async def about(self, ctx):
         """Various information about the bot."""
+        query = """SELECT COUNT(*) 
+                   FROM commands_usage;"""
+        async with self.bot.db.acquire() as con:
+            amount = await con.fetchrow(query)
         all_members = sum(1 for _ in ctx.bot.get_all_members())
-        embed = discord.Embed(title="Lightning", color=discord.Color(0xf74b06))
+        embed = discord.Embed(title="Lightning", color=0xf74b06)
         bot_owner = self.bot.get_user(self.bot.owner_id)
         embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url)
         embed.url = "https://gitlab.com/LightSage/Lightning"
-        embed.set_thumbnail(url=self.bot.user.avatar_url)
+        embed.set_thumbnail(url=ctx.me.avatar_url)
         embed.description = f"Lightning.py, the successor to Lightning(.js)"
-        embed.add_field(name="Servers", value=len(self.bot.guilds))
-        embed.add_field(name="Members", value=all_members)
-        embed.add_field(name="Python Version", value=f"{platform.python_implementation()} {platform.python_version()}")
-        embed.add_field(name="Stats", value=f"{self.bot.successful_command} commands used since boot.\n"
-                                            f"{len(self.bot.commands)} total commands.\n")
+        embed.add_field(name="Servers", value=len(self.bot.guilds), inline=False)
+        embed.add_field(name="Members", value=all_members, inline=False)
+        async with self.bot.db.acquire() as con:
+            postgresversion = await con.fetchval("SHOW server_version;")
+        backend_msg = f"{emoji.python} **Python Version:** {platform.python_version()}\n"\
+                      f"{emoji.dpy} **Discord.py Version:** {discord.__version__}\n"\
+                      f"{emoji.postgres} **PostgreSQL Version:** {postgresversion}"
+        embed.add_field(name="Backend", value=backend_msg)
+        embed.add_field(name="Command Stats", value=f"{self.bot.successful_command} "
+                                                     "commands used since boot.\n"
+                                                    f"{amount[0]} commands used all time.")
         embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id="
                                             "532220480577470464&permissions=8&scope=bot)\n[Support Server]"
                                             "(https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/"
-                                            "532220480577470464)\n[Website](https://lightsage.gitlab.io/lightning/home/)")
-        embed.set_footer(text=f"Lightning {self.bot.version}")
+                                            "532220480577470464)\n[Website](https://lightsage.gitlab.io/lightning/home/)"
+                                            , inline=False)
+        embed.set_footer(text=f"Lightning {self.bot.version}")# | Made with "
+                              #f"discord.py {discord.__version__}")
         await ctx.send(embed=embed)
 
     @commands.command(aliases=['invite'])
     async def botinvite(self, ctx):
         """Gives you a link to add Lightning to your server."""
-        await ctx.send("You can invite me to your server with this link.\n"
-                       "<https://discordapp.com/api/oauth2/authorize?client_id="
-                       "532220480577470464&permissions=470150390&scope=bot>")
+        adperms = discord.Permissions.none()
+        adperms.administrator = True
+        essentialperms = discord.Permissions.none()
+        essentialperms.kick_members = True
+        essentialperms.ban_members = True
+        essentialperms.manage_channels = True
+        essentialperms.add_reactions = True
+        essentialperms.view_audit_log = True
+        essentialperms.attach_files = True
+        essentialperms.manage_messages = True
+        essentialperms.external_emojis = True
+        essentialperms.manage_nicknames = True
+        essentialperms.manage_emojis = True
+        invites = "[Admin Permissions]"\
+                  f"({discord.utils.oauth_url('532220480577470464', adperms)})\n"\
+                  "[Regular Permissions]"\
+                  f"({discord.utils.oauth_url('532220480577470464', essentialperms)})"
+        embed = discord.Embed(title="Bot Invite", description=invites,
+                              color=0xf74b06)
+        await ctx.send(embed=embed)
 
     @commands.command()
     async def support(self, ctx):
@@ -371,6 +422,201 @@ class Meta(commands.Cog):
                               color=discord.Color.orange())
         await ctx.send(embed=embed)
 
+    @commands.command()
+    @commands.guild_only()
+    async def memberfind(self, ctx, *, name):
+        """Looks for a member that matches the name in the guild"""
+        ls = list(filter(lambda m: f"{name}" in m.name.lower(), ctx.guild.members))
+        msg = f"**{len(ls)} Results for {name}**:\n"
+        for x in ls:
+            msg += f"\N{BULLET} {str(x)}\n"
+        await ctx.safe_send(msg)
+
+    async def commands_status_guild(self, ctx):
+        em = discord.Embed(title=f"Command Stats for {ctx.guild.name}", color=0xf74b06)
+        # psql is nice for queries like this. :)
+        query = """SELECT COUNT(*), MIN(used_at) 
+                   FROM commands_usage 
+                   WHERE guild_id=$1;"""
+        async with self.bot.db.acquire() as con:
+            res = await con.fetchrow(query, ctx.guild.id)
+        em.description = f"{res[0]} commands used so far."
+        # Default to utcnow() if no value
+        em.set_footer(text=f'Lightning has been tracking '
+                            'command usage since')
+        em.timestamp = res[1] or datetime.utcnow()
+        query2 = """SELECT command_name,
+                        COUNT(*) as "cmd_uses"
+                   FROM commands_usage
+                   WHERE guild_id=$1
+                   GROUP BY command_name
+                   ORDER BY "cmd_uses" DESC
+                   LIMIT 5;
+                """
+        async with self.bot.db.acquire() as con:
+            cmds = await con.fetch(query2, ctx.guild.id)
+        commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
+                                      for (index, (command_name, cmd_uses)) in enumerate(cmds)) 
+        if len(commands_used_des) == 0:
+            commands_used_des='No Commands Used Yet!'
+        em.add_field(name="Top Commands Used", value=commands_used_des)
+        # Limit 5 commands as I don't want to hit the max on embed field 
+        # (and also make it look ugly)
+        query = """SELECT command_name,
+                        COUNT(*) as "cmd_uses"
+                   FROM commands_usage
+                   WHERE guild_id=$1
+                   AND used_at > (timezone('UTC', now()) - INTERVAL '1 day')
+                   GROUP BY command_name
+                   ORDER BY "cmd_uses" DESC
+                   LIMIT 5;
+                """
+        async with self.bot.db.acquire() as con:
+            fetched = await con.fetch(query, ctx.guild.id)
+        # Shoutouts to R.Danny for this code
+        commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
+                                      for (index, (command_name, cmd_uses)) in enumerate(fetched))
+        if len(commands_used_des) == 0:
+            commands_used_des='No Commands used yet for today!'
+        em.add_field(name="Top Commands Used Today", value=commands_used_des, inline=False)
+        if ctx.guild.icon:
+            em.set_thumbnail(url=ctx.guild.icon_url)
+        await ctx.send(embed=em)
+    # Based off of R.Danny
+    async def command_status_member(self, ctx, member):
+        em = discord.Embed(title=f"Command Stats for {member}", color=0xf74b06)
+        # psql is nice for queries like this. :)
+        query = "SELECT COUNT(*), MIN(used_at) FROM commands_usage WHERE guild_id=$1 AND user_id=$2;"
+        async with self.bot.db.acquire() as con:
+            res = await con.fetchrow(query, ctx.guild.id, member.id)
+        em.description = f"{res[0]} commands used so far."
+        # Default to utcnow() if no value
+        em.set_footer(text=f'First command usage on')
+        em.timestamp = res[1] or datetime.utcnow()
+        query2 = """SELECT command_name,
+                        COUNT(*) as "cmd_uses"
+                   FROM commands_usage
+                   WHERE guild_id=$1
+                   AND user_id=$2
+                   GROUP BY command_name
+                   ORDER BY "cmd_uses" DESC
+                   LIMIT 10;
+                """
+        async with self.bot.db.acquire() as con:
+            cmds = await con.fetch(query2, ctx.guild.id, member.id)
+        commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
+                                      for (index, (command_name, cmd_uses)) in enumerate(cmds)) 
+        if len(commands_used_des) == 0:
+            commands_used_des='No Commands Used Yet!'
+        em.add_field(name="Top Commands Used", value=commands_used_des)
+        query = """SELECT command_name,
+                        COUNT(*) as "cmd_uses"
+                   FROM commands_usage
+                   WHERE guild_id=$1
+                   AND used_at > (timezone('UTC', now()) - INTERVAL '1 day')
+                   GROUP BY command_name
+                   ORDER BY "cmd_uses" DESC
+                   LIMIT 5;
+                """
+        async with self.bot.db.acquire() as con:
+            fetched = await con.fetch(query, ctx.guild.id)
+        # Shoutouts to R.Danny for this code.
+        commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
+                                      for (index, (command_name, cmd_uses)) in enumerate(fetched))
+        if len(commands_used_des) == 0:
+            commands_used_des='No Commands used yet for today!'
+        em.add_field(name="Top Commands Used Today", value=commands_used_des, inline=False)
+        em.set_thumbnail(url=member.avatar_url)
+        await ctx.send(embed=em)
+
+    @commands.group(invoke_without_command=True)
+    @commands.guild_only()
+    async def stats(self, ctx, member: discord.Member=None):
+        """Sends stats about which commands are used often in the guild"""
+        async with ctx.typing():
+            if member is None:
+                await self.commands_status_guild(ctx)
+            else:
+                await self.command_status_member(ctx, member)
+
+    @stats.command(name="all")
+    @commands.check(is_bot_manager)
+    async def stats_all(self, ctx):
+        """Sends stats on the most popular commands used in the bot"""
+        async with ctx.typing():
+            query = """SELECT command_name,
+                        COUNT (*) as "cmd_uses"
+                       FROM commands_usage
+                       GROUP BY command_name
+                       ORDER BY "cmd_uses" DESC
+                       LIMIT 10;
+                    """
+            async with self.bot.db.acquire() as con:
+                fetched = await con.fetch(query)
+                # Shoutouts to R.Danny for this code.
+            commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
+                                 for (index, (command_name, cmd_uses)) in enumerate(fetched))
+            embed=discord.Embed(title="Popular Commands", color=0x841d6e)
+            embed.add_field(name="All Time", value=commands_used_des)
+            query = """SELECT command_name,
+                        COUNT (*) as "cmd_uses"
+                       FROM commands_usage
+                       WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 day') 
+                       GROUP BY command_name
+                       ORDER BY "cmd_uses" DESC
+                       LIMIT 10;
+                    """
+            async with self.bot.db.acquire() as con:
+                fetched = await con.fetch(query)
+            commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
+                                 for (index, (command_name, cmd_uses)) in enumerate(fetched))
+            embed.add_field(name="Today", value=commands_used_des)
+            await ctx.send(embed=embed)
+
+    async def command_insert(self, ctx):
+        """Function to insert command info into self.data_todump"""
+        self.bot.successful_command += 1
+        if ctx.guild is None:
+            guild_id = None
+        else:
+            guild_id = ctx.guild.id
+        async with self.dump_lock:
+            self.data_todump.append({
+                'guild_id': guild_id,
+                'user_id': ctx.author.id,
+                'used_at': ctx.message.created_at.isoformat(),
+                'command_name': ctx.command.qualified_name,
+                'failure': ctx.command_failed,
+            })
+
+    async def bulk_database_insert(self):
+        """Inserts data into the database if any bulk data exists"""
+        query = """INSERT INTO commands_usage (guild_id, user_id, used_at, command_name, failure)
+                   SELECT data.guild_id, data.user_id, data.used_at, data.command_name, data.failure
+                   FROM jsonb_to_recordset($1::jsonb) AS
+                   data(guild_id BIGINT, user_id BIGINT, used_at TIMESTAMP, 
+                        command_name TEXT, failure BOOLEAN)
+                """
+        # If pending data
+        if self.data_todump:
+            await self.bot.db.execute(query, json.dumps(self.data_todump))
+            total = len(self.data_todump)
+            # Let's log on more than 1 command
+            if total > 1:
+                self.bot.log.info(f'{total} commands were added to the database.')
+            self.data_todump.clear()
+
+    @tasks.loop(seconds=15.0)
+    async def bulk_command_insertion(self):
+        async with self.dump_lock:
+            await self.bulk_database_insert()
+        # Reset command spammers as well
+        self.bot.command_spammers = {}
+
+    @commands.Cog.listener()
+    async def on_command_completion(self, ctx):
+        await self.command_insert(ctx)
+    
     async def send_guild_info(self, embed, guild):
         bots = sum(member.bot for member in guild.members)
         humans = guild.member_count - bots

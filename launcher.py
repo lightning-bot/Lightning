@@ -23,46 +23,28 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-
-import json
-import os
+#import click
+from lightning import LightningBot
+import asyncio
 import config
 
-def get_botmgmt():
-    if os.path.isfile(f"config/botmanagers.json"):
-        with open(f"config/botmanagers.json", "r") as f:
-            return json.load(f)
-    else:
-        return {"botmanager": []}
+try:
+    import uvloop
+except ImportError:
+    pass
+else:
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-def write_botmgmt(contents):
-    os.makedirs(f"config", exist_ok=True)
-    with open(f"config/botmanagers.json", "w") as f:
-        json.dump(contents, f)
+def startbot():
+    loop = asyncio.get_event_loop()
+    bot = LightningBot()
+    try:
+        bot.db = loop.run_until_complete(bot.create_pool(config.database_connection, 
+                                                         command_timeout=60))
+    except Exception as e:
+        print(f"Could not set up PostgreSQL. {e}\n----\nExiting...")
+        return
+    bot.run(config.token, bot=True, reconnect=True)
 
-def read_bm(uid):
-    bm = get_botmgmt()
-    uid = str(uid)
-    if uid not in bm['botmanager']:
-        return False
-
-def add_botmanager(userid):
-    uid = str(userid)
-    bm = get_botmgmt()
-    if uid not in bm['botmanager']:
-        bm['botmanager'].append(uid)
-    write_botmgmt(bm)
-
-def remove_botmanager(userid):
-    uid = str(userid)
-    bm = get_botmgmt()
-    if uid in bm['botmanager']:
-        bm['botmanager'].remove(uid)
-    write_botmgmt(bm)
-
-def check_if_botmgmt(ctx):
-    if not ctx.guild:
-        return False
-    bm = get_botmgmt()
-    if str(ctx.author.id) in bm['botmanager'] or str(ctx.author.id) == config.owner_id:
-        return True
+if __name__ == '__main__':
+    startbot()
