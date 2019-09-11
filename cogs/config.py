@@ -103,6 +103,7 @@ class Configuration(commands.Cog):
         await self.set_modconfig(ctx, guild_config)
 
     @commands.group()
+    @commands.has_permissions(administrator=True)
     async def embed(self, ctx):
         """Set up embedded logging.""" # For those who don't like compact logging
         if ctx.invoked_subcommand is None:
@@ -232,6 +233,8 @@ class Configuration(commands.Cog):
         await self.set_modconfig(ctx, guild_config)
 
     @commands.group(aliases=['mod-role', 'modroles'])
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
     async def modrole(self, ctx):
         """Configures the guild's mod roles"""
         if ctx.invoked_subcommand is None:
@@ -273,7 +276,7 @@ class Configuration(commands.Cog):
         """
         Lists the configured mod roles for this guild.
         """
-        query = """SELECT perms, role_id FROM staff_roles WHERE guild_id=$1"""
+        query = """SELECT perms, role_id FROM staff_roles WHERE guild_id=$1;"""
         async with self.bot.db.acquire() as con:
             result = await con.fetch(query, ctx.guild.id)
         embed = discord.Embed(title="Mod Roles", description="")
@@ -296,7 +299,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.command(name="set-mute-role", aliases=['setmuterole'])
-    @commands.has_permissions(administrator=True)
+    @commands.has_permissions(manage_guild=True)
     async def set_mute_role(self, ctx, *, role: discord.Role):
         """Sets the mute role to an existing role"""
         if role.is_default():
@@ -315,7 +318,7 @@ class Configuration(commands.Cog):
     @commands.guild_only()
     @commands.command(name="reset-mute-role", 
                       aliases=['deletemuterole', 'delete-mute-role'])
-    @commands.has_permissions(administrator=True)
+    @commands.has_permissions(manage_guild=True)
     async def delete_mute_role(self, ctx):
         """Deletes the configured mute role."""
         query = """"UPDATE guild_mod_config SET mute_role_id=NULL
