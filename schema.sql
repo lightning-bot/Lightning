@@ -1,10 +1,10 @@
 -- Created for PostgreSQL 11
 
-DROP TABLE IF EXISTS cronjobs, staff_roles, userlogs, user_restrictions, tags, commands_usage, bug_tickets, toggleable_roles;
+DROP TABLE IF EXISTS timers, cronjobs, staff_roles, userlogs, user_restrictions, tags, commands_usage, bug_tickets, toggleable_roles;
 
 -- Just store the timestamps as utcnow(). 
 -- Makes my life easier
-CREATE TABLE cronjobs
+CREATE TABLE IF NOT EXISTS timers
 (
     id SERIAL PRIMARY KEY,
     expiry timestamp without time zone,
@@ -13,7 +13,7 @@ CREATE TABLE cronjobs
     extra JSONB
 );
 
-CREATE TABLE staff_roles
+CREATE TABLE IF NOT EXISTS staff_roles
 (
     guild_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
@@ -21,13 +21,13 @@ CREATE TABLE staff_roles
     CONSTRAINT staff_roles_pkey PRIMARY KEY (guild_id, role_id, perms)
 );
 
-CREATE TABLE userlogs
+CREATE TABLE IF NOT EXISTS userlogs
 (
     guild_id BIGINT PRIMARY KEY,
     userlog JSONB
 );
 
-CREATE TABLE user_restrictions
+CREATE TABLE IF NOT EXISTS user_restrictions
 (
     guild_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
@@ -35,28 +35,28 @@ CREATE TABLE user_restrictions
     CONSTRAINT user_restrictions_pkey PRIMARY KEY (guild_id, user_id, role_id)
 );
 
-CREATE TABLE guild_mod_config
+CREATE TABLE IF NOT EXISTS guild_mod_config
 (
     guild_id BIGINT PRIMARY KEY,
     mute_role_id BIGINT,
     log_channels JSONB
 );
 
-CREATE TABLE toggleable_roles
+CREATE TABLE IF NOT EXISTS toggleable_roles
 (
     guild_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
     CONSTRAINT toggleable_roles_pkey PRIMARY KEY (guild_id, role_id)
 );
 
-CREATE TABLE auto_roles
+CREATE TABLE IF NOT EXISTS auto_roles
 (
     guild_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
     CONSTRAINT auto_roles_pkey PRIMARY KEY (guild_id, role_id)
 );
 
-CREATE TABLE tags
+CREATE TABLE IF NOT EXISTS tags
 (
     guild_id BIGINT PRIMARY KEY,
     tag_name TEXT,
@@ -66,7 +66,7 @@ CREATE TABLE tags
     usage BIGINT
 );
 
-CREATE TABLE tag_aliases
+CREATE TABLE IF NOT EXISTS tag_aliases
 (
     guild_id BIGINT PRIMARY KEY,
     tag_name TEXT,
@@ -75,7 +75,7 @@ CREATE TABLE tag_aliases
     created_at TIMESTAMP WITHOUT TIME ZONE
 );
 
-CREATE TABLE commands_usage
+CREATE TABLE IF NOT EXISTS commands_usage
 (
     id BIGSERIAL PRIMARY KEY,
     guild_id BIGINT,
@@ -90,7 +90,7 @@ CREATE INDEX IF NOT EXISTS commands_usage_user_id_idx ON commands_usage (user_id
 CREATE INDEX IF NOT EXISTS commands_usage_used_at_idx ON commands_usage (used_at);
 CREATE INDEX IF NOT EXISTS commands_usage_command_name_idx ON commands_usage (command_name);
 
-CREATE TABLE bug_tickets
+CREATE TABLE IF NOT EXISTS bug_tickets
 (
     id SERIAL PRIMARY KEY,
     guild_id BIGINT,
@@ -99,4 +99,13 @@ CREATE TABLE bug_tickets
     status TEXT,
     created TIMESTAMP WITHOUT TIME ZONE,
     ticket_info JSONB
+);
+
+CREATE TABLE IF NOT EXISTS modlog_cases
+(
+    guild_id BIGINT PRIMARY KEY,
+    channel_id BIGINT,
+    message_id BIGINT,
+    case_id SERIAL,
+    case_info JSONB
 );
