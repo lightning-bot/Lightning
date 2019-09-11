@@ -87,16 +87,17 @@ def is_bot_manager_or_staff(min_role: str):
         return sr
     return commands.check(predicate)
 
-def is_bot_manager(ctx):
+async def is_bot_manager(ctx):
     """Check function to see if author is a bot manager or owner"""
-    async def predicate(ctx):
-        if not await ctx.bot.is_owner(ctx.author):
-            return False
-        if ctx.author.id in config.bot_managers:
-            return True
-        if not ctx.guild:
-            return False
-    return commands.check(predicate)
+    if not ctx.guild:
+        return False
+    is_owner = await ctx.bot.is_owner(ctx.author)
+    if is_owner:
+        return True
+    bm = ctx.author.id in config.bot_managers
+    if bm:
+        return True
+    return False
         
 
 # A check function based off of Kirigiri.
