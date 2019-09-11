@@ -183,8 +183,9 @@ class LightningBot(commands.Bot):
         if bl:
             if str(message.author.id) in bl.grab_blacklist():
                 return
-            if str(message.guild.id) in bl.grab_blacklist_guild():
-                return
+            if message.guild:
+                if str(message.guild.id) in bl.grab_blacklist_guild():
+                    return
         ctx = await self.get_context(message, cls=LightningContext)
         await self.invoke(ctx)
 
