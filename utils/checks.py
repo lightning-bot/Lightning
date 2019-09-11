@@ -79,6 +79,8 @@ def is_staff_or_has_perms(min_role: str, **perms):
 
 def is_bot_manager_or_staff(min_role: str):
     async def predicate(ctx):
+        if not ctx.guild:
+            return False
         if not await ctx.bot.is_owner(ctx.author):
             return False
         sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
