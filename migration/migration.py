@@ -82,7 +82,7 @@ class Migration(commands.Cog):
                     # Do stuff here
                     data = json.load(f)
                     # Some stuff was renamed so yolo
-                    config = self.bot.get_cog('Config')
+                    config = self.bot.get_cog('Configuration')
                     if not config:
                         return await ctx.send("Cannot set guild_mod_config "
                                               "as `cogs.config` is not loaded. "
