@@ -26,6 +26,7 @@
 import discord
 from discord.ext import commands
 from utils.paginators_jsk import paginator_embed
+import asyncpg
 
 class ToggleRoles(commands.Cog):
     def __init__(self, bot):
@@ -73,7 +74,7 @@ class ToggleRoles(commands.Cog):
         async with self.bot.db.acquire() as con:
             try:
                 await con.execute(query, ctx.guild.id, role.id)
-            except:
+            except asyncpg.UniqueViolationError:
                 return await ctx.send("That role is already added as a toggleable role.")
         await ctx.safe_send(f"Added {role.name} as a toggleable role!")
 
