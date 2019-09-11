@@ -529,6 +529,7 @@ class Meta(commands.Cog):
         await ctx.send(embed=em)
 
     @commands.group(invoke_without_command=True)
+    @commands.guild_only()
     async def stats(self, ctx, member: discord.Member=None):
         """Sends stats about which commands are used often in the guild"""
         async with ctx.typing():
