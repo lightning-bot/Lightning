@@ -30,6 +30,7 @@ from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_
 from datetime import datetime
 import json
 import asyncio
+from utils.time import natural_timedelta
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
@@ -665,9 +666,10 @@ class Mod(commands.Cog):
                                   "they're a staff member.")
         expiry_timestamp = self.bot.parse_time(duration)
         expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
-        duration_text = self.bot.get_relative_timestamp(time_to=expiry_datetime,
-                                                        include_to=True,
-                                                        humanized=True)
+        duration_text = self.bot.get_utc_timestamp(time_to=expiry_datetime,
+                                                    include_to=True)
+        timed_txt = natural_timedelta(expiry_datetime)
+        duration_text = f"in {timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
             return await ctx.send("Sorry, the timer system "
@@ -737,9 +739,10 @@ class Mod(commands.Cog):
         role = await self.get_mute_role(ctx)
         expiry_timestamp = self.bot.parse_time(duration)
         expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
-        duration_text = self.bot.get_relative_timestamp(time_to=expiry_datetime,
-                                                        include_to=True,
-                                                        humanized=True)
+        duration_text = self.bot.get_utc_timestamp(time_to=expiry_datetime,
+                                                    include_to=True)
+        timed_txt = natural_timedelta(expiry_datetime)
+        duration_text = f"in {timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
             return await ctx.send("Sorry, the timer system "
@@ -766,10 +769,6 @@ class Mod(commands.Cog):
             pass
         reason_duration = self.bot.get_utc_timestamp(time_to=expiry_datetime,
                                                      include_to=True)
-        reason_time = self.bot.humanized_time(time_from=ctx.message.created_at, 
-                                              time_to=expiry_datetime, 
-                                              distance=True,
-                                              include_timedate=True)
         if reason:
             opt_reason = f"{reason} (Timemute expires at {reason_duration})"
         else:
@@ -778,7 +777,7 @@ class Mod(commands.Cog):
         await target.add_roles(role, reason=f"{self.mod_reason(ctx, opt_reason)}")
 
         chan_message = f"🔇 **Timed Mute**: {ctx.author.mention} muted "\
-                       f"{target.mention} for {reason_time} | {safe_name}\n"\
+                       f"{target.mention} for {duration_text} | {safe_name}\n"\
                        f"🏷 __User ID__: {target.id}\n"
         if reason:
             chan_message += f"✏️ __Reason__: \"{reason}\""

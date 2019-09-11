@@ -30,6 +30,7 @@ from utils.checks import is_guild, has_staff_role, is_bot_manager_or_staff
 from datetime import datetime
 import json
 import config
+from utils.time import natural_timedelta
 
 class LightningHub(commands.Cog):
     """Helper commands for Lightning Hub only."""
@@ -227,9 +228,10 @@ class LightningHub(commands.Cog):
         chans = ", ".join(x.mention for x in channels)
         expiry_timestamp = self.bot.parse_time(duration)
         expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
-        duration_text = self.bot.get_relative_timestamp(time_to=expiry_datetime,
-                                                        include_to=True,
-                                                        humanized=True)
+        duration_text = self.bot.get_utc_timestamp(time_to=expiry_datetime,
+                                                    include_to=True)
+        timed_txt = natural_timedelta(expiry_datetime)
+        duration_text = f"in {timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
             return await ctx.send("Sorry, the timer system "
@@ -316,7 +318,7 @@ class LightningHub(commands.Cog):
         cid = guid.get_channel(info['channel_id'])
         mid = await cid.fetch_message(info['message_id'])
         ext = json.loads(info['ticket_info'])
-        embed = discord.Embed(title=f"Bug Report - ID: {id}", description=ext['text'], 
+        embed = discord.Embed(title=f"Report - ID: {id}", description=ext['text'], 
                               color=color)
         uid = await self.bot.fetch_user(ext['author_id'])
         embed.set_author(name=uid, icon_url=uid.avatar_url)
