@@ -24,6 +24,7 @@
 # reasonable ways as different from the original version
 
 from discord.ext import commands
+import discord
 
 class SafeSend(commands.Converter):
     async def convert(self, ctx, message):
@@ -31,3 +32,18 @@ class SafeSend(commands.Converter):
         # I hope this saves my life forever. :blobsweat:
         content = await commands.clean_content().convert(ctx, str(message))
         return content
+
+class LastImage(commands.Converter):
+    """Converter to handle images"""
+    async def default(self, ctx, param):
+        async for message in ctx.channel.history(limit=15):
+            # Capping it off at 15 for safety measures
+            for embed in message.embeds:
+                if embed.thumbnail and embed.thumbnail.proxy_url:
+                    return embed.thumbnail.proxy_url
+            for attachment in message.attachments:
+                if attachment.proxy_url:
+                    return attachment.proxy_url
+        raise discord.ext.errors.MissingRequiredArgument("Couldn't not "
+                                                         "find an image in the last "
+                                                         "15 messages")
