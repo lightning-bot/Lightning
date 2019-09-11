@@ -5,6 +5,7 @@ default_prefix = ['.']
 database_connection = "postgresql://user:password@host/lightning"
 # How many times can commands be spammed before the bot auto-blacklists
 spam_count = 5
+bot_version = "v2.0B"
 
 # List Cogs that should be loaded on start
 cogs = ['cogs.comics', 'cogs.common', 'cogs.emoji', 'cogs.fun', 

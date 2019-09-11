@@ -100,7 +100,7 @@ class LightningBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=_callable_prefix, 
                          description=config.description)
-        self.version = "v2.0A"
+        self.version = config.bot_version
         self.log = log
         self.launch_time = datetime.utcnow()
         self.script_name = script_name
