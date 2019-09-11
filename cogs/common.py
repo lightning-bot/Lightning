@@ -77,6 +77,7 @@ class Common(Cog):
                "the [support server](https://discord.gg/cDPGuYd) and looking in the "\
               f"reports channel."
         embed=discord.Embed(title="Uh oh, my powers overloaded.", description=msg)
+        embed.set_footer(text="My developers have been notified about this.")
         await ctx.send(embed=embed)
 
     def humanized_time(self, time_from=None, time_to=None, distance=True, 
