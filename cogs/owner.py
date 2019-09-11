@@ -414,8 +414,8 @@ class Owner(commands.Cog):
         """Direct messages a user""" # No checks yet
         await user_id.send(message)
 
-    @commands.check(is_bot_manager)
     @commands.command()
+    @commands.check(is_bot_manager)
     async def curl(self, ctx, url: str):
         """Curls a site, returning its contents."""
         text = await self.bot.aioget(url)
