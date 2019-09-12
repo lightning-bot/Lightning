@@ -27,7 +27,7 @@ from discord.ext import commands
 import discord
 import io
 from discord.ext.commands import Cog
-from utils.checks import is_one_of_guilds, is_staff_or_has_perms, has_staff_role
+from utils.checks import is_one_of_guilds, is_staff_or_has_perms
 from utils.paginators_jsk import paginator_reg_nops
 import random
 

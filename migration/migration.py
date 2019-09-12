@@ -24,7 +24,6 @@
 # reasonable ways as different from the original version
 
 from discord.ext import commands
-import discord
 import json
 import os
 from utils.user_log import set_userlog

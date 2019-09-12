@@ -32,7 +32,6 @@ import asyncio
 import random
 import config
 from utils.checks import is_bot_manager
-from utils.paginators_jsk import paginator_reg
 import os
 import json
 import shutil
@@ -182,17 +181,6 @@ class Owner(commands.Cog):
                                   f"Reason: {bl[str(id)]}")
         await ctx.send("No matches found!")
 
-    #@commands.command(name="blacklistuserlist", aliases=["blacklisteduserlist"])
-    #@commands.is_owner()
-    #async def blacklisted_users_list(self, ctx):
-    #    """Lists blacklisted users"""
-    #    session = self.bot.dbsession()
-    #    paginator = commands.Paginator(prefix="", suffix="")
-    #    for row in session.query(BlacklistUser):
-    #        paginator.add_line(f"`{row.user_id}` - Reason: {row.reason}")
-    #    for page in paginator.pages:
-    #        await ctx.send(page)
-
     @commands.is_owner()
     @commands.command()
     async def logout(self, ctx):
@@ -271,7 +259,7 @@ class Owner(commands.Cog):
     async def git(self, ctx):
         """Git Commands"""
         if ctx.invoked_subcommand is None:
-            await ctx.send_help(ctx.command)
+            return await ctx.send_help(ctx.command)
 
     @commands.is_owner()
     @git.command()
@@ -294,15 +282,14 @@ class Owner(commands.Cog):
         to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
 
         for cog in to_reload: # Thanks Ave
-                try:
-                    self.bot.unload_extension("cogs." + cog)
-                    self.bot.load_extension("cogs." + cog)
-                    self.bot.log.info(f'Automatically reloaded {cog}')
-                    await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
-                                   'successfully reloaded.')
-                except Exception as e:
-                    await ctx.send(f'💢 There was an error reloading the cog \n**`ERROR:`** {type(e).__name__} - {e}')                   
-                    return
+            try:
+                self.bot.unload_extension("cogs." + cog)
+                self.bot.load_extension("cogs." + cog)
+                self.bot.log.info(f'Automatically reloaded {cog}')
+                await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
+                                'successfully reloaded.')
+            except Exception:
+                return await self.error_on_cog_method(ctx, cog, "Reload", traceback.format_exc())
 
     @commands.is_owner()
     @git.command(name="pull-load", aliases=['pl'])
@@ -316,14 +303,13 @@ class Owner(commands.Cog):
         to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
 
         for cog in to_reload: # Thanks Ave
-                try:
-                    self.bot.load_extension("cogs." + cog)
-                    self.bot.log.info(f'Automatically loaded {cog}')
-                    await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
-                                   'successfully loaded.')
-                except Exception as e:
-                    await ctx.send(f'💢 There was an error loading the cog \n**`ERROR:`** {type(e).__name__} - {e}')                   
-                    return
+            try:
+                self.bot.load_extension("cogs." + cog)
+                self.bot.log.info(f'Automatically loaded {cog}')
+                await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
+                                'successfully loaded.')
+            except Exception:
+                return await self.error_on_cog_method(ctx, cog, "Load", traceback.format_exc())
 
     @commands.is_owner()
     @git.command(name="pull-exit", aliases=['pe'])
@@ -453,7 +439,7 @@ class Owner(commands.Cog):
         except Exception:
             return await self.error_on_cog_method(ctx, cog, "Unload", traceback.format_exc())
         else:
-            self.bot.log.info(f"{ctx.author} unloaded the cog `{cog}`")  
+            self.bot.log.info(f"{ctx.author} unloaded the cog `{cog}`")
             await ctx.send(f'✅ Successfully unloaded `cogs.{cog}`')
 
     @commands.command(name='reload')
@@ -466,7 +452,7 @@ class Owner(commands.Cog):
         except Exception:
             return await self.error_on_cog_method(ctx, cog, "Reload", traceback.format_exc())
         else:
-            self.bot.log.info(f"{ctx.author} reloaded the cog `{cog}`")   
+            self.bot.log.info(f"{ctx.author} reloaded the cog `{cog}`")
             await ctx.send(f'✅ Successfully reloaded `cogs.{cog}`')
 
     @commands.command(aliases=['list-cogs'])

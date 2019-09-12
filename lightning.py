@@ -36,7 +36,6 @@ from datetime import datetime
 import config
 import db.per_guild_config
 import asyncpg
-import asyncio
 
 # Uses logging template from ave's botbase.py
 # botbase.py is under the MIT License. 

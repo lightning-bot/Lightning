@@ -22,7 +22,6 @@
 
 import json
 import time
-import os
 
 userlog_event_types = {"warns": "Warn",
                        "bans": "Ban",

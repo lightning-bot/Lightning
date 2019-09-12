@@ -23,7 +23,6 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import time
 import config
 from datetime import datetime
 from discord.ext import commands, tasks
@@ -112,6 +111,7 @@ class PowersCronManagement(commands.Cog):
                 id = await connect.fetchrow(query, event, created, expiry)
             finally:
                 await self.bot.db.release(connect)
+        return id[0]
         # Adding temporary timers in the database for those 
         # moments when the bot decides to go down.
         #stime = (expiry - created).total_seconds()
