@@ -38,6 +38,7 @@ import shutil
 from utils.custom_prefixes import get_guildid_prefixes
 from utils.paginator import TextPages
 
+
 class Owner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -72,7 +73,7 @@ class Owner(commands.Cog):
         shell_out = await self.bot.call_shell(command)
         pages = TextPages(ctx, shell_out)
         await pages.paginate()
-    
+
     @commands.is_owner()
     @commands.command()
     async def fetchlog(self, ctx):
@@ -80,12 +81,12 @@ class Owner(commands.Cog):
         log_channel = self.bot.get_channel(config.error_channel)
         await ctx.message.add_reaction("✅")
         try:
-            await ctx.author.send("Here's the current log file:", 
+            await ctx.author.send("Here's the current log file:",
                                   file=discord.File(f"{self.bot.script_name}.log"))
         except discord.errors.Forbidden:
             await ctx.send("💢 I couldn't send the log file in your DMs so I "
                            "sent it to the bot\'s logging channel.")
-            await log_channel.send("Here's the current log file:", 
+            await log_channel.send("Here's the current log file:",
                                    file=discord.File(f"{self.bot.script_name}.log"))
 
     @commands.check(is_bot_manager)
@@ -106,7 +107,7 @@ class Owner(commands.Cog):
         """Blacklisting Management"""
         if ctx.invoked_subcommand is None:
             return await ctx.send_help(ctx.command)
-    
+
     @commands.check(is_bot_manager)
     @blacklist.command(name='addguild', aliases=['guildadd'])
     async def blacklist_guild(self, ctx, server_id: int, *, reason: str = ""):
@@ -198,8 +199,8 @@ class Owner(commands.Cog):
             return await ctx.send('I\'m not in this server.')
         await server.leave()
         await ctx.send(f'Successfully left {server.name}')
-    
-    # Robocop-ng's eval commands. MIT Licensed. 
+
+    # Robocop-ng's eval commands. MIT Licensed.
     # https://github.com/reswitched/robocop-ng/blob/master/LICENSE
     @commands.is_owner()
     @commands.command(name='eval')
@@ -246,7 +247,7 @@ class Owner(commands.Cog):
                                                           suffix="```")
             for msg in sliced_message:
                 await ctx.send(msg)
-        except:
+        except Exception:
             sliced_message = \
                 await self.bot.slice_message(traceback.format_exc(),
                                              prefix="```",
@@ -279,15 +280,15 @@ class Owner(commands.Cog):
         output = await self.bot.call_shell("git pull")
         await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
 
-        to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
+        to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output)  # Read output
 
-        for cog in to_reload: # Thanks Ave
+        for cog in to_reload:  # Thanks Ave
             try:
                 self.bot.unload_extension("cogs." + cog)
                 self.bot.load_extension("cogs." + cog)
                 self.bot.log.info(f'Automatically reloaded {cog}')
                 await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
-                                'successfully reloaded.')
+                               'successfully reloaded.')
             except Exception:
                 return await self.error_on_cog_method(ctx, cog, "Reload", traceback.format_exc())
 
@@ -300,14 +301,14 @@ class Owner(commands.Cog):
         output = await self.bot.call_shell("git pull")
         await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
 
-        to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output) # Read output
+        to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output)  # Read output
 
-        for cog in to_reload: # Thanks Ave
+        for cog in to_reload:  # Thanks Ave
             try:
                 self.bot.load_extension("cogs." + cog)
                 self.bot.log.info(f'Automatically loaded {cog}')
                 await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
-                                'successfully loaded.')
+                               'successfully loaded.')
             except Exception:
                 return await self.error_on_cog_method(ctx, cog, "Load", traceback.format_exc())
 
@@ -327,9 +328,9 @@ class Owner(commands.Cog):
         """Helper commands to assist with pip things"""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
-    
+
     @commands.is_owner()
-    @pip.command(name="check-updates", 
+    @pip.command(name="check-updates",
                  aliases=['chkupdate', 'cupdate', 'chku'])
     async def check_updates(self, ctx):
         """Checks to see which packages are outdated"""
@@ -377,8 +378,8 @@ class Owner(commands.Cog):
                                                  suffix="```")
         for msg in slice_msg:
             await ctx.send(msg)
-            
-    @commands.command(aliases=['status']) #'play'
+
+    @commands.command(aliases=['status'])  # 'play'
     @commands.is_owner()
     async def playing(self, ctx, *, gamename: str = ""):
         """Sets the bot's playing message. Owner only."""
@@ -397,7 +398,7 @@ class Owner(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def dm(self, ctx, user_id: discord.Member, *, message: str):
-        """Direct messages a user""" # No checks yet
+        """Direct messages a user"""  # No checks yet
         await user_id.send(message)
 
     @commands.command()
@@ -409,8 +410,8 @@ class Owner(commands.Cog):
         await pages.paginate()
 
     async def error_on_cog_method(self, ctx, cog, method: str, ext):
-        msg =  f"\N{WARNING SIGN} {method} error for "\
-               f"`cogs.{cog}`"
+        msg = f"\N{WARNING SIGN} {method} error for "\
+              f"`cogs.{cog}`"
         pages = TextPages(ctx, f"{ext}")
         await ctx.send(msg)
         await pages.paginate()
@@ -465,7 +466,7 @@ class Owner(commands.Cog):
             paginator.add_line(f"- {cog}")
 
         for page in paginator.pages:
-            await ctx.send(page) 
+            await ctx.send(page)
 
     @commands.command(aliases=['rgf'])
     @commands.is_owner()
@@ -502,6 +503,7 @@ class Owner(commands.Cog):
             except discord.Forbidden:
                 pass
             self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
-            
+
+
 def setup(bot):
     bot.add_cog(Owner(bot))

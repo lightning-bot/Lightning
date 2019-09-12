@@ -23,7 +23,7 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-#import click
+# import click
 from lightning import LightningBot
 import asyncio
 import config
@@ -35,16 +35,18 @@ except ImportError:
 else:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
+
 def startbot():
     loop = asyncio.get_event_loop()
     bot = LightningBot()
     try:
-        bot.db = loop.run_until_complete(bot.create_pool(config.database_connection, 
+        bot.db = loop.run_until_complete(bot.create_pool(config.database_connection,
                                                          command_timeout=60))
     except Exception as e:
         print(f"Could not set up PostgreSQL. {e}\n----\nExiting...")
         return
     bot.run(config.token, bot=True, reconnect=True)
+
 
 if __name__ == '__main__':
     startbot()

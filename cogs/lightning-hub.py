@@ -86,9 +86,8 @@ class LightningHub(commands.Cog):
         try:
             await target.send(dm_message)
         except discord.errors.Forbidden:
-             # Prevents issues in cases where user blocked bot
-             # or has DMs disabled
-            msg += f"\n\n{target.mention} has their DMs off and I was unable to send the reason."# Experimental
+            msg += f"\n\n{target.mention} has their DMs off "\
+                    "and I was unable to send the reason."
             pass
 
         mod = self.bot.get_cog('Mod')
@@ -134,10 +133,10 @@ class LightningHub(commands.Cog):
             if "auto_probate" in config:
                 role = discord.Object(id=546379342943617025)
                 await member.add_roles(role, reason="Auto Probate")
-                dm_message = f"You were automatically probated. "\
-                              "Please read the rules for this "\
-                              "server and speak in the probation "\
-                              "channel when you are ready."
+                dm_message = "You were automatically probated. "\
+                             "Please read the rules for this "\
+                             "server and speak in the probation "\
+                             "channel when you are ready."
                 msg = f"**Auto Probate:** {member.mention}"
                 try:
                     await member.send(dm_message)
@@ -150,14 +149,16 @@ class LightningHub(commands.Cog):
     @is_guild(527887739178188830)
     @has_staff_role("Moderator")
     async def autoprobate(self, ctx, status="on"):
-        """Turns on or off auto probate. 
+        """Turns on or off auto probate.
         Use "disable" to disable auto probate."""
         if status == "disable":
             ctx.guild_config.pop("auto_probate")
             await ctx.send("Auto Probate is now disabled.")
         else:
             ctx.guild_config["auto_probate"] = ctx.author.id
-            await ctx.send(f"Auto Probate is now enabled\nTo turn off Auto Probate in the future, use `{ctx.prefix}autoprobate disable`")
+            await ctx.send("Auto Probate is now enabled\n"
+                           "To turn off Auto Probate in the "
+                           f"future, use `{ctx.prefix}autoprobate disable`")
 
     @commands.command()
     @is_guild(527887739178188830)
@@ -287,15 +288,15 @@ class LightningHub(commands.Cog):
         e.set_footer(text="Status: Received")
         ch = self.bot.get_channel(config.bug_reports_channel)
         msg = await ch.send(embed=e)
-        query = """UPDATE bug_tickets 
-                   SET guild_id=$2, channel_id=$3, message_id=$4 
+        query = """UPDATE bug_tickets
+                   SET guild_id=$2, channel_id=$3, message_id=$4
                    WHERE id=$1;
                 """
         async with self.bot.db.acquire() as con:
             await con.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
         await ctx.safe_send(f"Created a bug ticket with ID {id[0]}. "
                             "You can see updates on your ticket by looking in the "
-                           f"bug-reports channel or by using `.ticket info {id[0]}`")
+                            f"bug-reports channel or by using `.ticket info {id[0]}`")
 
     @ticket.command(name="info")
     @is_guild(527887739178188830)
@@ -308,14 +309,15 @@ class LightningHub(commands.Cog):
         if res is None:
             return await ctx.send("Invalid Ticket ID!")
         ext = json.loads(res['ticket_info'])
-        embed = discord.Embed(title="Ticket Info", description=ext['text'], 
+        embed = discord.Embed(title="Ticket Info",
+                              description=ext['text'],
                               color=0xf74b06)
         uid = await self.bot.fetch_user(ext['author_id'])
         embed.set_author(name=uid, icon_url=uid.avatar_url)
         embed.timestamp = res['created']
         embed.set_footer(text=f"Status: {res['status']}")
         await ctx.send(embed=embed)
-        
+
     async def update_ticket_embed(self, id, info, status, color):
         guid = self.bot.get_guild(info['guild_id'])
         cid = guid.get_channel(info['channel_id'])
@@ -343,10 +345,10 @@ class LightningHub(commands.Cog):
     @is_bot_manager_or_staff("Helper")
     async def ticket_status_y(self, ctx, ticket_id: int, *, status: str):
         """Updates a ticket's status to a yellow color
-        
+
         Status should be "Identified"
         """
-        query = """SELECT guild_id, channel_id, message_id, ticket_info 
+        query = """SELECT guild_id, channel_id, message_id, ticket_info
                    FROM bug_tickets WHERE id=$1;"""
         async with self.bot.db.acquire() as con:
             res = await con.fetchrow(query, ticket_id)
@@ -363,10 +365,10 @@ class LightningHub(commands.Cog):
     @is_bot_manager_or_staff("Helper")
     async def ticket_status_g(self, ctx, ticket_id: int, *, status: str):
         """Updates a ticket's status to a green color
-        
-        Status should be "Resolved" 
+
+        Status should be "Resolved"
         """
-        query = """SELECT guild_id, channel_id, message_id, ticket_info 
+        query = """SELECT guild_id, channel_id, message_id, ticket_info
                    FROM bug_tickets WHERE id=$1;"""
         async with self.bot.db.acquire() as con:
             res = await con.fetchrow(query, ticket_id)
@@ -383,10 +385,10 @@ class LightningHub(commands.Cog):
     @is_bot_manager_or_staff("Helper")
     async def ticket_status_r(self, ctx, ticket_id: int, *, status: str):
         """Updates a ticket's status to a red color
-        
+
         Status can be "Investigating" or "Bad Ticket"/"No Info Provided"
         """
-        query = """SELECT guild_id, channel_id, message_id, ticket_info 
+        query = """SELECT guild_id, channel_id, message_id, ticket_info
                    FROM bug_tickets WHERE id=$1;"""
         async with self.bot.db.acquire() as con:
             res = await con.fetchrow(query, ticket_id)
@@ -406,14 +408,15 @@ class LightningHub(commands.Cog):
         for channel in ext['channels']:
             try:
                 ch = guild.get_channel(channel)
-                await ch.set_permissions(member, 
-                                         read_messages=None, 
-                                         send_messages=None, 
+                await ch.set_permissions(member,
+                                         read_messages=None,
+                                         send_messages=None,
                                          reason="PowersCron: "
                                          "Auto Unblock")
-            except:
-                #self.bot.log.error(traceback.format_exc())
+            except Exception as e:
+                self.bot.log.error(e)
                 pass
+
 
 def setup(bot):
     bot.add_cog(LightningHub(bot))

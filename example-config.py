@@ -26,11 +26,12 @@ webhook_blacklist_alert = "WEBHOOK_URL"
 bot_managers = [532220480577470464]
 
 # If you forked the repo and want to use the github commands
-github_username = "" # Github Username
-github_repo = "" # Repository Name
-github_key = "" # Personal Access Token (OAUTH Token)
+github_username = ""  # Github Username
+github_repo = ""  # Repository Name
+github_key = ""  # Personal Access Token (OAUTH Token)
+# Guilds that can use Github/GitLab Commands
 gh_whitelisted_guilds = [527887739178188830,
-                         540978015811928075] # Guilds that can use Github/GitLab Commands
+                         540978015811928075]
 
 # IP Address or URL of GitLab Instance
 gitlab_instance = ""

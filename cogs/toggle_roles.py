@@ -28,6 +28,7 @@ from discord.ext import commands
 from utils.paginators_jsk import paginator_embed
 import asyncpg
 
+
 class ToggleRoles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -93,7 +94,7 @@ class ToggleRoles(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def rm_t_role(self, ctx, *, role: discord.Role):
         """Removes a role from the toggleable role list"""
-        query = """DELETE FROM toggleable_roles 
+        query = """DELETE FROM toggleable_roles
                    WHERE guild_id=$1
                    AND role_id=$2;
                 """
@@ -103,7 +104,7 @@ class ToggleRoles(commands.Cog):
             return await ctx.safe_send(f"{role.name} was never set as a toggleable role!")
         await ctx.safe_send(f"Successfully removed {role.name} from the "
                             "list of toggleable roles")
-        
+
     @commands.guild_only()
     @togglerole.command(name="list", aliases=['get'])
     async def get_toggleable_roles(self, ctx):
@@ -123,7 +124,7 @@ class ToggleRoles(commands.Cog):
         for s in role_list:
             pages.append(f"{s.mention} | Role ID {s.id}")
         await paginator_embed(self.bot, ctx, embed, size=200, page_list=pages)
-    
+
     @commands.guild_only()
     @togglerole.command(name="remove")
     @commands.bot_has_permissions(manage_roles=True)

@@ -33,6 +33,7 @@ import utils.time
 
 STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
 
+
 class Reminders(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -41,9 +42,9 @@ class Reminders(commands.Cog):
     async def remind(self, ctx, *, when: utils.time.UserFriendlyTime(default='something')):
         """Reminds you of something after a certain date.
 
-        The input can be any direct date (e.g. YYYY-MM-DD) 
+        The input can be any direct date (e.g. YYYY-MM-DD)
         or a human readable offset.
-        
+
         Examples:
         - ".remind in 2 days do essay" (2 days)
         - ".remind 1 hour do dishes" (1 hour)
@@ -59,9 +60,9 @@ class Reminders(commands.Cog):
         if not timer:
             return await ctx.send("Sorry, the timer system "
                                   "(PowersCron) is currently unavailable.")
-        to_dump = {"reminder_text": safe_description, 
+        to_dump = {"reminder_text": safe_description,
                    "author": ctx.author.id, "channel": ctx.channel.id}
-        await timer.add_job("reminder", ctx.message.created_at, 
+        await timer.add_job("reminder", ctx.message.created_at,
                             when.dt, to_dump)
         await ctx.send(f"{ctx.author.mention}: I'll remind you in "
                        f"{duration_text} about {safe_description}.")
@@ -86,9 +87,9 @@ class Reminders(commands.Cog):
             for job in rem:
                 ext = json.loads(job['extra'])
                 timed_txt = utils.time.natural_timedelta(job['expiry'], suffix=True)
-                embed.add_field(name=f"{job['id']}: In {timed_txt}", 
+                embed.add_field(name=f"{job['id']}: In {timed_txt}",
                                 value=f"{ext['reminder_text']}")
-        except:
+        except Exception:
             self.bot.log.error(traceback.format_exc())
             log_channel = self.bot.get_channel(config.powerscron_errors)
             await log_channel.send(f"PowersCron has Errored! "
@@ -101,7 +102,7 @@ class Reminders(commands.Cog):
     @commands.bot_has_permissions(add_reactions=True)
     async def deletereminder(self, ctx, *, reminder_id: int):
         """Deletes a reminder by ID.
-        
+
         You can get the ID of a reminder with .listreminders
 
         You must own the reminder to remove it"""
@@ -115,10 +116,10 @@ class Reminders(commands.Cog):
             result = await con.execute(query, reminder_id, str(ctx.author.id))
         if result == 'DELETE 0':
             await ctx.message.add_reaction("❌")
-            return await ctx.send(f"I couldn't delete a reminder with that ID!")            
+            return await ctx.send(f"I couldn't delete a reminder with that ID!")
 
         await ctx.send(f"Successfully deleted reminder (ID: {reminder_id})")
-        await ctx.message.add_reaction("✅") # For whatever reason
+        await ctx.message.add_reaction("✅")  # For whatever reason
 
     @commands.command(name="current-utc-time")
     async def currentutctime(self, ctx):
@@ -136,20 +137,21 @@ class Reminders(commands.Cog):
                                                  suffix=True)
         try:
             await channel.send(f"{uid.mention}: "
-                                "You asked to be reminded "
+                               "You asked to be reminded "
                                f"{timed_txt} "
                                f"about `{ext['reminder_text']}`")
         # Attempt to DM User if we failed to send Reminder
         except discord.errors.Forbidden:
             try:
                 await uid.send(f"{uid.mention}: "
-                                "You asked to be reminded "
+                               "You asked to be reminded "
                                f"{timed_txt} "
                                f"about `{ext['reminder_text']}`")
-            except:
+            except Exception:
                 # Optionally add to the db as a failed job
                 self.bot.log.error(f"Failed to remind {ext['author']}.")
                 pass
+
 
 def setup(bot):
     bot.add_cog(Reminders(bot))
