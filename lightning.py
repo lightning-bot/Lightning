@@ -38,7 +38,7 @@ import db.per_guild_config
 import asyncpg
 
 # Uses logging template from ave's botbase.py
-# botbase.py is under the MIT License. 
+# botbase.py is under the MIT License.
 # https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
 
 script_name = os.path.basename(__file__).split('.')[0]
@@ -64,6 +64,7 @@ log.addHandler(stdout_handler)
 
 default_prefix = config.default_prefix
 
+
 def _callable_prefix(bot, message):
     prefixed = default_prefix
     if message.guild is None:
@@ -77,6 +78,7 @@ def _callable_prefix(bot, message):
         prefixesc += default_prefix
         return commands.when_mentioned_or(*prefixesc)(bot, message)
 
+
 initial_extensions = config.cogs
 
 # Create config folder if not found
@@ -84,6 +86,7 @@ if not os.path.exists("config"):
     os.makedirs("config")
 if not os.path.exists("cogs"):
     os.makedirs("cogs")
+
 
 class LightningContext(commands.Context):
     def __init__(self, **kwargs):
@@ -94,6 +97,7 @@ class LightningContext(commands.Context):
         if content is not None:
             content = await commands.clean_content().convert(self, str(content))
         return await super().send(content=content, **kwargs)
+
 
 class LightningBot(commands.Bot):
     def __init__(self):
@@ -276,4 +280,4 @@ class LightningBot(commands.Bot):
                                   "Please resolve that, then "
                                   "run the command again.")
         elif isinstance(error, commands.CommandNotFound):
-            return # We don't need to say anything
+            return  # We don't need to say anything
