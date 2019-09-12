@@ -7,13 +7,6 @@ database_connection = "postgresql://user:password@host/lightning"
 spam_count = 5
 bot_version = "v2.0B"
 
-# List Cogs that should be loaded on start
-cogs = ['cogs.comics', 'cogs.common', 'cogs.emoji', 'cogs.fun',
-'cogs.git', 'cogs.lightning-hub', 'cogs.lockdown',
-'cogs.logger', 'cogs.memes', 'cogs.meta', 'cogs.mod_userlog',
-'cogs.mod', 'cogs.owner', 'cogs.powerscrona', 'cogs.setup',
-'cogs.timers', 'cogs.toggle_roles', 'cogs.utility', 'cogs.weeb', 'cogs.tags']
-
 # Bot Errors/Logs Channel.
 error_channel = 567109464184979502
 powerscron_errors = "INSERT_WEBHOOK_URL"

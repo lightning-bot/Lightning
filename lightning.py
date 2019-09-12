@@ -79,7 +79,24 @@ def _callable_prefix(bot, message):
         return commands.when_mentioned_or(*prefixesc)(bot, message)
 
 
-initial_extensions = config.cogs
+initial_extensions = ['cogs.comics',
+                      'cogs.common',
+                      'cogs.config',
+                      'cogs.emoji',
+                      'cogs.fun',
+                      'cogs.git',
+                      'cogs.lightning-hub',
+                      'cogs.logger',
+                      'cogs.memes',
+                      'cogs.meta',
+                      'cogs.mod_userlog',
+                      'cogs.mod',
+                      'cogs.owner',
+                      'cogs.powerscrona',
+                      'cogs.timers',
+                      'cogs.toggle_roles',
+                      'cogs.utility',
+                      'cogs.weeb']
 
 # Create config folder if not found
 if not os.path.exists("config"):
@@ -101,7 +118,7 @@ class LightningContext(commands.Context):
 
 class LightningBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=_callable_prefix, 
+        super().__init__(command_prefix=_callable_prefix,
                          description=config.description)
         self.version = config.bot_version
         self.log = log
@@ -136,8 +153,8 @@ class LightningBot(commands.Bot):
         self.config = config
 
         log.info(f'\nLogged in as: {self.user.name} - '
-                f'{self.user.id}\ndpy version: '
-                f'{discord.__version__}\nVersion: {self.version}\n')
+                 f'{self.user.id}\ndpy version: '
+                 f'{discord.__version__}\nVersion: {self.version}\n')
         summary = f"{len(self.guilds)} guild(s) and {len(self.users)} user(s)"
         msg = f"{self.user.name} has started! "\
               f"I can see {summary}\n\nDiscord.py Version: "\
@@ -166,11 +183,12 @@ class LightningBot(commands.Bot):
                     return
                 td[str(message.author.id)] = "Automatic blacklist on command spam"
                 bl.blacklist_dump("user_blacklist", td)
-                embed = discord.Embed(title="🚨 Auto User Blacklist", 
+                embed = discord.Embed(title="🚨 Auto User Blacklist",
                                       color=discord.Color.red())
-                embed.description=f"User: {message.author}\n"\
-                                  f"Spammed Commands "\
-                                  f"Count: {self.command_spammers[str(message.author.id)]}"
+                embed.description = f"User: {message.author}\n"\
+                                    f"Spammed Commands "\
+                                    f"Count: "\
+                                    f"{self.command_spammers[str(message.author.id)]}"
                 wbhk = discord.Webhook.from_url
                 adp = discord.AsyncWebhookAdapter(self.aiosession)
                 webhook = wbhk(config.webhook_blacklist_alert, adapter=adp)
@@ -230,7 +248,7 @@ class LightningBot(commands.Bot):
                                       color=discord.Color(0xff0000),
                                       timestamp=datetime.utcnow())
                 await webhook.execute(embed=embed)
-            except:
+            except Exception:
                 pass
 
         if isinstance(error, commands.NoPrivateMessage):
@@ -241,7 +259,7 @@ class LightningBot(commands.Bot):
                                   " permissions to run this command. You need: "
                                   f"```- {roles_needed}```")
         elif isinstance(error, commands.BotMissingPermissions):
-            roles_needed = '\n -'.join(error.missing_perms)
+            roles_needed = '\n- '.join(error.missing_perms)
             return await ctx.send(f"{ctx.author.mention}: Bot doesn't have "
                                   "the right permissions to run this command. "
                                   "Please add the following permissions: "
@@ -261,9 +279,9 @@ class LightningBot(commands.Bot):
             return await ctx.send("❌ I wasn't able to find that ID.")
         elif isinstance(error, commands.DisabledCommand):
             return await ctx.send(f"{ctx.author.mention}: This command is currently "
-                                  "disabled!")   
+                                  "disabled!")
         help_text = f"\n\nPlease see `{ctx.prefix}help "\
-                    f"{ctx.command}` for more info about this command." 
+                    f"{ctx.command}` for more info about this command."
         if isinstance(error, commands.BadArgument):
             content = await commands.clean_content().convert(ctx, str(error))
             return await ctx.send(f"{ctx.author.mention}: You gave incorrect "
@@ -273,7 +291,7 @@ class LightningBot(commands.Bot):
             return await ctx.send(f"{ctx.author.mention}: You gave incomplete "
                                   f"arguments. `{content}` {help_text}")
         elif isinstance(error, commands.CommandInvokeError) and\
-            ("Cannot send messages to this user" in error_text):
+                ("Cannot send messages to this user" in error_text):
             return await ctx.send(f"{ctx.author.mention}: I can't DM you.\n"
                                   "You might have me blocked or have DMs "
                                   f"blocked globally or for {ctx.guild.name}.\n"
