@@ -84,7 +84,7 @@ AGPL v3 with additional terms 7b and 7c in effect.
 This bot uses parts and ideas from other Discord Bots:
 
 - [Kirigiri](https://git.catgirlsin.space/noirscape/kirigiri) by Noirscape. (For the per_guild_config and staff role database)
-- [Robocop-NG](https://github.com/reswitched/robocop-ng) by Ave and TomGER. (Moderation Commands & Restrictions)
+- [Robocop-NG](https://github.com/reswitched/robocop-ng) by Ave and TomGER. (Moderation Commands)
 - [Kurisu](https://github.com/nh-server/Kurisu) by ihaveahax/ihaveamac and 916253. (For the compact logging format)
 - [RoboDanny](https://github.com/Rapptz/RoboDanny) by Rapptz/Danny. (For Ideas, Unban Handler, Paginators, and other things)
 
