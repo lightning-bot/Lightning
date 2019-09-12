@@ -35,6 +35,7 @@ import asyncpg
 
 # R.Danny's Tag Converter.
 # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/tags.py#L93
+
 class TagName(commands.clean_content):
     def __init__(self, *, lower=False):
         self.lower = lower
@@ -51,6 +52,7 @@ class TagName(commands.clean_content):
 
         return converted if not self.lower else lower
 
+
 class Tags(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -63,7 +65,7 @@ class Tags(commands.Cog):
 
     async def get_tag(self, ctx, name):
         query = """SELECT tag_name, tag_content
-                FROM tags WHERE guild_id=$1 
+                FROM tags WHERE guild_id=$1
                 AND tag_name=$2
                 INNER JOIN tag_aliases ON tag_aliases.tag_points_to = tags.tag_name;
                 """
@@ -72,7 +74,7 @@ class Tags(commands.Cog):
         if tag:
             return tag
         else:
-            raise Exception("Could not find that tag") 
+            raise Exception("Could not find that tag")
 
     async def create_tag(self, ctx, name, content):
         query = """INSERT INTO tags (guild_id, tag_name, tag_content, tag_author, created_at)
@@ -88,7 +90,7 @@ class Tags(commands.Cog):
             except asyncpg.UniqueViolationError:
                 await tr.rollback()
                 await ctx.send('This tag already exists.')
-            except:
+            except Exception:
                 await tr.rollback()
                 await ctx.send('Could not create tag.')
             else:

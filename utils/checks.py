@@ -27,6 +27,7 @@ import discord
 from discord.ext import commands
 import config
 
+
 def is_guild(guild_id):
     async def predicate(ctx):
         if not ctx.guild:
@@ -35,11 +36,13 @@ def is_guild(guild_id):
             return True
     return commands.check(predicate)
 
+
 def is_git_whitelisted(ctx):
     if not ctx.guild:
         return False
     guild = (ctx.guild.id in config.gh_whitelisted_guilds)
     return (guild)
+
 
 def is_one_of_guilds(guilds: list):
     async def predicate(ctx):
@@ -48,6 +51,7 @@ def is_one_of_guilds(guilds: list):
         if ctx.guild.id in guilds:
             return True
     return commands.check(predicate)
+
 
 def has_staff_role(min_role: str):
     """
@@ -67,6 +71,7 @@ def has_staff_role(min_role: str):
         return sr
     return commands.check(predicate)
 
+
 def is_staff_or_has_perms(min_role: str, **perms):
     """
     Checks and verifies if a user has the needed staff level or permission
@@ -81,6 +86,7 @@ def is_staff_or_has_perms(min_role: str, **perms):
         return all(getattr(permissions, perms, None) == value for perms, value in perms.items())
     return commands.check(predicate)
 
+
 def is_bot_manager_or_staff(min_role: str):
     async def predicate(ctx):
         if not ctx.guild:
@@ -93,6 +99,7 @@ def is_bot_manager_or_staff(min_role: str):
         return sr
     return commands.check(predicate)
 
+
 async def is_bot_manager(ctx):
     """Check function to see if author is a bot manager or owner"""
     if not ctx.guild:
@@ -104,12 +111,13 @@ async def is_bot_manager(ctx):
     if bm:
         return True
     return False
-        
+
 
 # A check function based off of Kirigiri.
-# Under the AGPL v3 License, 
+# Under the AGPL v3 License,
 # https://git.catgirlsin.space/noirscape/kirigiri/src/branch/master/LICENSE
-async def member_at_least_has_staff_role(self, member: discord.Member, min_role: str="Helper"):
+async def member_at_least_has_staff_role(self, member: discord.Member,
+                                         min_role: str = "Helper"):
     """
     Non-check function for check_if_at_least_has_staff_role()
     """

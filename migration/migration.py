@@ -28,11 +28,12 @@ import json
 import os
 from utils.user_log import set_userlog
 
+
 class Migration(commands.Cog):
     """The data migration cog."""
     def __init__(self, bot):
         self.bot = bot
-        
+
     def get_user_restrictions(self, guild, uid):
         uid = str(uid)
         with open(f"config/{guild.id}/restrictions.json", "r") as f:
@@ -109,7 +110,7 @@ class Migration(commands.Cog):
             async with self.bot.db.acquire() as con:
                 try:
                     await con.execute(query, r["guild_id"], r['role_id'])
-                except:
+                except Exception:
                     failed += 1
         sub = data["count"] - failed
         await ctx.send(f"{sub} were migrated. "
@@ -134,6 +135,7 @@ class Migration(commands.Cog):
         sub = data["count"] - failed
         await ctx.send(f"{sub} were migrated. "
                        f"{failed} failed to migrate.")
+
 
 def setup(bot):
     bot.add_cog(Migration(bot))

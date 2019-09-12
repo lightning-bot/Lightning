@@ -6,8 +6,10 @@ from discord.ext.commands import Paginator as CommandPaginator
 # Copyright © 2015 Rapptz - MIT Licensed
 # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/utils/paginator.py
 
+
 class CannotPaginate(Exception):
     pass
+
 
 class Pages:
     """Implements a paginator that queries the user for the
@@ -190,7 +192,7 @@ class Pages:
     async def show_help(self):
         """shows this message"""
         messages = ['Welcome to the interactive paginator!\n']
-        messages.append('This interactively allows you to see pages of text by navigating with ' \
+        messages.append('This interactively allows you to see pages of text by navigating with '
                         'reactions. They are as follows:\n')
 
         for (emoji, func) in self.reaction_emojis:
@@ -250,9 +252,10 @@ class Pages:
             try:
                 await self.message.remove_reaction(reaction, user)
             except:
-                pass # can't remove it so don't bother doing so
+                pass  # can't remove it so don't bother doing so
 
             await self.match()
+
 
 class FieldPages(Pages):
     """Similar to Pages except entries should be a list of
@@ -273,6 +276,7 @@ class FieldPages(Pages):
                 text = f'Page {page}/{self.maximum_pages}'
 
             self.embed.set_footer(text=text)
+
 
 class TextPages(Pages):
     """Uses a commands.Paginator internally to paginate some text."""

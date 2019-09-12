@@ -26,12 +26,14 @@
 from discord.ext import commands
 import discord
 
+
 class SafeSend(commands.Converter):
     async def convert(self, ctx, message):
         # Extra Converter to save my life. Fuck @everyone pings
         # I hope this saves my life forever. :blobsweat:
         content = await commands.clean_content().convert(ctx, str(message))
         return content
+
 
 class LastImage(commands.Converter):
     """Converter to handle images"""

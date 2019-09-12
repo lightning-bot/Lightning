@@ -34,18 +34,19 @@ import colorsys
 from PIL import Image
 from utils.converters import SafeSend
 
+
 class Utility(commands.Cog):
     """Utility Commands"""
     def __init__(self, bot):
         self.bot = bot
 
-    def finalize_image(self, image): # Image Save
+    def finalize_image(self, image):  # Image Save
         image_b = Image.open(io.BytesIO(image))
         image_file = io.BytesIO()
         image_b.save(image_file, format="png")
         image_file.seek(0)
         return image_file
-        
+
     @commands.command(aliases=['say'])
     @commands.guild_only()
     @has_staff_role("Helper")
@@ -57,14 +58,14 @@ class Utility(commands.Cog):
     @commands.command()
     async def poll(self, ctx, *, question: str):
         """Creates a simple poll with thumbs up, thumbs down, and shrug as reactions"""
-        embed = discord.Embed(title="Poll", description=f'Question: {question}', 
+        embed = discord.Embed(title="Poll", description=f'Question: {question}',
                               color=discord.Color.dark_blue())
         embed.set_author(name=f'{ctx.author}', icon_url=f'{ctx.author.avatar_url}')
         msg = await ctx.send(embed=embed)
         await msg.add_reaction("👍")
         await msg.add_reaction("👎")
         await msg.add_reaction("🤷")
-    
+
     @poll.error
     async def poll_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
@@ -90,11 +91,11 @@ class Utility(commands.Cog):
 
     @commands.command()
     @commands.cooldown(rate=1, per=250.0, type=commands.BucketType.channel)
-    @has_staff_role("Admin")
+    @is_staff_or_has_perms("Admin", manage_guild=True)
     async def archive(self, ctx, limit: int):
         """Archives the current channel's contents.
         Admins only!"""
-        if limit > 750: # Safe Value
+        if limit > 750:  # Safe Value
             return await ctx.send("Too big! Lower the value!")
         log_t = f"Archive of {ctx.channel} (ID: {ctx.channel.id}) "\
                 f"made on {datetime.utcnow()}\n\n\n"
@@ -107,7 +108,7 @@ class Utility(commands.Cog):
                         log_t += f"{attach.url}\n"
                 else:
                     log_t += "\n"
-            
+
         aiostring = io.StringIO()
         aiostring.write(log_t)
         aiostring.seek(0)
@@ -122,7 +123,7 @@ class Utility(commands.Cog):
         """Set your own nickname.
 
         Clear your nickname by just sending .setnick"""
-        author = ctx.author 
+        author = ctx.author
         try:
             if nick:
                 await author.edit(nick=nick, reason=str(ctx.author))
@@ -143,7 +144,8 @@ class Utility(commands.Cog):
             channel = ctx.message.channel
         if channel.topic is None:
             return await ctx.send(f"{channel.mention} has no topic set!")
-        embed = discord.Embed(title=f"Channel Topic for {channel}", description=f"{channel.topic}", 
+        embed = discord.Embed(title=f"Channel Topic for {channel}",
+                              description=f"{channel.topic}",
                               color=discord.Color.dark_blue())
         await ctx.send(embed=embed)
 
@@ -156,10 +158,10 @@ class Utility(commands.Cog):
                 if f.filename.lower().endswith('.bmp'):
                     image_bmp = await self.bot.aiogetbytes(f.url)
                     img_final = self.finalize_image(image_bmp)
-                    filex = discord.File(img_final, 
+                    filex = discord.File(img_final,
                                          filename=f"BMP conversion from {ctx.author}.png")
                     await ctx.send(file=filex)
-                else: 
+                else:
                     return await ctx.send("This is not a `.bmp` file.")
             else:
                 return await ctx.send(":x: Either provide an attachment or a link so it can be converted")
@@ -170,8 +172,8 @@ class Utility(commands.Cog):
                     img_final = self.finalize_image(image_bmp)
                     filex = discord.File(img_final, filename=f"BMP conversion from {ctx.author}.png")
                     await ctx.send(file=filex)
-                except:
-                    return await ctx.send(":x: Provide a link to your message"/
+                except Exception:
+                    return await ctx.send(":x: Provide a link to your message"
                                           "so it can be converted.")
             else:
                 return await ctx.send("This is not a `.bmp` file.")
@@ -199,7 +201,7 @@ class Utility(commands.Cog):
             msg = await self.bot.wait_for('message', timeout=65.0, check=check)
         except asyncio.TimeoutError:
             return await ctx.send('You took too long. Bye.')
-        title = msg.content # Set the title
+        title = msg.content  # Set the title
 
         await ctx.send(content='What would you like to set as the description?')
         try:
@@ -219,7 +221,7 @@ class Utility(commands.Cog):
     @commands.guild_only()
     @has_staff_role("Moderator")
     async def simple(self, ctx, channel: discord.TextChannel, *, text):
-        """Make a simple announcement""" # Basically the speak command, but mentions the author.
+        """Make a simple announcement"""  # Basically the speak command, but mentions the author.
         await channel.send(f"Announcement from {ctx.author.mention}:\n\n{text}")
 
     @announce.command(aliases=['rcembed', 'colorembed'])
@@ -239,7 +241,7 @@ class Utility(commands.Cog):
             msg = await self.bot.wait_for('message', timeout=65.0, check=check)
         except asyncio.TimeoutError:
             return await ctx.send('You took too long. Bye.')
-        title = msg.content # Set the title
+        title = msg.content  # Set the title
 
         await ctx.send(content='What would you like to set as the description?')
         try:
@@ -249,12 +251,14 @@ class Utility(commands.Cog):
         desc = msg.content
 
         msg = await ctx.send(content=f'Now sending the embed to {channel.mention}...')
-        color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)] # Chooses a random color
+        # Chooses a random color
+        color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
         embed = discord.Embed(title=title, description=desc, colour=discord.Color.from_rgb(*color_random))
         embed.set_author(name=ctx.message.author, icon_url=ctx.message.author.avatar_url)
         embed.timestamp = msg.created_at
         await channel.send(embed=embed, content=None)
         return
+
 
 def setup(bot):
     bot.add_cog(Utility(bot))

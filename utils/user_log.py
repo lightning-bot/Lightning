@@ -32,7 +32,7 @@ userlog_event_types = {"warns": "Warn",
 
 
 async def get_userlog(bot, guild):
-    query = """SELECT * FROM userlogs 
+    query = """SELECT * FROM userlogs
                WHERE guild_id=$1
             """
     async with bot.db.acquire() as con:
@@ -42,6 +42,7 @@ async def get_userlog(bot, guild):
     else:
         return {}
 
+
 async def set_userlog(bot, guild, contents):
     query = """INSERT INTO userlogs
                VALUES ($1, $2)"""
@@ -49,7 +50,7 @@ async def set_userlog(bot, guild, contents):
         async with bot.db.acquire() as con:
             await con.execute(query, guild.id,
                               json.dumps(contents))
-    except:
+    except Exception:
         query = """UPDATE userlogs
                    SET userlog=$1
                    WHERE guild_id=$2
@@ -60,26 +61,27 @@ async def set_userlog(bot, guild, contents):
                                   json.dumps(contents),
                                   guild.id)
 
+
 async def userlog(bot, guild, uid, issuer, reason, event_type, uname: str = ""):
-        userlogs = await get_userlog(bot, guild)
-        uid = str(uid)
-        if uid not in userlogs:
-            userlogs[uid] = {"warns": [],
-                             "mutes": [],
-                             "kicks": [],
-                             "bans": [],
-                             "notes": [],
-                             "watch": False,
-                             "name": "n/a"}
-        if uname:
-            userlogs[uid]["name"] = uname
-        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        log_data = {"issuer_id": issuer.id,
-                    "issuer_name": f"{issuer}",
-                    "reason": reason,
-                    "timestamp": timestamp}
-        if event_type not in userlogs[uid]:
-            userlogs[uid][event_type] = []
-        userlogs[uid][event_type].append(log_data)
-        await set_userlog(bot, guild, userlogs)
-        return len(userlogs[uid][event_type])
+    userlogs = await get_userlog(bot, guild)
+    uid = str(uid)
+    if uid not in userlogs:
+        userlogs[uid] = {"warns": [],
+                         "mutes": [],
+                         "kicks": [],
+                         "bans": [],
+                         "notes": [],
+                         "watch": False,
+                         "name": "n/a"}
+    if uname:
+        userlogs[uid]["name"] = uname
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    log_data = {"issuer_id": issuer.id,
+                "issuer_name": f"{issuer}",
+                "reason": reason,
+                "timestamp": timestamp}
+    if event_type not in userlogs[uid]:
+        userlogs[uid][event_type] = []
+    userlogs[uid][event_type].append(log_data)
+    await set_userlog(bot, guild, userlogs)
+    return len(userlogs[uid][event_type])
