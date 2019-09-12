@@ -5,9 +5,9 @@ variables:
 
 before_script:
   - python -V # Print out python version for debugging
- # - pip install virtualenv
- # - virtualenv venv
- # - source venv/bin/activate
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
 
 pyflakes:
   script:
@@ -20,3 +20,8 @@ PyFlakes (All Code):
   - pip install pyflakes
   - pyflakes .
   allow_failure: true
+
+flake8:
+  script:
+  - pip install flake8
+  - flake8 .
