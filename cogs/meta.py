@@ -37,6 +37,7 @@ import time
 import json
 import resources.botemojis as emoji
 from utils.checks import is_bot_manager
+from utils.time import natural_timedelta
 
 class NonGuildUser(commands.Converter):
     async def convert(self, ctx, argument):
@@ -288,7 +289,9 @@ class Meta(commands.Cog):
         roles = [x.mention for x in member.roles]
         if f"<@&{ctx.guild.id}>" in roles:
             roles.remove(f"<@&{ctx.guild.id}>")
-        embed.add_field(name=f"Roles [{len(roles)}]", value=", ".join(roles) if len(roles) < 10 else "Cannot show all roles")
+        embed.add_field(name=f"Roles [{len(roles)}]",
+                        value=", ".join(roles) if len(roles) < 10 else "Cannot show all roles",
+                        inline=False)
         embed.set_footer(text=f'User ID: {member.id}')
         await ctx.send(embed=embed)
 
@@ -318,9 +321,11 @@ class Meta(commands.Cog):
                                                      "commands used since boot.\n"
                                                     f"{amount[0]} commands used all time.")
         embed.add_field(name="Links", value="[Support Server]"
-                                            "(https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/"
-                                            "532220480577470464)\n[Website](https://lightsage.gitlab.io/lightning/home/)"
-                                            , inline=False)
+                                            "(https://discord.gg/cDPGuYd)\n"
+                                            "[DBL](https://discordbots.org/bot/"
+                                            "532220480577470464)\n"
+                                            "[Website](https://lightsage.gitlab.io/lightning/home/)"
+                                            ,inline=False)
         embed.set_footer(text=f"Lightning {self.bot.version}")# | Made with "
                               #f"discord.py {discord.__version__}")
         await ctx.send(embed=embed)
@@ -377,11 +382,8 @@ class Meta(commands.Cog):
     @commands.command()
     async def uptime(self, ctx):
         """Displays my uptime"""
-        delta_uptime = datetime.utcnow() - self.bot.launch_time
-        hours, remainder = divmod(int(delta_uptime.total_seconds()), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        days, hours = divmod(hours, 24)
-        await ctx.send(f"My uptime is: {days}d, {hours}h, {minutes}m, {seconds}s "
+        times = natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)
+        await ctx.send(f"My uptime is: {times} "
                        "<:meowbox:563009533530734592>")
 
     @commands.guild_only()
