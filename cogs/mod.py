@@ -29,18 +29,21 @@ from utils.user_log import userlog
 from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_has_staff_role
 from datetime import datetime
 import json
-import asyncio
+# import asyncio
 from utils.time import natural_timedelta
 import io
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
 
+
 class ReasonTooLong(commands.UserInputError):
     pass
 
+
 class NoMuteRole(commands.UserInputError):
-    pass 
+    pass
+
 
 class Mod(commands.Cog):
     """
@@ -52,7 +55,7 @@ class Mod(commands.Cog):
     """
     def __init__(self, bot):
         self.bot = bot
-        
+
     async def cog_check(self, ctx):
         if ctx.guild is None:
             raise commands.NoPrivateMessage()
@@ -63,7 +66,7 @@ class Mod(commands.Cog):
             await ctx.safe_send(error)
         elif isinstance(error, NoMuteRole):
             return await ctx.safe_send(error)
-        #elif isinstance(error, commands.CommandError):
+        # elif isinstance(error, commands.CommandError):
         #    await ctx.send(safe_error)
 
     def mod_reason(self, ctx, reason: str):
@@ -90,7 +93,7 @@ class Mod(commands.Cog):
             try:
                 log_channel = self.bot.get_channel(guild_config["modlog_chan"])
                 await log_channel.send(message)
-            except:
+            except discord.Forbidden:
                 pass
 
     async def purged_log_send(self, ctx, file_to_send):
@@ -108,11 +111,11 @@ class Mod(commands.Cog):
             try:
                 log_channel = self.bot.get_channel(guild_config["modlog_chan"])
                 await log_channel.send(file=file_to_send)
-            except:
+            except discord.Forbidden:
                 pass
 
     async def logid_send(self, guild_id: int, message):
-        """Async Function to use a provided guild ID instead of relying 
+        """Async Function to use a provided guild ID instead of relying
         on context (ctx). This is more for being used for Mod Log Cases"""
         query = """SELECT * FROM guild_mod_config
                    WHERE guild_id=$1;
@@ -129,7 +132,7 @@ class Mod(commands.Cog):
                 log_channel = self.bot.get_channel(guild_config["modlog_chan"])
                 msg = await log_channel.send(message)
                 return msg
-            except:
+            except KeyError:
                 pass
 
     async def set_user_restrictions(self, guild_id: int, user_id: int, role_id: int):
@@ -146,11 +149,11 @@ class Mod(commands.Cog):
         finally:
             await self.bot.db.release(con)
 
-    async def remove_user_restriction(self, guild_id: int, 
+    async def remove_user_restriction(self, guild_id: int,
                                       user_id: int, role_id: int):
         query = """DELETE FROM user_restrictions
-                   WHERE guild_id=$1 
-                   AND user_id=$2 
+                   WHERE guild_id=$1
+                   AND user_id=$2
                    AND role_id=$3;
                 """
         con = await self.bot.db.acquire()
@@ -161,7 +164,7 @@ class Mod(commands.Cog):
 
     async def add_modlog_entry(self, guild_id, action: str, mod, target, reason: str):
         """Adds a case to the mod log
-        
+
         Arguments:
         --------------
         guild_id: `int`
@@ -178,13 +181,13 @@ class Mod(commands.Cog):
         """
         safe_name = await commands.clean_content().convert(self.bot, str(target))
         if action == "Ban":
-            message = f"⛔ **Ban**: {mod.mention} banned " \
-                      f"{target.mention} | {safe_name}\n" \
+            message = f"⛔ **Ban**: {mod.mention} banned "\
+                      f"{target.mention} | {safe_name}\n"\
                       f"🏷 __User ID__: {target.id}\n"
         elif action == "Kick":
-            message =  f"👢 **Kick**: {mod.mention} kicked " \
-                       f"{target.mention} | {safe_name}\n" \
-                       f"🏷 __User ID__: {target.id}\n"
+            message = f"👢 **Kick**: {mod.mention} kicked "\
+                      f"{target.mention} | {safe_name}\n"\
+                      f"🏷 __User ID__: {target.id}\n"
         # Send the initial message then edit it with our reason.
         if reason:
             message += f"✏️ __Reason__: \"{reason}\""
@@ -192,9 +195,8 @@ class Mod(commands.Cog):
             message += f"*Responsible moderator* please add a reason to the case."\
                        f" `l.case "
 
-
-    #@commands.Cog.listener()
-    #async def on_member_ban(self, guild, user):
+    # @commands.Cog.listener()
+    # async def on_member_ban(self, guild, user):
         # Wait for Audit Log to update
     #    await asyncio.sleep(0.5)
         # Cap off at 25 for safety measures
@@ -203,38 +205,39 @@ class Mod(commands.Cog):
     #            author = entry.user
     #            reason = entry.reason if entry.reason else ""
     #            break
-        # If author of the entry is the bot itself, don't log since 
-        # this would've been already logged.
+        #  If author of the entry is the bot itself, don't log since
+        #  this would've been already logged.
     #    if entry.target.id != self.bot.user.id:
     #        await self.add_modlog_entry(guild.id, "Ban", author, user, reason)
 
     async def purged_txt(self, ctx, limit):
+
+        """Makes a file containing the limit of messages purged."""
         log_t = f"Archive of {ctx.channel} (ID: {ctx.channel.id}) "\
                 f"made on {datetime.utcnow()}\n\n\n"
-        async with ctx.typing():
-            async for log in ctx.channel.history(limit=limit):
-                # .strftime('%X/%H:%M:%S') but no for now
-                log_t += f"[{log.created_at}]: {log.author} - {log.clean_content}"
-                if log.attachments:
-                    for attach in log.attachments:
-                        log_t += f"{attach.url}\n"
-                else:
-                    log_t += "\n"
-            
+        async for log in ctx.channel.history(limit=limit):
+            # .strftime('%X/%H:%M:%S') but no for now
+            log_t += f"[{log.created_at}]: {log.author} - {log.clean_content}"
+            if log.attachments:
+                for attach in log.attachments:
+                    log_t += f"{attach.url}\n"
+            else:
+                log_t += "\n"
+
         aiostring = io.StringIO()
         aiostring.write(log_t)
         aiostring.seek(0)
         aiofile = discord.File(aiostring, filename=f"{ctx.channel}_archive.txt")
         return aiofile
 
-    @commands.guild_only() # This isn't needed but w/e :shrugkitty:
+    @commands.guild_only()  # This isn't needed but w/e :shrugkitty:
     @commands.bot_has_permissions(kick_members=True)
     @is_staff_or_has_perms("Moderator", kick_members=True)
     @commands.command()
     async def kick(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Kicks a user. 
-        
-        In order to use this command, you must either have 
+        """Kicks a user.
+
+        In order to use this command, you must either have
         Kick Members permission or a role that
         is assigned as a Moderator or above in the bot."""
         # Hedge-proofing the code
@@ -246,8 +249,8 @@ class Mod(commands.Cog):
             return await ctx.send("I can't kick this user as "
                                   "they're a staff member.")
 
-        await userlog(self.bot, ctx.guild, target.id, ctx.author, 
-                      reason, "kicks", 
+        await userlog(self.bot, ctx.guild, target.id, ctx.author,
+                      reason, "kicks",
                       target.name)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
@@ -278,14 +281,14 @@ class Mod(commands.Cog):
                             f" as the reason is automatically sent to the user."
         await self.log_send(ctx, chan_message)
 
-    @commands.guild_only() # This isn't needed but w/e :shrugkitty:
+    @commands.guild_only()  # This isn't needed but w/e :shrugkitty:
     @commands.bot_has_permissions(ban_members=True)
     @is_staff_or_has_perms("Moderator", ban_members=True)
     @commands.command()
     async def ban(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Bans a user. 
-        
-        In order to use this command, you must either have 
+        """Bans a user.
+
+        In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
         # Hedge-proofing the code
@@ -297,7 +300,7 @@ class Mod(commands.Cog):
             return await ctx.send("I can't ban this user as "
                                   "they're a staff member.")
 
-        await userlog(self.bot, ctx.guild, target.id, ctx.author, 
+        await userlog(self.bot, ctx.guild, target.id, ctx.author,
                       reason, "bans", target.name)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
@@ -335,8 +338,8 @@ class Mod(commands.Cog):
     @commands.command()
     async def warn(self, ctx, target: discord.Member, *, reason: str = ""):
         """Warns a user.
-        
-        In order to use this command, you must have a role 
+
+        In order to use this command, you must have a role
         that is assigned as a Helper or above in the bot."""
         # Hedge-proofing the code
         if target == self.bot.user:
@@ -347,7 +350,7 @@ class Mod(commands.Cog):
             return await ctx.send("I can't warn this user as "
                                   "they're a staff member.")
 
-        warn_count = await userlog(self.bot, ctx.guild, target.id, 
+        warn_count = await userlog(self.bot, ctx.guild, target.id,
                                    ctx.author, reason,
                                    "warns", target.name)
 
@@ -405,9 +408,9 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Moderator", manage_messages=True)
     @commands.command()
     async def purge(self, ctx, message_count: int, *, reason: str = ""):
-        """Purges a channel's last x messages. 
-        
-        In order to use this command, You must either have 
+        """Purges a channel's last x messages.
+
+        In order to use this command, You must either have
         Manage Messages permission or a role that
         is assigned as a Moderator or above in the bot."""
         fi = await self.purged_txt(ctx, message_count)
@@ -428,14 +431,14 @@ class Mod(commands.Cog):
 
     @commands.guild_only()
     @commands.bot_has_permissions(ban_members=True)
-    @commands.command(aliases=['slientban']) # For some reason, I can't spell
+    @commands.command(aliases=['slientban'])  # For some reason, I can't spell
     @is_staff_or_has_perms("Moderator", ban_members=True)
     async def silentban(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Bans a user without sending the reason to the member. 
-        
-        In order to use this command, you must either have 
+        """Bans a user without sending the reason to the member.
+
+        In order to use this command, you must either have
         Ban Members permission or a role that
-        is assigned as a Moderator or above in the bot."""        
+        is assigned as a Moderator or above in the bot."""
         # Hedge-proofing the code
         if target == self.bot.user:  # Idiots
             return await ctx.send("You can't do mod actions on me.")
@@ -445,7 +448,7 @@ class Mod(commands.Cog):
             return await ctx.send("I can't ban this user as "
                                   "they're a staff member.")
 
-        await userlog(self.bot, ctx.guild, target.id, ctx.author, 
+        await userlog(self.bot, ctx.guild, target.id, ctx.author,
                       reason, "bans", target.name)
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
@@ -467,8 +470,8 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Helper", manage_nicknames=True)
     async def nickname(self, ctx, target: discord.Member, *, nickname: str = ''):
         """Sets a user's nickname.
-        
-        In order to use this command, you must either have 
+
+        In order to use this command, you must either have
         Manage Nicknames permission or a role that
         is assigned as a Helper or above in the bot."""
         try:
@@ -478,7 +481,6 @@ class Mod(commands.Cog):
             return
 
         await ctx.safe_send(f"Successfully changed {target.name}'s nickname.")
-
 
     async def get_mute_role(self, ctx):
         """Gets the guild's mute role if it exists"""
@@ -504,8 +506,8 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Moderator", manage_roles=True)
     async def mute(self, ctx, target: discord.Member, *, reason: str = ""):
         """Mutes a user.
-        
-        In order to use this command, you must either have 
+
+        In order to use this command, you must either have
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
         # Hedge-proofing the code
@@ -518,9 +520,9 @@ class Mod(commands.Cog):
                                   "they're a staff member.")
         role = await self.get_mute_role(ctx)
 
-        await userlog(self.bot, ctx.guild, target.id, ctx.author, 
+        await userlog(self.bot, ctx.guild, target.id, ctx.author,
                       reason, "mutes", target.name)
-        safe_name = await commands.clean_content().convert(ctx, str(target)) # Let's not make the mistake
+        safe_name = await commands.clean_content().convert(ctx, str(target))
         dm_message = f"You were muted on {ctx.guild.name}!"
         opt_reason = "[Mute] "
         if reason:
@@ -554,8 +556,8 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Moderator", manage_roles=True)
     async def unmute(self, ctx, target: discord.Member):
         """Unmutes a user.
-        
-        In order to use this command, you must either have 
+
+        In order to use this command, you must either have
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
         role = await self.get_mute_role(ctx)
@@ -574,17 +576,17 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Moderator", ban_members=True)
     async def unban(self, ctx, user_id: int, *, reason: str = ""):
         """Unbans a user.
-        
-        In order to use this command, you must either have 
+
+        In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        # A Re-implementation of the BannedMember converter taken from RoboDanny. 
+        # A Re-implementation of the BannedMember converter taken from RoboDanny.
         # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/mod.py
         ban_list = await ctx.guild.bans()
         try:
             member_id = int(user_id)
             entity = discord.utils.find(lambda u: u.user.id == member_id, ban_list)
-        except ValueError: # We'll fix this soon. It Just Works:tm: for now
+        except ValueError:  # We'll fix this soon. It Just Works:tm: for now
             entity = discord.utils.find(lambda u: str(u.user) == user_id, ban_list)
 
         if entity is None:
@@ -611,8 +613,8 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Moderator", ban_members=True)
     async def banid(self, ctx, user_id: int, *, reason: str = ""):
         """Bans a user by ID (hackban).
-        
-        In order to use this command, you must either have 
+
+        In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
         try:
@@ -628,7 +630,7 @@ class Mod(commands.Cog):
         elif target_member and await member_at_least_has_staff_role(self, target_member):
             return await ctx.send("I can't ban this user as "
                                   "they're a staff member.")
-        await userlog(self.bot, ctx.guild, user_id, ctx.author, 
+        await userlog(self.bot, ctx.guild, user_id, ctx.author,
                       reason, "bans", user.name)
 
         safe_name = await commands.clean_content().convert(ctx, str(user_id))
@@ -655,8 +657,8 @@ class Mod(commands.Cog):
     @commands.command()
     async def silentkick(self, ctx, target: discord.Member, *, reason: str = ""):
         """Silently kicks a user. Does not DM a message to the target user.
-        
-        In order to use this command, you must either have 
+
+        In order to use this command, you must either have
         Kick Members permission or a role that
         is assigned as a Moderator or above in the bot."""
         # Hedge-proofing the code
@@ -668,7 +670,7 @@ class Mod(commands.Cog):
             return await ctx.send("I can't kick this user as "
                                   "they're a staff member.")
 
-        await userlog(self.bot, ctx.guild, target.id, ctx.author, 
+        await userlog(self.bot, ctx.guild, target.id, ctx.author,
                       reason, "kicks", target.name)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
@@ -682,7 +684,7 @@ class Mod(commands.Cog):
         else:
             chan_message += f"\nPlease add an explanation below. In the future" \
                             f", it is recommended to use " \
-                            f"`{ctx.prefix}silentkick <user> [reason]`." 
+                            f"`{ctx.prefix}silentkick <user> [reason]`."
         await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
@@ -692,12 +694,12 @@ class Mod(commands.Cog):
     async def timeban(self, ctx, target: discord.Member,
                       duration: str, *, reason: str = ""):
         """Bans a user for a specified amount of time.
-        
-        In order to use this command, you must either have 
+
+        In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
         # Hedge-proofing the code
-        if target == self.bot.user:  
+        if target == self.bot.user:
             return await ctx.send("You can't do mod actions on me.")
         elif target == ctx.author:
             return await ctx.send("You can't do mod actions on yourself.")
@@ -707,7 +709,7 @@ class Mod(commands.Cog):
         expiry_timestamp = self.bot.parse_time(duration)
         expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
         duration_text = self.bot.get_utc_timestamp(time_to=expiry_datetime,
-                                                    include_to=True)
+                                                   include_to=True)
         timed_txt = natural_timedelta(expiry_datetime)
         duration_text = f"in {timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
@@ -715,12 +717,12 @@ class Mod(commands.Cog):
             return await ctx.send("Sorry, the timer system "
                                   "(PowersCron) is currently unavailable.")
         ext = {"guild_id": ctx.guild.id, "user_id": target.id}
-        await timer.add_job("timeban", datetime.utcnow(), 
+        await timer.add_job("timeban", datetime.utcnow(),
                             expiry_datetime, ext)
-        await userlog(self.bot, ctx.guild, target.id, ctx.author, 
+        await userlog(self.bot, ctx.guild, target.id, ctx.author,
                       f"{reason} (Timed, until "
                       f"{duration_text})",
-                       "bans", target.name)
+                      "bans", target.name)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
@@ -761,11 +763,11 @@ class Mod(commands.Cog):
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     @is_staff_or_has_perms("Moderator", manage_roles=True)
-    async def timemute(self, ctx, target: discord.Member, 
+    async def timemute(self, ctx, target: discord.Member,
                        duration: str, *, reason: str = ""):
         """Mutes a user for a specified amount of time.
-        
-        In order to use this command, you must either have 
+
+        In order to use this command, you must either have
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
         # Hedge-proofing the code
@@ -780,18 +782,18 @@ class Mod(commands.Cog):
         expiry_timestamp = self.bot.parse_time(duration)
         expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
         duration_text = self.bot.get_utc_timestamp(time_to=expiry_datetime,
-                                                    include_to=True)
+                                                   include_to=True)
         timed_txt = natural_timedelta(expiry_datetime)
         duration_text = f"in {timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
             return await ctx.send("Sorry, the timer system "
                                   "(PowersCron) is currently unavailable.")
-        ext = {"guild_id": ctx.guild.id, "user_id": target.id, 
+        ext = {"guild_id": ctx.guild.id, "user_id": target.id,
                "role_id": role.id}
-        await timer.add_job("timed_restriction", datetime.utcnow(), 
+        await timer.add_job("timed_restriction", datetime.utcnow(),
                             expiry_datetime, ext)
-        await userlog(self.bot, ctx.guild, target.id, ctx.author, 
+        await userlog(self.bot, ctx.guild, target.id, ctx.author,
                       f"{reason} (Timed, until "
                       f"{duration_text})",
                       "mutes", target.name)
@@ -857,17 +859,18 @@ class Mod(commands.Cog):
         """Locks down the channel mentioned.
 
         Sets the channel permissions as @everyone can't send messages.
-        
+
         If no channel was mentioned, it locks the channel the command was used in.
-        
-        In order to use this command, You must either have 
+
+        In order to use this command, You must either have
         Manage Channels permission or a role that
         is assigned as a Moderator or above in the bot."""
         if not channel:
             channel = ctx.channel
 
         if channel.overwrites_for(ctx.guild.default_role).send_messages is False:
-            await ctx.send(f"🔒 {channel.mention} is already locked down. Use `{ctx.prefix}unlock` to unlock.")
+            await ctx.send(f"🔒 {channel.mention} is already locked down. "
+                           f"Use `{ctx.prefix}unlock` to unlock.")
             return
 
         await channel.set_permissions(ctx.guild.default_role, send_messages=False, add_reactions=False)
@@ -888,15 +891,16 @@ class Mod(commands.Cog):
         Sets the channel permissions as @everyone can't speak or see the channel.
 
         If no channel was mentioned, it hard locks the channel the command was used in.
-        
-        In order to use this command, You must either have 
+
+        In order to use this command, You must either have
         Manage Channels permission or a role that
         is assigned as an Admin or above in the bot."""
         if not channel:
             channel = ctx.channel
 
         if channel.overwrites_for(ctx.guild.default_role).read_messages is False:
-            await ctx.send(f"🔒 {channel.mention} is already hard locked. Use `{ctx.prefix}hard-unlock` to unlock the channel.")
+            await ctx.send(f"🔒 {channel.mention} is already hard locked. "
+                           f"Use `{ctx.prefix}hard-unlock` to unlock the channel.")
             return
 
         await channel.set_permissions(ctx.guild.default_role, read_messages=False)
@@ -913,11 +917,11 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Moderator", manage_channels=True)
     @commands.command()
     async def unlock(self, ctx, channel: discord.TextChannel = None):
-        """Unlocks the channel mentioned. 
+        """Unlocks the channel mentioned.
 
         If no channel was mentioned, it unlocks the channel the command was used in.
-        
-        In order to use this command, You must either have 
+
+        In order to use this command, You must either have
         Manage Channels permission or a role that
         is assigned as a Moderator or above in the bot."""
         if not channel:
@@ -925,7 +929,7 @@ class Mod(commands.Cog):
 
         if channel.overwrites_for(ctx.guild.default_role).send_messages is None:
             await ctx.send(f"🔓 {channel.mention} is already unlocked.")
-            return 
+            return
 
         await channel.set_permissions(ctx.guild.default_role, send_messages=None, add_reactions=None)
         await channel.send(f"🔓 {channel.mention} is now unlocked.")
@@ -940,11 +944,11 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Admin", manage_channels=True)
     @commands.command(aliases=['hard-unlock'])
     async def hunlock(self, ctx, channel: discord.TextChannel = None):
-        """Hard unlocks the channel mentioned. 
+        """Hard unlocks the channel mentioned.
 
         If no channel was mentioned, it unlocks the channel the command was used in.
-        
-        In order to use this command, You must either have 
+
+        In order to use this command, You must either have
         Manage Channels permission or a role that
         is assigned as an Admin or above in the bot."""
         if not channel:
@@ -952,7 +956,7 @@ class Mod(commands.Cog):
 
         if channel.overwrites_for(ctx.guild.default_role).read_messages is None:
             await ctx.send(f"🔓 {channel.mention} is already unlocked.")
-            return 
+            return
 
         await channel.set_permissions(ctx.guild.default_role, read_messages=None)
         await channel.send(f"🔓 {channel.mention} is now unlocked.")
@@ -968,7 +972,7 @@ class Mod(commands.Cog):
         guid = self.bot.get_guild(ext['guild_id'])
         uid = await self.bot.fetch_user(ext['user_id'])
         await guid.unban(uid, reason="PowersCron: "
-                            "Timed Ban Expired.")
+                         "Timed Ban Expired.")
 
     @commands.Cog.listener()
     async def on_timed_restriction_job_complete(self, jobinfo):
@@ -976,11 +980,12 @@ class Mod(commands.Cog):
         guild = self.bot.get_guild(ext['guild_id'])
         user = guild.get_member(ext['user_id'])
         role = guild.get_role(ext['role_id'])
-        await self.remove_user_restriction(guild.id, 
-                                           user.id, 
+        await self.remove_user_restriction(guild.id,
+                                           user.id,
                                            role.id)
         await user.remove_roles(role, reason="PowersCron: "
                                 "Timed Restriction Expired.")
+
 
 def setup(bot):
     bot.add_cog(Mod(bot))

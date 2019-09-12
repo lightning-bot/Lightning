@@ -9,18 +9,6 @@ before_script:
   #- virtualenv venv
   #- source venv/bin/activate
 
-pyflakes:
-  script:
-  - pip install pyflakes
-  - echo $($NEW_COMMIT) # What's new in the commit
-  - pyflakes "$($NEW_COMMIT)"
-
-PyFlakes (All Code):
-  script:
-  - pip install pyflakes
-  - pyflakes .
-  allow_failure: true
-
 flake8:
   script:
   - pip install flake8

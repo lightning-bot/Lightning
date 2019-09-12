@@ -80,14 +80,14 @@ class LightningHub(commands.Cog):
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
             msg += f"\nPlease add an explanation below. In the future" \
-                    f", it is recommended to use " \
-                    f"`{ctx.prefix}probate <user> [reason]`" \
-                    f" as the reason is automatically sent to the user."
+                   f", it is recommended to use "\
+                   f"`{ctx.prefix}probate <user> [reason]`" \
+                   f" as the reason is automatically sent to the user."
         try:
             await target.send(dm_message)
         except discord.errors.Forbidden:
             msg += f"\n\n{target.mention} has their DMs off "\
-                    "and I was unable to send the reason."
+                   "and I was unable to send the reason."
             pass
 
         mod = self.bot.get_cog('Mod')
@@ -112,8 +112,8 @@ class LightningHub(commands.Cog):
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
             msg += f"\nPlease add an explanation below. In the future" \
-                    f", it is recommended to use " \
-                    f"`{ctx.prefix}unprobate <user> [reason]`"
+                   f", it is recommended to use "\
+                   f"`{ctx.prefix}unprobate <user> [reason]`"
 
         mod = self.bot.get_cog('Mod')
         if not mod:
@@ -212,8 +212,8 @@ class LightningHub(commands.Cog):
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
             msg += f"\nPlease add an explanation below. In the future"\
-                    f", it is recommended to use "\
-                    f"`{ctx.prefix}block {ctx.command.signature}`"
+                   f", it is recommended to use "\
+                   f"`{ctx.prefix}block {ctx.command.signature}`"
         await mod_log_chan.send(msg)
 
     @commands.command(aliases=['timeblock'])

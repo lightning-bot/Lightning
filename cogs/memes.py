@@ -27,6 +27,7 @@ import discord
 from discord.ext import commands
 import random
 
+
 class Memes(commands.Cog):
     def __init__(self, bot):
         """Approved™ memes"""
@@ -43,19 +44,19 @@ class Memes(commands.Cog):
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def astar(self, ctx):
         """Here's a star just for you."""
-        await ctx.send(f"{ctx.author.display_name}: https://i.imgur.com/vUrBPZr.png")
+        await ctx.safe_send(f"{ctx.author.display_name}: https://i.imgur.com/vUrBPZr.png")
 
     @commands.command(hidden=True, aliases=['inori'])
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def hifumi1(self, ctx):
         """Disappointment"""
-        await ctx.send(f"{ctx.author.display_name}: https://i.imgur.com/jTTHQLs.gifv")
+        await ctx.safe_send(f"{ctx.author.display_name}: https://i.imgur.com/jTTHQLs.gifv")
 
     @commands.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def thisisgit(self, ctx):
         """Git in a nutshell"""
-        await ctx.send(f"{ctx.author.display_name}: https://gitlab.com/LightSage/bunches-of-images/raw/master/lightning/xkcd.png") # Using the img hosted on Gitlab for now   
+        await ctx.safe_send(f"{ctx.author.display_name}: https://i.imgur.com/SyuscgW.png")
 
     @commands.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
@@ -63,13 +64,13 @@ class Memes(commands.Cog):
         # It's just as bad
         re_list = ['to frii gaems', 'to bricc', 'to get frii gaems', 'to build sxos',
                    'to play backup games', 'to get unban', 'to get reinx games',
-                   'to build atmos', 'to brick my 3ds bc ebay scammed me', 'to plz help me'] 
+                   'to build atmos', 'to brick my 3ds bc ebay scammed me', 'to plz help me']
         whenlifegetsatyou = ['?!?!?', '?!?!', '.', '!!!!', '!!', '!']
         await ctx.send(f"Do you know da wae {random.choice(re_list)}{random.choice(whenlifegetsatyou)}")
 
     @commands.command(name="neo-ban", aliases=['neoban'], hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
-    async def neoban(self, ctx, member: discord.Member=None):
+    async def neoban(self, ctx, member: discord.Member = None):
         if member is None:
             member = ctx.author
 
@@ -77,11 +78,11 @@ class Memes(commands.Cog):
 
     @commands.command(aliases=['discordcopypasta'], hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
-    async def discordcopypaste(self, ctx, member: discord.Member=None):
+    async def discordcopypaste(self, ctx, member: discord.Member = None):
         """Generates a discord copypaste
-        
+
         If no arguments are passed, it uses the author of the command.
-        
+
         If you fall for this, you should give yourself a solid facepalm."""
         if member is None:
             member = ctx.author
@@ -97,18 +98,25 @@ class Memes(commands.Cog):
                   "currently working very hard to remove this user from our database,"\
                   " please stay safe."
 
-        await ctx.send(org_msg)
+        await ctx.safe_send(org_msg)
 
     @commands.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def bean(self, ctx):
         """:fastbean:"""
-        await ctx.send(f"{ctx.author.display_name}: https://i.imgur.com/t1RFSL7.jpg")
+        await ctx.safe_send(f"{ctx.author.display_name}: https://i.imgur.com/t1RFSL7.jpg")
 
     @commands.command(hidden=True)
     async def peng(self, ctx):
         """Uhhh ping?"""
-        await ctx.send(f"My ping is uhhh `{random.randint(31,150)}ms`")
-       
+        await ctx.safe_send(f"My ping is uhhh `{random.randint(31,150)}ms`")
+
+    @commands.command(hidden=True)
+    async def tuturu(self, ctx):
+        """tuturu!"""
+        await ctx.safe_send(f'{ctx.author.display_name}: '
+                            'https://cdn.discordapp.com/emojis/562686801043521575.png?v=1')
+
+
 def setup(bot):
     bot.add_cog(Memes(bot))

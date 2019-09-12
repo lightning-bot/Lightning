@@ -29,6 +29,7 @@ import colorsys
 import random
 from discord.ext import commands
 
+
 class Weeb(commands.Cog):
     """Weeb Features"""
     def __init__(self, bot):
@@ -60,7 +61,7 @@ class Weeb(commands.Cog):
         embed.set_image(url=url)
         embed.set_footer(text="Powered by nekos.life", icon_url="https://nekos.life/static/icons/favicon-194x194.png")
         try:
-            person = await (commands.MemberConverter()).convert(ctx=ctx, argument=person) # Reimplementation of NekoBot/Kawaii Bot slap function. May change it in the near future.
+            person = await (commands.MemberConverter()).convert(ctx=ctx, argument=person)
         except commands.BadArgument:
             pass
         if isinstance(person, discord.Member) and person.id == ctx.author.id:
@@ -72,12 +73,6 @@ class Weeb(commands.Cog):
                 name = person[:30]
             embed.title = (f"*{ctx.author.name} slapped {name}*")
         await ctx.send(embed=embed)
-
-    
-    @commands.command()
-    async def tuturu(self, ctx):
-        """tuturu!"""
-        await ctx.send('https://cdn.discordapp.com/emojis/562686801043521575.png?v=1')
 
 
 def setup(bot):
