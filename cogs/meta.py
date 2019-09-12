@@ -317,8 +317,7 @@ class Meta(commands.Cog):
         embed.add_field(name="Command Stats", value=f"{self.bot.successful_command} "
                                                      "commands used since boot.\n"
                                                     f"{amount[0]} commands used all time.")
-        embed.add_field(name="Links", value="[Bot Invite](https://discordapp.com/api/oauth2/authorize?client_id="
-                                            "532220480577470464&permissions=8&scope=bot)\n[Support Server]"
+        embed.add_field(name="Links", value="[Support Server]"
                                             "(https://discord.gg/cDPGuYd)\n[DBL](https://discordbots.org/bot/"
                                             "532220480577470464)\n[Website](https://lightsage.gitlab.io/lightning/home/)"
                                             , inline=False)
