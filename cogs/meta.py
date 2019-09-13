@@ -497,7 +497,7 @@ class Meta(commands.Cog):
         query = "SELECT COUNT(*), MIN(used_at) FROM commands_usage WHERE guild_id=$1 AND user_id=$2;"
         async with self.bot.db.acquire() as con:
             res = await con.fetchrow(query, ctx.guild.id, member.id)
-        em.description = f"{res[0]} commands used so far."
+        em.description = f"{res[0]} commands used so far in {ctx.guild.name}."
         # Default to utcnow() if no value
         em.set_footer(text=f'First command usage on')
         em.timestamp = res[1] or datetime.utcnow()
@@ -522,12 +522,13 @@ class Meta(commands.Cog):
                    FROM commands_usage
                    WHERE guild_id=$1
                    AND used_at > (timezone('UTC', now()) - INTERVAL '1 day')
+                   AND user_id=$2
                    GROUP BY command_name
                    ORDER BY "cmd_uses" DESC
                    LIMIT 5;
                 """
         async with self.bot.db.acquire() as con:
-            fetched = await con.fetch(query, ctx.guild.id)
+            fetched = await con.fetch(query, ctx.guild.id, member.id)
         # Shoutouts to R.Danny for this code.
         commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
                                       for (index, (command_name, cmd_uses)) in enumerate(fetched))
