@@ -286,6 +286,8 @@ class Configuration(commands.Cog):
         async with self.bot.db.acquire() as con:
             result = await con.fetch(query, ctx.guild.id)
         embed = discord.Embed(title="Mod Roles", description="")
+        if len(result) == 0:
+            embed.description = "No moderation roles are setup!"
         for perms, role_id in result:
             role = discord.utils.get(ctx.guild.roles, id=role_id)
             embed.description += f"{perms}: {role.mention}\n"
