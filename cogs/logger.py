@@ -241,7 +241,7 @@ class Logger(Cog):
                 embed.add_field(name="Removed Role", value=", ".join(removed_roles))
             try:
                 await self.bot.get_channel(config["event_embed_channel"]).send(embed=embed)
-            except:
+            except Exception:
                 pass
         if "event_channel" in config:
             msg = ""

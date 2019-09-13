@@ -41,7 +41,7 @@ class FakeGuild:
 
 def write_guild_config(guild: discord.Guild, config: dict, filename: str):
     """Dumps a json config for a guild.
-    
+
     Parameters:
         guild: The guild this config is for.
         config: Config data, should be a dict.
@@ -68,11 +68,11 @@ def get_guild_config(guild: discord.Guild, filename: str) -> dict:
 
 def exist_guild_config(guild: discord.Guild, filename: str) -> bool:
     """Checks if guild has a json config
-    
+
     Parameters:
         guild: The guild which should be checked. (.json is appended automatically)
         filename: filename to check for.
-        
+
     Returns:
         bool: True if config exists, False if it doesn't."""
     return os.path.isfile(f"config/{guild.id}/{filename}.json")

@@ -27,7 +27,7 @@
 import discord
 from discord.ext import commands
 from utils.user_log import get_userlog, set_userlog, userlog_event_types
-from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_has_staff_role
+from utils.checks import is_staff_or_has_perms, has_staff_role
 
 # Most commands here taken from robocop-ngs mod.py
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod_user.py
@@ -48,7 +48,7 @@ class ModUserLog(commands.Cog):
         self.bot = bot
 
     async def get_userlog_embed_for_id(self, uid: str, name: str, guild, own: bool = False,
-                                 event=""):
+                                       event=""):
         own_note = " <:blobaww:560297547260887071> Good for you!" if own else ""
         wanted_events = ["warns", "bans", "kicks", "mutes"]
         if event:
@@ -123,10 +123,10 @@ class ModUserLog(commands.Cog):
         """Lists the available event types, staff only."""
         event_list = [f"{et} ({userlog_event_types[et]})" for et in
                       userlog_event_types]
-        event_text = ("Available events:\n``` - " +
-                      "\n - ".join(event_list) +
-                      "```")
-        await ctx.send(event_text)
+        events = "\n - ".join(event_list)
+        await ctx.send("Available events:\n``` - "
+                       f"{events}"
+                       "```")
 
     @commands.guild_only()
     @has_staff_role("Helper")
@@ -166,7 +166,7 @@ class ModUserLog(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.guild_only()
-    @has_staff_role("Admin")
+    @is_staff_or_has_perms("Admin", administrator=True)
     @commands.command(aliases=["clearwarns"])
     async def clearevent(self, ctx, target: discord.Member,
                          event="warns"):
@@ -204,8 +204,8 @@ class ModUserLog(commands.Cog):
     async def delevent(self, ctx, target: discord.Member, idx: int,
                        event="warns"):
         """Removes a specific event from a user, Admins only."""
-        del_event = await self.delete_event_from_id(str(target.id), 
-                                                    idx, event, 
+        del_event = await self.delete_event_from_id(str(target.id),
+                                                    idx, event,
                                                     guild=ctx.guild)
         event_name = userlog_event_types[event].lower()
         # This is hell.

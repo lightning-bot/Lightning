@@ -29,6 +29,8 @@ from typing import Union
 from utils.custom_prefixes import add_prefix, remove_prefix, get_guild_prefixes
 import json
 import resources.botemojis as emoji
+import asyncpg
+
 
 class Prefix(commands.Converter):
     # Based off R. Danny's Converter
@@ -38,6 +40,7 @@ class Prefix(commands.Converter):
             await ctx.send("That is a reserved prefix already in use.")
             raise commands.BadArgument('That is a reserved prefix already in use.')
         return argument
+
 
 class Configuration(commands.Cog):
     """Server Configuration Commands"""
@@ -60,7 +63,7 @@ class Configuration(commands.Cog):
             guild_config = json.loads(ret['log_channels'])
         else:
             guild_config = {}
-        
+
         return guild_config
 
     async def set_modconfig(self, ctx, to_dump):
@@ -84,8 +87,8 @@ class Configuration(commands.Cog):
     @commands.has_permissions(administrator=True)
     @log.command(name="join-logs", aliases=['joinlogs'])
     async def setjoinlogs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """If enabled, tracks whenever users join or leave your server 
-        and sends it to the specified logging channel. 
+        """If enabled, tracks whenever users join or leave your server
+        and sends it to the specified logging channel.
 
         Compact Logs"""
         guild_config = await self.grab_modconfig(ctx)
@@ -105,7 +108,7 @@ class Configuration(commands.Cog):
     @commands.group()
     @commands.has_permissions(administrator=True)
     async def embed(self, ctx):
-        """Set up embedded logging.""" # For those who don't like compact logging
+        """Set up embedded logging."""  # For those who don't like compact logging
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
@@ -113,8 +116,8 @@ class Configuration(commands.Cog):
     @commands.has_permissions(administrator=True)
     @embed.command(name="setjoinlogs", aliases=['set-join-logs'])
     async def setjoinlogs_embed(self, ctx, channel: Union[discord.TextChannel, str]):
-        """If enabled, tracks whenever users join or leave your server 
-        and sends it to the specified logging channel. 
+        """If enabled, tracks whenever users join or leave your server
+        and sends it to the specified logging channel.
         Embedded Logs"""
         guild_config = await self.grab_modconfig(ctx)
         if "join_log_channel" in guild_config:
@@ -132,7 +135,9 @@ class Configuration(commands.Cog):
     @commands.has_permissions(administrator=True)
     @embed.command(name="set-role-logs", aliases=['setrolelogs'])
     async def set_event_embed_logs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """If enabled, tracks whenever users change their roles or get theirs changed and sends it to the specified logging channel.
+        """If enabled, tracks whenever users change their
+        roles or get theirs changed and sends it to the specified logging channel.
+
         Embedded Logs"""
         guild_config = await self.grab_modconfig(ctx)
         if "event_channel" in guild_config:
@@ -163,7 +168,9 @@ class Configuration(commands.Cog):
     @commands.has_permissions(administrator=True)
     @log.command(name="role-logs", aliases=['rolelogs'])
     async def set_event_logs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """If enabled, tracks whenever users change their roles or get theirs changed and sends it to the specified logging channel.
+        """If enabled, tracks whenever users change
+        their roles or get theirs changed and sends it to the specified logging channel.
+
         Compact Logs"""
         guild_config = await self.grab_modconfig(ctx)
         if "event_embed_channel" in guild_config:
@@ -247,7 +254,7 @@ class Configuration(commands.Cog):
         """
         Set the various mod roles.
 
-        level: Any of "Helper", "Moderator" or "Admin". 
+        level: Any of "Helper", "Moderator" or "Admin".
         role: Target role to set. Case specific.
         """
         role = discord.utils.get(ctx.guild.roles, name=role_name)
@@ -264,8 +271,7 @@ class Configuration(commands.Cog):
         async with self.bot.db.acquire() as con:
             try:
                 await con.execute(query, ctx.guild.id, role.id, level.lower())
-            except:
-                # Fast thing. Maybe I'll fix it soon :shrugkitty:
+            except asyncpg.UniqueViolationError:
                 return await ctx.send("That role is already set as a mod role!")
         await ctx.send(f"Successfully set the {level} rank to the {role_name} role! {emoji.mayushii}")
 
@@ -316,7 +322,7 @@ class Configuration(commands.Cog):
         await ctx.safe_send(f"Successfully set the mute role to {role.name}")
 
     @commands.guild_only()
-    @commands.command(name="reset-mute-role", 
+    @commands.command(name="reset-mute-role",
                       aliases=['deletemuterole', 'delete-mute-role'])
     @commands.has_permissions(manage_guild=True)
     async def delete_mute_role(self, ctx):
@@ -348,8 +354,7 @@ class Configuration(commands.Cog):
         async with self.bot.db.acquire() as con:
             try:
                 await con.execute(query, ctx.guild.id, role.id)
-            except:
-                # Stupid fix but :shrug:
+            except asyncpg.UniqueViolationError:
                 return await ctx.safe_send(f"{role.name} is already set as an auto role.")
         await ctx.safe_send(f"Successfully set {role.name} as an auto role.")
 
@@ -388,7 +393,7 @@ class Configuration(commands.Cog):
         """Setup custom prefixes"""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
-    
+
     @prefix.command(name="add")
     @commands.guild_only()
     @commands.has_permissions(manage_guild=True)
@@ -396,9 +401,9 @@ class Configuration(commands.Cog):
         """Adds a custom prefix.
 
 
-        To have a prefix with a word (or words), you should quote it and 
-        end it with a space, e.g. "lightning " to set the prefix 
-        to "lightning ". This is because Discord removes spaces when sending 
+        To have a prefix with a word (or words), you should quote it and
+        end it with a space, e.g. "lightning " to set the prefix
+        to "lightning ". This is because Discord removes spaces when sending
         messages so the spaces are not preserved."""
         if len(get_guild_prefixes(ctx.guild)) < 10:
             add_prefix(ctx.guild, prefix)
@@ -411,9 +416,9 @@ class Configuration(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def rmprefix(self, ctx, prefix: Prefix):
         """Removes a custom prefix.
-        
+
         The inverse of the prefix add command.
-        
+
         To remove word/multi-word prefixes, you need to quote it.
         Example: l.prefix remove "lightning " removes the "lightning " prefix
         """
@@ -443,8 +448,9 @@ class Configuration(commands.Cog):
         roles = [discord.utils.get(member.guild.roles, id=role_id[0]) for role_id in res]
         try:
             await member.add_roles(*roles, reason="Auto Roles")
-        except:
+        except Exception:
             pass
+
 
 def setup(bot):
     bot.add_cog(Configuration(bot))
