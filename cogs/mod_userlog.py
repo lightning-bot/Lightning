@@ -27,12 +27,12 @@
 import discord
 from discord.ext import commands
 from utils.user_log import get_userlog, set_userlog, userlog_event_types
-import db.per_guild_config
 from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_has_staff_role
 
-## Most commands here taken from robocop-ngs mod.py
+# Most commands here taken from robocop-ngs mod.py
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod_user.py
 # robocop-ng is MIT licensed
+
 
 class ModUserLog(commands.Cog):
     """
@@ -135,7 +135,7 @@ class ModUserLog(commands.Cog):
     async def userlog_cmd(self, ctx, target: discord.Member, event=""):
         """Lists the userlog events for a user, staff only."""
         embed = await self.get_userlog_embed_for_id(str(target.id), str(target),
-                                              event=event, guild=ctx.guild)
+                                                    event=event, guild=ctx.guild)
         await ctx.send(embed=embed)
 
     @commands.guild_only()
@@ -144,7 +144,7 @@ class ModUserLog(commands.Cog):
     async def notes(self, ctx, target: discord.Member):
         """Lists the notes for a user, staff only."""
         embed = await self.get_userlog_embed_for_id(str(target.id), str(target),
-                                              event="notes", guild=ctx.guild)
+                                                    event="notes", guild=ctx.guild)
         await ctx.send(embed=embed)
 
     @commands.guild_only()
@@ -152,8 +152,8 @@ class ModUserLog(commands.Cog):
     async def myuserlog(self, ctx):
         """Lists your userlog events (warns etc)."""
         embed = await self.get_userlog_embed_for_id(str(ctx.author.id),
-                                                    str(ctx.author), 
-                                                    own=True, 
+                                                    str(ctx.author),
+                                                    own=True,
                                                     guild=ctx.guild)
         await ctx.send(embed=embed)
 
@@ -177,7 +177,7 @@ class ModUserLog(commands.Cog):
         if not mod:
             return
         else:
-            safe_name = await commands.clean_content().convert(ctx, str(target))                              
+            safe_name = await commands.clean_content().convert(ctx, str(target))
             msg = f"🗑 **Cleared {event}**: {ctx.author.mention} cleared" \
                   f" all {event} events of {target.mention} | " \
                   f"{safe_name}"
@@ -229,8 +229,8 @@ class ModUserLog(commands.Cog):
     @commands.command(aliases=["delwarnid"])
     async def deleventid(self, ctx, target: int, idx: int, event="warns"):
         """Removes a specific event from a userid, Admins only."""
-        del_event = await self.delete_event_from_id(str(target), 
-                                                    idx, event, 
+        del_event = await self.delete_event_from_id(str(target),
+                                                    idx, event,
                                                     guild=ctx.guild)
         event_name = userlog_event_types[event].lower()
         # This is hell.
@@ -246,6 +246,7 @@ class ModUserLog(commands.Cog):
                 await mod.log_send(ctx, msg)
         else:
             await ctx.send(del_event)
+
 
 def setup(bot):
     bot.add_cog(ModUserLog(bot))

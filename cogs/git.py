@@ -31,6 +31,7 @@ import datetime
 import gitlab
 from utils.checks import is_git_whitelisted, is_bot_manager
 
+
 class Git(commands.Cog):
     """Helper Commands for GitHub/GitLab Related Things."""
     def __init__(self, bot):
@@ -53,7 +54,7 @@ class Git(commands.Cog):
     async def commentonissue(self, ctx, issue_number: int, *, comment: str):
         """Adds a comment to an issue"""
         try:
-            issue = self.gh.issue(config.github_username, 
+            issue = self.gh.issue(config.github_username,
                                   config.github_repo, issue_number)
             if issue.is_closed():
                 return await ctx.send(f"That issue is closed! (Since `{issue.closed_at}`)")
@@ -66,12 +67,12 @@ class Git(commands.Cog):
     @github.command()
     @commands.check(is_git_whitelisted)
     async def issuestatus(self, ctx, issue_number: int, status: str):
-        """Changes the state of an issue. 
-        
+        """Changes the state of an issue.
+
         Either pass 'open' or 'closed'
         """
         try:
-            issue = self.gh.issue(config.github_username, 
+            issue = self.gh.issue(config.github_username,
                                   config.github_repo, issue_number)
             issue.edit(state=status)
             await ctx.send(f"Done! See {issue.html_url}")
@@ -84,7 +85,7 @@ class Git(commands.Cog):
     async def closeandcomment(self, ctx, issue_number: int, *, comment: str):
         """Comments then closes an issue"""
         try:
-            issue = self.gh.issue(config.github_username, 
+            issue = self.gh.issue(config.github_username,
                                   config.github_repo, issue_number)
             if issue.is_closed():
                 return await ctx.send(f"That issue is already closed! (Since `{issue.closed_at}`)")
@@ -101,7 +102,7 @@ class Git(commands.Cog):
         """Prints an embed with various info on an issue or pull"""
         tmp = await ctx.send("Fetching info....")
         try:
-            issue = self.gh.issue(config.github_username, 
+            issue = self.gh.issue(config.github_username,
                                   config.github_repo, number)
         except Exception as e:
             return await tmp.edit(content=f"An Error Occurred! `{e}`")
@@ -136,10 +137,10 @@ class Git(commands.Cog):
     @commands.check(is_git_whitelisted)
     async def archivepins(self, ctx):
         """Creates a gist with the channel's pins
-        
+
         Uses the channel that the command was invoked in."""
         pins = await ctx.channel.pins()
-        if pins: # Does this channel have pins?
+        if pins:  # Does this channel have pins?
             async with ctx.typing():
                 reversed_pins = reversed(pins)
                 content_to_upload = f"Created on {datetime.datetime.utcnow()}\n---\n"
@@ -155,18 +156,15 @@ class Git(commands.Cog):
             return await ctx.send("Couldn\'t find any pins in this channel!"
                                   " Try another channel?")
 
-        files = {
-            f'{ctx.channel.name} | {datetime.datetime.utcnow()}.md' : {
-                'content': content_to_upload
-                }
-            }
+        files = {f'{ctx.channel.name} | {datetime.datetime.utcnow()}.md': {
+                 'content': content_to_upload}}
         # Login with our token and create a gist
-        gist = self.gh.create_gist(f'Pin Archive for {ctx.channel.name}.', 
+        gist = self.gh.create_gist(f'Pin Archive for {ctx.channel.name}.',
                                    files, public=False)
         # Send the created gist's URL
         await ctx.send(f"You can find an archive of this channel's pins at {gist.html_url}")
 
-        #for pm in pins: # Unpin our pins(?)
+        # for pm in pins: # Unpin our pins(?)
         #    await pm.unpin()
 
     @commands.check(is_bot_manager)
@@ -181,18 +179,15 @@ class Git(commands.Cog):
                 log_t += f"[{str(log.created_at)}]: {log.author} - {log.clean_content}"
                 if log.attachments:
                     for attach in log.attachments:
-                        log_t += f"[{attach.filename}]({attach.url})\n\n" # hackyish
+                        log_t += f"[{attach.filename}]({attach.url})\n\n"  # hackyish
                 else:
                     log_t += "\n\n"
 
-        files = {
-            f'{ctx.channel.name} | {datetime.datetime.utcnow()}.md' : {
-                'content': log_t
-                }
-            }
+        files = {f'{ctx.channel.name} | {datetime.datetime.utcnow()}.md': {
+                 'content': log_t}}
 
         # Login with our token and create a gist
-        gist = self.gh.create_gist(f'Message Archive for {ctx.channel.name}.', 
+        gist = self.gh.create_gist(f'Message Archive for {ctx.channel.name}.',
                                    files, public=False)
         # Send the created gist's URL
         await ctx.send(f"You can find an archive of this channel's history at {gist.html_url}")
@@ -263,7 +258,7 @@ class Git(commands.Cog):
             pipe = project.pipelines.list()[0]
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
-        embed = discord.Embed(title=f"Pipeline Stats for #{pipe.id}", 
+        embed = discord.Embed(title=f"Pipeline Stats for #{pipe.id}",
                               color=discord.Color.blue())
         embed.add_field(name="Branch", value=pipe.ref)
         embed.add_field(name="Status", value=pipe.status)
@@ -291,10 +286,10 @@ class Git(commands.Cog):
         """Creates a label"""
         try:
             project = self.gl.projects.get(config.gitlab_project_id, lazy=True)
-            l = project.labels.create({'name': label_name, 'color': color})
+            _label = project.labels.create({'name': label_name, 'color': color})
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
-        await ctx.send(f"Succesfully created {l.name} (Color: {l.color})")
+        await ctx.send(f"Succesfully created {_label.name} (Color: {_label.color})")
 
     @gitlab.command()
     @commands.check(is_bot_manager)
@@ -308,6 +303,7 @@ class Git(commands.Cog):
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
         await ctx.send(f"Successfully merged !{mr.iid} to {mr.target_branch}. {mr.web_url}")
+
 
 def setup(bot):
     bot.add_cog(Git(bot))

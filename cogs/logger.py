@@ -30,16 +30,17 @@ import re
 import resources.botemojis as em
 import json
 
+
 class Logger(Cog):
     """Logs user actions"""
     def __init__(self, bot):
         self.bot = bot
-        self.check_inv = re.compile(r"((discord\.gg|discordapp\.com/" # Check Invite
+        self.check_inv = re.compile(r"((discord\.gg|discordapp\.com/"  # Check Invite
                                     r"+invite)/+[a-zA-Z0-9-]+)",
                                     re.IGNORECASE)
 
     async def guild_config_id(self, guild_id: int):
-        """Async Function to use a provided guild ID instead of relying 
+        """Async Function to use a provided guild ID instead of relying
         on context (ctx)."""
         query = """SELECT * FROM guild_mod_config
                    WHERE guild_id=$1;
@@ -50,13 +51,13 @@ class Logger(Cog):
             guild_config = json.loads(ret['log_channels'])
         else:
             guild_config = {}
-        
+
         return guild_config
 
     async def invite_filter(self, message):
         if message.author.bot:
             return
-        
+
         invites = self.check_inv.findall(message.content)
         for invite in invites:
             config = await self.guild_config_id(message.guild.id)
@@ -65,15 +66,15 @@ class Logger(Cog):
                       f"\nMessage contained invite link: https://{invite[0]}"
                 try:
                     await self.bot.get_channel(config["invite_watch"]).send(msg)
-                except:
+                except Exception:
                     pass
 
     @Cog.listener()
     async def on_member_join(self, member):
         await self.bot.wait_until_ready()
         try:
-            query = """SELECT role_id 
-                    FROM user_restrictions 
+            query = """SELECT role_id
+                    FROM user_restrictions
                     WHERE user_id=$1
                     AND guild_id=$2;
                     """
@@ -88,24 +89,24 @@ class Logger(Cog):
             pass
         config = await self.guild_config_id(member.guild.id)
         if "join_log_embed_channel" in config:
-            embed = discord.Embed(title=f"{em.member_join} Member Join", 
+            embed = discord.Embed(title=f"{em.member_join} Member Join",
                                   timestamp=datetime.datetime.utcnow(), color=discord.Color.green())
             embed.description = f"{member.mention} | {member}\n🕓 __Account Creation__: "\
                                 f"{member.created_at}\n🏷 __User ID__: {member.id}"
             try:
                 await self.bot.get_channel(config["join_log_embed_channel"]).send(embed=embed)
-            except:
+            except Exception:
                 pass
         if "join_log_channel" in config:
             msg = f"{em.member_join}"\
-                 f" **Member Join**: {member.mention} | "\
-                 f"{member}\n"\
-                 f"🕓 __Account Creation__: {member.created_at}\n"\
-                 f"🗓 Join Date: {member.joined_at}\n"\
-                 f"🏷 __User ID__: {member.id}"
+                  f" **Member Join**: {member.mention} | "\
+                  f"{member}\n"\
+                  f"🕓 __Account Creation__: {member.created_at}\n"\
+                  f"🗓 Join Date: {member.joined_at}\n"\
+                  f"🏷 __User ID__: {member.id}"
             try:
                 await self.bot.get_channel(config["join_log_channel"]).send(msg)
-            except:
+            except Exception:
                 pass
 
     @Cog.listener()
@@ -113,12 +114,12 @@ class Logger(Cog):
         await self.bot.wait_until_ready()
         config = await self.guild_config_id(member.guild.id)
         if "join_log_embed_channel" in config:
-            embed = discord.Embed(title=f"{em.member_leave} Member Leave", 
+            embed = discord.Embed(title=f"{em.member_leave} Member Leave",
                                   timestamp=datetime.datetime.utcnow(), color=discord.Color.red())
             embed.description = f"{member.mention} | {member}\n🏷 __User ID__: {member.id}"
             try:
-                   await self.bot.get_channel(config["join_log_embed_channel"]).send(embed=embed)
-            except:
+                await self.bot.get_channel(config["join_log_embed_channel"]).send(embed=embed)
+            except Exception:
                 pass
         if "join_log_channel" in config:
             msg = f"{em.member_leave} "\
@@ -128,7 +129,7 @@ class Logger(Cog):
                   f"🏷 __User ID__: {member.id}"
             try:
                 await self.bot.get_channel(config["join_log_channel"]).send(msg)
-            except:
+            except Exception:
                 pass
 
     @Cog.listener()
@@ -139,7 +140,7 @@ class Logger(Cog):
                       f"🏷 __User ID__: {user.id}"
             try:
                 await self.bot.get_channel(config["ban_channel"]).send(message)
-            except:
+            except Exception:
                 pass
 
     @Cog.listener()
@@ -151,19 +152,19 @@ class Logger(Cog):
                       f"🏷 __User ID__: {user.id}"
             try:
                 await self.bot.get_channel(config["ban_channel"]).send(message)
-            except:
+            except Exception:
                 pass
 
     @Cog.listener()
     async def on_message_delete(self, message):
         await self.bot.wait_until_ready()
-        if message.author.bot: # Does not log bots
+        if message.author.bot:  # Does not log bots
             return
         config = await self.guild_config_id(message.guild.id)
         if "message_log_channel" in config:
             msg = "🗑️ **Message deleted**: \n"\
-                 f"Author: {self.bot.escape_message(message.author.name)} "\
-                 f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"
+                  f"Author: {self.bot.escape_message(message.author.name)} "\
+                  f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"
             embed = discord.Embed(description=f"Message: {message.clean_content}")
             if message.attachments:
                 attachment_urls = []
@@ -171,14 +172,14 @@ class Logger(Cog):
                     attachment_urls.append(f'File Name: {attachment.filename} <{attachment.url}>')
                 attachment_msg = '\N{BULLET} ' + '\n\N{BULLET} '.join(attachment_urls)
                 msg += "\n🔗 **Attachments:** \n"\
-                      f"{attachment_msg}"
+                       f"{attachment_msg}"
             # If resulting message is too long, upload to hastebin.
             if len(msg) > 1995:
                 haste_url = await self.bot.haste(msg)
                 msg = f"🗑️ **Message deleted**: \nMessage was too long. See the link: <{haste_url}>"
             try:
                 await self.bot.get_channel(config["message_log_channel"]).send(msg, embed=embed)
-            except:
+            except Exception:
                 pass
 
     @Cog.listener()
@@ -188,39 +189,39 @@ class Logger(Cog):
             return
         if before.clean_content == after.clean_content:
             return
-        if before.author.bot: # Don't log bots
+        if before.author.bot:  # Don't log bots
             return
-        await self.invite_filter(after) # Check if message has invite
+        await self.invite_filter(after)  # Check if message has invite
         config = await self.guild_config_id(before.guild.id)
         if "message_log_channel" in config:
             msg = "📝 **Message edit**: \n"\
-                 f"Author: {self.bot.escape_message(after.author.name)} "\
-                 f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"
+                  f"Author: {self.bot.escape_message(after.author.name)} "\
+                  f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"
             embed = discord.Embed(description=f"Before: {before.clean_content}\nAfter: {after.clean_content}")
-                #if after.attachments:
-                #    attachment_urls = []
-                #    for attachment in after.attachments:
-                #        attachment_urls.append(f'File Name: {attachment.filename} <{attachment.url}>')
-                #    attachment_msg = '\N{BULLET} ' + '\n\N{BULLET} '.join(attachment_urls)
-                #    msg += "🔗 **Attachments:** \n"\
-                #           f"{attachment_msg}"
+            # if after.attachments:
+            #    attachment_urls = []
+            #    for attachment in after.attachments:
+            #        attachment_urls.append(f'File Name: {attachment.filename} <{attachment.url}>')
+            #    attachment_msg = '\N{BULLET} ' + '\n\N{BULLET} '.join(attachment_urls)
+            #    msg += "🔗 **Attachments:** \n"\
+            #           f"{attachment_msg}"
             # If resulting message is too long, upload to hastebin.
             if len(msg) > 1985:
                 hastemsg = "📝 **Message edit**: \n"\
-                          f"Author: {self.bot.escape_message(after.author.name)}\n"\
-                          f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
-                          f"Before: {before.clean_content}\n\nAfter: {after.clean_content}"
+                           f"Author: {self.bot.escape_message(after.author.name)}\n"\
+                           f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
+                           f"Before: {before.clean_content}\n\nAfter: {after.clean_content}"
                 haste_url = await self.bot.haste(hastemsg)
                 msg = f"📝 **Message Edited**: \nMessage was too long. See the link: <{haste_url}>"
             try:
                 await self.bot.get_channel(config["message_log_channel"]).send(msg, embed=embed)
-            except:
+            except Exception:
                 pass
 
     @Cog.listener()
     async def on_message(self, message):
         await self.bot.wait_until_ready()
-        await self.invite_filter(message) # Check if message has invite
+        await self.invite_filter(message)  # Check if message has invite
 
     @Cog.listener()
     async def on_member_update(self, before, after):
@@ -231,7 +232,8 @@ class Logger(Cog):
                 return
             added_roles = [role.name for role in after.roles if role not in before.roles]
             removed_roles = [role.name for role in before.roles if role not in after.roles]
-            embed = discord.Embed(title="Member Update", color=discord.Color.blurple(), timestamp=datetime.datetime.utcnow())
+            embed = discord.Embed(title="Member Update", color=discord.Color.blurple(),
+                                  timestamp=datetime.datetime.utcnow())
             embed.set_author(name=str(after), icon_url=str(after.avatar_url))
             if len(added_roles) != 0:
                 embed.add_field(name="Added Role", value=", ".join(added_roles))
@@ -243,7 +245,7 @@ class Logger(Cog):
                 pass
         if "event_channel" in config:
             msg = ""
-            if before.roles != after.roles: # Taken from robocop-ng. MIT Licensed.
+            if before.roles != after.roles:  # Taken from robocop-ng. MIT Licensed.
                 # role removal
                 role_removal = []
                 for index, role in enumerate(before.roles):
@@ -268,13 +270,14 @@ class Logger(Cog):
                         if role not in role_removal and role not in role_addition:
                             roles.append(role.name)
                 msg += ", ".join(roles)
-            if msg: # Ending
+            if msg:  # Ending
                 msg = f"ℹ️ **Member update**: {self.bot.escape_message(after)} | "\
                       f"{after.id} {msg}"
             try:
                 await self.bot.get_channel(config["event_channel"]).send(msg)
-            except:
+            except Exception:
                 pass
+
 
 def setup(bot):
     bot.add_cog(Logger(bot))

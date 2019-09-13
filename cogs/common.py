@@ -1,25 +1,25 @@
 # Whole Imported Cog from robocop-ng. with the removal of some things that won't be used.
 # MIT License
-# 
+#
 # Copyright (c) 2018 Arda "Ave" Ozkal
 #
-#Permission is hereby granted, free of charge, to any person obtaining a copy
-#of this software and associated documentation files (the "Software"), to deal
-#in the Software without restriction, including without limitation the rights
-#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#copies of the Software, and to permit persons to whom the Software is
-#furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-#The above copyright notice and this permission notice shall be included in all
-#copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 import asyncio
 import traceback
@@ -32,6 +32,7 @@ import subprocess
 from discord.ext.commands import Cog
 import discord
 import json
+
 
 class Common(Cog):
     def __init__(self, bot):
@@ -66,21 +67,21 @@ class Common(Cog):
         e.set_footer(text="Status: Received")
         ch = self.bot.get_channel(self.bot.config.bug_reports_channel)
         msg = await ch.send(embed=e)
-        query = """UPDATE bug_tickets 
-                   SET guild_id=$2, channel_id=$3, message_id=$4 
+        query = """UPDATE bug_tickets
+                   SET guild_id=$2, channel_id=$3, message_id=$4
                    WHERE id=$1;
                 """
         async with self.bot.db.acquire() as con:
             await con.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
         msg = f"Created a bug ticket with ID {id[0]}. "\
-               "You can see updates on your ticket by joining "\
-               "the [support server](https://discord.gg/cDPGuYd) and looking in the "\
+              "You can see updates on your ticket by joining "\
+              "the [support server](https://discord.gg/cDPGuYd) and looking in the "\
               f"reports channel."
-        embed=discord.Embed(title="Uh oh, my powers overloaded.", description=msg)
+        embed = discord.Embed(title="Uh oh, my powers overloaded.", description=msg)
         embed.set_footer(text="My developers have been notified about this.")
         await ctx.send(embed=embed)
 
-    def humanized_time(self, time_from=None, time_to=None, distance=True, 
+    def humanized_time(self, time_from=None, time_to=None, distance=True,
                        include_timedate=False):
         if not time_from:
             time_from = arrow.utcnow()
@@ -111,8 +112,6 @@ class Common(Cog):
         if not time_to:
             time_to = arrow.utcnow()
         if humanized:
-            # Monkey patch to get a bit more humanized
-            #patch = time_to + datetime.timedelta(0,1)
             arrow_time = arrow.get(time_to)
             humanized_string = arrow_time.humanize(time_from)
             if include_from and include_to:
@@ -176,7 +175,7 @@ class Common(Cog):
             else:
                 self.bot.log.error(f"HTTP Error {data.status} "
                                    "while getting {url}")
-        except:
+        except Exception:
             self.bot.log.error(f"Error while getting {url} "
                                f"on aiogetbytes: {traceback.format_exc()}")
 
@@ -191,7 +190,7 @@ class Common(Cog):
                 self.bot.log.error(f"HTTP Error {data.status} "
                                    f"while getting {url}")
                 return False
-        except:
+        except Exception:
             self.bot.log.error(f"Error while getting {url} "
                                f"on aiogetbytes: {traceback.format_exc()}")
 
@@ -207,7 +206,7 @@ class Common(Cog):
                 self.bot.log.error(f"HTTP Error {data.status} "
                                    f"while getting {url}")
                 return False
-        except:
+        except Exception:
             self.bot.log.error(f"Error while getting {url} "
                                f"on aiogetbytes: {traceback.format_exc()}")
             return False
@@ -255,8 +254,8 @@ class Common(Cog):
             self.bot.log.error(f"{response.text}")
             return f"Error {response.status}. Try again later?"
 
-    # The function (call_shell) listed below is my work (LightSage). 
-    # LICENSE: GNU Affero General Public License v3.0 
+    # The function (call_shell) listed below is my work (LightSage).
+    # LICENSE: GNU Affero General Public License v3.0
     # https://github.com/LightSage/Lightning.py/blob/master/LICENSE
     async def call_shell(self, shell_command: str):
         try:
@@ -265,9 +264,9 @@ class Common(Cog):
                                                             stdout=pipe,
                                                             stderr=pipe)
             stdout, stderr = await process.communicate()
-        except NotImplementedError: # Account for Windows (Trashdows)
-            process = subprocess.Popen(shell_command, shell=True, 
-                                       stdout=subprocess.PIPE, 
+        except NotImplementedError:  # Account for Windows (Trashdows)
+            process = subprocess.Popen(shell_command, shell=True,
+                                       stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
             stdout, stderr = process.communicate()
 
@@ -281,6 +280,7 @@ class Common(Cog):
         elif stderr:
             return f"$ {shell_command}\n\n"\
                    f"[stderr]\n{stderr.decode('utf-8')}"
+
 
 def setup(bot):
     bot.add_cog(Common(bot))

@@ -34,6 +34,7 @@ import config
 from datetime import datetime
 import textwrap
 
+
 class Fun(commands.Cog):
     """Fun Stuff"""
     def __init__(self, bot):
@@ -46,7 +47,7 @@ class Fun(commands.Cog):
 
     def make_kcdt(self, text: str):
         img = Image.open("resources/templates/kurisudrawtemp.png")
-        dafont = ImageFont.truetype(font="resources/fonts/arialrounded.ttf", 
+        dafont = ImageFont.truetype(font="resources/fonts/arialrounded.ttf",
                                     size=42, encoding="unic")
         draw = ImageDraw.Draw(img)
         # Shoutouts to that person on stackoverflow that I don't remember
@@ -57,9 +58,9 @@ class Fun(commands.Cog):
             if y_text >= 390:
                 break
             line_width, line_height = draw.textsize(line, font=dafont)
-            draw.multiline_text(((wdmax - line_width) / 2, y_text), 
-                                line, font=dafont, 
-                                fill="black")#align="center")
+            draw.multiline_text(((wdmax - line_width) / 2, y_text),
+                                line, font=dafont,
+                                fill="black")  # align="center")
             y_text += line_height
         finalbuffer = io.BytesIO()
         img.save(finalbuffer, 'png')
@@ -70,7 +71,7 @@ class Fun(commands.Cog):
         img = Image.open(io.BytesIO(url))
 
         buff = io.BytesIO()
-        img.convert("RGB").save(buff, "jpeg", 
+        img.convert("RGB").save(buff, "jpeg",
                                 quality=random.randrange(1, 15))
         buff.seek(0)
 
@@ -81,11 +82,11 @@ class Fun(commands.Cog):
     async def kurisuwhiteboard(self, ctx, *, text: str):
         """Kurisu can solve this, can you?"""
         async with ctx.typing():
-            img_buff = await ctx.bot.loop.run_in_executor(None, 
-                                                          self.make_kcdt, 
+            img_buff = await ctx.bot.loop.run_in_executor(None,
+                                                          self.make_kcdt,
                                                           text)
             await ctx.send(file=discord.File(img_buff, filename="kurisudraw.png"))
-    
+
     @commands.command()
     @commands.has_permissions(attach_files=True)
     async def jpegify(self, ctx, url: str = None):
@@ -124,24 +125,30 @@ class Fun(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             return await ctx.send("You need to specify a number!")
 
-    @commands.command() # Technically more of a meme, but /shrug
+    @commands.command()  # Technically more of a meme, but /shrug
     async def bam(self, ctx, target: discord.Member):
         """Bams a user"""
         safe_name = await commands.clean_content().convert(ctx, str(target))
         # :idontfeelsogood:
-        random_bams = ["n̟̤͙̠̤̖ǫ̺̻ͅw̴͍͎̱̟ ̷̭̖̫͙̱̪b͏͈͇̬̠̥ͅ&̻̬.̶̜͍̬͇̬ ҉̜̪̘̞👍̡̫͙͚͕ͅͅ", "n͢ow̢ ͜b&͢. ̷👍̷", "n҉̺o̧̖̱w̯̬̜̺̘̮̯ ͉͈͎̱̰͎͡b&̪̗̮̣̻͉.͍͖̪͕̤͔ ͢👍̵͙̯͍̫̬", "ńo̶̡͜w͘͟͏ ҉̶b̧&̧.̡͝ ̕👍̡͟", "n҉o̢͘͞w̢͢ ̢͏̢b͠&̴̛.̵̶ ̢́👍̴", "n̶̵̵̷̡̲̝̺o̵̶̷̴̜͚̥͓w̶̶̶̴͔̲͢͝ ḇ̶̷̶̵̡̨͜&̷̴̶̵̢̗̻͝.̷̵̴̶̮̫̰͆ 👍̵̶̵̶̡̡̹̹",
-        "n̸̶̵̵̷̴̷̵̷̒̊̽ò̷̷̷̶̶̶̶̴̝ͥ̄w̶̶̷̶̵̴̷̶̴̤̑ͨ b̷̵̶̵̶̷̵̴̶̧͌̓&̵̶̵̶̷̴̵̴̻̺̓̑.̵̴̷̵̶̶̶̷̷̹̓̉ 👍", "no̥̊w ͜͠b̹̑&̛͕.̡̉ 👍̡̌", "n̐̆ow͘ ̌̑b͛͗&͗̂̍̒.̄ ͊👍͂̿͘", "ₙₒw b&. 👍", "n҉o҉w҉ b҉&. 👍"]
+        random_bams = ["n̟̤͙̠̤̖ǫ̺̻ͅw̴͍͎̱̟ ̷̭̖̫͙̱̪b͏͈͇̬̠̥ͅ&̻̬.̶̜͍̬͇̬ ҉̜̪̘̞👍̡̫͙͚͕ͅͅ", "n͢ow̢ ͜b&͢. ̷👍̷",
+                       "n҉̺o̧̖̱w̯̬̜̺̘̮̯ ͉͈͎̱̰͎͡b&̪̗̮̣̻͉.͍͖̪͕̤͔ ͢👍̵͙̯͍̫̬",
+                       "ńo̶̡͜w͘͟͏ ҉̶b̧&̧.̡͝ ̕👍̡͟", "n҉o̢͘͞w̢͢ ̢͏̢b͠&̴̛.̵̶ ̢́👍̴",
+                       "n̶̵̵̷̡̲̝̺o̵̶̷̴̜͚̥͓w̶̶̶̴͔̲͢͝ ḇ̶̷̶̵̡̨͜&̷̴̶̵̢̗̻͝.̷̵̴̶̮̫̰͆ 👍̵̶̵̶̡̡̹̹",
+                       "n̸̶̵̵̷̴̷̵̷̒̊̽ò̷̷̷̶̶̶̶̴̝ͥ̄w̶̶̷̶̵̴̷̶̴̤̑ͨ b̷̵̶̵̶̷̵̴̶̧͌̓&̵̶̵̶̷̴̵̴̻̺̓̑.̵̴̷̵̶̶̶̷̷̹̓̉ 👍",
+                       "no̥̊w ͜͠b̹̑&̛͕.̡̉ 👍̡̌",
+                       "n̐̆ow͘ ̌̑b͛͗&͗̂̍̒.̄ ͊👍͂̿͘",
+                       "ₙₒw b&. 👍", "n҉o҉w҉ b҉&. 👍"]
 
         await ctx.send(f"{safe_name} is {random.choice(random_bams)}")
 
-    @commands.command() # Another meme
+    @commands.command()  # Another meme
     async def warm(self, ctx, user: discord.Member):
         """Warms a user"""
         celsius = random.randint(15, 100)
         fahrenheit = self.c_to_f(celsius)
         await ctx.send(f"{user.mention} warmed. User is now {celsius}°C ({fahrenheit}°F).")
 
-    @commands.command(aliases=['cool', 'cold']) # Another meme again
+    @commands.command(aliases=['cool', 'cold'])  # Another meme again
     async def chill(self, ctx, user: discord.Member):
         """Chills/cools a user"""
         celsius = random.randint(-50, 15)
@@ -149,7 +156,7 @@ class Fun(commands.Cog):
         await ctx.send(f"{user.mention} chilled. User is now {celsius}°C ({fahrenheit}°F).")
 
     @commands.command()
-    async def cryofreeze(self, ctx, user: discord.Member=None):
+    async def cryofreeze(self, ctx, user: discord.Member = None):
         """Cryofreezes a user"""
         if user is None:
             user = ctx.author
@@ -172,11 +179,11 @@ class Fun(commands.Cog):
             if resp.status == 200:
                 data = await resp.json()
             else:
-                return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)") 
-        embed = discord.Embed(title="Meow <:meowawauu:604760862049304608>", 
+                return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)")
+        embed = discord.Embed(title="Meow <:meowawauu:604760862049304608>",
                               color=discord.Color.teal())
         embed.set_image(url=data['file'])
-        embed.set_footer(text="Powered by random.cat", 
+        embed.set_footer(text="Powered by random.cat",
                          icon_url="https://purr.objects-us-east-1.dream.io/static/ico/favicon-96x96.png")
         await ctx.send(embed=embed)
 
@@ -190,9 +197,9 @@ class Fun(commands.Cog):
                 dat = await resp.json()
             else:
                 return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)")
-        embed = discord.Embed(title="Meow <:meowawauu:604760862049304608>", 
+        embed = discord.Embed(title="Meow <:meowawauu:604760862049304608>",
                               color=discord.Color(0x0c4189))
-        for cat in dat: # There's only one but shrug.avi
+        for cat in dat:  # There's only one but shrug.avi
             embed.set_image(url=cat['url'])
         embed.set_footer(text="Powered by TheCatApi")
         await ctx.send(embed=embed)
@@ -217,7 +224,7 @@ class Fun(commands.Cog):
         await ctx.send("( ͡° ͜ʖ ͡°)")
 
     @commands.command()
-    async def xkcd(self, ctx, xkcd_number: int=None):
+    async def xkcd(self, ctx, xkcd_number: int = None):
         """Returns an embed with information about the specified xkcd comic.
 
         If no value is supplied or the value isn't found, it gives the latest xkcd instead."""
@@ -241,6 +248,7 @@ class Fun(commands.Cog):
         embed.set_image(url=xkcd["img"])
         embed.set_footer(text=xkcd["alt"])
         await ctx.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(Fun(bot))
