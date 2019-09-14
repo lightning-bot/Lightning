@@ -96,7 +96,9 @@ initial_extensions = ['cogs.comics',
                       'cogs.timers',
                       'cogs.toggle_roles',
                       'cogs.utility',
-                      'cogs.weeb']
+                      'cogs.weeb',
+                      'jishaku',
+                      'stabilite.stabilite']
 
 # Create config folder if not found
 if not os.path.exists("config"):
