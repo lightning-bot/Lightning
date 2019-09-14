@@ -1,7 +1,4 @@
 image: python:latest
-    
-variables:
-  NEW_COMMIT: git diff-tree --no-commit-id --name-only -r $CI_COMMIT_SHA
 
 before_script:
   - python -V # Print out python version for debugging
