@@ -36,7 +36,7 @@ from utils.converters import SafeSend
 
 
 class Utility(commands.Cog):
-    """Utility Commands"""
+    """Optionally helpful commands"""
     def __init__(self, bot):
         self.bot = bot
 
