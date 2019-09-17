@@ -26,15 +26,42 @@
 import discord
 from discord.ext import commands
 from utils.user_log import userlog
+from utils.user_log import get_userlog, set_userlog, userlog_event_types
 from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_has_staff_role
 from datetime import datetime
 import json
 # import asyncio
 from utils.time import natural_timedelta
 import io
+from utils.paginator import Pages
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
+
+
+class WarnPages(Pages):
+    """Similar to FieldPages except entries should be a list of
+    tuples having (key, value) to show as embed fields instead.
+    """
+    def __init__(self, set_author, ctx, entries, *, per_page=4):
+        super().__init__(ctx, entries=entries, per_page=per_page)
+        self.set_author = set_author
+
+    def prepare_embed(self, entries, page, *, first=False):
+        self.embed.clear_fields()
+        self.embed.description = discord.Embed.Empty
+        self.embed.set_author(name=self.set_author)
+
+        for key, value in entries:
+            self.embed.add_field(name=key, value=value, inline=False)
+
+        if self.maximum_pages > 1:
+            if self.show_entry_count:
+                text = f'Page {page}/{self.maximum_pages} ({len(self.entries)} entries)'
+            else:
+                text = f'Page {page}/{self.maximum_pages}'
+
+            self.embed.set_footer(text=text)
 
 
 class ReasonTooLong(commands.UserInputError):
@@ -78,7 +105,7 @@ class Mod(commands.Cog):
             raise ReasonTooLong('Reason is too long!')
         return to_return
 
-    async def log_send(self, ctx, message):
+    async def log_send(self, ctx, message, **kwargs):
         query = """SELECT * FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
@@ -92,7 +119,7 @@ class Mod(commands.Cog):
         if "modlog_chan" in guild_config:
             try:
                 log_channel = self.bot.get_channel(guild_config["modlog_chan"])
-                await log_channel.send(message)
+                await log_channel.send(content=message, **kwargs)
             except discord.Forbidden:
                 pass
 
@@ -249,10 +276,6 @@ class Mod(commands.Cog):
             return await ctx.send("I can't kick this user as "
                                   "they're a staff member.")
 
-        await userlog(self.bot, ctx.guild, target.id, ctx.author,
-                      reason, "kicks",
-                      target.name)
-
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
         dm_message = f"You were kicked from {ctx.guild.name}."
@@ -299,9 +322,6 @@ class Mod(commands.Cog):
         elif await member_at_least_has_staff_role(ctx, target):
             return await ctx.send("I can't ban this user as "
                                   "they're a staff member.")
-
-        await userlog(self.bot, ctx.guild, target.id, ctx.author,
-                      reason, "bans", target.name)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
@@ -448,8 +468,6 @@ class Mod(commands.Cog):
             return await ctx.send("I can't ban this user as "
                                   "they're a staff member.")
 
-        await userlog(self.bot, ctx.guild, target.id, ctx.author,
-                      reason, "bans", target.name)
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
         await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, reason)}",
@@ -520,8 +538,6 @@ class Mod(commands.Cog):
                                   "they're a staff member.")
         role = await self.get_mute_role(ctx)
 
-        await userlog(self.bot, ctx.guild, target.id, ctx.author,
-                      reason, "mutes", target.name)
         safe_name = await commands.clean_content().convert(ctx, str(target))
         dm_message = f"You were muted on {ctx.guild.name}!"
         opt_reason = "[Mute] "
@@ -630,8 +646,6 @@ class Mod(commands.Cog):
         elif target_member and await member_at_least_has_staff_role(self, target_member):
             return await ctx.send("I can't ban this user as "
                                   "they're a staff member.")
-        await userlog(self.bot, ctx.guild, user_id, ctx.author,
-                      reason, "bans", user.name)
 
         safe_name = await commands.clean_content().convert(ctx, str(user_id))
 
@@ -669,9 +683,6 @@ class Mod(commands.Cog):
         elif await member_at_least_has_staff_role(self, target):
             return await ctx.send("I can't kick this user as "
                                   "they're a staff member.")
-
-        await userlog(self.bot, ctx.guild, target.id, ctx.author,
-                      reason, "kicks", target.name)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
@@ -719,10 +730,6 @@ class Mod(commands.Cog):
         ext = {"guild_id": ctx.guild.id, "user_id": target.id}
         await timer.add_job("timeban", datetime.utcnow(),
                             expiry_datetime, ext)
-        await userlog(self.bot, ctx.guild, target.id, ctx.author,
-                      f"{reason} (Timed, until "
-                      f"{duration_text})",
-                      "bans", target.name)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
@@ -793,10 +800,6 @@ class Mod(commands.Cog):
                "role_id": role.id}
         await timer.add_job("timed_restriction", datetime.utcnow(),
                             expiry_datetime, ext)
-        await userlog(self.bot, ctx.guild, target.id, ctx.author,
-                      f"{reason} (Timed, until "
-                      f"{duration_text})",
-                      "mutes", target.name)
         safe_name = await commands.clean_content().convert(ctx, str(target))
         dm_message = f"You were muted on {ctx.guild.name}!"
         if reason:
@@ -832,24 +835,6 @@ class Mod(commands.Cog):
         await ctx.send(f"{target.mention} can no longer speak. "
                        f"It will expire {duration_text}.")
         await self.log_send(ctx, chan_message)
-
-    @commands.guild_only()
-    @has_staff_role("Helper")
-    @commands.command(aliases=["addnote"])
-    async def note(self, ctx, target: discord.Member, *, note: str = ""):
-        """Adds a note to a user, staff only."""
-        await userlog(self.bot, ctx.guild, target.id, ctx.author, note,
-                      "notes", target.name)
-        await ctx.send(f"Noted {target}!")
-
-    @commands.guild_only()
-    @has_staff_role("Helper")
-    @commands.command(aliases=["addnoteid"])
-    async def noteid(self, ctx, target: int, *, note: str = ""):
-        """Adds a note to a user by userid, staff only."""
-        await userlog(self.bot, ctx.guild, target, ctx.author, note,
-                      "notes")
-        await ctx.send(f"ID {target} was noted!")
 
     @commands.guild_only()
     @commands.bot_has_permissions(manage_channels=True)
@@ -985,6 +970,190 @@ class Mod(commands.Cog):
                                            role.id)
         await user.remove_roles(role, reason="PowersCron: "
                                 "Timed Restriction Expired.")
+
+# Most commands here taken from robocop-ngs mod.py
+# https://github.com/aveao/robocop-ng/blob/master/cogs/mod_user.py
+# robocop-ng is MIT licensed
+
+    async def get_userlog_embed_for_id(self, ctx, uid: str, name: str, guild,
+                                       own: bool = False, event=""):
+        own_note = " Good for you!" if own else ""
+        wanted_events = ["warns", "bans", "kicks", "mutes"]
+        if event:
+            wanted_events = [event]
+        userlog = await get_userlog(self.bot, guild)
+
+        if uid not in userlog:
+            embed = discord.Embed(title=f"Warns for {name}")
+            embed.description = f"There are none!{own_note} (no entry)"
+            embed.color = discord.Color.green()
+            return await ctx.send(embed=embed)
+        entries = []
+        for event_type in wanted_events:
+            if event_type in userlog[uid] and userlog[uid][event_type]:
+                event_name = userlog_event_types[event_type]
+                for idx, event in enumerate(userlog[uid][event_type]):
+                    issuer = "" if own else f"Issuer: {event['issuer_name']} " \
+                                            f"({event['issuer_id']})\n"
+                    entries.append((f"{event_name} {idx + 1}: "
+                                    f"{event['timestamp']}",
+                                    issuer + f"Reason: {event['reason']}"))
+        if len(entries) == 0:
+            embed = discord.Embed(title=f"Warns for {name}")
+            embed.description = f"There are none!{own_note}"
+            embed.color = 0x2ecc71
+            return await ctx.send(embed=embed)
+        embed = WarnPages(f"Warns for {name}", ctx, entries=entries, per_page=5)
+        embed.embed.color = 0x992d22
+        return await embed.paginate()
+
+    async def clear_event_from_id(self, uid: str, event_type, guild):
+        userlog = await get_userlog(self.bot, guild)
+        if uid not in userlog:
+            return f"<@{uid}> has no {event_type}!"
+        event_count = len(userlog[uid][event_type])
+        if not event_count:
+            return f"<@{uid}> has no {event_type}!"
+        userlog[uid][event_type] = []
+        await set_userlog(self.bot, guild, userlog)
+        return f"<@{uid}> no longer has any {event_type}!"
+
+    async def delete_event_from_id(self, uid: str, idx: int, event_type, guild):
+        userlog = await get_userlog(self.bot, guild)
+        if uid not in userlog:
+            return f"<@{uid}> has no {event_type}!"
+        event_count = len(userlog[uid][event_type])
+        if not event_count:
+            return f"<@{uid}> has no {event_type}!"
+        if idx > event_count:
+            return "Index is higher than " \
+                   f"count ({event_count})!"
+        if idx < 1:
+            return "Index is below 1!"
+        event = userlog[uid][event_type][idx - 1]
+        event_name = userlog_event_types[event_type]
+        embed = discord.Embed(color=discord.Color.dark_red(),
+                              title=f"{event_name} {idx} on "
+                                    f"{event['timestamp']}",
+                              description=f"Issuer: {event['issuer_name']}\n"
+                                          f"Reason: {event['reason']}")
+        del userlog[uid][event_type][idx - 1]
+        await set_userlog(self.bot, guild, userlog)
+        return embed
+
+    @commands.guild_only()
+    @is_staff_or_has_perms("Helper", manage_messages=True)
+    @commands.command(name="listwarns")
+    async def userlog_cmd(self, ctx, target: discord.Member):
+        """Lists warns for a user.
+
+        In order to use this command, You must either have
+        Manage Messages permission or a role that
+        is assigned as a Helper or above in the bot."""
+        await self.get_userlog_embed_for_id(ctx, str(target.id), str(target),
+                                            event="warns", guild=ctx.guild)
+
+    @commands.guild_only()
+    @commands.command()
+    async def mywarns(self, ctx):
+        """Lists your warns."""
+        await self.get_userlog_embed_for_id(ctx, str(ctx.author.id),
+                                            str(ctx.author),
+                                            own=True,
+                                            event="warns",
+                                            guild=ctx.guild)
+
+    @commands.guild_only()
+    @is_staff_or_has_perms("Helper", manage_messages=True)
+    @commands.command(aliases=["listwarnsid"])
+    async def userlogid(self, ctx, target: int):
+        """Lists all the warns for a user by ID.
+
+        In order to use this command, You must either have
+        Manage Messages permission or a role that
+        is assigned as a Helper or above in the bot."""
+        await self.get_userlog_embed_for_id(ctx, str(target), str(target),
+                                            event="warns", guild=ctx.guild)
+
+    @commands.guild_only()
+    @is_staff_or_has_perms("Admin", administrator=True)
+    @commands.command()
+    async def clearwarns(self, ctx, target: discord.Member):
+        """Clears all warns for a user.
+
+        In order to use this command, You must either have
+        Administrator permission or a role that
+        is assigned as an Admin or above in the bot."""
+        msg = await self.clear_event_from_id(str(target.id), "warns", guild=ctx.guild)
+        await ctx.send(msg)
+        safe_name = await commands.clean_content().convert(ctx, str(target))
+        msg = f"🗑 **Cleared warns**: {ctx.author.mention} cleared" \
+              f" all warns of {target.mention} | " \
+              f"{safe_name}"
+        await self.log_send(ctx, msg)
+
+    @commands.guild_only()
+    @is_staff_or_has_perms("Admin", administrator=True)
+    @commands.command()
+    async def clearwarnsid(self, ctx, target: int):
+        """Clears all warns for a userid.
+
+        In order to use this command, You must either have
+        Administrator permission or a role that
+        is assigned as an Admin or above in the bot."""
+        msg = await self.clear_event_from_id(str(target), "warns", guild=ctx.guild)
+        await ctx.send(msg)
+        msg = f"🗑 **Cleared warns**: {ctx.author.mention} cleared" \
+              f" all warns of <@{target}> "
+        await self.log_send(ctx, msg)
+
+    @commands.guild_only()
+    @is_staff_or_has_perms("Admin", administrator=True)
+    @commands.command(aliases=["deletewarn"])
+    async def delwarn(self, ctx, target: discord.Member, idx: int):
+        """Removes a specific warn from a user.
+
+        In order to use this command, You must either have
+        Administrator permission or a role that
+        is assigned as an Admin or above in the bot."""
+        del_event = await self.delete_event_from_id(str(target.id),
+                                                    idx, "warns",
+                                                    guild=ctx.guild)
+        event_name = "warn"
+        # This is hell.
+        if isinstance(del_event, discord.Embed):
+            await ctx.send(f"{target.mention} has a {event_name} removed!")
+            safe_name = await commands.clean_content().convert(ctx, str(target))
+            msg = f"🗑 **Deleted {event_name}**: " \
+                  f"{ctx.author.mention} removed " \
+                  f"{event_name} {idx} from {target.mention} | " \
+                  f"{safe_name}"
+            await self.log_send(ctx, msg, embed=del_event)
+        else:
+            await ctx.send(del_event)
+
+    @commands.guild_only()
+    @is_staff_or_has_perms("Admin", administrator=True)
+    @commands.command(aliases=["deletewarnid"])
+    async def delwarnid(self, ctx, target: int, idx: int):
+        """Removes a specific warn from a userid.
+
+        In order to use this command, You must either have
+        Administrator permission or a role that
+        is assigned as an Admin or above in the bot."""
+        del_event = await self.delete_event_from_id(str(target),
+                                                    idx, "warns",
+                                                    guild=ctx.guild)
+        event_name = "warn"
+        # This is hell.
+        if isinstance(del_event, discord.Embed):
+            await ctx.send(f"<@{target}> has a {event_name} removed!")
+            msg = f"🗑 **Deleted {event_name}**: " \
+                  f"{ctx.author.mention} removed " \
+                  f"{event_name} {idx} from <@{target}> "
+            await self.log_send(ctx, msg, embed=del_event)
+        else:
+            await ctx.send(del_event)
 
 
 def setup(bot):
