@@ -198,7 +198,6 @@ class LightningBot(commands.Bot):
                 await webhook.execute(embed=embed)
 
     async def process_command_usage(self, message):
-        await self.auto_blacklist_check(message)
         bl = self.get_cog('Owner')
         if not bl:
             self.log.error("Owner Cog Is Not Loaded.")
@@ -209,6 +208,9 @@ class LightningBot(commands.Bot):
                 if str(message.guild.id) in bl.grab_blacklist_guild():
                     return
         ctx = await self.get_context(message, cls=LightningContext)
+        if ctx.command is None:
+            return
+        await self.auto_blacklist_check(message)
         await self.invoke(ctx)
 
     async def on_message(self, message):
