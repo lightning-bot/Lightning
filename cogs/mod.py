@@ -1065,8 +1065,8 @@ class Mod(commands.Cog):
 
     @commands.guild_only()
     @is_staff_or_has_perms("Helper", manage_messages=True)
-    @commands.command(aliases=["listwarnsid"])
-    async def userlogid(self, ctx, target: int):
+    @commands.command()
+    async def listwarnsid(self, ctx, target: int):
         """Lists all the warns for a user by ID.
 
         In order to use this command, You must either have
