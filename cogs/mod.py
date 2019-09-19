@@ -34,6 +34,7 @@ import json
 from utils.time import natural_timedelta
 import io
 from utils.paginator import Pages
+from utils.converters import TargetMember, BadTarget
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
@@ -93,8 +94,8 @@ class Mod(commands.Cog):
             await ctx.safe_send(error)
         elif isinstance(error, NoMuteRole):
             return await ctx.safe_send(error)
-        # elif isinstance(error, commands.CommandError):
-        #    await ctx.send(safe_error)
+        elif isinstance(error, BadTarget):
+            return await ctx.safe_send(error)
 
     def mod_reason(self, ctx, reason: str):
         if reason:
@@ -261,20 +262,12 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(kick_members=True)
     @is_staff_or_has_perms("Moderator", kick_members=True)
     @commands.command()
-    async def kick(self, ctx, target: discord.Member, *, reason: str = ""):
+    async def kick(self, ctx, target: TargetMember, *, reason: str = ""):
         """Kicks a user.
 
         In order to use this command, you must either have
         Kick Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        # Hedge-proofing the code
-        if target == self.bot.user:
-            return await ctx.send("You can't do mod actions on me.")
-        elif target == ctx.author:
-            return await ctx.send("You can't do mod actions on yourself.")
-        elif await member_at_least_has_staff_role(ctx, target):
-            return await ctx.send("I can't kick this user as "
-                                  "they're a staff member.")
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
@@ -308,20 +301,12 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(ban_members=True)
     @is_staff_or_has_perms("Moderator", ban_members=True)
     @commands.command()
-    async def ban(self, ctx, target: discord.Member, *, reason: str = ""):
+    async def ban(self, ctx, target: TargetMember, *, reason: str = ""):
         """Bans a user.
 
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        # Hedge-proofing the code
-        if target == self.bot.user:
-            return await ctx.send("You can't do mod actions on me.")
-        elif target == ctx.author:
-            return await ctx.send("You can't do mod actions on yourself.")
-        elif await member_at_least_has_staff_role(ctx, target):
-            return await ctx.send("I can't ban this user as "
-                                  "they're a staff member.")
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
@@ -356,19 +341,11 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(kick_members=True, ban_members=True)
     @has_staff_role("Helper")
     @commands.command()
-    async def warn(self, ctx, target: discord.Member, *, reason: str = ""):
+    async def warn(self, ctx, target: TargetMember, *, reason: str = ""):
         """Warns a user.
 
         In order to use this command, you must have a role
         that is assigned as a Helper or above in the bot."""
-        # Hedge-proofing the code
-        if target == self.bot.user:
-            return await ctx.send("You can't do mod actions on me.")
-        elif target == ctx.author:
-            return await ctx.send("You can't do mod actions on yourself.")
-        elif await member_at_least_has_staff_role(ctx, target):
-            return await ctx.send("I can't warn this user as "
-                                  "they're a staff member.")
 
         warn_count = await userlog(self.bot, ctx.guild, target.id,
                                    ctx.author, reason,
@@ -522,20 +499,12 @@ class Mod(commands.Cog):
     @commands.command(aliases=['muteuser'])
     @commands.bot_has_permissions(manage_roles=True)
     @is_staff_or_has_perms("Moderator", manage_roles=True)
-    async def mute(self, ctx, target: discord.Member, *, reason: str = ""):
+    async def mute(self, ctx, target: TargetMember, *, reason: str = ""):
         """Mutes a user.
 
         In order to use this command, you must either have
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
-        # Hedge-proofing the code
-        if target == self.bot.user:  # Idiots
-            return await ctx.send("You can't do mod actions on me.")
-        elif target == ctx.author.id:
-            return await ctx.send("You can't do mod actions on yourself.")
-        elif await member_at_least_has_staff_role(ctx, target):
-            return await ctx.send("I can't mute this user as "
-                                  "they're a staff member.")
         role = await self.get_mute_role(ctx)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
@@ -669,20 +638,12 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(kick_members=True)
     @is_staff_or_has_perms("Moderator", kick_members=True)
     @commands.command()
-    async def silentkick(self, ctx, target: discord.Member, *, reason: str = ""):
+    async def silentkick(self, ctx, target: TargetMember, *, reason: str = ""):
         """Silently kicks a user. Does not DM a message to the target user.
 
         In order to use this command, you must either have
         Kick Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        # Hedge-proofing the code
-        if target == self.bot.user:  # Idiots
-            return await ctx.send("You can't do mod actions on me.")
-        elif target == ctx.author:
-            return await ctx.send("You can't do mod actions on yourself.")
-        elif await member_at_least_has_staff_role(self, target):
-            return await ctx.send("I can't kick this user as "
-                                  "they're a staff member.")
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
@@ -702,21 +663,13 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(ban_members=True)
     @is_staff_or_has_perms("Moderator", ban_members=True)
     @commands.command(aliases=['tempban'])
-    async def timeban(self, ctx, target: discord.Member,
+    async def timeban(self, ctx, target: TargetMember,
                       duration: str, *, reason: str = ""):
         """Bans a user for a specified amount of time.
 
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        # Hedge-proofing the code
-        if target == self.bot.user:
-            return await ctx.send("You can't do mod actions on me.")
-        elif target == ctx.author:
-            return await ctx.send("You can't do mod actions on yourself.")
-        elif await member_at_least_has_staff_role(ctx, target):
-            return await ctx.send("I can't ban this user as "
-                                  "they're a staff member.")
         expiry_timestamp = self.bot.parse_time(duration)
         expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
         duration_text = self.bot.get_utc_timestamp(time_to=expiry_datetime,
@@ -770,21 +723,13 @@ class Mod(commands.Cog):
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     @is_staff_or_has_perms("Moderator", manage_roles=True)
-    async def timemute(self, ctx, target: discord.Member,
+    async def timemute(self, ctx, target: TargetMember,
                        duration: str, *, reason: str = ""):
         """Mutes a user for a specified amount of time.
 
         In order to use this command, you must either have
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
-        # Hedge-proofing the code
-        if target == self.bot.user:
-            return await ctx.send("You can't do mod actions on me.")
-        elif target == ctx.author.id:
-            return await ctx.send("You can't do mod actions on yourself.")
-        elif await member_at_least_has_staff_role(ctx, target):
-            return await ctx.send("I can't mute this user as "
-                                  "they're a staff member.")
         role = await self.get_mute_role(ctx)
         expiry_timestamp = self.bot.parse_time(duration)
         expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)

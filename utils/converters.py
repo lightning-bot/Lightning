@@ -25,6 +25,24 @@
 
 from discord.ext import commands
 import discord
+from utils.checks import member_at_least_has_staff_role
+
+
+class BadTarget(commands.UserInputError):
+    pass
+
+
+class TargetMember(commands.Converter):
+    async def convert(self, ctx, argument):
+        target = await commands.MemberConverter().convert(ctx, argument)
+        if target == ctx.bot.user:
+            raise BadTarget("You can't do mod actions on me.")
+        elif target == ctx.author:
+            raise BadTarget("You can't do mod actions on yourself.")
+        elif await member_at_least_has_staff_role(ctx, target):
+            raise BadTarget("You can't do mod actions on other staff!")
+        else:
+            return target
 
 
 class SafeSend(commands.Converter):
