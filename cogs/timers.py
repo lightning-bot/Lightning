@@ -88,7 +88,7 @@ class Reminders(commands.Cog):
                 ext = json.loads(job['extra'])
                 timed_txt = utils.time.natural_timedelta(job['expiry'], suffix=True)
                 embed.add_field(name=f"{job['id']}: In {timed_txt}",
-                                value=f"{ext['reminder_text']}")
+                                value=f"{ext['reminder_text']}", inline=False)
         except Exception:
             self.bot.log.error(traceback.format_exc())
             log_channel = self.bot.get_channel(config.powerscron_errors)
