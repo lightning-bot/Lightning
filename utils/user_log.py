@@ -79,7 +79,7 @@ async def userlog(bot, guild, uid, issuer, reason, event_type, uname: str = ""):
     log_data = {"issuer_id": issuer.id,
                 "issuer_name": f"{issuer}",
                 "reason": reason,
-                "timestamp": timestamp}
+                "timestamp": f"{timestamp} UTC"}
     if event_type not in userlogs[uid]:
         userlogs[uid][event_type] = []
     userlogs[uid][event_type].append(log_data)
