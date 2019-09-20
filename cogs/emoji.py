@@ -153,7 +153,7 @@ class Emoji(commands.Cog):
         except discord.HTTPException as e:
             return await self.bot.create_error_ticket(ctx, "Error", e)
 
-        await ctx.send(f"Renamed {emote_to_rename} to {name}")
+        await ctx.safe_send(f"Renamed {emote_to_rename} to {name}")
 
     @commands.guild_only()
     @commands.bot_has_permissions(add_reactions=True)
