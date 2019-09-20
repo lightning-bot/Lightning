@@ -23,7 +23,6 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import aiohttp
 import discord
 import colorsys
 import random
@@ -34,13 +33,12 @@ class Weeb(commands.Cog):
     """Weeb Features"""
     def __init__(self, bot):
         self.bot = bot
-        self.session = aiohttp.ClientSession()
 
-    @commands.command(name='headpat')
+    @commands.command()
     @commands.bot_has_permissions(embed_links=True)
     async def headpat(self, ctx):
         """Random headpat gifs"""
-        async with self.session.get("https://nekos.life/api/pat") as resp:
+        async with self.bot.aiosession.get("https://nekos.life/api/pat") as resp:
             headpat = await resp.json()
         url = headpat["url"]
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
@@ -53,7 +51,7 @@ class Weeb(commands.Cog):
     @commands.bot_has_permissions(embed_links=True)
     async def slap(self, ctx, person):
         """Slap yourself or someone."""
-        async with self.session.get("https://nekos.life/api/v2/img/slap") as resp:
+        async with self.bot.aiosession.get("https://nekos.life/api/v2/img/slap") as resp:
             slap = await resp.json()
         url = slap["url"]
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
