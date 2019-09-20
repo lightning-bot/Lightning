@@ -133,6 +133,28 @@ class Emoji(commands.Cog):
         await emote.delete(reason=f"Emoji Removed by {ctx.author} (ID: {ctx.author.id})")
         await ctx.send("Emote is now deleted.")
 
+    @emoji.command()
+    @commands.guild_only()
+    @commands.bot_has_permissions(manage_emojis=True)
+    @is_staff_or_has_perms("Helper", manage_emojis=True)
+    async def rename(self, ctx, name: str, emote_to_rename: discord.Emoji):
+        """Renames an emoji from the guild
+
+        In order to use this command, you must either have
+        Manage Emojis permission or a role that
+        is assigned as a Moderator or above in the bot."""
+        if ctx.guild.id != emote_to_rename.guild_id:
+            return await ctx.send("This emoji does not belong to this guild!")
+
+        try:
+            await emote_to_rename.edit(name=name,
+                                       reason=f"Emoji Renamed by {ctx.author} "
+                                              f"(ID: {ctx.author.id})")
+        except discord.HTTPException as e:
+            return await self.bot.create_error_ticket(ctx, "Error", e)
+
+        await ctx.send(f"Renamed {emote_to_rename} to {name}")
+
     @commands.guild_only()
     @commands.bot_has_permissions(add_reactions=True)
     @emoji.command(name='list', aliases=['all'])
