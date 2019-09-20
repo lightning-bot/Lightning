@@ -73,7 +73,7 @@ class Common(Cog):
                 """
         async with self.bot.db.acquire() as con:
             await con.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
-        msg = f"Created a bug ticket with ID {id[0]}. "\
+        msg = f"Created a ticket with ID {id[0]}. "\
               "You can see updates on your ticket by joining "\
               "the [support server](https://discord.gg/cDPGuYd) and looking in the "\
               f"reports channel."
