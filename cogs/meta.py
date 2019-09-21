@@ -276,7 +276,7 @@ class Meta(commands.Cog):
             embed.set_thumbnail(url=f'{member.avatar_url}')
             embed.add_field(name="Bot?", value=f"{member.bot}")
             var = member.created_at.strftime("%Y-%m-%d %H:%M")
-            vale = f"{var} UTC\n"\
+            vale = f"{var} UTC ({natural_timedelta(member.created_at, accuracy=3)})\n"\
                    f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.created_at, humanized=True)}"
             embed.add_field(name="Account Created On:", value=vale)
             embed.set_footer(text='This member is not in this server.')
@@ -286,11 +286,19 @@ class Meta(commands.Cog):
         embed.add_field(name="Bot?", value=f"{member.bot}")
         var = member.created_at.strftime("%Y-%m-%d %H:%M")
         var2 = member.joined_at.strftime("%Y-%m-%d %H:%M")
-        embed.add_field(name="Account Created On:", value=f"{var} UTC\n"
+        embed.add_field(name="Account Created On:", value=f"{var} UTC "
+                        f"({natural_timedelta(member.created_at, accuracy=3)})\n"
                         f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.created_at, humanized=True)}")
         embed.add_field(name='Status:', value=f"{member.status}")
-        embed.add_field(name="Activity:", value=f"{member.activity.name if member.activity else None}", inline=True)
-        embed.add_field(name="Joined:", value=f"{var2} UTC\n"
+        if member.activity:
+            if isinstance(member.activity, discord.Spotify):
+                spotifyact = f"Listening to [{member.activity.title}]"\
+                             f"(https://open.spotify.com/track/{member.activity.track_id})"
+                embed.add_field(name="Activity", value=spotifyact)
+            else:
+                embed.add_field(name="Activity", value=member.activity.name)
+        embed.add_field(name="Joined:", value=f"{var2} UTC "
+                        f"({natural_timedelta(member.joined_at, accuracy=3)})\n"
                         f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.joined_at, humanized=True)}")
         roles = [x.mention for x in member.roles]
         if f"<@&{ctx.guild.id}>" in roles:
