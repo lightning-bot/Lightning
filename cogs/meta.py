@@ -401,7 +401,7 @@ class Meta(commands.Cog):
     async def uptime(self, ctx):
         """Displays my uptime"""
         times = natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)
-        await ctx.send(f"My uptime is: {times} "
+        await ctx.send(f"I've been up for {times} "
                        "<:meowbox:563009533530734592>")
 
     @commands.guild_only()
@@ -415,7 +415,9 @@ class Meta(commands.Cog):
         if guild.icon:
             embed.set_thumbnail(url=guild.icon_url)
         tmp = guild.created_at.strftime("%Y-%m-%d %H:%M")
-        embed.add_field(name="Creation", value=f"{tmp} UTC")
+        embed.add_field(name="Creation", value=f"{tmp} UTC "
+                        f"({natural_timedelta(guild.created_at, accuracy=3)})\n"
+                        f"Relative Date: {self.bot.get_relative_timestamp(time_to=guild.created_at, humanized=True)}")
         member_by_status = Counter(str(m.status) for m in guild.members)
         # Little snippet taken from R. Danny. Under the MIT License
         sta = f'<:online:572962188114001921> {member_by_status["online"]} ' \
