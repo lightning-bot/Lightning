@@ -293,8 +293,10 @@ class Meta(commands.Cog):
         embed.add_field(name='Status:', value=f"{member.status}")
         if member.activity:
             if isinstance(member.activity, discord.Spotify):
+                artists = ', '.join(member.activity.artists)
                 spotifyact = f"Listening to [{member.activity.title}]"\
-                             f"(https://open.spotify.com/track/{member.activity.track_id})"
+                             f"(https://open.spotify.com/track/{member.activity.track_id})"\
+                             f" by {artists}"
                 embed.add_field(name="Activity", value=spotifyact)
             elif isinstance(member.activity, discord.Streaming):
                 embed.add_field(name="Activity", value=f"Streaming [{member.activity.name}]"
