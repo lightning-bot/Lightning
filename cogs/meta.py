@@ -283,7 +283,8 @@ class Meta(commands.Cog):
             return await ctx.send(embed=embed)
         embed = discord.Embed(title=f'User Info. for {member}', color=member.colour)
         embed.set_thumbnail(url=f'{member.avatar_url}')
-        embed.add_field(name="Bot?", value=f"{member.bot}")
+        if member.bot:
+            embed.description = "This user is a bot."
         var = member.created_at.strftime("%Y-%m-%d %H:%M")
         var2 = member.joined_at.strftime("%Y-%m-%d %H:%M")
         embed.add_field(name="Account Created On:", value=f"{var} UTC "
