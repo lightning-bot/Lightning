@@ -295,6 +295,9 @@ class Meta(commands.Cog):
                 spotifyact = f"Listening to [{member.activity.title}]"\
                              f"(https://open.spotify.com/track/{member.activity.track_id})"
                 embed.add_field(name="Activity", value=spotifyact)
+            elif isinstance(member.activity, discord.Streaming):
+                embed.add_field(name="Activity", value=f"Streaming [{member.activity.name}]"
+                                                       f"({member.activity.url})")
             else:
                 embed.add_field(name="Activity", value=member.activity.name)
         embed.add_field(name="Joined:", value=f"{var2} UTC "
