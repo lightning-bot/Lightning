@@ -427,7 +427,16 @@ class Meta(commands.Cog):
               f'Total: {guild.member_count}'
 
         embed.add_field(name="Members", value=sta)
-        embed.add_field(name="Emoji Count", value=f"{len(guild.emojis)}")
+        static = 0
+        animated = 0
+        for x, y in enumerate(guild.emojis):
+            if y.animated:
+                animated += 1
+            else:
+                static += 1
+        emojicalc = f"Static Emotes: {static}\nAnimated Emotes: {animated}"\
+                    f"\nTotal: {len(guild.emojis)}"
+        embed.add_field(name="Emoji Count", value=emojicalc)
         embed.add_field(name="Verification Level", value=guild.verification_level)
         boosts = f"Tier: {guild.premium_tier}\n"\
                  f"Users Boosted Count: {guild.premium_subscription_count}"
