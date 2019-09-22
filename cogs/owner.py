@@ -242,11 +242,8 @@ class Owner(commands.Cog):
 
             self.previous_eval_code = code
 
-            sliced_message = await self.bot.slice_message(repr(result),
-                                                          prefix="```",
-                                                          suffix="```")
-            for msg in sliced_message:
-                await ctx.send(msg)
+            pages = TextPages(ctx, f"{repr(result)}")
+            await pages.paginate()
         except Exception:
             sliced_message = \
                 await self.bot.slice_message(traceback.format_exc(),
@@ -349,35 +346,27 @@ class Owner(commands.Cog):
     @commands.is_owner()
     @pip.command(name='dpy', aliases=['discordpy'])
     async def updatedpy(self, ctx):
-        """Updates discord.py. Use .pip chkupdate to see if there are updates to any packages."""
+        """Updates discord.py. Use .pip chkupdate
+        to see if there are updates to any packages."""
         sh_out = await self.bot.call_shell("pip3 install --upgrade discord.py")
-        slice_msg = await self.bot.slice_message(sh_out,
-                                                 prefix="```",
-                                                 suffix="```")
-        for msg in slice_msg:
-            await ctx.send(msg)
+        pages = TextPages(ctx, f"{sh_out}")
+        await pages.paginate()
 
     @commands.is_owner()
     @pip.command()
     async def freeze(self, ctx):
         """Returns a list of pip packages installed"""
         sh_out = await self.bot.call_shell("pip3 freeze -l")
-        slice_msg = await self.bot.slice_message(sh_out,
-                                                 prefix="```",
-                                                 suffix="```")
-        for msg in slice_msg:
-            await ctx.send(msg)
+        pages = TextPages(ctx, f"{sh_out}")
+        await pages.paginate()
 
     @commands.is_owner()
     @pip.command()
     async def uninstall(self, ctx, package: str):
         """Uninstalls a package. (Use with care.)"""
         sh_out = await self.bot.call_shell(f"pip3 uninstall -y {package}")
-        slice_msg = await self.bot.slice_message(sh_out,
-                                                 prefix="```",
-                                                 suffix="```")
-        for msg in slice_msg:
-            await ctx.send(msg)
+        pages = TextPages(ctx, f"{sh_out}")
+        await pages.paginate()
 
     @commands.command(aliases=['status'])  # 'play'
     @commands.is_owner()
