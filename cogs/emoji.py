@@ -176,7 +176,7 @@ class Emoji(commands.Cog):
                 animated += 1
             else:
                 static += 1
-        emojicalc = f"**Static Emotes:** {static}\n**Animated Emotes:** {animated}"\
+        emojicalc = f"**Static Emojis:** {static}\n**Animated Emojis:** {animated}"\
                     f"\n**Total:** {len(ctx.guild.emojis)}\nThere are "\
                     f"**{ctx.guild.emoji_limit - static}** slots left for static emojis "\
                     f"and **{ctx.guild.emoji_limit - animated}** slots left for animated emojis."
