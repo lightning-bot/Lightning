@@ -274,11 +274,12 @@ class Meta(commands.Cog):
         if not isinstance(member, discord.Member):
             embed = discord.Embed(title=f'User Info. for {member}')  # , color=member.colour)
             embed.set_thumbnail(url=f'{member.avatar_url}')
-            embed.add_field(name="Bot?", value=f"{member.bot}")
+            if member.bot:
+                embed.description = "This user is a bot."
             var = member.created_at.strftime("%Y-%m-%d %H:%M")
             vale = f"{var} UTC ({natural_timedelta(member.created_at, accuracy=3)})\n"\
                    f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.created_at, humanized=True)}"
-            embed.add_field(name="Account Created On:", value=vale)
+            embed.add_field(name="Account Created On", value=vale)
             embed.set_footer(text='This member is not in this server.')
             return await ctx.send(embed=embed)
         embed = discord.Embed(title=f'User Info. for {member}', color=member.colour)
@@ -287,25 +288,27 @@ class Meta(commands.Cog):
             embed.description = "This user is a bot."
         var = member.created_at.strftime("%Y-%m-%d %H:%M")
         var2 = member.joined_at.strftime("%Y-%m-%d %H:%M")
-        embed.add_field(name="Account Created On:", value=f"{var} UTC "
+        embed.add_field(name="Account Created On", value=f"{var} UTC "
                         f"({natural_timedelta(member.created_at, accuracy=3)})\n"
-                        f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.created_at, humanized=True)}")
-        embed.add_field(name='Status:', value=f"{member.status}")
+                        f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.created_at, humanized=True)}",
+                        inline=False)
+        embed.add_field(name='Status', value=f"{member.status}", inline=True)
         if member.activity:
             if isinstance(member.activity, discord.Spotify):
                 artists = ', '.join(member.activity.artists)
                 spotifyact = f"Listening to [{member.activity.title}]"\
                              f"(https://open.spotify.com/track/{member.activity.track_id})"\
                              f" by {artists}"
-                embed.add_field(name="Activity", value=spotifyact)
+                embed.add_field(name="Activity", value=spotifyact, inline=False)
             elif isinstance(member.activity, discord.Streaming):
                 embed.add_field(name="Activity", value=f"Streaming [{member.activity.name}]"
-                                                       f"({member.activity.url})")
+                                                       f"({member.activity.url})", inline=False)
             else:
-                embed.add_field(name="Activity", value=member.activity.name)
-        embed.add_field(name="Joined:", value=f"{var2} UTC "
+                embed.add_field(name="Activity", value=member.activity.name, inline=False)
+        embed.add_field(name="Joined", value=f"{var2} UTC "
                         f"({natural_timedelta(member.joined_at, accuracy=3)})\n"
-                        f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.joined_at, humanized=True)}")
+                        f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.joined_at, humanized=True)}",
+                        inline=False)
         roles = [x.mention for x in member.roles]
         if f"<@&{ctx.guild.id}>" in roles:
             roles.remove(f"<@&{ctx.guild.id}>")
@@ -412,8 +415,8 @@ class Meta(commands.Cog):
         """Shows information about the server"""
         guild = ctx.guild  # Simplify
         embed = discord.Embed(title=f"Server Info for {guild.name}")
-        embed.add_field(name='Owner', value=guild.owner)
-        embed.add_field(name="ID", value=guild.id)
+        embed.add_field(name='Owner', value=f"{guild.owner.mention} ({guild.owner})")
+        embed.add_field(name="Server ID", value=guild.id)
         if guild.icon:
             embed.set_thumbnail(url=guild.icon_url)
         tmp = guild.created_at.strftime("%Y-%m-%d %H:%M")
