@@ -382,6 +382,7 @@ class Owner(commands.Cog):
         shutdown_messages = ['Shutting Down...', "See ya!", "RIP", "Turning off...."]
         await ctx.send(f"👋 {random.choice(shutdown_messages)}")
         await self.bot.db.close()
+        await self.bot.aiosession.close()
         await self.bot.close()
 
     @commands.command()
