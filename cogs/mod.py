@@ -896,6 +896,42 @@ class Mod(commands.Cog):
         log_message = f"🔓 **Hard Unlock** in {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
         await self.log_send(ctx, log_message)
 
+    @commands.guild_only()
+    @commands.bot_has_permissions(manage_messages=True)
+    @is_staff_or_has_perms("Moderator", manage_messages=True)
+    @commands.command()
+    async def pin(self, ctx, message_id: int, channel: discord.TextChannel = None):
+        """Pins a message by ID."""
+        if not channel:
+            channel = ctx.channel
+        try:
+            msg = await channel.fetch_message(message_id)
+        except discord.NotFound:
+            return await ctx.send("Message ID not found in this channel.")
+        try:
+            await msg.pin()
+        except discord.HTTPException as e:
+            return await self.bot.create_error_ticket(ctx, "Error", e)
+        await ctx.send("\N{OK HAND SIGN}")
+
+    @commands.guild_only()
+    @commands.bot_has_permissions(manage_messages=True)
+    @is_staff_or_has_perms("Moderator", manage_messages=True)
+    @commands.command()
+    async def unpin(self, ctx, message_id: int, channel: discord.TextChannel = None):
+        """Unpins a message by ID."""
+        if not channel:
+            channel = ctx.channel
+        try:
+            msg = await channel.fetch_message(message_id)
+        except discord.NotFound:
+            return await ctx.send("Message ID not found in this channel.")
+        try:
+            await msg.unpin()
+        except discord.HTTPException as e:
+            return await self.bot.create_error_ticket(ctx, "Error", e)
+        await ctx.send("\N{OK HAND SIGN}")
+
     @commands.Cog.listener()
     async def on_timeban_job_complete(self, jobinfo):
         ext = json.loads(jobinfo['extra'])
