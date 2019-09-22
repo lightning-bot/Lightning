@@ -165,7 +165,7 @@ class Emoji(commands.Cog):
             page.append(f'{emoji} -- `{emoji}`')
         await paginator_reg_nops(self.bot, ctx, size=1000, page_list=page)
 
-    @emoji.command()
+    @emoji.command(aliases=['stat', 'statistics'])
     @commands.guild_only()
     async def stats(self, ctx):
         """Gives stats on how much room is left for emotes"""
