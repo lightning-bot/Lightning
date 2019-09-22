@@ -178,7 +178,7 @@ class Emoji(commands.Cog):
                 static += 1
         emojicalc = f"**Static Emotes:** {static}\n**Animated Emotes:** {animated}"\
                     f"\n**Total:** {len(ctx.guild.emojis)}\nThere are "\
-                    f"**{ctx.guild.emoji_limit - static}** slots left for static emojis"\
+                    f"**{ctx.guild.emoji_limit - static}** slots left for static emojis "\
                     f"and **{ctx.guild.emoji_limit - animated}** slots left for animated emojis."
         await ctx.send(emojicalc)
 
