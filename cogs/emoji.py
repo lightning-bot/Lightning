@@ -166,6 +166,23 @@ class Emoji(commands.Cog):
         await paginator_reg_nops(self.bot, ctx, size=1000, page_list=page)
 
     @emoji.command()
+    @commands.guild_only()
+    async def stats(self, ctx):
+        """Gives stats on how much room is left for emotes"""
+        static = 0
+        animated = 0
+        for x, y in enumerate(ctx.guild.emojis):
+            if y.animated:
+                animated += 1
+            else:
+                static += 1
+        emojicalc = f"**Static Emotes:** {static}\n**Animated Emotes:** {animated}"\
+                    f"\n**Total:** {len(ctx.guild.emojis)}\nThere are "\
+                    f"**{ctx.guild.emoji_limit - static}** slots left for static emojis"\
+                    f"and **{ctx.guild.emoji_limit - animated}** slots left for animated emojis."
+        await ctx.send(emojicalc)
+
+    @emoji.command()
     async def info(self, ctx, emote: discord.PartialEmoji):
         """Gives some info on an emote. Unicode emoji are not supported!"""
         embed = discord.Embed(title=f"Emoji Info for {emote.name}", color=discord.Color(0xFFFF00))
