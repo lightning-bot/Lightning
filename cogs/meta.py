@@ -325,7 +325,16 @@ class Meta(commands.Cog):
                    FROM commands_usage;"""
         async with self.bot.db.acquire() as con:
             amount = await con.fetchrow(query)
-        all_members = sum(1 for _ in ctx.bot.get_all_members())
+        # Member Stats
+        membertotal = 0
+        membertotal_online = 0
+        for member in self.bot.get_all_members():
+            membertotal += 1
+            if member.status is not discord.Status.offline:
+                membertotal_online += 1
+        all_members = f"Total: {membertotal}\n"\
+                      f"Unique: {len(self.bot.users)}\n"\
+                      f"Unique Members Online: {membertotal_online}"
         embed = discord.Embed(title="Lightning", color=0xf74b06)
         bot_owner = self.bot.get_user(self.bot.owner_id)
         embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url)
