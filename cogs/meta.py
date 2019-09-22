@@ -342,7 +342,7 @@ class Meta(commands.Cog):
         embed.set_thumbnail(url=ctx.me.avatar_url)
         embed.description = f"Lightning.py, the successor to Lightning(.js)"
         embed.add_field(name="Servers", value=len(self.bot.guilds), inline=False)
-        embed.add_field(name="Members", value=all_members, inline=False)
+        embed.add_field(name="Members", value=all_members)
         async with self.bot.db.acquire() as con:
             postgresversion = await con.fetchval("SHOW server_version;")
         backend_msg = f"{emoji.python} **Python Version:** {platform.python_version()}\n"\
