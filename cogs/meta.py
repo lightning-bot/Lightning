@@ -268,7 +268,7 @@ class Meta(commands.Cog):
 
     @commands.command(aliases=['ui'])
     async def userinfo(self, ctx, *, member: Union[discord.Member, NonGuildUser] = None):
-        """Shows userinfo"""
+        """Gives info for a user."""
         if member is None:
             member = ctx.author
         if not isinstance(member, discord.Member):
