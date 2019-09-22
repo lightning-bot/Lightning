@@ -30,6 +30,7 @@ import discord
 import config
 import json
 import utils.time
+import textwrap
 
 STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
 
@@ -38,7 +39,8 @@ class Reminders(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(usage="<when>", aliases=["addreminder", "timer"])
+    @commands.group(usage="<when>", aliases=["timer", "reminder"],
+                    invoke_without_command=True)
     async def remind(self, ctx, *, when: utils.time.UserFriendlyTime(default='something')):
         """Reminds you of something after a certain date.
 
@@ -67,7 +69,7 @@ class Reminders(commands.Cog):
         await ctx.send(f"{ctx.author.mention}: I'll remind you in "
                        f"{duration_text} about {safe_description}.")
 
-    @commands.command(aliases=['listreminds', 'listtimers'])
+    @remind.command(name="list")
     async def listreminders(self, ctx):
         """Lists up to 10 of your reminders"""
         query = """SELECT id, expiry, extra
@@ -87,8 +89,10 @@ class Reminders(commands.Cog):
             for job in rem:
                 ext = json.loads(job['extra'])
                 timed_txt = utils.time.natural_timedelta(job['expiry'], suffix=True)
+                # Safe Value
+                reminder_text_s = textwrap.shorten(ext['reminder_text'], width=512)
                 embed.add_field(name=f"{job['id']}: In {timed_txt}",
-                                value=f"{ext['reminder_text']}", inline=False)
+                                value=reminder_text_s, inline=False)
         except Exception:
             self.bot.log.error(traceback.format_exc())
             log_channel = self.bot.get_channel(config.powerscron_errors)
@@ -98,7 +102,7 @@ class Reminders(commands.Cog):
                                 " Try again later"
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['deletetimer', 'removereminder'])
+    @remind.command(name="delete", aliases=['cancel', 'stop'])
     @commands.bot_has_permissions(add_reactions=True)
     async def deletereminder(self, ctx, *, reminder_id: int):
         """Deletes a reminder by ID.
