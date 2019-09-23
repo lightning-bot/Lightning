@@ -33,32 +33,32 @@ class Memes(commands.Cog):
         """Approved™ memes"""
         self.bot = bot
 
-    @commands.command()
-    async def listmemes(self, ctx):
-        """Lists meme commands"""
-        embed = discord.Embed(description="\n")
-        embed.description += ", ".join([x.name for x in self.get_commands() if x != self.listmemes])
-        await ctx.send(embed=embed)
+    @commands.group()
+    async def memes(self, ctx):
+        if ctx.invoked_subcommand is None:
+            memeslist = "Text: `knuckles` `neo-ban` `discordcopypaste` `peng`"\
+                        "\nImage: `astar` `hifumi1` `git` `bean` `tuturu` `yert`"
+            return await ctx.send(f"Available Memes: {memeslist}")
 
-    @commands.command(hidden=True)
+    @memes.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def astar(self, ctx):
         """Here's a star just for you."""
         await ctx.safe_send(f"{ctx.author.display_name}: https://i.imgur.com/vUrBPZr.png")
 
-    @commands.command(hidden=True, aliases=['inori'])
+    @memes.command(hidden=True, aliases=['inori'])
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def hifumi1(self, ctx):
         """Disappointment"""
         await ctx.safe_send(f"{ctx.author.display_name}: https://i.imgur.com/jTTHQLs.gifv")
 
-    @commands.command(hidden=True)
+    @memes.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
-    async def thisisgit(self, ctx):
+    async def git(self, ctx):
         """Git in a nutshell"""
         await ctx.safe_send(f"{ctx.author.display_name}: https://i.imgur.com/SyuscgW.png")
 
-    @commands.command(hidden=True)
+    @memes.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def knuckles(self, ctx):
         # It's just as bad
@@ -68,7 +68,7 @@ class Memes(commands.Cog):
         whenlifegetsatyou = ['?!?!?', '?!?!', '.', '!!!!', '!!', '!']
         await ctx.send(f"Do you know da wae {random.choice(re_list)}{random.choice(whenlifegetsatyou)}")
 
-    @commands.command(name="neo-ban", aliases=['neoban'], hidden=True)
+    @memes.command(name="neo-ban", aliases=['neoban'], hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def neoban(self, ctx, member: discord.Member = None):
         if member is None:
@@ -76,7 +76,7 @@ class Memes(commands.Cog):
 
         await ctx.send(f"{member.mention} is now neo-banned!")
 
-    @commands.command(aliases=['discordcopypasta'], hidden=True)
+    @memes.command(aliases=['discordcopypasta'], hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def discordcopypaste(self, ctx, member: discord.Member = None):
         """Generates a discord copypaste
@@ -100,22 +100,29 @@ class Memes(commands.Cog):
 
         await ctx.safe_send(org_msg)
 
-    @commands.command(hidden=True)
+    @memes.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
     async def bean(self, ctx):
         """:fastbean:"""
         await ctx.safe_send(f"{ctx.author.display_name}: https://i.imgur.com/t1RFSL7.jpg")
 
-    @commands.command(hidden=True)
+    @memes.command(hidden=True)
     async def peng(self, ctx):
         """Uhhh ping?"""
         await ctx.safe_send(f"My ping is uhhh `{random.randint(31,150)}ms`")
 
-    @commands.command(hidden=True)
+    @memes.command(hidden=True)
     async def tuturu(self, ctx):
         """tuturu!"""
         await ctx.safe_send(f'{ctx.author.display_name}: '
                             'https://cdn.discordapp.com/emojis/562686801043521575.png?v=1')
+
+    @memes.command(hidden=True)
+    @commands.has_permissions(add_reactions=True)
+    async def yert(self, ctx):
+        await ctx.message.add_reaction("<:yert:625515130838319125>")
+        await ctx.safe_send(f'{ctx.author.display_name}: '
+                            'https://i.imgur.com/lsXvvdb.png')
 
 
 def setup(bot):
