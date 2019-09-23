@@ -374,7 +374,7 @@ class Meta(commands.Cog):
         # f"discord.py {discord.__version__}")
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['invite'])
+    @commands.command(aliases=['invite', 'join'])
     async def botinvite(self, ctx):
         """Gives you a link to add Lightning to your server."""
         adperms = discord.Permissions.none()
