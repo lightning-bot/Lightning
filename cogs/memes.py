@@ -38,7 +38,7 @@ class Memes(commands.Cog):
         if ctx.invoked_subcommand is None:
             memeslist = "Text: `knuckles` `neo-ban` `discordcopypaste` `peng`"\
                         "\nImage: `astar` `hifumi1` `git` `bean` `tuturu` `yert`"
-            return await ctx.send(f"Available Memes: {memeslist}")
+            return await ctx.send(f"Available Memes:\n{memeslist}")
 
     @memes.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)
@@ -120,7 +120,7 @@ class Memes(commands.Cog):
     @memes.command(hidden=True)
     @commands.has_permissions(add_reactions=True)
     async def yert(self, ctx):
-        await ctx.message.add_reaction("<:yert:625515130838319125>")
+        await ctx.message.add_reaction("<:yert:625516722593726485>")
         await ctx.safe_send(f'{ctx.author.display_name}: '
                             'https://i.imgur.com/lsXvvdb.png')
 
