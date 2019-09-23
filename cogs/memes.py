@@ -33,10 +33,12 @@ class Memes(commands.Cog):
         """Approved™ memes"""
         self.bot = bot
 
-    @commands.group()
+    @commands.group(aliases=['meme'])
     async def memes(self, ctx):
+        """Gives a list of memes"""
         if ctx.invoked_subcommand is None:
             memeslist = "Text: `knuckles` `neo-ban` `discordcopypaste` `peng`"\
+                        " `ayy`"\
                         "\nImage: `astar` `hifumi1` `git` `bean` `tuturu` `yert`"
             return await ctx.send(f"Available Memes:\n{memeslist}")
 
@@ -123,6 +125,10 @@ class Memes(commands.Cog):
         await ctx.message.add_reaction("<:yert:623369666869461003>")
         await ctx.safe_send(f'{ctx.author.display_name}: '
                             'https://i.imgur.com/lsXvvdb.png')
+
+    @memes.command(hidden=True)
+    async def ayy(self, ctx):
+        await ctx.send("Lmao")
 
 
 def setup(bot):
