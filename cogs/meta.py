@@ -318,9 +318,22 @@ class Meta(commands.Cog):
         embed.set_footer(text=f'User ID: {member.id}')
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['info', 'credits'])
-    async def about(self, ctx):
-        """Various information about the bot."""
+    @commands.command(name="about")
+    async def about_bot(self, ctx):
+        """Gives basic information about the bot.
+
+        For more information about the bot, consider using the
+        info command"""
+        bot_owner = self.bot.get_user(self.bot.owner_id)
+        await ctx.send(f"Hi! I'm {str(self.bot.user)}. "
+                       "For information on how to invite me, use the "
+                       f"botinvite command. My owner is {str(bot_owner)}."
+                       " You can find them at the support server <https://discord.gg/cDPGuYd>.")
+
+    @commands.command(name='info')
+    async def more_about(self, ctx):
+        """Gives more information about the bot than the
+        standard about command."""
         query = """SELECT COUNT(*)
                    FROM commands_usage;"""
         async with self.bot.db.acquire() as con:
