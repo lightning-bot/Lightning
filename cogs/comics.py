@@ -27,7 +27,6 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Cog
 import datetime
-import aiohttp
 from bs4 import BeautifulSoup
 import random
 
@@ -36,7 +35,6 @@ class Comics(Cog):
     """Comics Cog"""
     def __init__(self, bot):
         self.bot = bot
-        self.session = aiohttp.ClientSession()
 
     @commands.command(aliases=['cgc'])
     @commands.bot_has_permissions(embed_links=True)
@@ -72,7 +70,7 @@ class Comics(Cog):
 
         Powered by GoComics"""
         url = "https://www.gocomics.com/random/garfield"
-        async with self.session.get(url) as response:
+        async with self.bot.aiosession.get(url) as response:
             soup = BeautifulSoup(await response.text(), "html.parser")
 
         img_url = soup.find(attrs={'class': 'item-comic-image'}).img['src']
@@ -88,7 +86,7 @@ class Comics(Cog):
 
         Powered by GoComics"""
         url = "https://www.gocomics.com/random/us-acres"
-        async with self.session.get(url) as response:
+        async with self.bot.aiosession.get(url) as response:
             soup = BeautifulSoup(await response.text(), "html.parser")
 
         img_url = soup.find(attrs={'class': 'item-comic-image'}).img['src']
@@ -104,7 +102,7 @@ class Comics(Cog):
 
         Powered by GoComics"""
         url = "https://www.gocomics.com/random/peanuts"
-        async with self.session.get(url) as response:
+        async with self.bot.aiosession.get(url) as response:
             soup = BeautifulSoup(await response.text(), "html.parser")
 
         img_url = soup.find(attrs={'class': 'item-comic-image'}).img['src']
@@ -120,7 +118,7 @@ class Comics(Cog):
 
         Powered by GoComics"""
         url = "https://www.gocomics.com/random/garfieldminusgarfield"
-        async with self.session.get(url) as response:
+        async with self.bot.aiosession.get(url) as response:
             soup = BeautifulSoup(await response.text(), "html.parser")
 
         img_url = soup.find(attrs={'class': 'item-comic-image'}).img['src']
@@ -136,7 +134,7 @@ class Comics(Cog):
 
         Powered by GoComics"""
         url = "https://www.gocomics.com/random/nonsequitur"
-        async with self.session.get(url) as response:
+        async with self.bot.aiosession.get(url) as response:
             soup = BeautifulSoup(await response.text(), "html.parser")
 
         img_url = soup.find(attrs={'class': 'item-comic-image'}).img['src']
