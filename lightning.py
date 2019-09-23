@@ -36,6 +36,7 @@ from datetime import datetime
 import config
 import db.per_guild_config
 import asyncpg
+from utils import errors
 
 # Uses logging template from ave's botbase.py
 # botbase.py is under the MIT License.
@@ -301,3 +302,5 @@ class LightningBot(commands.Bot):
                                   "run the command again.")
         elif isinstance(error, commands.CommandNotFound):
             return  # We don't need to say anything
+        elif isinstance(error, errors.LightningError):
+            return await ctx.send(error_text)

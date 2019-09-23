@@ -35,6 +35,7 @@ from utils.time import natural_timedelta
 import io
 from utils.paginator import Pages
 from utils.converters import TargetMember, BadTarget
+from utils.errors import TimersUnavailable
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
@@ -678,8 +679,7 @@ class Mod(commands.Cog):
         duration_text = f"in {timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
-            return await ctx.send("Sorry, the timer system "
-                                  "(PowersCron) is currently unavailable.")
+            raise TimersUnavailable
         ext = {"guild_id": ctx.guild.id, "user_id": target.id}
         await timer.add_job("timeban", datetime.utcnow(),
                             expiry_datetime, ext)
@@ -739,8 +739,7 @@ class Mod(commands.Cog):
         duration_text = f"in {timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
-            return await ctx.send("Sorry, the timer system "
-                                  "(PowersCron) is currently unavailable.")
+            raise TimersUnavailable
         ext = {"guild_id": ctx.guild.id, "user_id": target.id,
                "role_id": role.id}
         await timer.add_job("timed_restriction", datetime.utcnow(),
@@ -907,7 +906,7 @@ class Mod(commands.Cog):
         try:
             msg = await channel.fetch_message(message_id)
         except discord.NotFound:
-            return await ctx.send("Message ID not found in this channel.")
+            return await ctx.send("Message ID not found.")
         try:
             await msg.pin()
         except discord.HTTPException as e:
@@ -925,7 +924,7 @@ class Mod(commands.Cog):
         try:
             msg = await channel.fetch_message(message_id)
         except discord.NotFound:
-            return await ctx.send("Message ID not found in this channel.")
+            return await ctx.send("Message ID not found.")
         try:
             await msg.unpin()
         except discord.HTTPException as e:
