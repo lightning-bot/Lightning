@@ -120,7 +120,7 @@ class Memes(commands.Cog):
     @memes.command(hidden=True)
     @commands.has_permissions(add_reactions=True)
     async def yert(self, ctx):
-        await ctx.message.add_reaction("<:yert:625516722593726485>")
+        await ctx.message.add_reaction("<:yert:623369666869461003>")
         await ctx.safe_send(f'{ctx.author.display_name}: '
                             'https://i.imgur.com/lsXvvdb.png')
 
