@@ -34,7 +34,7 @@ import json
 from utils.time import natural_timedelta
 import io
 from utils.paginator import Pages
-from utils.converters import TargetMember, BadTarget
+from utils.converters import TargetMember
 from utils.errors import TimersUnavailable
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
@@ -94,8 +94,6 @@ class Mod(commands.Cog):
         if isinstance(error, ReasonTooLong):
             await ctx.safe_send(error)
         elif isinstance(error, NoMuteRole):
-            return await ctx.safe_send(error)
-        elif isinstance(error, BadTarget):
             return await ctx.safe_send(error)
 
     def mod_reason(self, ctx, reason: str):
