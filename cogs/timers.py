@@ -29,7 +29,7 @@ import traceback
 import discord
 import config
 import json
-import utils.time
+from utils import time
 import textwrap
 
 STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
@@ -41,7 +41,7 @@ class Reminders(commands.Cog):
 
     @commands.group(usage="<when>", aliases=["timer", "reminder"],
                     invoke_without_command=True)
-    async def remind(self, ctx, *, when: utils.time.UserFriendlyTime(default='something')):
+    async def remind(self, ctx, *, when: time.UserFriendlyTime(default='something')):
         """Reminds you of something after a certain date.
 
         The input can be any direct date (e.g. YYYY-MM-DD)
@@ -55,7 +55,7 @@ class Reminders(commands.Cog):
         Times are in UTC.
         """
         # Shoutouts to R.Danny for the UserFriendlyTime Code
-        duration_text = utils.time.natural_timedelta(when.dt, source=ctx.message.created_at)
+        duration_text = time.natural_timedelta(when.dt, source=ctx.message.created_at)
         safe_description = await commands.clean_content().convert(ctx, str(when.arg))
 
         timer = self.bot.get_cog('PowersCronManagement')
@@ -88,7 +88,7 @@ class Reminders(commands.Cog):
         try:
             for job in rem:
                 ext = json.loads(job['extra'])
-                timed_txt = utils.time.natural_timedelta(job['expiry'], suffix=True)
+                timed_txt = time.natural_timedelta(job['expiry'], suffix=True)
                 # Safe Value
                 reminder_text_s = textwrap.shorten(ext['reminder_text'], width=512)
                 embed.add_field(name=f"{job['id']}: In {timed_txt}",
@@ -136,9 +136,9 @@ class Reminders(commands.Cog):
         ext = json.loads(jobinfo['extra'])
         channel = self.bot.get_channel(ext['channel'])
         uid = await self.bot.fetch_user(ext['author'])
-        timed_txt = utils.time.natural_timedelta(jobinfo['created'],
-                                                 source=jobinfo['expiry'],
-                                                 suffix=True)
+        timed_txt = time.natural_timedelta(jobinfo['created'],
+                                           source=jobinfo['expiry'],
+                                           suffix=True)
         try:
             await channel.send(f"{uid.mention}: "
                                "You asked to be reminded "
