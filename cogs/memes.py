@@ -40,7 +40,7 @@ class Memes(commands.Cog):
         If no meme is given, it sends a list of memes"""
         if ctx.invoked_subcommand is None:
             memeslist = "Text: `knuckles` `neo-ban` `discordcopypaste` `peng`"\
-                        " `ayy` `lenny`"\
+                        " `ayy` `lenny` `lmao`"\
                         "\nImage: `astar` `hifumi1` `git` `bean` `tuturu` `yert`"
             return await ctx.send(f"Available Memes:\n{memeslist}")
 
@@ -135,6 +135,10 @@ class Memes(commands.Cog):
     @memes.command(hidden=True)
     async def lenny(self, ctx):
         await ctx.send("( ͡° ͜ʖ ͡°)")
+
+    @memes.command(hidden=True)
+    async def lmao(self, ctx):
+        await ctx.send("😂😂😂 Sorry, what were we laughing about again? 😂😂😂")
 
 
 def setup(bot):
