@@ -94,11 +94,7 @@ class Fun(commands.Cog):
         """Jpegify's an image"""
         async with ctx.typing():
             if url is None:
-                async for message in ctx.channel.history(limit=5):
-                    for attachment in message.attachments:
-                        if attachment.proxy_url:
-                            url = attachment.proxy_url
-                            break
+                raise NoImageProvided
             if url:
                 image_url = await self.bot.aiogetbytes(url)
                 image_buffer = await ctx.bot.loop.run_in_executor(None,
