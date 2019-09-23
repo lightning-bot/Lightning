@@ -429,20 +429,12 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(ban_members=True)
     @commands.command(aliases=['slientban'])  # For some reason, I can't spell
     @is_staff_or_has_perms("Moderator", ban_members=True)
-    async def silentban(self, ctx, target: discord.Member, *, reason: str = ""):
+    async def silentban(self, ctx, target: TargetMember, *, reason: str = ""):
         """Bans a user without sending the reason to the member.
 
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        # Hedge-proofing the code
-        if target == self.bot.user:  # Idiots
-            return await ctx.send("You can't do mod actions on me.")
-        elif target == ctx.author.id:
-            return await ctx.send("You can't do mod actions on yourself.")
-        elif await member_at_least_has_staff_role(ctx, target):
-            return await ctx.send("I can't ban this user as "
-                                  "they're a staff member.")
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
