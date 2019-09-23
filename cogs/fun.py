@@ -33,6 +33,7 @@ import math
 import config
 from datetime import datetime
 import textwrap
+from utils.errors import NoImageProvided
 
 
 class Fun(commands.Cog):
@@ -95,7 +96,9 @@ class Fun(commands.Cog):
             if url is None:
                 async for message in ctx.channel.history(limit=5):
                     for attachment in message.attachments:
-                        url = attachment.proxy_url
+                        if attachment.proxy_url:
+                            url = attachment.proxy_url
+                            break
             if url:
                 image_url = await self.bot.aiogetbytes(url)
                 image_buffer = await ctx.bot.loop.run_in_executor(None,
@@ -103,7 +106,7 @@ class Fun(commands.Cog):
                                                                   image_url)
                 await ctx.send(file=discord.File(image_buffer, filename="jpegify.jpeg"))
             else:
-                return await ctx.send(f"Please provide an image!")
+                raise NoImageProvided
 
     @commands.command(name="8ball")
     @commands.cooldown(rate=1, per=4.0, type=commands.BucketType.channel)
@@ -115,7 +118,7 @@ class Fun(commands.Cog):
     @commands.command(aliases=['roll'])
     async def die(self, ctx, *, number: int):
         """Rolls a 1 to the specified number sided die"""
-        if number == 0:
+        if number <= 0:
             return await ctx.send("You can't roll that!")
         number_ran = random.randint(1, number)
         await ctx.send(f"🎲 You rolled a `{number}` sided die. | The die rolled on `{number_ran}`")
@@ -175,7 +178,7 @@ class Fun(commands.Cog):
     @cat.command()
     async def randomcat(self, ctx):
         """Random Cat Pics from random.cat"""
-        async with self.session.get('http://aws.random.cat/meow') as resp:
+        async with self.bot.aiosession.get('http://aws.random.cat/meow') as resp:
             if resp.status == 200:
                 data = await resp.json()
             else:
@@ -207,7 +210,7 @@ class Fun(commands.Cog):
     @commands.command()
     async def dog(self, ctx):
         """Random dog pics from dog.ceo"""
-        async with self.session.get('https://dog.ceo/api/breeds/image/random') as resp:
+        async with self.bot.aiosession.get('https://dog.ceo/api/breeds/image/random') as resp:
             if resp.status == 200:
                 data = await resp.json()
             else:

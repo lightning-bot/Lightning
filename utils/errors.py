@@ -41,3 +41,8 @@ class TimersUnavailable(LightningError):
 
 class BadTarget(LightningError):
     pass
+
+
+class NoImageProvided(LightningError):
+    def __init__(self):
+        super().__init__("Please provide an image.")
