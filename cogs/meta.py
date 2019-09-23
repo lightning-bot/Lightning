@@ -328,7 +328,7 @@ class Meta(commands.Cog):
         await ctx.send(f"Hi! I'm {str(self.bot.user)}. "
                        "For information on how to invite me, use the "
                        f"botinvite command. My owner is {str(bot_owner)}."
-                       " You can find them at the support server <https://discord.gg/cDPGuYd>.")
+                       " You can find them here: <https://discord.gg/cDPGuYd>.")
 
     @commands.command(name='info')
     async def more_about(self, ctx):
