@@ -96,7 +96,6 @@ initial_extensions = ['cogs.comics',
                       'cogs.toggle_roles',
                       'cogs.utility',
                       'cogs.weeb',
-                      'jishaku',
                       'stabilite.stabilite']
 
 # Create config folder if not found
