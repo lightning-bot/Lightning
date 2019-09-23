@@ -332,8 +332,7 @@ class Meta(commands.Cog):
 
     @commands.command(name='info')
     async def more_about(self, ctx):
-        """Gives more information about the bot than the
-        standard about command."""
+        """Gives more information about the bot than the standard about command."""
         query = """SELECT COUNT(*)
                    FROM commands_usage;"""
         async with self.bot.db.acquire() as con:
