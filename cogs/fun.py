@@ -219,11 +219,6 @@ class Fun(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def lenny(self, ctx):
-        """( ͡° ͜ʖ ͡°)"""
-        await ctx.send("( ͡° ͜ʖ ͡°)")
-
-    @commands.command()
     async def xkcd(self, ctx, xkcd_number: int = None):
         """Returns an embed with information about the specified xkcd comic.
 
