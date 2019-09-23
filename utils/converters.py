@@ -26,10 +26,7 @@
 from discord.ext import commands
 import discord
 from utils.checks import member_at_least_has_staff_role
-
-
-class BadTarget(commands.UserInputError):
-    pass
+from utils.errors import BadTarget
 
 
 class TargetMember(commands.Converter):

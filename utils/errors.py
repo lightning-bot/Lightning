@@ -37,3 +37,7 @@ class TimersUnavailable(LightningError):
     def __init__(self):
         super().__init__("Lightning\'s timer system is currently unavailable. "
                          "Please try again later.")
+
+
+class BadTarget(LightningError):
+    pass
