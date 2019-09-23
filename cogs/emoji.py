@@ -136,7 +136,7 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @is_staff_or_has_perms("Helper", manage_emojis=True)
+    @is_staff_or_has_perms("Moderator", manage_emojis=True)
     async def rename(self, ctx, name: str, emote_to_rename: discord.Emoji):
         """Renames an emoji from the guild
 
