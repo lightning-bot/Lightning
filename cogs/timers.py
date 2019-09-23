@@ -30,6 +30,7 @@ import discord
 import config
 import json
 from utils import time
+from utils.errors import TimersUnavailable
 import textwrap
 
 STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
@@ -60,8 +61,7 @@ class Reminders(commands.Cog):
 
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
-            return await ctx.send("Sorry, the timer system "
-                                  "(PowersCron) is currently unavailable.")
+            raise TimersUnavailable
         to_dump = {"reminder_text": safe_description,
                    "author": ctx.author.id, "channel": ctx.channel.id}
         await timer.add_job("reminder", ctx.message.created_at,
