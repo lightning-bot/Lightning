@@ -160,7 +160,7 @@ class LightningBot(commands.AutoShardedBot):
               f"I can see {summary}\n\nDiscord.py Version: "\
               f"{discord.__version__}"\
               f"\nRunning on Python {platform.python_version()}"\
-              f"\nI'm currently on **{self.version}**"
+              f"\nI'm currently on **{self.config.bot_version}**"
         await self.botlog_channel.send(msg, delete_after=250)
 
     async def auto_blacklist_check(self, message):
