@@ -117,7 +117,7 @@ class LightningContext(commands.Context):
         return await super().send(content=content, **kwargs)
 
 
-class LightningBot(commands.Bot):
+class LightningBot(commands.AutoShardedBot):
     def __init__(self):
         super().__init__(command_prefix=_callable_prefix,
                          description=config.description)
@@ -303,4 +303,4 @@ class LightningBot(commands.Bot):
         elif isinstance(error, commands.CommandNotFound):
             return  # We don't need to say anything
         elif isinstance(error, errors.LightningError):
-            return await ctx.send(error_text)
+            return await ctx.safe_send(error_text)
