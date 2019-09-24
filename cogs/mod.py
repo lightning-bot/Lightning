@@ -28,7 +28,7 @@ from discord.ext import commands
 from utils.user_log import userlog
 from utils.user_log import get_userlog, set_userlog, userlog_event_types
 from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_has_staff_role
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 # import asyncio
 from utils.time import natural_timedelta
@@ -920,6 +920,34 @@ class Mod(commands.Cog):
         except discord.HTTPException as e:
             return await self.bot.create_error_ticket(ctx, "Error", e)
         await ctx.send("\N{OK HAND SIGN}")
+
+    @commands.guild_only()
+    @is_staff_or_has_perms("Moderator", manage_messages=True)
+    @commands.command()
+    async def clean(self, ctx, max_messages: int = 100,
+                    channel: discord.TextChannel = None):
+        """Cleans the bot's messages from the channel specified.
+
+        If no channel is specified, the bot deletes its
+        messages from the channel the command was run in.
+
+        If a max_messages number is specified, it will delete
+        that many messages from the bot in the specified channel.
+
+        In order to use this command, You must either have
+        Manage Messages permission or a role that
+        is assigned as a Moderator or above in the bot.
+        """
+        if channel is None:
+            channel = ctx.channel
+        if (max_messages > 100):
+            raise commands.BadArgument("Cannot purge more than 100 messages.")
+        has_perms = ctx.channel.permissions_for(ctx.guild.me).manage_messages
+        await channel.purge(limit=max_messages, check=lambda b: b.author == ctx.bot.user,
+                            before=ctx.message.created_at,
+                            after=datetime.utcnow() - timedelta(days=14),
+                            bulk=has_perms)
+        await ctx.send("\N{OK HAND SIGN}", delete_after=15)
 
     @commands.Cog.listener()
     async def on_timeban_job_complete(self, jobinfo):
