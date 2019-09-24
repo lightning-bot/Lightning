@@ -30,7 +30,7 @@ import platform
 from discord.ext import commands, tasks
 from typing import Union
 from collections import Counter
-from utils.paginator import Pages
+from utils.paginator import Pages, TextPages
 import asyncio
 import itertools
 import time
@@ -38,6 +38,8 @@ import json
 import resources.botemojis as emoji
 from utils.checks import is_bot_manager
 from utils.time import natural_timedelta
+from utils.converters import ReadableChannel
+from utils.errors import MessageNotFoundInChannel, ChannelPermissionFailure
 
 
 class NonGuildUser(commands.Converter):
@@ -630,6 +632,68 @@ class Meta(commands.Cog):
                                           for (index, (command_name, cmd_uses)) in enumerate(fetched))
             embed.add_field(name="Today", value=commands_used_des)
             await ctx.send(embed=embed)
+
+    async def message_info_embed(self, msg):
+        embed = discord.Embed(timestamp=msg.created_at)
+        if msg.author.nick:
+            author_name = f"{msg.author.display_name} ({msg.author})"
+        else:
+            author_name = msg.author
+        embed.set_author(name=author_name, icon_url=msg.author.avatar_url)
+        embed.set_footer(text=f"#{msg.channel}")
+        # if len(msg.content) >= 1500:
+        #    url = await self.bot.haste(msg.content)
+        #    description = f"Message too long. See the haste -> {url}"
+        # else:
+        description = msg.content
+        if msg.attachments:
+            attach_urls = []
+            for attachment in msg.attachments:
+                attach_urls.append(f'[{attachment.filename}]({attachment.url})')
+            description += '\n\N{BULLET} ' + '\n\N{BULLET} '.join(attach_urls)
+        description += f"\n\n[Jump to message]({msg.jump_url})"
+        if msg.embeds:
+            description += "\n • Message has an embed"
+        embed.description = description
+        return embed
+
+    @commands.group(aliases=['messageinfo', 'msgtext'], invoke_without_command=True)
+    async def quote(self, ctx, message_id: int, channel: ReadableChannel = None):
+        """Quotes a message"""
+        if channel is None:
+            channel = ctx.channel
+        msg = discord.utils.get(ctx.bot.cached_messages, id=message_id)
+        if msg is None:
+            try:
+                msg = await channel.fetch_message(message_id)
+            except discord.NotFound:
+                raise MessageNotFoundInChannel(message_id, channel)
+            except discord.Forbidden:
+                raise ChannelPermissionFailure(f"I don't have permission to view {channel.mention}.")
+        embed = await self.message_info_embed(msg)
+        if msg.author.color.value != 0:
+            embed.color = msg.author.color
+        await ctx.send(embed=embed)
+
+    @quote.command(name="raw", aliases=['json'])
+    async def msg_raw(self, ctx, message_id: int, channel: ReadableChannel = None):
+        # This technically falls under what I wanted quote to do so :dealwithit:
+        """Shows raw JSON for a message.
+
+        This escapes markdown formatted text if in the text."""
+        if channel is None:
+            channel = ctx.channel
+        try:
+            message = await ctx.bot.http.get_message(channel.id, message_id)
+        except discord.NotFound:
+            raise MessageNotFoundInChannel(message_id, channel)
+        message['content'] = discord.utils.escape_markdown(message['content'])
+        if message['embeds']:
+            for em in message['embeds']:
+                em['description'] = discord.utils.escape_markdown(em['description'])
+        msgr = json.dumps(message, indent=2, sort_keys=True)
+        p = TextPages(ctx, msgr, prefix="```json\n")
+        await p.paginate()
 
     async def command_insert(self, ctx):
         """Function to insert command info into self.data_todump"""

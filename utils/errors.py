@@ -46,3 +46,17 @@ class BadTarget(LightningError):
 class NoImageProvided(LightningError):
     def __init__(self):
         super().__init__("Please provide an image.")
+
+
+class ChannelNotFound(LightningError):
+    def __init__(self, channel):
+        super().__init__(f"Channel {channel} not found.")
+
+
+class ChannelPermissionFailure(LightningError):
+    pass
+
+
+class MessageNotFoundInChannel(LightningError):
+    def __init__(self, message_id, channel):
+        super().__init__(f"Message ({message_id}) was not found in {channel.mention}.")

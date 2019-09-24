@@ -26,7 +26,7 @@
 from discord.ext import commands
 import discord
 from utils.checks import member_at_least_has_staff_role
-from utils.errors import BadTarget
+from utils.errors import BadTarget, ChannelPermissionFailure
 
 
 class TargetMember(commands.Converter):
@@ -40,6 +40,16 @@ class TargetMember(commands.Converter):
             raise BadTarget("You can't do mod actions on other staff!")
         else:
             return target
+
+
+class ReadableChannel(commands.Converter):
+    async def convert(self, ctx, argument):
+        channel = await commands.TextChannelConverter().convert(ctx, argument)
+        if not channel.guild.me.permissions_in(channel).read_messages:
+            raise ChannelPermissionFailure(f"I don't have permission to view channel {channel.mention}")
+        if not ctx.author or not channel.permissions_for(ctx.author).read_messages:
+            raise ChannelPermissionFailure(f"You don't have permission to view channel {channel.mention}")
+        return channel
 
 
 class SafeSend(commands.Converter):
