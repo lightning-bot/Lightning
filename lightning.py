@@ -154,7 +154,7 @@ class LightningBot(commands.AutoShardedBot):
 
         log.info(f'\nLogged in as: {self.user.name} - '
                  f'{self.user.id}\ndpy version: '
-                 f'{discord.__version__}\nVersion: {self.version}\n')
+                 f'{discord.__version__}\nVersion: {self.config.bot_version}\n')
         summary = f"{len(self.guilds)} guild(s) and {len(self.users)} user(s)"
         msg = f"{self.user.name} has started! "\
               f"I can see {summary}\n\nDiscord.py Version: "\
