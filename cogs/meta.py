@@ -349,7 +349,7 @@ class Meta(commands.Cog):
                       f"Unique Members Online: {membertotal_online}"
         embed = discord.Embed(title="Lightning", color=0xf74b06)
         bot_owner = self.bot.get_user(self.bot.owner_id)
-        embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url)
+        embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url_as(static_format='png'))
         embed.url = "https://gitlab.com/LightSage/Lightning"
         embed.set_thumbnail(url=ctx.me.avatar_url)
         embed.description = f"Lightning.py, the successor to Lightning(.js)"
