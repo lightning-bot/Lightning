@@ -128,7 +128,7 @@ class PowersCronManagement(commands.Cog):
 
     async def randomize_status(self):
         ext_list = [f"on commit {C_HASH}", [3, f"{len(self.bot.guilds)} servers"],
-                    f"on {self.bot.version}"]
+                    f"on {self.bot.config.bot_version}"]
         msg = random.randint(1, 2)
         if msg == 1:
             msg = random.choice(self.statuses)

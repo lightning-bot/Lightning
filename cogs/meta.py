@@ -372,7 +372,7 @@ class Meta(commands.Cog):
                                             "532220480577470464)\n"
                                             "[Website](https://lightsage.gitlab.io/lightning/home/)",
                                             inline=False)
-        embed.set_footer(text=f"Lightning {self.bot.version}")  # | Made with "
+        embed.set_footer(text=f"Lightning {self.bot.config.bot_version}")  # | Made with "
         # f"discord.py {discord.__version__}")
         await ctx.send(embed=embed)
 
