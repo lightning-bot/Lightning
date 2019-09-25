@@ -76,11 +76,7 @@ class NoMuteRole(commands.UserInputError):
 
 class Mod(commands.Cog):
     """
-    Most of these commands were taken from Robocop-NG's mod.py and moderately improved.
-
-    Robocop-NG's mod.py is under the MIT license and is written by aveao / the ReSwitched team.
-
-    See here for the license: https://github.com/aveao/robocop-ng/blob/master/LICENSE
+    Moderation and server management commands.
     """
     def __init__(self, bot):
         self.bot = bot
