@@ -26,12 +26,15 @@
 import discord
 from discord.ext import commands
 import random
+import json
 
 
 class Memes(commands.Cog):
     def __init__(self, bot):
         """Approved™ memes"""
         self.bot = bot
+        self.memes_list = json.load(open('resources/memes.json',
+                                         'r', encoding='utf8'))
 
     @commands.group(aliases=['meme'])
     async def memes(self, ctx):
@@ -41,7 +44,8 @@ class Memes(commands.Cog):
         if ctx.invoked_subcommand is None:
             memeslist = "Text: `knuckles` `neo-ban` `discordcopypaste` `peng`"\
                         " `ayy` `lenny` `lmao`"\
-                        "\nImage: `astar` `hifumi1` `git` `bean` `tuturu` `yert`"
+                        "\nImage: `astar` `hifumi1` `git` `bean` `tuturu` `yert`"\
+                        " `bait`"
             return await ctx.send(f"Available Memes:\n{memeslist}")
 
     @memes.command(hidden=True)
@@ -139,6 +143,11 @@ class Memes(commands.Cog):
     @memes.command(hidden=True)
     async def lmao(self, ctx):
         await ctx.send("😂😂😂 Sorry, what were we laughing about again? 😂😂😂")
+
+    @memes.command(name="bait", hidden=True)
+    async def memes_bait(self, ctx):
+        link = random.choice(self.memes_list['bait'])
+        await ctx.safe_send(f'{ctx.author.display_name}: {link}')
 
 
 def setup(bot):
