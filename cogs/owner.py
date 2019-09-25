@@ -26,7 +26,7 @@
 import discord
 from discord.ext import commands
 import traceback
-import inspect
+import textwrap
 import re
 import asyncio
 import random
@@ -37,6 +37,8 @@ import json
 import shutil
 from utils.custom_prefixes import get_guildid_prefixes
 from utils.paginator import TextPages
+from contextlib import redirect_stdout
+import io
 
 
 class Owner(commands.Cog):
@@ -200,57 +202,66 @@ class Owner(commands.Cog):
         await server.leave()
         await ctx.send(f'Successfully left {server.name}')
 
-    # Robocop-ng's eval commands. MIT Licensed.
-    # https://github.com/reswitched/robocop-ng/blob/master/LICENSE
+    # RoboDanny's eval command. (even though Jishaku exists)
+    # MIT Licensed.
+    # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py
     @commands.is_owner()
     @commands.command(name='eval')
     async def _eval(self, ctx, *, code: str):
         """Evaluates some code, Owner only."""
+        code = code.strip('` ')
+
+        env = {'bot': self.bot,
+               'ctx': ctx,
+               'message': ctx.message,
+               'server': ctx.guild,
+               'guild': ctx.guild,
+               'channel': ctx.message.channel,
+               'author': ctx.message.author,
+
+               # modules
+               'discord': discord,
+               'commands': commands,
+
+               # utilities
+               '_get': discord.utils.get,
+               '_find': discord.utils.find,
+
+               # last result
+               '_': self.last_eval_result,
+               '_p': self.previous_eval_code}
+        env.update(globals())
+
+        self.bot.log.info(f"Evaling {repr(code)}:")
+        stdout = io.StringIO()
+
+        to_compile = f'async def func():\n{textwrap.indent(code, "  ")}'
+
         try:
-            code = code.strip('` ')
+            exec(to_compile, env)
+        except Exception as e:
+            return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
 
-            env = {
-                'bot': self.bot,
-                'ctx': ctx,
-                'message': ctx.message,
-                'server': ctx.guild,
-                'guild': ctx.guild,
-                'channel': ctx.message.channel,
-                'author': ctx.message.author,
-
-                # modules
-                'discord': discord,
-                'commands': commands,
-
-                # utilities
-                '_get': discord.utils.get,
-                '_find': discord.utils.find,
-
-                # last result
-                '_': self.last_eval_result,
-                '_p': self.previous_eval_code,
-            }
-            env.update(globals())
-
-            self.bot.log.info(f"Evaling {repr(code)}:")
-            result = eval(code, env)
-            if inspect.isawaitable(result):
-                result = await result
-
-            if result is not None:
-                self.last_eval_result = result
-
-            self.previous_eval_code = code
-
-            pages = TextPages(ctx, f"{repr(result)}")
-            await pages.paginate()
+        func = env['func']
+        try:
+            with redirect_stdout(stdout):
+                ret = await func()
         except Exception:
-            sliced_message = \
-                await self.bot.slice_message(traceback.format_exc(),
-                                             prefix="```",
-                                             suffix="```")
-            for msg in sliced_message:
-                await ctx.send(msg)
+            value = stdout.getvalue()
+            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
+        else:
+            value = stdout.getvalue()
+            try:
+                await ctx.message.add_reaction('\u2705')
+            except Exception:
+                pass
+
+            if ret is None:
+                if value:
+                    await ctx.send(f'```py\n{value}\n```')
+            else:
+                self._last_result = ret
+                await ctx.send(f'```py\n{value}{ret}\n```')
 
     @commands.is_owner()
     @commands.group()
