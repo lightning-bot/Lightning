@@ -147,7 +147,7 @@ class Memes(commands.Cog):
     @memes.command(name="bait", hidden=True)
     async def memes_bait(self, ctx):
         link = random.choice(self.memes_list['bait'])
-        await ctx.safe_send(f'{ctx.author.display_name}: {link}')
+        await ctx.safe_send(f'{ctx.author.display_name}: {str(link)}')
 
 
 def setup(bot):

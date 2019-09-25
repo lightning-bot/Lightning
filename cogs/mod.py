@@ -934,7 +934,7 @@ class Mod(commands.Cog):
         If a max_messages number is specified, it will delete
         that many messages from the bot in the specified channel.
 
-        In order to use this command, You must either have
+        In order to use this command, you must either have
         Manage Messages permission or a role that
         is assigned as a Moderator or above in the bot.
         """
