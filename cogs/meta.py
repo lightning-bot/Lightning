@@ -355,7 +355,7 @@ class Meta(commands.Cog):
         embed.url = "https://gitlab.com/LightSage/Lightning"
         embed.set_thumbnail(url=ctx.me.avatar_url)
         embed.description = f"Lightning.py, the successor to Lightning(.js)"
-        embed.add_field(name="Servers", value=len(self.bot.guilds), inline=False)
+        embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
         async with self.bot.db.acquire() as con:
             postgresversion = await con.fetchval("SHOW server_version;")
