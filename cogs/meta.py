@@ -338,7 +338,7 @@ class Meta(commands.Cog):
         query = """SELECT COUNT(*)
                    FROM commands_usage;"""
         async with self.bot.db.acquire() as con:
-            amount = await con.fetchrow(query)
+            amount = await con.fetchval(query)
         # Member Stats
         membertotal = 0
         membertotal_online = 0
@@ -365,7 +365,7 @@ class Meta(commands.Cog):
         embed.add_field(name="Backend", value=backend_msg)
         embed.add_field(name="Command Stats", value=f"{self.bot.successful_command} "
                                                     "commands used since boot.\n"
-                                                    f"{amount[0]} commands used all time.")
+                                                    f"{amount} commands used all time.")
         embed.add_field(name="Links", value="[Support Server]"
                                             "(https://discord.gg/cDPGuYd)\n"
                                             "[DBL](https://discordbots.org/bot/"
