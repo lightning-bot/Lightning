@@ -690,7 +690,7 @@ class Meta(commands.Cog):
         message['content'] = discord.utils.escape_markdown(message['content'])
         if message['embeds']:
             for em in message['embeds']:
-                if em['description']:
+                if "description" in em:
                     em['description'] = discord.utils.escape_markdown(em['description'])
         msgr = json.dumps(message, indent=2, sort_keys=True)
         p = TextPages(ctx, msgr, prefix="```json\n")
