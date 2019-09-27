@@ -1,5 +1,6 @@
 # Lightning.py
 [![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/cDPGuYd)
+[![Pipeline Status](https://img.shields.io/gitlab/pipeline/LightSage/Lightning?label=Pipeline&logo=GitLab)](https://gitlab.com/LightSage/Lightning/pipelines/latest)
 
 This version is the successor to Lightning.js
 
