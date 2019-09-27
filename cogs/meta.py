@@ -268,7 +268,7 @@ class Meta(commands.Cog):
         embed.set_image(url=member.avatar_url)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['ui'])
+    @commands.command(aliases=['ui', 'whoami'])
     async def userinfo(self, ctx, *, member: Union[discord.Member, NonGuildUser] = None):
         """Gives info for a user."""
         if member is None:
@@ -433,7 +433,7 @@ class Meta(commands.Cog):
                        "<:meowbox:563009533530734592>")
 
     @commands.guild_only()
-    @commands.command(aliases=['server'])
+    @commands.command(aliases=['server', 'guildinfo'])
     async def serverinfo(self, ctx):
         """Shows information about the server"""
         guild = ctx.guild  # Simplify
