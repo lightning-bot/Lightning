@@ -793,7 +793,7 @@ class Mod(commands.Cog):
 
         # Define Safe Name so we don't mess this up (again)
         safe_name = await commands.clean_content().convert(ctx, str(ctx.author))
-        log_message = f"🔒 **Lockdown** in {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
+        log_message = f"🔒 **Lockdown** in {channel.mention} by {ctx.author.mention} | {safe_name}"
         await self.log_send(ctx, log_message)
 
     @commands.guild_only()
@@ -823,7 +823,7 @@ class Mod(commands.Cog):
 
         # Define Safe Name so we don't mess this up (again)
         safe_name = await commands.clean_content().convert(ctx, str(ctx.author))
-        log_message = f"🔒 **Hard Lockdown** in {ctx.channel.mention} "\
+        log_message = f"🔒 **Hard Lockdown** in {channel.mention} "\
                       f"by {ctx.author.mention} | {safe_name}"
         await self.log_send(ctx, log_message)
 
@@ -851,7 +851,7 @@ class Mod(commands.Cog):
 
         # Define Safe Name so we don't mess this up (again)
         safe_name = await commands.clean_content().convert(ctx, str(ctx.author))
-        log_message = f"🔓 **Unlock** in {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
+        log_message = f"🔓 **Unlock** in {channel.mention} by {ctx.author.mention} | {safe_name}"
         await self.log_send(ctx, log_message)
 
     @commands.guild_only()
@@ -878,7 +878,7 @@ class Mod(commands.Cog):
 
         # Define Safe Name so we don't mess this up (again)
         safe_name = await commands.clean_content().convert(ctx, str(ctx.author))
-        log_message = f"🔓 **Hard Unlock** in {ctx.channel.mention} by {ctx.author.mention} | {safe_name}"
+        log_message = f"🔓 **Hard Unlock** in {channel.mention} by {ctx.author.mention} | {safe_name}"
         await self.log_send(ctx, log_message)
 
     @commands.guild_only()
