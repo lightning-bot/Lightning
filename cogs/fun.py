@@ -34,6 +34,7 @@ import config
 from datetime import datetime
 import textwrap
 from utils.errors import NoImageProvided
+from jishaku.functools import executor_function
 
 
 class Fun(commands.Cog):
@@ -103,6 +104,36 @@ class Fun(commands.Cog):
                 await ctx.send(file=discord.File(image_buffer, filename="jpegify.jpeg"))
             else:
                 raise NoImageProvided
+
+    @executor_function
+    def make_lakitu(self, text: str):
+        img = Image.open("resources/templates/lakitutemp.png")
+        verdana = ImageFont.truetype(font="resources/fonts/verdana.ttf",
+                                     size=86, encoding="unic")
+        draw = ImageDraw.Draw(img)
+        text = textwrap.wrap(text, width=19)
+        y_text = 200
+        wdmax = 1150
+        for line in text:
+            if y_text >= 706:
+                break
+            line_width, line_height = draw.textsize(line, font=verdana)
+            draw.multiline_text(((wdmax - line_width) / 2, y_text),
+                                line, font=verdana,
+                                fill="black")  # align="center")
+            y_text += line_height
+        finalbuffer = io.BytesIO()
+        img.save(finalbuffer, 'png')
+        finalbuffer.seek(0)
+        return finalbuffer
+
+    @commands.command()
+    @commands.has_permissions(attach_files=True)
+    async def lakitufyi(self, ctx, *, text: str):
+        """Makes a Lakitu FYI meme with your own text"""
+        async with ctx.typing():
+            image_buffer = await self.make_lakitu(text)
+            await ctx.send(file=discord.File(image_buffer, filename="fyi.png"))
 
     @commands.command(name="8ball")
     @commands.cooldown(rate=1, per=4.0, type=commands.BucketType.channel)
