@@ -465,7 +465,22 @@ class Meta(commands.Cog):
         emojicalc = f"Static Emotes: {static}\nAnimated Emotes: {animated}"\
                     f"\nTotal: {len(guild.emojis)}"
         embed.add_field(name="Emoji Count", value=emojicalc)
-        embed.add_field(name="Verification Level", value=guild.verification_level)
+
+        # Verification Level stuff
+        vlevel_replace = {"low": "Low: Member must have a verified email on "
+                                 "their Discord account.",
+                          "medium": "Medium: Member must have a verified email "
+                                    "and be registered on Discord for more than "
+                                    "five minutes.",
+                          "high": "High (Table Flip): Member must have a verified email, "
+                                  "be registered on Discord for more than "
+                                  "five minutes, and be a member of the guild "
+                                  "itself for more than ten minutes.",
+                          "extreme": "Extreme (Double Table Flip): Member must "
+                                     "have a verified phone on their Discord account."}
+        v_raw_text = str(guild.verification_level)
+        verification_text = vlevel_replace[v_raw_text] if v_raw_text in vlevel_replace else v_raw_text
+        embed.add_field(name="Verification Level", value=verification_text)
         boosts = f"Tier: {guild.premium_tier}\n"\
                  f"Users Boosted Count: {guild.premium_subscription_count}"
         embed.add_field(name="Nitro Server Boost", value=boosts)
