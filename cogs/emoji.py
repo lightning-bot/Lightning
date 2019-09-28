@@ -47,6 +47,7 @@ class Emoji(commands.Cog):
     @commands.command(aliases=['nemoji'])
     async def nitroemoji(self, ctx, emojiname):
         """Posts either an animated emoji or non-animated emoji if found"""
+        emojiname = emojiname.strip(':')
         emoji = discord.utils.get(self.bot.emojis, name=emojiname)
         if emoji:
             return await ctx.send(emoji)
