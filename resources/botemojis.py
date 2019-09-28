@@ -10,3 +10,8 @@ kurisu = "<:kurisu:561618919937409055>"
 python = "<:python:605592693267103744>"
 dpy = "<:dpy:617883851162779648>"
 postgres = "<:postgres:617886426318635015>"
+# Presence
+do_not_disturb = "<:dnd:572962188134842389>"
+online = "<:online:572962188114001921>"
+idle = "<:idle:572962188201820200>"
+offline = "<:offline:572962188008882178>"

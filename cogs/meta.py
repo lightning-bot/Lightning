@@ -294,7 +294,13 @@ class Meta(commands.Cog):
                         f"({natural_timedelta(member.created_at, accuracy=3)})\n"
                         f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.created_at, humanized=True)}",
                         inline=False)
-        embed.add_field(name='Status', value=f"{member.status}", inline=True)
+        statuses = {"dnd": f"{emoji.do_not_disturb} Do Not Disturb",
+                    "online": f"{emoji.online} Online",
+                    "offline": f"{emoji.offline} Offline",
+                    "idle": f"{emoji.idle} Idle"}
+        status_text = str(member.status)
+        status_text = statuses[status_text] if status_text in statuses else status_text
+        embed.add_field(name='Status', value=status_text, inline=True)
         if member.activity:
             if isinstance(member.activity, discord.Spotify):
                 artists = ', '.join(member.activity.artists)
