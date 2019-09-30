@@ -23,22 +23,23 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
+# TODO: Add plonks
+
 import discord
 from discord.ext import commands
 from typing import Union
-from utils.custom_prefixes import add_prefix, remove_prefix, get_guild_prefixes
 import json
 import resources.botemojis as emoji
 import asyncpg
 
 
 class Prefix(commands.Converter):
-    # Based off R. Danny's Converter
     async def convert(self, ctx, argument):
         user_id = ctx.bot.user.id
-        if argument.startswith((f'<@{user_id}>', f'<@!{user_id}>')):
-            await ctx.send("That is a reserved prefix already in use.")
+        if argument.startswith((f'<@{user_id}>', f'<@!{user_id}>', "l.")):
             raise commands.BadArgument('That is a reserved prefix already in use.')
+        if len(argument) > 35:
+            raise commands.BadArgument('You can\'t have a prefix longer than 35 characters!')
         return argument
 
 
@@ -76,6 +77,45 @@ class Configuration(commands.Cog):
         async with self.bot.db.acquire() as con:
             await con.execute(query, ctx.guild.id,
                               json.dumps(to_dump))
+
+    @commands.command(name="settings")
+    async def view_guild_settings(self, ctx):
+        em = discord.Embed(title=f"Settings for {ctx.guild.name}", color=0xf74b06)
+        query = """SELECT * FROM guild_mod_config
+                   WHERE guild_id=$1;
+                """
+        async with self.bot.db.acquire() as con:
+            ret = await con.fetchrow(query, ctx.guild.id)
+        if ret['log_channels']:
+            logging = json.loads(ret['log_channels'])
+            log_info = {"join_log_embed_channel": "Embedded Join & Leave Logs",
+                        "join_log_channel": "Compact Join & Leave Logs",
+                        "event_channel": "Compact Role Logs",
+                        "event_embed_channel": "Embedded Role Logs",
+                        "modlog_chan": "Mod Logs",
+                        "message_log_channel": "Message Edits & Deletion Logs"}
+            logs = []
+            for x, y in logging.items():
+                logs.append((log_info[x], y)) if x in log_info else None
+            msg = ""
+            for key, value in logs:
+                msg += f"{key}: <#{value}>\n"
+            em.add_field(name="Enabled Logs", value=msg)
+        if ret['mute_role_id']:
+            role = discord.utils.get(ctx.guild.roles, id=ret['mute_role_id'])
+            if role:
+                em.add_field(name="Mute Role", value=f"{role.name} ({role.id})")
+            else:
+                # Remove our mute role if it's missing
+                query = """UPDATE guild_mod_config
+                           SET mute_role_id=NULL
+                           WHERE guild_id=$1;
+                        """
+                async with self.bot.db.acquire() as con:
+                    await con.execute(query, ctx.guild.id)
+        if ret['prefix']:
+            em.add_field(name="Prefixes", value="\n".join(ret['prefix']))
+        await ctx.send(embed=em)
 
     @commands.group(aliases=['logging'])
     @commands.has_permissions(administrator=True)
@@ -188,7 +228,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @log.command(name='ban-logs', aliases=['banlogs'])
+    @log.command(name='ban-logs', aliases=['banlogs'], enabled=False)
     async def set_ban_logs(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set server ban log channel."""
         guild_config = await self.grab_modconfig(ctx)
@@ -222,7 +262,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @log.command(name="invite-watch", aliases=['invitewatch'])
+    @log.command(name="invite-watch", aliases=['invitewatch'], enabled=False)
     async def set_invite_watch(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set the Invite Watching Channel"""
         guild_config = await self.grab_modconfig(ctx)
@@ -388,6 +428,39 @@ class Configuration(commands.Cog):
             e.description += f"\N{BULLET} {role.name} (ID: {role.id})\n"
         await ctx.send(embed=e)
 
+    async def add_prefix(self, guild, prefix, connection=None):
+        """Adds a prefix to the guild's config"""
+        query = """INSERT INTO guild_mod_config (guild_id, prefix)
+                   VALUES ($1, $2::text[]) ON CONFLICT (guild_id)
+                   DO UPDATE SET
+                        prefix = EXCLUDED.prefix;
+                """
+        if connection is None:
+            await self.bot.db.execute(query, guild.id, list(prefix))
+        else:
+            await connection.execute(query, guild.id, list(prefix))
+
+    async def get_guild_prefixes(self, guild_id: int, connection=None):
+        query = """SELECT prefix
+                   FROM guild_mod_config
+                   WHERE guild_id=$1;"""
+        if connection is None:
+            ret = await self.bot.db.fetchval(query, guild_id)
+        else:
+            ret = await connection.fetchval(query, guild_id)
+        if ret:
+            return ret
+        else:
+            return []
+
+    async def delete_prefix(self, guild_id, prefix):
+        """Deletes a prefix"""
+        query = """UPDATE guild_mod_config
+                   SET prefix = $1
+                   WHERE guild_id = $2;
+                """
+        return await self.bot.db.execute(query, prefix, guild_id)
+
     @commands.group(aliases=['prefixes'])
     @commands.guild_only()
     @commands.has_permissions(manage_guild=True)
@@ -407,8 +480,14 @@ class Configuration(commands.Cog):
         end it with a space, e.g. "lightning " to set the prefix
         to "lightning ". This is because Discord removes spaces when sending
         messages so the spaces are not preserved."""
-        if len(get_guild_prefixes(ctx.guild)) < 10:
-            add_prefix(ctx.guild, prefix)
+        prefixes = await self.get_guild_prefixes(ctx.guild.id)
+        if len(prefixes) < 10:
+            if prefix in prefixes:
+                return await ctx.send("That prefix is already registered!")
+            prefixes.append(prefix)
+            await self.add_prefix(ctx.guild, prefixes)
+            if ctx.guild.id in self.bot.prefixes:
+                self.bot.prefixes[ctx.guild.id].append(prefix)
         else:
             return await ctx.send("You can only have 10 custom prefixes per guild! Please remove one.")
         await ctx.send(f"Added `{prefix}`")
@@ -424,8 +503,13 @@ class Configuration(commands.Cog):
         To remove word/multi-word prefixes, you need to quote it.
         Example: l.prefix remove "lightning " removes the "lightning " prefix
         """
-        if prefix in get_guild_prefixes(ctx.guild):
-            remove_prefix(ctx.guild, prefix)
+        # Bc I'm partially lazy
+        prefixes = await self.get_guild_prefixes(ctx.guild.id)
+        if prefix in prefixes:
+            prefixes.remove(prefix)
+            await self.delete_prefix(ctx.guild.id, prefixes)
+            if ctx.guild.id in self.bot.prefixes:
+                self.bot.prefixes[ctx.guild.id].remove(prefix)
         else:
             return await ctx.send(f"{prefix} was never added as a custom prefix.")
         await ctx.send(f"Removed `{prefix}`")
@@ -438,7 +522,7 @@ class Configuration(commands.Cog):
         embed = discord.Embed(title=f"Custom Prefixes Set for {ctx.guild.name}",
                               description="",
                               color=discord.Color(0xd1486d))
-        for p in get_guild_prefixes(ctx.guild):
+        for p in await self.get_guild_prefixes(ctx.guild.id):
             embed.description += f"- {p}\n"
         await ctx.send(embed=embed)
 

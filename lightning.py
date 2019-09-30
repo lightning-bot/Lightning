@@ -70,14 +70,12 @@ def _callable_prefix(bot, message):
     prefixed = default_prefix
     if message.guild is None:
         return commands.when_mentioned_or(*prefixed)(bot, message)
-    if db.per_guild_config.exist_guild_config(message.guild, "prefixes"):
-        guild_config = db.per_guild_config.get_guild_config(message.guild, "prefixes")
+    if message.guild.id in bot.prefixes:
+        prefixes = bot.prefixes[message.guild.id]
+        prefixes.append("l.")
+        return commands.when_mentioned_or(*prefixes)(bot, message)
     else:
         return commands.when_mentioned_or(*prefixed)(bot, message)
-    if "prefixes" in guild_config:
-        prefixesc = guild_config["prefixes"]
-        prefixesc += default_prefix
-        return commands.when_mentioned_or(*prefixesc)(bot, message)
 
 
 initial_extensions = ['cogs.comics',
@@ -97,7 +95,8 @@ initial_extensions = ['cogs.comics',
                       'cogs.toggle_roles',
                       'cogs.utility',
                       'cogs.weeb',
-                      'stabilite.stabilite']
+                      'stabilite.stabilite',
+                      'cogs.misc']
 
 # Create config folder if not found
 if not os.path.exists("config"):
@@ -126,6 +125,8 @@ class LightningBot(commands.AutoShardedBot):
         self.script_name = script_name
         self.successful_command = 0
         self.command_spammers = {}
+        # Initialize as none then cache our prefixes on_ready
+        self.prefixes = {}
 
         for ext in initial_extensions:
             try:
@@ -140,9 +141,17 @@ class LightningBot(commands.AutoShardedBot):
             log.error(traceback.print_exc())
 
     async def create_pool(self, dbs, **kwargs):
-        """Creates a connection pool"""
+        """Creates a connection pool and initializes our prefixes"""
         # Mainly prevent multiple pools
         pool = await asyncpg.create_pool(dbs, **kwargs)
+        try:
+            # Initialize prefixes on pool creation :meowhero:
+            prefixes = await pool.fetch("SELECT guild_id, prefix FROM guild_mod_config")
+            for p in prefixes:
+                if p['prefix']:
+                    self.prefixes[p['guild_id']] = p['prefix']
+        except Exception:
+            pass
         return pool
 
     async def on_ready(self):
