@@ -79,7 +79,9 @@ class Configuration(commands.Cog):
                               json.dumps(to_dump))
 
     @commands.command(name="settings")
+    @commands.has_permissions(manage_guild=True)
     async def view_guild_settings(self, ctx):
+        """Views the guild's settings for the bot"""
         em = discord.Embed(title=f"Settings for {ctx.guild.name}", color=0xf74b06)
         query = """SELECT * FROM guild_mod_config
                    WHERE guild_id=$1;
@@ -93,7 +95,9 @@ class Configuration(commands.Cog):
                         "event_channel": "Compact Role Logs",
                         "event_embed_channel": "Embedded Role Logs",
                         "modlog_chan": "Mod Logs",
-                        "message_log_channel": "Message Edits & Deletion Logs"}
+                        "message_log_channel": "Message Edits & Deletion Logs",
+                        "ban_channel": "Member Ban Logging",
+                        "invite_watch": "Invite Watch"}
             logs = []
             for x, y in logging.items():
                 logs.append((log_info[x], y)) if x in log_info else None
@@ -290,16 +294,13 @@ class Configuration(commands.Cog):
     @commands.guild_only()
     @modrole.command(name="set", aliases=['add'])
     @commands.has_permissions(administrator=True)
-    async def set_mod_role(self, ctx, level: str, *, role_name: str):
+    async def set_mod_role(self, ctx, level: str, *, role: discord.Role):
         """
         Set the various mod roles.
 
         level: Any of "Helper", "Moderator" or "Admin".
-        role: Target role to set. Case specific.
+        role: Target role to set.
         """
-        role = discord.utils.get(ctx.guild.roles, name=role_name)
-        if not role:
-            return await ctx.send(":x: That role does not exist.")
 
         if level.lower() not in ["helper", "moderator", "admin"]:
             return await ctx.send("Not a valid level! Level must be "
@@ -313,7 +314,8 @@ class Configuration(commands.Cog):
                 await con.execute(query, ctx.guild.id, role.id, level.lower())
             except asyncpg.UniqueViolationError:
                 return await ctx.send("That role is already set as a mod role!")
-        await ctx.send(f"Successfully set the {level} rank to the {role_name} role! {emoji.mayushii}")
+        await ctx.safe_send(f"Successfully set the {level} rank to "
+                            f"the {role.name} role! {emoji.mayushii}")
 
     @commands.guild_only()
     @modrole.command(name="get", aliases=['list'])
