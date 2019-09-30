@@ -34,7 +34,6 @@ from discord.ext import commands
 import aiohttp
 from datetime import datetime
 import config
-import db.per_guild_config
 import asyncpg
 from utils import errors
 
