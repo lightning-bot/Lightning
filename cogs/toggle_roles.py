@@ -123,7 +123,7 @@ class ToggleRoles(commands.Cog):
         pages = []
         for s in role_list:
             pages.append(f"{s.mention} | Role ID {s.id}")
-        await paginator_embed(self.bot, ctx, embed, size=200, page_list=pages)
+        await paginator_embed(self.bot, ctx, embed, size=500, page_list=pages)
 
     @commands.guild_only()
     @togglerole.command(name="remove")
