@@ -35,7 +35,6 @@ from utils.checks import is_bot_manager
 import os
 import json
 import shutil
-from utils.custom_prefixes import get_guildid_prefixes
 from utils.paginator import TextPages
 from contextlib import redirect_stdout
 import io
@@ -95,12 +94,14 @@ class Owner(commands.Cog):
     @commands.command(aliases=['getguildprefix', 'ggp'])
     async def getguildprefixes(self, ctx, guildid: int):
         """Returns the prefixes set for a certain guild"""
-        msg = f"Prefixes for {guildid}\n\n"
-        if "prefixes" in get_guildid_prefixes(guildid):
-            for p in get_guildid_prefixes(guildid)["prefixes"]:
+        cfg = self.bot.get_cog('Configuration')
+        if cfg:
+            msg = f"Prefixes for {guildid}\n\n"
+            prefixes = await cfg.get_guild_prefixes(guildid)
+            for p in prefixes:
                 msg += f"- {p}\n"
         else:
-            msg = "No Prefixes!"
+            msg = "Configuration Cog not loaded!"
         await ctx.send("```" + msg + "```")
 
     @commands.group()
