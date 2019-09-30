@@ -86,8 +86,20 @@ class Configuration(commands.Cog):
         query = """SELECT * FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
-        async with self.bot.db.acquire() as con:
+        con = await self.bot.db.acquire()
+        try:
             ret = await con.fetchrow(query, ctx.guild.id)
+            if ret['mute_role_id']:
+                role = discord.utils.get(ctx.guild.roles, id=ret['mute_role_id'])
+                if not role:
+                    # Remove our mute role if it's missing
+                    query = """UPDATE guild_mod_config
+                               SET mute_role_id=NULL
+                               WHERE guild_id=$1;
+                            """
+                    await con.execute(query, ctx.guild.id)
+        finally:
+            await self.bot.db.release(con)
         if ret['log_channels']:
             logging = json.loads(ret['log_channels'])
             log_info = {"join_log_embed_channel": "Embedded Join & Leave Logs",
@@ -109,14 +121,6 @@ class Configuration(commands.Cog):
             role = discord.utils.get(ctx.guild.roles, id=ret['mute_role_id'])
             if role:
                 em.add_field(name="Mute Role", value=f"{role.name} ({role.id})")
-            else:
-                # Remove our mute role if it's missing
-                query = """UPDATE guild_mod_config
-                           SET mute_role_id=NULL
-                           WHERE guild_id=$1;
-                        """
-                async with self.bot.db.acquire() as con:
-                    await con.execute(query, ctx.guild.id)
         if ret['prefix']:
             em.add_field(name="Prefixes", value="\n".join(ret['prefix']))
         await ctx.send(embed=em)
