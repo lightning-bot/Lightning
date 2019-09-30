@@ -114,6 +114,13 @@ class LightningContext(commands.Context):
             content = await commands.clean_content().convert(self, str(content))
         return await super().send(content=content, **kwargs)
 
+    async def emoji_send(self, emoji):
+        """Attempts to send the specified emote. If failed, reacts."""
+        try:
+            await self.message.channel.send(emoji)
+        except discord.Forbidden:
+            await self.message.add_reaction(emoji)
+
 
 class LightningBot(commands.AutoShardedBot):
     def __init__(self):
