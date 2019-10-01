@@ -30,7 +30,7 @@ from utils.checks import is_guild, has_staff_role, is_bot_manager_or_staff
 from datetime import datetime
 import json
 import config
-from utils.time import natural_timedelta
+from utils.time import natural_timedelta, FutureTime
 
 
 class LightningHub(commands.Cog):
@@ -221,7 +221,7 @@ class LightningHub(commands.Cog):
     @has_staff_role("Helper")
     async def tempblock(self, ctx, member: discord.Member,
                         channels: commands.Greedy[discord.TextChannel],
-                        duration, *, reason: str = ""):
+                        duration: FutureTime, *, reason: str = ""):
         """Temp Blocks a user from a channel or channels"""
         idlist = []
         for channel in channels:
@@ -230,12 +230,10 @@ class LightningHub(commands.Cog):
                                           reason=reason)
             idlist.append(channel.id)
         chans = ", ".join(x.mention for x in channels)
-        expiry_timestamp = self.bot.parse_time(duration)
-        expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
-        duration_text = self.bot.get_utc_timestamp(time_to=expiry_datetime,
+        duration_text = self.bot.get_utc_timestamp(time_to=duration.dt,
                                                    include_to=True)
-        timed_txt = natural_timedelta(expiry_datetime)
-        duration_text = f"in {timed_txt} ({duration_text})"
+        timed_txt = natural_timedelta(duration.dt)
+        duration_text = f"{timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
             return await ctx.send("Sorry, the timer system "
@@ -243,9 +241,9 @@ class LightningHub(commands.Cog):
         ext = {"guild_id": ctx.guild.id, "user_id": member.id,
                "channels": idlist}
         await timer.add_job("timeblock", datetime.utcnow(),
-                            expiry_datetime, ext)
+                            duration.dt, ext)
         await ctx.send(f"Temp blocked {member.mention} from viewing "
-                       f"{chans} until {duration_text}.")
+                       f"{chans}. It expires in {duration_text}.")
         dm_message = f"You were temporarily blocked on {ctx.guild.name} "\
                      f"from viewing {chans}!"
         if reason:
