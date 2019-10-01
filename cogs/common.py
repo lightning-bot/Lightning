@@ -25,9 +25,6 @@ import asyncio
 import traceback
 import datetime
 import arrow
-import time
-import math
-import parsedatetime
 import subprocess
 from discord.ext.commands import Cog
 import discord
@@ -46,7 +43,6 @@ class Common(Cog):
         self.bot.aiogetbytes = self.aiogetbytes
         self.bot.get_relative_timestamp = self.get_relative_timestamp
         self.bot.escape_message = self.escape_message
-        self.bot.parse_time = self.parse_time
         self.bot.haste = self.haste
         self.bot.call_shell = self.call_shell
         self.bot.get_utc_timestamp = self.get_utc_timestamp
@@ -95,12 +91,6 @@ class Common(Cog):
         if include_timedate is True:
             return f"{str_ret} ({str(time_to).split('.')[0]} UTC)"
         return str_ret
-
-    def parse_time(self, delta_str):
-        cal = parsedatetime.Calendar()
-        time_struct, parse_status = cal.parse(delta_str)
-        res_timestamp = math.floor(time.mktime(time_struct))
-        return res_timestamp
 
     def get_relative_timestamp(self, time_from=None, time_to=None,
                                humanized=False, include_from=False,

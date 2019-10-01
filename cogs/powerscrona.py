@@ -316,16 +316,16 @@ class PowersCronManagement(commands.Cog):
         with open("config/guilds_to_clean.json", "w") as f:
             return json.dump(json_returned, f)
 
-    @commands.Cog.listener()
-    async def on_guild_leave(self, guild):
-        to_clean = self.guild_cleanup()
-        gid = str(guild.id)
-        if gid not in to_clean['guildids']:
-            to_clean['guildids'].append(gid)
-            dec = self.bot.parse_time("30 days")
-            await self.add_job("guild_clean", datetime.utcnow(), dec,
-                               {"guild_id": guild.id})
-        self.clean_guilds_dump(to_clean)
+    # @commands.Cog.listener()
+    # async def on_guild_leave(self, guild):
+    #    to_clean = self.guild_cleanup()
+    #    gid = str(guild.id)
+    #    if gid not in to_clean['guildids']:
+    #        to_clean['guildids'].append(gid)
+    #        dec = self.bot.parse_time("30 days")
+    #        await self.add_job("guild_clean", datetime.utcnow(), dec,
+    #                           {"guild_id": guild.id})
+    #    self.clean_guilds_dump(to_clean)
 
 
 def setup(bot):
