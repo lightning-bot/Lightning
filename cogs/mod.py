@@ -31,7 +31,7 @@ from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_
 from datetime import datetime, timedelta
 import json
 # import asyncio
-from utils.time import natural_timedelta
+from utils.time import natural_timedelta, FutureTime
 import io
 from utils.paginator import Pages
 from utils.converters import TargetMember
@@ -651,31 +651,29 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Moderator", ban_members=True)
     @commands.command(aliases=['tempban'])
     async def timeban(self, ctx, target: TargetMember,
-                      duration: str, *, reason: str = ""):
+                      duration: FutureTime, *, reason: str = ""):
         """Bans a user for a specified amount of time.
 
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        expiry_timestamp = self.bot.parse_time(duration)
-        expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
-        duration_text = self.bot.get_utc_timestamp(time_to=expiry_datetime,
+        duration_text = self.bot.get_utc_timestamp(time_to=duration.dt,
                                                    include_to=True)
-        timed_txt = natural_timedelta(expiry_datetime)
-        duration_text = f"in {timed_txt} ({duration_text})"
+        timed_txt = natural_timedelta(duration.dt)
+        duration_text = f"{timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
             raise TimersUnavailable
         ext = {"guild_id": ctx.guild.id, "user_id": target.id}
         await timer.add_job("timeban", datetime.utcnow(),
-                            expiry_datetime, ext)
+                            duration.dt, ext)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
 
         dm_message = f"You were banned from {ctx.guild.name}."
         if reason:
             dm_message += f" The given reason is: \"{reason}\"."
-        dm_message += f"\n\nThis ban will expire {duration_text}."
+        dm_message += f"\n\nThis ban will expire in {duration_text}."
 
         try:
             await target.send(dm_message)
@@ -683,12 +681,10 @@ class Mod(commands.Cog):
             # Prevents ban issues in cases where user blocked bot
             # or has DMs disabled
             pass
-        reason_duration = self.bot.get_utc_timestamp(time_to=expiry_datetime,
-                                                     include_to=True)
         if reason:
-            opt_reason = f"{reason} (Timeban expires at {reason_duration})"
+            opt_reason = f"{reason} (Timeban expires in {duration_text})"
         else:
-            opt_reason = f" (Timeban expires at {reason_duration})"
+            opt_reason = f" (Timeban expires in {duration_text})"
         await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, opt_reason)}",
                             delete_message_days=0)
         chan_message = f"⛔ **Timed Ban**: {ctx.author.mention} banned "\
@@ -702,7 +698,7 @@ class Mod(commands.Cog):
                             " <target> <duration> [reason]`"\
                             " as the reason is automatically sent to the user."
         await ctx.send(f"{safe_name} is now b&. "
-                       f"It will expire {duration_text}. 👍")
+                       f"It will expire in {duration_text}. 👍")
         await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
@@ -710,31 +706,29 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(manage_roles=True)
     @is_staff_or_has_perms("Moderator", manage_roles=True)
     async def timemute(self, ctx, target: TargetMember,
-                       duration: str, *, reason: str = ""):
+                       duration: FutureTime, *, reason: str = ""):
         """Mutes a user for a specified amount of time.
 
         In order to use this command, you must either have
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
         role = await self.get_mute_role(ctx)
-        expiry_timestamp = self.bot.parse_time(duration)
-        expiry_datetime = datetime.utcfromtimestamp(expiry_timestamp)
-        duration_text = self.bot.get_utc_timestamp(time_to=expiry_datetime,
+        duration_text = self.bot.get_utc_timestamp(time_to=duration.dt,
                                                    include_to=True)
-        timed_txt = natural_timedelta(expiry_datetime)
-        duration_text = f"in {timed_txt} ({duration_text})"
+        timed_txt = natural_timedelta(duration.dt)
+        duration_text = f"{timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
         if not timer:
             raise TimersUnavailable
         ext = {"guild_id": ctx.guild.id, "user_id": target.id,
                "role_id": role.id}
         await timer.add_job("timed_restriction", datetime.utcnow(),
-                            expiry_datetime, ext)
+                            duration.dt, ext)
         safe_name = await commands.clean_content().convert(ctx, str(target))
         dm_message = f"You were muted on {ctx.guild.name}!"
         if reason:
             dm_message += f" The given reason is: \"{reason}\"."
-        dm_message += f"\n\nThis mute will expire {duration_text}."
+        dm_message += f"\n\nThis mute will expire in {duration_text}."
 
         try:
             await target.send(dm_message)
@@ -742,12 +736,10 @@ class Mod(commands.Cog):
             # Prevents mute issues in cases where user blocked bot
             # or has DMs disabled
             pass
-        reason_duration = self.bot.get_utc_timestamp(time_to=expiry_datetime,
-                                                     include_to=True)
         if reason:
-            opt_reason = f"{reason} (Timemute expires at {reason_duration})"
+            opt_reason = f"{reason} (Timemute expires in {duration_text})"
         else:
-            opt_reason = f" (Timemute expires at {reason_duration})"
+            opt_reason = f" (Timemute expires in {duration_text})"
 
         await target.add_roles(role, reason=f"{self.mod_reason(ctx, opt_reason)}")
 
@@ -763,7 +755,7 @@ class Mod(commands.Cog):
                             " as the reason is automatically sent to the user."
         await self.set_user_restrictions(ctx.guild.id, target.id, role.id)
         await ctx.send(f"{target.mention} can no longer speak. "
-                       f"It will expire {duration_text}.")
+                       f"It will expire in {duration_text}.")
         await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
