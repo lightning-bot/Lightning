@@ -46,8 +46,8 @@ STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
 C_HASH = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('UTF-8')
 
 
-class PowersCronManagement(commands.Cog):
-    """Commands that help manage PowersCron's Cron Jobs"""
+class TasksManagement(commands.Cog):
+    """Commands that help manage the bot's background tasks and loops"""
     def __init__(self, bot):
         self.bot = bot
         self.statuses = json.load(open('resources/status_switching.json',
@@ -329,4 +329,4 @@ class PowersCronManagement(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(PowersCronManagement(bot))
+    bot.add_cog(TasksManagement(bot))
