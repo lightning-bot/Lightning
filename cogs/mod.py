@@ -418,8 +418,7 @@ class Mod(commands.Cog):
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
             pass
-        await self.log_send(ctx, msg)
-        await self.purged_log_send(ctx, fi)
+        await self.log_send(ctx, msg, file=fi)
 
     @commands.guild_only()
     @commands.bot_has_permissions(ban_members=True)
