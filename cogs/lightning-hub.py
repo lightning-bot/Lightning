@@ -128,20 +128,20 @@ class LightningHub(commands.Cog):
         await self.bot.wait_until_ready()
         if member.guild.id != 527887739178188830:
             return
-        if db.per_guild_config.exist_guild_config(member.guild, "config"):
-            config = db.per_guild_config.get_guild_config(member.guild, "config")
-            if "auto_probate" in config:
-                role = discord.Object(id=546379342943617025)
-                await member.add_roles(role, reason="Auto Probate")
-                dm_message = "You were automatically probated. "\
-                             "Please read the rules for this "\
-                             "server and speak in the probation "\
-                             "channel when you are ready."
-                msg = f"**Auto Probate:** {member.mention}"
-                try:
-                    await member.send(dm_message)
-                except discord.errors.Forbidden:
-                    msg += "\nUnable to deliver message in DMs"
+        config = json.load(open(f'config/{member.guild.id}/config.json',
+                                'r', encoding='utf8'))
+        if "auto_probate" in config:
+            role = discord.Object(id=546379342943617025)
+            await member.add_roles(role, reason="Auto Probate")
+            dm_message = "You were automatically probated. "\
+                         "Please read the rules for this "\
+                         "server and speak in the probation "\
+                         "channel when you are ready."
+            msg = f"**Auto Probate:** {member.mention}"
+            try:
+                await member.send(dm_message)
+            except discord.errors.Forbidden:
+                msg += "\nUnable to deliver message in DMs"
                 mod_log_chan = self.bot.get_channel(552583376566091805)
                 await mod_log_chan.send(msg)
 
