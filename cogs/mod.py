@@ -654,6 +654,12 @@ class Mod(commands.Cog):
                       duration: FutureTime, *, reason: str = ""):
         """Bans a user for a specified amount of time.
 
+        The duration can be a short time format such as "30d",
+        a more human duration format such as "until Monday at 7PM",
+        or a more concrete time format such as "2020-12-31".
+
+        Note that duration time is in UTC.
+
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
@@ -693,7 +699,7 @@ class Mod(commands.Cog):
         if reason:
             chan_message += f"✏️ __Reason__: \"{reason}\""
         else:
-            chan_message += "Please add an explanation below. In the future"\
+            chan_message += "\nPlease add an explanation below. In the future"\
                             f", it is recommended to use `{ctx.prefix}timeban"\
                             " <target> <duration> [reason]`"\
                             " as the reason is automatically sent to the user."
@@ -708,6 +714,12 @@ class Mod(commands.Cog):
     async def timemute(self, ctx, target: TargetMember,
                        duration: FutureTime, *, reason: str = ""):
         """Mutes a user for a specified amount of time.
+
+        The duration can be a short time format such as "30d",
+        a more human duration format such as "until Monday at 7PM",
+        or a more concrete time format such as "2020-12-31".
+
+        Note that duration time is in UTC.
 
         In order to use this command, you must either have
         Manage Roles permission or a role that
