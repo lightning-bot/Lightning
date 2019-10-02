@@ -407,12 +407,12 @@ class Mod(commands.Cog):
         is assigned as a Moderator or above in the bot."""
         fi = await self.purged_txt(ctx, message_count)
         try:
-            await ctx.channel.purge(limit=message_count)
+            pmsg = await ctx.channel.purge(limit=message_count)
         except Exception as e:
             self.bot.log.error(e)
             return await ctx.send('❌ Cannot purge messages!')
 
-        msg = f'🗑️ **{message_count} messages purged** in {ctx.channel.mention} | {ctx.channel.name}\n'
+        msg = f'🗑️ **{len(pmsg)} messages purged** in {ctx.channel.mention} | {ctx.channel.name}\n'
         msg += f'Purger was {ctx.author.mention} | {ctx.author}\n'
         if reason:
             msg += f"✏️ __Reason__: \"{reason}\""
