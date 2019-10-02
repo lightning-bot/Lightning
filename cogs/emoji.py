@@ -55,7 +55,7 @@ class Emoji(commands.Cog):
         rand = list(filter(lambda m: emojiname in m.name.lower(), self.bot.emojis))
         if rand:
             em = random.choice(rand)
-            await ctx.send(em)
+            await ctx.emoji_send(em)
         else:
             return await ctx.send("No Emote Found!")
 
