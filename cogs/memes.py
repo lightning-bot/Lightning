@@ -149,6 +149,10 @@ class Memes(commands.Cog):
         link = random.choice(self.memes_list['bait'])
         await ctx.safe_send(f'{ctx.author.display_name}: {str(link)}')
 
+    @memes.command(name="cat", hidden=True)
+    async def memes_cat(self, ctx):
+        await ctx.safe_send(f'{ctx.author.display_name}: https://i.imgur.com/dCXyOfK.png')
+
 
 def setup(bot):
     bot.add_cog(Memes(bot))
