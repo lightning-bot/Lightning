@@ -25,12 +25,12 @@
 
 from discord.ext import commands
 import discord
-import db.per_guild_config
 from utils.checks import is_guild, has_staff_role, is_bot_manager_or_staff
 from datetime import datetime
 import json
 import config
 from utils.time import natural_timedelta, FutureTime
+import os
 
 
 class LightningHub(commands.Cog):
@@ -39,13 +39,13 @@ class LightningHub(commands.Cog):
         self.bot = bot
 
     async def cog_before_invoke(self, ctx):
-        if db.per_guild_config.exist_guild_config(ctx.guild, "config"):
-            ctx.guild_config = db.per_guild_config.get_guild_config(ctx.guild, "config")
+        if os.path.isfile(f"config/{ctx.guild.id}/config.json"):
+            ctx.guild_config = json.load(open(f'config/{ctx.guild.id}/config.json'))
         else:
             ctx.guild_config = {}
 
     async def cog_after_invoke(self, ctx):
-        db.per_guild_config.write_guild_config(ctx.guild, ctx.guild_config, "config")
+        json.dump(ctx.guild_config, open(f'config/{ctx.guild.id}/config.json'))
 
     @commands.command()
     @is_guild(527887739178188830)
