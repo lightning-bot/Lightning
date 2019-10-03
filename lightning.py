@@ -37,13 +37,8 @@ import config
 import asyncpg
 from utils import errors
 
-# Uses logging template from ave's botbase.py
-# botbase.py is under the MIT License.
-# https://gitlab.com/ao/dpyBotBase/blob/master/LICENSE
 
-script_name = os.path.basename(__file__).split('.')[0]
-
-log_file_name = f"{script_name}.log"
+log_file_name = "lightning.log"
 
 # Limit of discord (non-nitro) is 8MB (not MiB)
 max_file_size = 1000 * 1000 * 8
@@ -51,7 +46,6 @@ backup_count = 10
 file_handler = logging.handlers.RotatingFileHandler(
     filename=log_file_name, maxBytes=max_file_size, backupCount=backup_count)
 stdout_handler = logging.StreamHandler(sys.stdout)
-
 log_format = logging.Formatter(
     '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
 file_handler.setFormatter(log_format)
@@ -61,6 +55,7 @@ log = logging.getLogger('discord')
 log.setLevel(logging.INFO)
 log.addHandler(file_handler)
 log.addHandler(stdout_handler)
+# logging.getLogger('discord.http').setLevel(logging.WARNING)
 
 default_prefix = config.default_prefix
 
@@ -129,7 +124,7 @@ class LightningBot(commands.AutoShardedBot):
                          description=config.description)
         self.log = log
         self.launch_time = datetime.utcnow()
-        self.script_name = script_name
+        self.script_name = "lightning"
         self.successful_command = 0
         self.command_spammers = {}
         # Initialize as none then cache our prefixes on_ready
@@ -139,12 +134,12 @@ class LightningBot(commands.AutoShardedBot):
             try:
                 self.load_extension(ext)
             except Exception:
-                log.error(f'Failed to load cog {ext}.')
+                log.error(f'Failed to load {ext}.')
                 log.error(traceback.print_exc())
         try:
             self.load_extension('jishaku')
         except Exception:
-            log.error(f"Failed to load jishaku.")
+            log.error("Failed to load jishaku.")
             log.error(traceback.print_exc())
 
     async def create_pool(self, dbs, **kwargs):
@@ -162,7 +157,7 @@ class LightningBot(commands.AutoShardedBot):
         return pool
 
     async def on_ready(self):
-        aioh = {"User-Agent": f"{script_name}/1.0'"}
+        aioh = {"User-Agent": f"Lightning/{config.bot_version}'"}
         self.aiosession = aiohttp.ClientSession(headers=aioh)
         self.app_info = await self.application_info()
         self.botlog_channel = self.get_channel(config.error_channel)
