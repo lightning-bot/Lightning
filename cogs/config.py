@@ -469,11 +469,18 @@ class Configuration(commands.Cog):
 
     @commands.group(aliases=['prefixes'])
     @commands.guild_only()
-    @commands.has_permissions(manage_guild=True)
     async def prefix(self, ctx):
-        """Setup custom prefixes"""
+        """Manages the server's custom prefixes.
+
+        If called without a subcommand, this will list
+        the currently set prefixes for this guild."""
         if ctx.invoked_subcommand is None:
-            await ctx.send_help(ctx.command)
+            embed = discord.Embed(title=f"Custom Prefixes Set for {ctx.guild.name}",
+                                  description="",
+                                  color=discord.Color(0xd1486d))
+            for p in await self.get_guild_prefixes(ctx.guild.id):
+                embed.description += f"- {p}\n"
+            await ctx.send(embed=embed)
 
     @prefix.command(name="add")
     @commands.guild_only()
@@ -481,13 +488,15 @@ class Configuration(commands.Cog):
     async def addprefix(self, ctx, prefix: Prefix):
         """Adds a custom prefix.
 
-
         To have a prefix with a word (or words), you should quote it and
         end it with a space, e.g. "lightning " to set the prefix
         to "lightning ". This is because Discord removes spaces when sending
-        messages so the spaces are not preserved."""
+        messages so the spaces are not preserved.
+
+        In order to use this command, you must have Manage Server
+        permission to use this command."""
         prefixes = await self.get_guild_prefixes(ctx.guild.id)
-        if len(prefixes) < 10:
+        if len(prefixes) < 5:
             if prefix in prefixes:
                 return await ctx.send("That prefix is already registered!")
             prefixes.append(prefix)
@@ -497,7 +506,7 @@ class Configuration(commands.Cog):
             else:
                 self.bot.prefixes[ctx.guild.id] = prefixes
         else:
-            return await ctx.send("You can only have 10 custom prefixes per guild! Please remove one.")
+            return await ctx.send("You can only have 5 custom prefixes per guild! Please remove one.")
         await ctx.send(f"Added `{prefix}`")
 
     @prefix.command(name="remove")
@@ -509,7 +518,11 @@ class Configuration(commands.Cog):
         The inverse of the prefix add command.
 
         To remove word/multi-word prefixes, you need to quote it.
-        Example: l.prefix remove "lightning " removes the "lightning " prefix
+
+        Example: `l.prefix remove "lightning "` removes the "lightning " prefix.
+
+        In order to use this command, you must have Manage Server
+        permission to use this command.
         """
         # Bc I'm partially lazy
         prefixes = await self.get_guild_prefixes(ctx.guild.id)
@@ -521,18 +534,6 @@ class Configuration(commands.Cog):
         else:
             return await ctx.send(f"{prefix} was never added as a custom prefix.")
         await ctx.send(f"Removed `{prefix}`")
-
-    @prefix.command(name="list")
-    @commands.guild_only()
-    @commands.has_permissions(manage_guild=True)
-    async def listprefixes(self, ctx):
-        """Lists all the custom prefixes this server has"""
-        embed = discord.Embed(title=f"Custom Prefixes Set for {ctx.guild.name}",
-                              description="",
-                              color=discord.Color(0xd1486d))
-        for p in await self.get_guild_prefixes(ctx.guild.id):
-            embed.description += f"- {p}\n"
-        await ctx.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
