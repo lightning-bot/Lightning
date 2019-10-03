@@ -494,6 +494,8 @@ class Configuration(commands.Cog):
             await self.add_prefix(ctx.guild, prefixes)
             if ctx.guild.id in self.bot.prefixes:
                 self.bot.prefixes[ctx.guild.id].append(prefix)
+            else:
+                self.bot.prefixes[ctx.guild.id] = prefixes
         else:
             return await ctx.send("You can only have 10 custom prefixes per guild! Please remove one.")
         await ctx.send(f"Added `{prefix}`")
