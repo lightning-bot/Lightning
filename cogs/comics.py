@@ -26,33 +26,13 @@
 import discord
 from discord.ext import commands
 from discord.ext.commands import Cog
-import datetime
 from bs4 import BeautifulSoup
 import random
 
 
 class Comics(Cog):
-    """Comics Cog"""
     def __init__(self, bot):
         self.bot = bot
-
-    @commands.command(aliases=['cgc'])
-    @commands.bot_has_permissions(embed_links=True)
-    async def currentgarfieldcomic(self, ctx):
-        """Shows the current date's Garfield comic."""
-        now = datetime.datetime.now()
-        year = now.year
-        month = now.strftime("%m")
-        day = now.strftime("%d")
-
-        today_comic = f"https://d1ejxu6vysztl5.cloudfront.net/comics/"\
-                      f"garfield/{str(year)}/{str(year)}-{str(month)}-{str(day)}.gif"
-
-        embed = discord.Embed(colour=discord.Colour(0xFF9900))
-        embed.title = "Today's Garfield Comic " + "(" + str(month) + "/" + str(day) + "/" + str(year) + ")"
-        embed.set_image(url=today_comic)
-        embed.set_footer(text=f'Requested by {ctx.author}', icon_url=ctx.author.avatar_url)
-        await ctx.send(embed=embed)
 
     @commands.group(name="random-comic")
     async def random_comic(self, ctx):
