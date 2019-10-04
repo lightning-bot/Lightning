@@ -405,6 +405,8 @@ class Mod(commands.Cog):
         In order to use this command, You must either have
         Manage Messages permission or a role that
         is assigned as a Moderator or above in the bot."""
+        if message_count > 100:
+            return await ctx.send("You cannot purge more than 100 messages at a time!")
         fi = await self.purged_txt(ctx, message_count)
         try:
             pmsg = await ctx.channel.purge(limit=message_count)
