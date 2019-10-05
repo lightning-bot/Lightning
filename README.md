@@ -8,7 +8,7 @@ This version is the successor to Lightning.js
 
 ## Features
 
-Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features.
+Go to https://lightning-bot.gitlab.io for a list of current features.
 
 ---
 ## Planned Features
@@ -19,7 +19,7 @@ Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features
 <p>
 
 - [x] Message Logging 
-- [x] Logging: Invite Watching
+- [x] Logging: Invite Watching (soon to be rewritten)
 - [x] Member Count
 - [x] Announcement Maker
 - [x] Moderation: Mute
@@ -27,19 +27,18 @@ Go to https://lightsage.gitlab.io/lightning/home/ for a list of current features
 - [x] Moderation: Ban ID/Hackban
 - [x] Moderation: Silent Kick
 - [x] Moderation: Reapply Restrictions on Member Join
-- [x] Admin: Fetch the guild's userlog.json file
+- [x] Admin: Fetch the guild's userlog.json file (Obsolete since v2)
 - [x] Status Switching
 - [x] Support Server: Special commands that help moderate the support server
 - [x] Bot Owner: Blacklist Guilds and Users
 - [x] Bot Owner: Search blacklist with an ID
-- [x] PowersCron: Reminders/Timers
-- [x] Moderation: Time Ban (relies on PowersCron)
-- [x] PowersCron: Allow reminder author to delete their own reminders
-- [x] PowersCron: Management Cog (PCA/PCM)
-- [x] PowersCron: 6 Hour Data Backup 
-- [x] Moderation: Time Mute (relies on PowersCron)
+- [x] Lightning's Timer System: Reminders/Timers
+- [x] Moderation: Time Ban (relies on Lightning's Timer System)
+- [x] Lightning's Timer System: Allow reminder author to delete their own reminders
+- [x] Lightning's Timer System: Management Cog (PCA/PCM)
+- [x] Lightning's Timer System: 6 Hour Data Backup (Now Unused since v2)
+- [x] Moderation: Time Mute (relies on Lightning's Timer System)
 - [x] Better Help Command
-- [x] Tags 
 
 </p>
 </details>
