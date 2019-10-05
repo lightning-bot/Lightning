@@ -195,9 +195,11 @@ class LightningHub(commands.Cog):
     @is_guild(527887739178188830)
     @has_staff_role("Helper")
     async def block(self, ctx, member: discord.Member,
-                    channels: commands.Greedy[discord.TextChannel],
+                    channels: commands.Greedy[discord.TextChannel] = None,
                     *, reason: str = ""):
         """Blocks a user from a channel or channels"""
+        if channels is None:
+            raise commands.BadArgument('You must specify channels!')
         for channel in channels:
             await channel.set_permissions(member, read_messages=False,
                                           send_messages=False,
@@ -220,9 +222,11 @@ class LightningHub(commands.Cog):
     @is_guild(527887739178188830)
     @has_staff_role("Helper")
     async def tempblock(self, ctx, member: discord.Member,
-                        channels: commands.Greedy[discord.TextChannel],
+                        channels: commands.Greedy[discord.TextChannel] = None,
                         duration: FutureTime, *, reason: str = ""):
         """Temp Blocks a user from a channel or channels"""
+        if channels is None:
+            raise commands.BadArgument('You must specify channels!')
         idlist = []
         for channel in channels:
             await channel.set_permissions(member, read_messages=False,
