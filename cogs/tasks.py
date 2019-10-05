@@ -235,9 +235,8 @@ class TasksManagement(commands.Cog):
                         return
                     if timestamp >= jobtype['expiry']:
                         # Dispatch the job and delete it.
-                        async with self.bot.db.acquire() as con:
-                            query = "DELETE FROM timers WHERE id=$1;"
-                            await con.execute(query, jobtype['id'])
+                        query = "DELETE FROM timers WHERE id=$1;"
+                        await self.bot.db.execute(query, jobtype['id'])
                         self.bot.dispatch(f"{jobtype['event']}_job_complete",
                                           jobtype)
             except (discord.ConnectionClosed, asyncpg.PostgresConnectionError):
