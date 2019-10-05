@@ -56,25 +56,6 @@ CREATE TABLE IF NOT EXISTS auto_roles
     CONSTRAINT auto_roles_pkey PRIMARY KEY (guild_id, role_id)
 );
 
-CREATE TABLE IF NOT EXISTS tags
-(
-    guild_id BIGINT PRIMARY KEY,
-    tag_name TEXT,
-    tag_content TEXT,
-    tag_author BIGINT,
-    created_at TIMESTAMP WITHOUT TIME ZONE,
-    usage BIGINT
-);
-
-CREATE TABLE IF NOT EXISTS tag_aliases
-(
-    guild_id BIGINT PRIMARY KEY,
-    tag_name TEXT,
-    tag_points_to TEXT REFERENCES tags(tag_name) ON DELETE CASCADE,
-    tag_author BIGINT,
-    created_at TIMESTAMP WITHOUT TIME ZONE
-);
-
 CREATE TABLE IF NOT EXISTS commands_usage
 (
     id BIGSERIAL PRIMARY KEY,
@@ -109,3 +90,14 @@ CREATE TABLE IF NOT EXISTS modlog_cases
     case_id SERIAL,
     case_info JSONB
 );
+
+CREATE TABLE IF NOT EXISTS sniped_messages
+(
+    guild_id BIGINT PRIMARY KEY,
+    channel_id BIGINT,
+    message VARCHAR(2000),
+    user_id BIGINT,
+    settings JSONB
+);
+
+-- ALTER TABLE guild_mod_config ADD COLUMN prefix TEXT [];
