@@ -222,10 +222,10 @@ class LightningHub(commands.Cog):
     @is_guild(527887739178188830)
     @has_staff_role("Helper")
     async def tempblock(self, ctx, member: discord.Member,
-                        channels: commands.Greedy[discord.TextChannel] = None,
+                        channels: commands.Greedy[discord.TextChannel],
                         duration: FutureTime, *, reason: str = ""):
         """Temp Blocks a user from a channel or channels"""
-        if channels is None:
+        if len(channels) == 0:
             raise commands.BadArgument('You must specify channels!')
         idlist = []
         for channel in channels:
