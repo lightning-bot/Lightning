@@ -668,7 +668,7 @@ class Mod(commands.Cog):
                                                    include_to=True)
         timed_txt = natural_timedelta(duration.dt)
         duration_text = f"{timed_txt} ({duration_text})"
-        timer = self.bot.get_cog('PowersCronManagement')
+        timer = self.bot.get_cog('TasksManagement')
         if not timer:
             raise TimersUnavailable
         ext = {"guild_id": ctx.guild.id, "user_id": target.id}
@@ -730,7 +730,7 @@ class Mod(commands.Cog):
                                                    include_to=True)
         timed_txt = natural_timedelta(duration.dt)
         duration_text = f"{timed_txt} ({duration_text})"
-        timer = self.bot.get_cog('PowersCronManagement')
+        timer = self.bot.get_cog('TasksManagement')
         if not timer:
             raise TimersUnavailable
         ext = {"guild_id": ctx.guild.id, "user_id": target.id,

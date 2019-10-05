@@ -59,7 +59,7 @@ class Reminders(commands.Cog):
         duration_text = time.natural_timedelta(when.dt, source=ctx.message.created_at)
         safe_description = await commands.clean_content().convert(ctx, str(when.arg))
 
-        timer = self.bot.get_cog('PowersCronManagement')
+        timer = self.bot.get_cog('TasksManagement')
         if not timer:
             raise TimersUnavailable
         to_dump = {"reminder_text": safe_description,
