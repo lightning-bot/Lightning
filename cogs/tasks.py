@@ -222,7 +222,7 @@ class TasksManagement(commands.Cog):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
             query = """SELECT * FROM timers;"""
-            await self.bot.db.fetch(query)
+            jobs = await self.bot.db.fetch(query)
             timestamp = datetime.utcnow()
             try:
                 for jobtype in jobs:
