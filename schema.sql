@@ -1,6 +1,6 @@
 -- Created for PostgreSQL 11
 
-DROP TABLE IF EXISTS timers, cronjobs, staff_roles, userlogs, user_restrictions, tags, commands_usage, bug_tickets, toggleable_roles;
+DROP TABLE IF EXISTS timers, cronjobs, staff_roles, userlogs, user_restrictions, commands_usage, bug_tickets, toggleable_roles;
 
 -- Just store the timestamps as utcnow(). 
 -- Makes my life easier
