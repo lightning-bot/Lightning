@@ -177,17 +177,15 @@ class TasksManagement(commands.Cog):
                    ORDER BY expiry
                    LIMIT 10;
                 """
+        cquery = """SELECT COUNT(*) FROM timers WHERE event=$1"""
         con = await self.bot.db.acquire()
         try:
             table = await con.fetch(query, jobtype)
+            result = await con.fetchval(cquery, jobtype)
         finally:
             await self.bot.db.release(con)
         embed = discord.Embed(title="Active Timers", color=0xf74b06)
-        # It just works:tm:
-        query = """SELECT COUNT(*) FROM timers WHERE event=$1"""
-        async with self.bot.db.acquire() as con:
-            result = await con.fetch(query, jobtype)
-        embed.set_footer(text=f"{result[0][0]} running timers for {jobtype}")
+        embed.set_footer(text=f"{result} running timers for {jobtype}")
         try:
             for job in table:
                 duration_text = self.bot.get_relative_timestamp(time_to=job['expiry'],
@@ -224,8 +222,7 @@ class TasksManagement(commands.Cog):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
             query = """SELECT * FROM timers;"""
-            async with self.bot.db.acquire() as con:
-                jobs = await con.fetch(query)
+            await self.bot.db.fetch(query)
             timestamp = datetime.utcnow()
             try:
                 for jobtype in jobs:
