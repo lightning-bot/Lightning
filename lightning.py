@@ -173,7 +173,7 @@ class LightningBot(commands.AutoShardedBot):
               f"\nRunning on Python {platform.python_version()}"\
               f"\nI'm currently on **{self.config.bot_version}**"
         await self.botlog_channel.send(msg, delete_after=250)
-        init_game = discord.Game("rewrite is the future")
+        init_game = discord.Game("rewrite is the future!")
         await self.change_presence(activity=init_game)
 
     async def auto_blacklist_check(self, message):
