@@ -70,11 +70,23 @@ class Utility(commands.Cog):
         if not settings:
             return await ctx.send("This guild has no channels or people ignored from snipe!")
 
-    @snipe.command()
+    @snipe.command(name="blacklist")
     async def snipe_settings_add(self, ctx, *, channel: discord.TextChannel = None):
         """Adds a channel that cannot be sniped"""
-        query = """
+        query = """SELECT channel_ids
+                   FROM snipe_settings
+                   WHERE guild_id=$1;
                 """
+        add_query = """INSERT INTO snipe_settings (guild_id, channel_ids)
+                       VALUES ($1, $2)
+                       ON CONFLICT (guild_id)
+                       DO UPDATE SET channel_ids = EXCLUDED.channel_ids;
+                    """
+        snipe_channels = await self.bot.db.fetchval(query, ctx.guild.id)
+        if channel in snipe_channels:
+            return await ctx.send(f"{channel.mention} is already added as a blacklisted channel.")
+        else:
+            await self.bot.db.execute(add_query, ctx.guild.id, channel.id)
 
     @commands.command(aliases=['say'])
     @commands.guild_only()
