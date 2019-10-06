@@ -97,7 +97,13 @@ CREATE TABLE IF NOT EXISTS sniped_messages
     channel_id BIGINT,
     message VARCHAR(2000),
     user_id BIGINT,
-    settings JSONB
+);
+
+CREATE TABLE IF NOT EXISTS snipe_settings
+(
+    guild_id BIGINT PRIMARY KEY,
+    channel_ids BIGINT [],
+    user_ids BIGINT []
 );
 
 -- ALTER TABLE guild_mod_config ADD COLUMN prefix TEXT [];
