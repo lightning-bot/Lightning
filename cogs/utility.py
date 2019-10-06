@@ -33,6 +33,7 @@ import asyncio
 import colorsys
 from PIL import Image
 from utils.converters import SafeSend, ReadableChannel
+import asyncpg
 
 
 class Utility(commands.Cog):
@@ -49,7 +50,7 @@ class Utility(commands.Cog):
 
     @commands.group(invoke_without_command=True)
     async def snipe(self, ctx, channel: ReadableChannel = None):
-        """Snipes the last deleted message"""
+        """Snipes the last deleted message in the specified channel."""
         if channel is None:
             channel = ctx.channel
         query = """SELECT * FROM sniped_messages
@@ -57,10 +58,18 @@ class Utility(commands.Cog):
                    AND channel_id=$2;
                 """
         sniped_msg = await self.bot.db.fetchrow(query, ctx.guild.id, channel.id)
-        if sniped_msg is None:
-            return await ctx.send("Couldn't find anything to snipe")
         if channel.is_nsfw() is True and ctx.channel.is_nsfw() is False:
             return await ctx.send("No sniping NSFW outside of a NSFW channel.")
+        if channel.id in await self.get_snipe_channels(ctx.guild.id):
+            return await ctx.send(f"{channel.mention} is blacklisted and cannot be sniped!")
+        if not sniped_msg:
+            return await ctx.send("Couldn't find anything to snipe")
+        user = self.bot.get_user(sniped_msg['user_id'])
+        embed = discord.Embed(title=f"{user} said",
+                              description=sniped_msg['message'],
+                              timestamp=sniped_msg['timestamp'])
+        embed.set_footer(text=f"#{channel} in {ctx.guild}")
+        await ctx.send(embed=embed)
 
     @snipe.command(name="view-settings")
     async def snipe_settings_v(self, ctx):
@@ -68,14 +77,16 @@ class Utility(commands.Cog):
         query = """SELECT * FROM snipe_settings WHERE guild_id=$1;"""
         settings = await self.bot.db.fetchrow(query, ctx.guild.id)
         if not settings:
-            return await ctx.send("This guild has no channels or people ignored from snipe!")
-        embed = discord.Embed(title="Snipe Settings", color=0xf74b06)
+            return await ctx.send("This guild has no channels blacklisted from sniping!")
         if settings['channel_ids']:
+            embed = discord.Embed(title="Snipe Settings", color=0xf74b06)
             channels = []
             for r in settings['channel_ids']:
                 ch = discord.utils.get(ctx.guild.text_channels, id=r)
                 channels.append(ch.mention)
             embed.add_field(name="Blacklisted Channels", value="\n".join(channels))
+        else:
+            return await ctx.send(f"Nothing currently blacklisted!")
         await ctx.send(embed=embed)
 
     async def get_snipe_channels(self, guild_id: int):
@@ -89,9 +100,29 @@ class Utility(commands.Cog):
         else:
             return []
 
-    @snipe.command(name="blacklist")
+    async def get_snipe_users(self, guild_id: int):
+        query = """SELECT user_ids FROM snipe_settings WHERE guild_id=$1"""
+        ret = await self.bot.db.fetchval(query, guild_id)
+        if ret:
+            return ret
+        else:
+            return []
+
+    @snipe.group(name="blacklist")
+    @is_staff_or_has_perms("Admin", manage_guild=True)
+    async def blacklisted(self, ctx):
+        """Manages the snipe blacklist."""
+        if ctx.invoked_subcommand is None:
+            return await ctx.send_help(ctx.command)
+
+    @blacklisted.command(name="add-channel", aliases=['addchannel'])
+    @is_staff_or_has_perms("Admin", manage_guild=True)
     async def snipe_settings_add(self, ctx, *, channel: discord.TextChannel = None):
-        """Adds a channel that cannot be sniped"""
+        """Adds a channel that cannot be sniped.
+
+        In order to use this command, you must either have
+        Manage Server permission or a role that
+        is assigned as an Admin or above in the bot."""
         if channel is None:
             channel = ctx.channel
         add_query = """INSERT INTO snipe_settings (guild_id, channel_ids)
@@ -105,6 +136,61 @@ class Utility(commands.Cog):
         snipe_channels.append(channel.id)
         await self.bot.db.execute(add_query, ctx.guild.id, snipe_channels)
         await ctx.send(f"Added {channel.mention} to the list of blacklisted channels.")
+
+    @blacklisted.command(name="remove-channel", aliases=['deletechannel', 'removechannel'])
+    @is_staff_or_has_perms("Admin", manage_guild=True)
+    async def snipe_settings_rmo(self, ctx, *, channel: discord.TextChannel = None):
+        """Removes a channel that was previously blacklisted
+        from being sniped.
+
+        In order to use this command, you must either have
+        Manage Server permission or a role that
+        is assigned as an Admin or above in the bot."""
+        if channel is None:
+            channel = ctx.channel
+        query = """INSERT INTO snipe_settings (guild_id, channel_ids)
+                   VALUES ($1, $2::bigint[])
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET channel_ids = EXCLUDED.channel_ids;
+                """
+        snipe_channels = await self.get_snipe_channels(ctx.guild.id)
+        if channel.id not in snipe_channels:
+            return await ctx.send(f"{channel.mention} was never blacklisted!")
+        snipe_channels.remove(channel.id)
+        await self.bot.db.execute(query, ctx.guild.id, snipe_channels)
+        await ctx.send(f"\N{THUMBS UP SIGN} {channel.mention} is now unblacklisted from sniping.")
+
+    @commands.Cog.listener()
+    async def on_message_delete(self, message):
+        ignored = await self.get_snipe_channels(message.guild.id)
+        if message.channel.id in ignored:
+            return
+        # if message.author.id in ignored:
+        #    return
+        content = message.content
+        if message.attachments:
+            content = str(message.attachments[0].proxy_url)
+        if message.embeds:
+            if message.embeds[0].description:
+                content = message.embeds[0].description
+            else:
+                content = f"{message.content}\n\n**Message contained an embed.**"
+        query = """INSERT INTO sniped_messages
+                   VALUES ($1, $2, $3, $4, $5)
+                   ON CONFLICT (channel_id)
+                   DO UPDATE SET
+                   channel_id = EXCLUDED.channel_id,
+                   guild_id = EXCLUDED.guild_id,
+                   message = EXCLUDED.message,
+                   user_id = EXCLUDED.user_id,
+                   timestamp = EXCLUDED.timestamp
+                """
+        try:
+            await self.bot.db.execute(query, message.guild.id, message.channel.id,
+                                      content, message.author.id,
+                                      datetime.fromisoformat(message.created_at.isoformat()))
+        except asyncpg.DataError:
+            pass
 
     @commands.command(aliases=['say'])
     @commands.guild_only()
@@ -154,8 +240,8 @@ class Utility(commands.Cog):
     async def archive(self, ctx, limit: int):
         """Archives the current channel's contents.
         Admins only!"""
-        if limit > 750:  # Safe Value
-            return await ctx.send("Too big! Lower the value!")
+        if limit > 100:  # Safe Value
+            return await ctx.send("You can only archive 100 messages!")
         log_t = f"Archive of {ctx.channel} (ID: {ctx.channel.id}) "\
                 f"made on {datetime.utcnow()}\n\n\n"
         async with ctx.typing():

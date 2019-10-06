@@ -1,7 +1,5 @@
 -- Created for PostgreSQL 11
 
-DROP TABLE IF EXISTS timers, cronjobs, staff_roles, userlogs, user_restrictions, commands_usage, bug_tickets, toggleable_roles;
-
 -- Just store the timestamps as utcnow(). 
 -- Makes my life easier
 CREATE TABLE IF NOT EXISTS timers
@@ -93,10 +91,11 @@ CREATE TABLE IF NOT EXISTS modlog_cases
 
 CREATE TABLE IF NOT EXISTS sniped_messages
 (
-    guild_id BIGINT PRIMARY KEY,
-    channel_id BIGINT,
+    guild_id BIGINT,
+    channel_id BIGINT PRIMARY KEY,
     message VARCHAR(2000),
-    user_id BIGINT
+    user_id BIGINT,
+    timestamp TIMESTAMP WITHOUT TIME ZONE
 );
 
 CREATE TABLE IF NOT EXISTS snipe_settings
