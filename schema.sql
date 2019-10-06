@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS sniped_messages
     guild_id BIGINT PRIMARY KEY,
     channel_id BIGINT,
     message VARCHAR(2000),
-    user_id BIGINT,
+    user_id BIGINT
 );
 
 CREATE TABLE IF NOT EXISTS snipe_settings
