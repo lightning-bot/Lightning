@@ -47,14 +47,14 @@ class Utility(commands.Cog):
         image_file.seek(0)
         return image_file
 
-    @commands.group()
+    @commands.group(invoke_without_command=True)
     async def snipe(self, ctx, channel: ReadableChannel = None):
         """Snipes the last deleted message"""
         if channel is None:
             channel = ctx.channel
-        query = """SELECT * FROM snipes
+        query = """SELECT * FROM sniped_messages
                    WHERE guild_id=$1
-                   AND channel_id=$2
+                   AND channel_id=$2;
                 """
         sniped_msg = await self.bot.db.fetchrow(query, ctx.guild.id, channel.id)
         if sniped_msg is None:
@@ -69,24 +69,42 @@ class Utility(commands.Cog):
         settings = await self.bot.db.fetchrow(query, ctx.guild.id)
         if not settings:
             return await ctx.send("This guild has no channels or people ignored from snipe!")
+        embed = discord.Embed(title="Snipe Settings", color=0xf74b06)
+        if settings['channel_ids']:
+            channels = []
+            for r in settings['channel_ids']:
+                ch = discord.utils.get(ctx.guild.text_channels, id=r)
+                channels.append(ch.mention)
+            embed.add_field(name="Blacklisted Channels", value="\n".join(channels))
+        await ctx.send(embed=embed)
 
-    @snipe.command(name="blacklist")
-    async def snipe_settings_add(self, ctx, *, channel: discord.TextChannel = None):
-        """Adds a channel that cannot be sniped"""
+    async def get_snipe_channels(self, guild_id: int):
         query = """SELECT channel_ids
                    FROM snipe_settings
                    WHERE guild_id=$1;
                 """
+        snipe_channels = await self.bot.db.fetchval(query, guild_id)
+        if snipe_channels:
+            return snipe_channels
+        else:
+            return []
+
+    @snipe.command(name="blacklist")
+    async def snipe_settings_add(self, ctx, *, channel: discord.TextChannel = None):
+        """Adds a channel that cannot be sniped"""
+        if channel is None:
+            channel = ctx.channel
         add_query = """INSERT INTO snipe_settings (guild_id, channel_ids)
-                       VALUES ($1, $2)
+                       VALUES ($1, $2::bigint[])
                        ON CONFLICT (guild_id)
                        DO UPDATE SET channel_ids = EXCLUDED.channel_ids;
                     """
-        snipe_channels = await self.bot.db.fetchval(query, ctx.guild.id)
-        if channel in snipe_channels:
+        snipe_channels = await self.get_snipe_channels(ctx.guild.id)
+        if channel.id in snipe_channels:
             return await ctx.send(f"{channel.mention} is already added as a blacklisted channel.")
-        else:
-            await self.bot.db.execute(add_query, ctx.guild.id, channel.id)
+        snipe_channels.append(channel.id)
+        await self.bot.db.execute(add_query, ctx.guild.id, snipe_channels)
+        await ctx.send(f"Added {channel.mention} to the list of blacklisted channels.")
 
     @commands.command(aliases=['say'])
     @commands.guild_only()
