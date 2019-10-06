@@ -32,7 +32,7 @@ import io
 import asyncio
 import colorsys
 from PIL import Image
-from utils.converters import SafeSend
+from utils.converters import SafeSend, ReadableChannel
 
 
 class Utility(commands.Cog):
@@ -46,6 +46,35 @@ class Utility(commands.Cog):
         image_b.save(image_file, format="png")
         image_file.seek(0)
         return image_file
+
+    @commands.group()
+    async def snipe(self, ctx, channel: ReadableChannel = None):
+        """Snipes the last deleted message"""
+        if channel is None:
+            channel = ctx.channel
+        query = """SELECT * FROM snipes
+                   WHERE guild_id=$1
+                   AND channel_id=$2
+                """
+        sniped_msg = await self.bot.db.fetchrow(query, ctx.guild.id, channel.id)
+        if sniped_msg is None:
+            return await ctx.send("Couldn't find anything to snipe")
+        if channel.is_nsfw() is True and ctx.channel.is_nsfw() is False:
+            return await ctx.send("No sniping NSFW outside of a NSFW channel.")
+
+    @snipe.command(name="view-settings")
+    async def snipe_settings_v(self, ctx):
+        """Views snipe settings"""
+        query = """SELECT * FROM snipe_settings WHERE guild_id=$1;"""
+        settings = await self.bot.db.fetchrow(query, ctx.guild.id)
+        if not settings:
+            return await ctx.send("This guild has no channels or people ignored from snipe!")
+
+    @snipe.command()
+    async def snipe_settings_add(self, ctx, *, channel: discord.TextChannel = None):
+        """Adds a channel that cannot be sniped"""
+        query = """
+                """
 
     @commands.command(aliases=['say'])
     @commands.guild_only()
@@ -179,6 +208,7 @@ class Utility(commands.Cog):
                 return await ctx.send("This is not a `.bmp` file.")
 
     @commands.group()
+    @has_staff_role("Moderator")
     async def announce(self, ctx):
         """Announcements"""
         if ctx.invoked_subcommand is None:
