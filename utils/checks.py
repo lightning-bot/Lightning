@@ -26,6 +26,7 @@
 import discord
 from discord.ext import commands
 import config
+from utils import errors
 
 
 def is_guild(guild_id):
@@ -108,7 +109,7 @@ async def is_bot_manager(ctx):
     bm = ctx.author.id in config.bot_managers
     if bm:
         return True
-    return False
+    raise errors.NotOwnerorBotManager
 
 
 # A check function based off of Kirigiri.

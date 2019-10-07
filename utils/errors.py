@@ -30,6 +30,7 @@ from discord.ext import commands
 
 
 class LightningError(commands.CommandError):
+    """Base class for custom errors"""
     pass
 
 
@@ -60,3 +61,8 @@ class ChannelPermissionFailure(LightningError):
 class MessageNotFoundInChannel(LightningError):
     def __init__(self, message_id, channel):
         super().__init__(f"Message ({message_id}) was not found in {channel.mention}.")
+
+
+class NotOwnerorBotManager(LightningError):
+    def __init__(self):
+        super().__init__("This command is restricted to my bot manager(s) and owner.")
