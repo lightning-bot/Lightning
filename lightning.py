@@ -73,8 +73,7 @@ def _callable_prefix(bot, message):
         return commands.when_mentioned_or(*prefixed)(bot, message)
 
 
-initial_extensions = ['cogs.comics',
-                      'cogs.common',
+initial_extensions = ['cogs.common',
                       'cogs.config',
                       'cogs.emoji',
                       'cogs.fun',
