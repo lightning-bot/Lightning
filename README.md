@@ -13,7 +13,6 @@ Go to https://lightning-bot.gitlab.io for a list of current features.
 ---
 ## Planned Features
 
-
 <details>
 <summary>Completed Features</summary>
 <p>
