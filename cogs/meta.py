@@ -40,6 +40,7 @@ from utils.checks import is_bot_manager
 from utils.time import natural_timedelta
 from utils.converters import ReadableChannel
 from utils.errors import MessageNotFoundInChannel, ChannelPermissionFailure
+from bolt.time import get_relative_timestamp
 
 
 class NonGuildUser(commands.Converter):
@@ -252,10 +253,39 @@ class Meta(commands.Cog):
         self.dump_lock = asyncio.Lock(loop=bot.loop)
         self.data_todump = []
         self.unavailable_guilds = []
+        self.bot.create_error_ticket = self.create_error_ticket
 
     def cog_unload(self):
         self.bot.help_command = self.original_help_command
         self.bulk_command_insertion.stop()
+
+    async def create_error_ticket(self, ctx, title, information):
+        query = """INSERT INTO bug_tickets (status, ticket_info, created)
+                   VALUES ($1, $2, $3)
+                   RETURNING id;
+                """
+        ext = {"text": information, "author_id": ctx.author.id}
+        async with self.bot.db.acquire() as con:
+            id = await con.fetchrow(query, "Received", json.dumps(ext), datetime.datetime.utcnow())
+        e = discord.Embed(title=f"{title} Report - ID: {id[0]}", description=information)
+        e.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+        e.timestamp = datetime.datetime.utcnow()
+        e.set_footer(text="Status: Received")
+        ch = self.bot.get_channel(self.bot.config.bug_reports_channel)
+        msg = await ch.send(embed=e)
+        query = """UPDATE bug_tickets
+                   SET guild_id=$2, channel_id=$3, message_id=$4
+                   WHERE id=$1;
+                """
+        async with self.bot.db.acquire() as con:
+            await con.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
+        msg = f"```{information}```\n\nCreated a ticket with ID {id[0]}. "\
+              "You can see updates on your ticket by joining "\
+              "the [support server](https://discord.gg/cDPGuYd) and looking in the "\
+              f"reports channel."
+        embed = discord.Embed(title="Uh oh, my powers overloaded.", description=msg)
+        embed.set_footer(text="My developers have been notified about this.")
+        await ctx.send(embed=embed)
 
     @commands.command()
     async def avatar(self, ctx, *, member: Union[discord.Member, NonGuildUser] = None):
@@ -280,7 +310,7 @@ class Meta(commands.Cog):
                 embed.description = "This user is a bot."
             var = member.created_at.strftime("%Y-%m-%d %H:%M")
             vale = f"{var} UTC ({natural_timedelta(member.created_at, accuracy=3)})\n"\
-                   f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.created_at, humanized=True)}"
+                   f"Relative Date: {get_relative_timestamp(time_to=member.created_at)}"
             embed.add_field(name="Account Created On", value=vale)
             embed.set_footer(text='This member is not in this server.')
             return await ctx.send(embed=embed)
@@ -292,7 +322,7 @@ class Meta(commands.Cog):
         var2 = member.joined_at.strftime("%Y-%m-%d %H:%M")
         embed.add_field(name="Account Created On", value=f"{var} UTC "
                         f"({natural_timedelta(member.created_at, accuracy=3)})\n"
-                        f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.created_at, humanized=True)}",
+                        f"Relative Date: {get_relative_timestamp(time_to=member.created_at)}",
                         inline=False)
         statuses = {"dnd": f"{emoji.do_not_disturb} Do Not Disturb",
                     "online": f"{emoji.online} Online",
@@ -315,7 +345,7 @@ class Meta(commands.Cog):
                 embed.add_field(name="Activity", value=member.activity.name, inline=False)
         embed.add_field(name="Joined", value=f"{var2} UTC "
                         f"({natural_timedelta(member.joined_at, accuracy=3)})\n"
-                        f"Relative Date: {self.bot.get_relative_timestamp(time_to=member.joined_at, humanized=True)}",
+                        f"Relative Date: {get_relative_timestamp(time_to=member.joined_at)}",
                         inline=False)
         roles = [x.mention for x in member.roles]
         if f"<@&{ctx.guild.id}>" in roles:
@@ -451,7 +481,7 @@ class Meta(commands.Cog):
         tmp = guild.created_at.strftime("%Y-%m-%d %H:%M")
         embed.add_field(name="Creation", value=f"{tmp} UTC "
                         f"({natural_timedelta(guild.created_at, accuracy=3)})\n"
-                        f"Relative Date: {self.bot.get_relative_timestamp(time_to=guild.created_at, humanized=True)}")
+                        f"Relative Date: {get_relative_timestamp(time_to=guild.created_at)}")
         member_by_status = Counter(str(m.status) for m in guild.members)
         # Little snippet taken from R. Danny. Under the MIT License
         sta = f'<:online:572962188114001921> {member_by_status["online"]} ' \

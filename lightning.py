@@ -73,8 +73,7 @@ def _callable_prefix(bot, message):
         return commands.when_mentioned_or(*prefixed)(bot, message)
 
 
-initial_extensions = ['cogs.common',
-                      'cogs.config',
+initial_extensions = ['cogs.config',
                       'cogs.emoji',
                       'cogs.fun',
                       'cogs.git',
@@ -90,7 +89,8 @@ initial_extensions = ['cogs.common',
                       'cogs.utility',
                       'cogs.weeb',
                       'stabilite.stabilite',
-                      'cogs.misc']
+                      'cogs.misc',
+                      'bolt']
 
 # Create config folder if not found
 if not os.path.exists("config"):

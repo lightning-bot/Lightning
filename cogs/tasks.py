@@ -36,6 +36,7 @@ import json
 import dbl
 import os
 import asyncpg
+from bolt.time import get_relative_timestamp
 
 
 class RemoveRestrictionError(Exception):
@@ -188,9 +189,8 @@ class TasksManagement(commands.Cog):
         embed.set_footer(text=f"{result} running timers for {jobtype}")
         try:
             for job in table:
-                duration_text = self.bot.get_relative_timestamp(time_to=job['expiry'],
-                                                                include_to=True,
-                                                                humanized=True)
+                duration_text = get_relative_timestamp(time_to=job['expiry'],
+                                                       include_to=True)
                 embed.add_field(name=f"{jobtype} {job['id']}",
                                 value=f"Expiry: {duration_text}\n"
                                       f"Extra Details: {job['extra']}")

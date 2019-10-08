@@ -38,6 +38,8 @@ import shutil
 from utils.paginator import TextPages
 from contextlib import redirect_stdout
 import io
+import bolt.http
+import bolt.misc
 
 
 class Owner(commands.Cog):
@@ -71,7 +73,7 @@ class Owner(commands.Cog):
     @commands.command(aliases=['sh'])
     async def shell(self, ctx, *, command: str):
         """Runs a command in the terminal/shell"""
-        shell_out = await self.bot.call_shell(command)
+        shell_out = await bolt.misc.call_shell(command)
         pages = TextPages(ctx, shell_out)
         await pages.paginate()
 
@@ -265,68 +267,11 @@ class Owner(commands.Cog):
                 await ctx.send(f'```py\n{value}{ret}\n```')
 
     @commands.is_owner()
-    @commands.group()
-    async def git(self, ctx):
-        """Git Commands"""
-        if ctx.invoked_subcommand is None:
-            return await ctx.send_help(ctx.command)
-
-    @commands.is_owner()
-    @git.command()
-    @commands.guild_only()
-    async def pull(self, ctx):
-        """Pull new changes from GitHub."""
-        msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
-        output = await self.bot.call_shell("git pull")
-        await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
-
-    @commands.is_owner()
-    @git.command(aliases=['pr'])
-    @commands.guild_only()
-    async def pullreload(self, ctx):
-        """Pull and reload the cogs automatically."""
-        msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
-        output = await self.bot.call_shell("git pull")
-        await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
-
-        to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output)  # Read output
-
-        for cog in to_reload:  # Thanks Ave
-            try:
-                self.bot.unload_extension("cogs." + cog)
-                self.bot.load_extension("cogs." + cog)
-                self.bot.log.info(f'Automatically reloaded {cog}')
-                await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
-                               'successfully reloaded.')
-            except Exception:
-                return await self.error_on_cog_method(ctx, cog, "Reload", traceback.format_exc())
-
-    @commands.is_owner()
-    @git.command(name="pull-load", aliases=['pl'])
-    @commands.guild_only()
-    async def pull_load(self, ctx):
-        """Pull and load new cogs automatically."""
-        msg = await ctx.send("<a:loading:568232137090793473> Pulling changes...")
-        output = await self.bot.call_shell("git pull")
-        await msg.edit(content=f'📥 Pulled Changes:\n```diff\n{output}\n```')
-
-        to_reload = re.findall(r'cogs/([a-z_]*).py[ ]*\|', output)  # Read output
-
-        for cog in to_reload:  # Thanks Ave
-            try:
-                self.bot.load_extension("cogs." + cog)
-                self.bot.log.info(f'Automatically loaded {cog}')
-                await ctx.send(f'<:LightningCheck:571376826832650240> `{cog}` '
-                               'successfully loaded.')
-            except Exception:
-                return await self.error_on_cog_method(ctx, cog, "Load", traceback.format_exc())
-
-    @commands.is_owner()
-    @git.command(name="pull-exit", aliases=['pe'])
+    @commands.command(name="pull-exit", aliases=['pe'])
     async def pull_exit(self, ctx):
         """Git Pulls and then exits"""
         await ctx.send("Git Pulling....")
-        await ctx.invoke(self.bot.get_command('git pull'))
+        await ctx.invoke(self.bot.get_command('bolt pull'))
         await asyncio.sleep(10.0)
         await ctx.send("Exiting...")
         await ctx.invoke(self.bot.get_command('exit'))
@@ -345,22 +290,17 @@ class Owner(commands.Cog):
         """Checks to see which packages are outdated"""
         tmp = await ctx.send("I\'m figuring this out.")
         async with ctx.typing():
-            out = await self.bot.call_shell("pip3 list --outdated")
-        slice_msg = await self.bot.slice_message(out,
-                                                 prefix="```",
-                                                 suffix="```")
-        if len(slice_msg) == 1:
-            return await tmp.edit(content=slice_msg[0])
+            out = await bolt.misc.call_shell("pip3 list --outdated")
         await tmp.delete()
-        for msg in slice_msg:
-            await ctx.send(msg)
+        pages = TextPages(ctx, f"{out}")
+        await pages.paginate()
 
     @commands.is_owner()
     @pip.command(name='dpy', aliases=['discordpy'])
     async def updatedpy(self, ctx):
         """Updates discord.py. Use .pip chkupdate
         to see if there are updates to any packages."""
-        sh_out = await self.bot.call_shell("pip3 install --upgrade discord.py")
+        sh_out = await bolt.misc.call_shell("pip3 install --upgrade discord.py")
         pages = TextPages(ctx, f"{sh_out}")
         await pages.paginate()
 
@@ -368,7 +308,7 @@ class Owner(commands.Cog):
     @pip.command()
     async def freeze(self, ctx):
         """Returns a list of pip packages installed"""
-        sh_out = await self.bot.call_shell("pip3 freeze -l")
+        sh_out = await bolt.misc.call_shell("pip3 freeze -l")
         pages = TextPages(ctx, f"{sh_out}")
         await pages.paginate()
 
@@ -376,7 +316,7 @@ class Owner(commands.Cog):
     @pip.command()
     async def uninstall(self, ctx, package: str):
         """Uninstalls a package. (Use with care.)"""
-        sh_out = await self.bot.call_shell(f"pip3 uninstall -y {package}")
+        sh_out = await bolt.misc.call_shell(f"pip3 uninstall -y {package}")
         pages = TextPages(ctx, f"{sh_out}")
         await pages.paginate()
 
@@ -407,56 +347,9 @@ class Owner(commands.Cog):
     @commands.check(is_bot_manager)
     async def curl(self, ctx, url: str):
         """Curls a site, returning its contents."""
-        text = await self.bot.aioget(url)
+        text = await bolt.http.get(self.bot.aiosession, url)
         pages = TextPages(ctx, f"{text}")
         await pages.paginate()
-
-    async def error_on_cog_method(self, ctx, cog, method: str, ext):
-        msg = f"\N{WARNING SIGN} {method} error for "\
-              f"`cogs.{cog}`"
-        pages = TextPages(ctx, f"{ext}")
-        await ctx.send(msg)
-        await pages.paginate()
-
-    @commands.command(name='load')
-    @commands.is_owner()
-    async def c_load(self, ctx, *, cog: str):
-        """Load a Cog."""
-        cogx = "cogs." + cog
-        if cogx in list(self.bot.extensions.keys()):
-            return await ctx.send(f'`{cogx}` is already loaded.')
-        try:
-            self.bot.load_extension("cogs." + cog)
-        except Exception:
-            return await self.error_on_cog_method(ctx, cog, "Load", traceback.format_exc())
-        else:
-            self.bot.log.info(f"{ctx.author} loaded the cog `{cog}`")
-            await ctx.send(f'✅ Successfully loaded `cogs.{cog}`')
-
-    @commands.command(name='unload')
-    @commands.is_owner()
-    async def c_unload(self, ctx, *, cog: str):
-        """Unloads a Cog."""
-        try:
-            self.bot.unload_extension("cogs." + cog)
-        except Exception:
-            return await self.error_on_cog_method(ctx, cog, "Unload", traceback.format_exc())
-        else:
-            self.bot.log.info(f"{ctx.author} unloaded the cog `{cog}`")
-            await ctx.send(f'✅ Successfully unloaded `cogs.{cog}`')
-
-    @commands.command(name='reload')
-    @commands.is_owner()
-    async def c_reload(self, ctx, *, cog: str):
-        """Reload a Cog."""
-        try:
-            self.bot.unload_extension("cogs." + cog)
-            self.bot.load_extension("cogs." + cog)
-        except Exception:
-            return await self.error_on_cog_method(ctx, cog, "Reload", traceback.format_exc())
-        else:
-            self.bot.log.info(f"{ctx.author} reloaded the cog `{cog}`")
-            await ctx.send(f'✅ Successfully reloaded `cogs.{cog}`')
 
     @commands.command(aliases=['list-cogs'])
     @commands.is_owner()

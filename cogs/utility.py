@@ -34,6 +34,7 @@ import colorsys
 from PIL import Image
 from utils.converters import SafeSend, ReadableChannel
 import asyncpg
+import bolt.http
 
 
 class Utility(commands.Cog):
@@ -301,7 +302,7 @@ class Utility(commands.Cog):
             if ctx.message.attachments:
                 f = ctx.message.attachments[0]
                 if f.filename.lower().endswith('.bmp'):
-                    image_bmp = await self.bot.aiogetbytes(f.url)
+                    image_bmp = await bolt.http.getbytes(self.bot.aiosession, f.url)
                     img_final = self.finalize_image(image_bmp)
                     filex = discord.File(img_final,
                                          filename=f"BMP conversion from {ctx.author}.png")
@@ -313,7 +314,7 @@ class Utility(commands.Cog):
         else:
             if link.lower().endswith('.bmp'):
                 try:
-                    image_bmp = await self.bot.aiogetbytes(link)
+                    image_bmp = await bolt.http.getbytes(self.bot.aiosession, link)
                     img_final = self.finalize_image(image_bmp)
                     filex = discord.File(img_final, filename=f"BMP conversion from {ctx.author}.png")
                     await ctx.send(file=filex)

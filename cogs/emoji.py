@@ -30,6 +30,7 @@ from discord.ext.commands import Cog
 from utils.checks import is_one_of_guilds, is_staff_or_has_perms
 from utils.paginators_jsk import paginator_reg_nops
 import random
+import bolt.http
 
 ROO_EMOTES = [604331487583535124, 604446987844190228, 606517600167526498, 610921560068456448]
 
@@ -77,7 +78,7 @@ class Emoji(commands.Cog):
         is assigned as a Helper or above in the bot."""
         if len(emoji_name) > 32:
             return await ctx.send("Emoji name cannot be longer than 32 characters!")
-        emoji_link = await self.bot.aiogetbytes(url)
+        emoji_link = await bolt.http.getbytes(self.bot.aiosession, url)
         if emoji_link is not False:
             emoji_aio = self.aiobytesfinalize(emoji_link)
             try:
@@ -103,7 +104,7 @@ class Emoji(commands.Cog):
         In order to use this command, you must either have
         Manage Emojis permission or a role that
         is assigned as a Helper or above in the bot."""
-        emoji_link = await self.bot.aiogetbytes(str(emoji.url))
+        emoji_link = await bolt.http.getbytes(self.bot.aiosession, str(emoji.url))
         if emoji_link is not False:
             try:
                 fe = await ctx.guild.create_custom_emoji(name=emoji.name, image=emoji_link,

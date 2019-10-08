@@ -35,6 +35,7 @@ from datetime import datetime
 import textwrap
 from utils.errors import NoImageProvided
 from jishaku.functools import executor_function
+import bolt.http
 
 
 class Fun(commands.Cog):
@@ -97,7 +98,7 @@ class Fun(commands.Cog):
             if url is None:
                 raise NoImageProvided
             if url:
-                image_url = await self.bot.aiogetbytes(url)
+                image_url = await bolt.http.getbytes(self.bot.aiosession, url)
                 image_buffer = await ctx.bot.loop.run_in_executor(None,
                                                                   self.make_jpegify,
                                                                   image_url)

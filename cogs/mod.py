@@ -36,6 +36,7 @@ import io
 from utils.paginator import Pages
 from utils.converters import TargetMember
 from utils.errors import TimersUnavailable
+from bolt.time import get_utc_timestamp
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
@@ -664,8 +665,7 @@ class Mod(commands.Cog):
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        duration_text = self.bot.get_utc_timestamp(time_to=duration.dt,
-                                                   include_to=True)
+        duration_text = get_utc_timestamp(duration.dt)
         timed_txt = natural_timedelta(duration.dt)
         duration_text = f"{timed_txt} ({duration_text})"
         timer = self.bot.get_cog('TasksManagement')
@@ -726,8 +726,7 @@ class Mod(commands.Cog):
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
         role = await self.get_mute_role(ctx)
-        duration_text = self.bot.get_utc_timestamp(time_to=duration.dt,
-                                                   include_to=True)
+        duration_text = get_utc_timestamp(duration.dt)
         timed_txt = natural_timedelta(duration.dt)
         duration_text = f"{timed_txt} ({duration_text})"
         timer = self.bot.get_cog('TasksManagement')

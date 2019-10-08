@@ -31,6 +31,7 @@ import json
 import config
 from utils.time import natural_timedelta, FutureTime
 import os
+from bolt.time import get_utc_timestamp
 
 
 class LightningHub(commands.Cog):
@@ -234,8 +235,7 @@ class LightningHub(commands.Cog):
                                           reason=reason)
             idlist.append(channel.id)
         chans = ", ".join(x.mention for x in channels)
-        duration_text = self.bot.get_utc_timestamp(time_to=duration.dt,
-                                                   include_to=True)
+        duration_text = get_utc_timestamp(duration.dt)
         timed_txt = natural_timedelta(duration.dt)
         duration_text = f"{timed_txt} ({duration_text})"
         timer = self.bot.get_cog('PowersCronManagement')
