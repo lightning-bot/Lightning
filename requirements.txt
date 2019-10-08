@@ -8,5 +8,4 @@ github3.py
 python-gitlab
 dblpy
 asyncpg
-arrow
 git+https://gitlab.com/lightning-bot/bolt@master#egg=bolt

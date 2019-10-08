@@ -30,7 +30,7 @@ import platform
 from discord.ext import commands, tasks
 from typing import Union
 from collections import Counter
-from utils.paginator import Pages, TextPages
+from bolt.paginator import Pages, TextPages
 import asyncio
 import itertools
 import time

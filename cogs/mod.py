@@ -33,7 +33,7 @@ import json
 # import asyncio
 from utils.time import natural_timedelta, FutureTime
 import io
-from utils.paginator import Pages
+from bolt.paginator import Pages
 from utils.converters import TargetMember
 from utils.errors import TimersUnavailable
 from bolt.time import get_utc_timestamp
