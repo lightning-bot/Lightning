@@ -27,7 +27,6 @@ import discord
 from discord.ext import commands
 import traceback
 import textwrap
-import re
 import asyncio
 import random
 import config
@@ -35,7 +34,7 @@ from utils.checks import is_bot_manager
 import os
 import json
 import shutil
-from utils.paginator import TextPages
+from bolt.paginator import TextPages
 from contextlib import redirect_stdout
 import io
 import bolt.http
