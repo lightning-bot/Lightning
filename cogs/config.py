@@ -58,8 +58,7 @@ class Configuration(commands.Cog):
         query = """SELECT log_channels FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
-        async with self.bot.db.acquire() as con:
-            ret = await con.fetchrow(query, ctx.guild.id)
+        ret = await self.bot.db.fetchrow(query, ctx.guild.id)
         if ret:
             guild_config = json.loads(ret['log_channels'])
         else:
@@ -74,9 +73,8 @@ class Configuration(commands.Cog):
                    VALUES ($1, $2::jsonb)
                    ON CONFLICT (guild_id)
                    DO UPDATE SET log_channels = EXCLUDED.log_channels;"""
-        async with self.bot.db.acquire() as con:
-            await con.execute(query, ctx.guild.id,
-                              json.dumps(to_dump))
+        await self.bot.db.execute(query, ctx.guild.id,
+                                  json.dumps(to_dump))
 
     @commands.command(name="settings")
     @commands.has_permissions(manage_guild=True)
@@ -89,6 +87,10 @@ class Configuration(commands.Cog):
         con = await self.bot.db.acquire()
         try:
             ret = await con.fetchrow(query, ctx.guild.id)
+            if not ret:
+                await ctx.send(f"Could not retrieve any settings!")
+                await self.bot.db.release(con)
+                return
             if ret['mute_role_id']:
                 role = discord.utils.get(ctx.guild.roles, id=ret['mute_role_id'])
                 if not role:
@@ -313,11 +315,10 @@ class Configuration(commands.Cog):
         query = """INSERT INTO staff_roles
                    VALUES ($1, $2, $3);
                 """
-        async with self.bot.db.acquire() as con:
-            try:
-                await con.execute(query, ctx.guild.id, role.id, level.lower())
-            except asyncpg.UniqueViolationError:
-                return await ctx.send("That role is already set as a mod role!")
+        try:
+            await self.bot.db.execute(query, ctx.guild.id, role.id, level.lower())
+        except asyncpg.UniqueViolationError:
+            return await ctx.send("That role is already set as a mod role!")
         await ctx.safe_send(f"Successfully set the {level} rank to "
                             f"the {role.name} role! {emoji.mayushii}")
 
@@ -329,8 +330,7 @@ class Configuration(commands.Cog):
         Lists the configured mod roles for this guild.
         """
         query = """SELECT perms, role_id FROM staff_roles WHERE guild_id=$1;"""
-        async with self.bot.db.acquire() as con:
-            result = await con.fetch(query, ctx.guild.id)
+        result = await self.bot.db.fetch(query, ctx.guild.id)
         embed = discord.Embed(title="Mod Roles", description="")
         if len(result) == 0:
             embed.description = "No moderation roles are setup!"
@@ -345,8 +345,7 @@ class Configuration(commands.Cog):
     async def delete_mod_roles(self, ctx, *, role: discord.Role):
         """Deletes one configured mod role."""
         query = """DELETE FROM staff_roles WHERE guild_id=$1 AND role_id=$2"""
-        async with self.bot.db.acquire() as con:
-            result = await con.execute(query, ctx.guild.id, role.id)
+        result = await self.bot.db.execute(query, ctx.guild.id, role.id)
         if result == "DELETE 0":
             return await ctx.send("That role is not a configured mod role.")
         await ctx.safe_send(f"Removed {role.name} from the configured mod roles.")
@@ -365,8 +364,7 @@ class Configuration(commands.Cog):
                    ON CONFLICT (guild_id)
                    DO UPDATE SET mute_role_id = EXCLUDED.mute_role_id;
                 """
-        async with self.bot.db.acquire() as con:
-            await con.execute(query, ctx.guild.id, role.id)
+        await self.bot.db.execute(query, ctx.guild.id, role.id)
         await ctx.safe_send(f"Successfully set the mute role to {role.name}")
 
     @commands.guild_only()
@@ -465,6 +463,12 @@ class Configuration(commands.Cog):
                    SET prefix = $1
                    WHERE guild_id = $2;
                 """
+        if len(prefix) == 0:
+            query = """UPDATE guild_mod_config
+                       SET prefix = NULL
+                       WHERE guild_id = $1;
+                    """
+            return await self.bot.db.execute(query, guild_id)
         return await self.bot.db.execute(query, prefix, guild_id)
 
     @commands.group(aliases=['prefixes'])
