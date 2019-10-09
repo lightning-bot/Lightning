@@ -952,22 +952,65 @@ class Mod(commands.Cog):
     @commands.Cog.listener()
     async def on_timeban_job_complete(self, jobinfo):
         ext = json.loads(jobinfo['extra'])
-        guid = self.bot.get_guild(ext['guild_id'])
-        uid = await self.bot.fetch_user(ext['user_id'])
-        await guid.unban(uid, reason="PowersCron: "
-                         "Timed Ban Expired.")
+        guild = self.bot.get_guild(ext['guild_id'])
+        if guild is None:
+            # Bot was kicked.
+            return
+        try:
+            uid = await self.bot.fetch_user(ext['user_id'])
+        except Exception:
+            uid = discord.Object(id=ext['user_id'])
+        mod = guild.get_member(ext['mod_id'])
+        if mod is None:
+            try:
+                mod = await self.bot.fetch_user(ext['mod_id'])
+            except Exception:
+                # Discord Broke/Failed/etc.
+                mod = f"Moderator ID {ext['mod_id']}"
+            else:
+                mod = f'{mod} (ID: {mod.id})'
+        else:
+            mod = f'{mod} (ID: {mod.id})'
+        reason = f"Timed ban expired made from {mod}"
+        await guild.unban(uid, reason=reason)
 
     @commands.Cog.listener()
     async def on_timed_restriction_job_complete(self, jobinfo):
         ext = json.loads(jobinfo['extra'])
         guild = self.bot.get_guild(ext['guild_id'])
+        if guild is None:
+            # Bot was kicked.
+            return
         user = guild.get_member(ext['user_id'])
+        if user is None:
+            # User left so we remove the restriction and return.
+            await self.remove_user_restriction(guild.id,
+                                               ext['user_id'],
+                                               ext['role_id'])
+            return
         role = guild.get_role(ext['role_id'])
+        if role is None:
+            # Role was deleted or something.
+            await self.remove_user_restriction(guild.id,
+                                               user.id,
+                                               ext['role_id'])
+            return
+        mod = guild.get_member(ext['mod_id'])
+        if mod is None:
+            try:
+                mod = await self.bot.fetch_user(ext['mod_id'])
+            except Exception:
+                # Discord Broke/Failed/etc.
+                mod = f"Moderator ID {ext['mod_id']}"
+            else:
+                mod = f'{mod} (ID: {mod.id})'
+        else:
+            mod = f'{mod} (ID: {mod.id})'
+        reason = f"Timed restriction expired made from {mod}"
         await self.remove_user_restriction(guild.id,
                                            user.id,
                                            role.id)
-        await user.remove_roles(role, reason="PowersCron: "
-                                "Timed Restriction Expired.")
+        await user.remove_roles(role, reason=reason)
 
 # Most commands here taken from robocop-ngs mod.py
 # https://github.com/aveao/robocop-ng/blob/master/cogs/mod_user.py
