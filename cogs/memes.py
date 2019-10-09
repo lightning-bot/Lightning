@@ -153,6 +153,13 @@ class Memes(commands.Cog):
     async def memes_cat(self, ctx):
         await ctx.safe_send(f'{ctx.author.display_name}: https://i.imgur.com/dCXyOfK.png')
 
-
+    @commands.command()
+    async def catto(self, ctx):
+        """polite catto"""
+        embed = discord.Embed(title=f"{ctx.author} says hello", color=discord.Color.blurple())
+        embed.set_image(url="https://i.imgur.com/1nQSMLM.png")
+        embed.set_footer(text="powered by cattos love", icon_url="https://i.imgur.com/1nQSMLM.png")
+        await ctx.send(embed=embed)
+        
 def setup(bot):
     bot.add_cog(Memes(bot))
