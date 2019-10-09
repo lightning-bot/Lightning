@@ -972,7 +972,7 @@ class Mod(commands.Cog):
                 mod = f'{mod} (ID: {mod.id})'
         else:
             mod = f'{mod} (ID: {mod.id})'
-        reason = f"Timed ban expired made from {mod}"
+        reason = f"Timed ban made by {mod} at {jobinfo['created']} expired"
         await guild.unban(uid, reason=reason)
 
     @commands.Cog.listener()
@@ -1007,7 +1007,7 @@ class Mod(commands.Cog):
                 mod = f'{mod} (ID: {mod.id})'
         else:
             mod = f'{mod} (ID: {mod.id})'
-        reason = f"Timed restriction expired made from {mod}"
+        reason = f"Timed restriction made by {mod} at {jobinfo['created']} expired"
         await self.remove_user_restriction(guild.id,
                                            user.id,
                                            role.id)
