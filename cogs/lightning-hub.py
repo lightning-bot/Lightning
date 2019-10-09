@@ -282,8 +282,7 @@ class LightningHub(commands.Cog):
             for message in ctx.message.attachments:
                 info += f" {message.url}\n"
         ext = {"text": info, "author_id": ctx.author.id}
-        async with self.bot.db.acquire() as con:
-            id = await con.fetchrow(query, "Received", json.dumps(ext), ctx.message.created_at)
+        id = await self.bot.db.fetchrow(query, "Received", json.dumps(ext), ctx.message.created_at)
         e = discord.Embed(title=f"Bug Report - ID: {id[0]}", description=info)
         e.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         e.timestamp = datetime.utcnow()
@@ -294,8 +293,7 @@ class LightningHub(commands.Cog):
                    SET guild_id=$2, channel_id=$3, message_id=$4
                    WHERE id=$1;
                 """
-        async with self.bot.db.acquire() as con:
-            await con.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
+        await self.bot.db.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
         await ctx.safe_send(f"Created a bug ticket with ID {id[0]}. "
                             "You can see updates on your ticket by looking in the "
                             f"bug-reports channel or by using `.ticket info {id[0]}`")
@@ -306,8 +304,7 @@ class LightningHub(commands.Cog):
         """Gives you information on a ticket"""
         query = """SELECT guild_id, channel_id, message_id, ticket_info, status, created
                    FROM bug_tickets WHERE id=$1;"""
-        async with self.bot.db.acquire() as con:
-            res = await con.fetchrow(query, ticket_id)
+        res = await self.bot.db.fetchrow(query, ticket_id)
         if res is None:
             return await ctx.send("Invalid Ticket ID!")
         ext = json.loads(res['ticket_info'])
@@ -352,13 +349,11 @@ class LightningHub(commands.Cog):
         """
         query = """SELECT guild_id, channel_id, message_id, ticket_info
                    FROM bug_tickets WHERE id=$1;"""
-        async with self.bot.db.acquire() as con:
-            res = await con.fetchrow(query, ticket_id)
+        res = await self.bot.db.fetchrow(query, ticket_id)
         if res is None:
             return await ctx.send("Couldn't find that id!")
         query = """UPDATE bug_tickets SET status=$1 WHERE id=$2"""
-        async with self.bot.db.acquire() as con:
-            await con.execute(query, status, ticket_id)
+        await self.bot.db.execute(query, status, ticket_id)
         await self.update_ticket_embed(ticket_id, res, status, 0xf1c40f)
         await ctx.send(f"Updated ticket {ticket_id}.")
 
@@ -372,13 +367,11 @@ class LightningHub(commands.Cog):
         """
         query = """SELECT guild_id, channel_id, message_id, ticket_info
                    FROM bug_tickets WHERE id=$1;"""
-        async with self.bot.db.acquire() as con:
-            res = await con.fetchrow(query, ticket_id)
+        res = await self.bot.db.fetchrow(query, ticket_id)
         if res is None:
             return await ctx.send("Couldn't find that id!")
         query = """UPDATE bug_tickets SET status=$1 WHERE id=$2"""
-        async with self.bot.db.acquire() as con:
-            await con.execute(query, status, ticket_id)
+        await self.bot.db.execute(query, status, ticket_id)
         await self.update_ticket_embed(ticket_id, res, status, 0x2ecc71)
         await ctx.send(f"Updated ticket {ticket_id}.")
 
@@ -392,13 +385,11 @@ class LightningHub(commands.Cog):
         """
         query = """SELECT guild_id, channel_id, message_id, ticket_info
                    FROM bug_tickets WHERE id=$1;"""
-        async with self.bot.db.acquire() as con:
-            res = await con.fetchrow(query, ticket_id)
+        res = await self.bot.db.fetchrow(query, ticket_id)
         if res is None:
             return await ctx.send("Couldn't find that id!")
         query = """UPDATE bug_tickets SET status=$1 WHERE id=$2"""
-        async with self.bot.db.acquire() as con:
-            await con.execute(query, status, ticket_id)
+        await self.bot.db.execute(query, status, ticket_id)
         await self.update_ticket_embed(ticket_id, res, status, 0xe74c3c)
         await ctx.send(f"Updated ticket {ticket_id}.")
 
