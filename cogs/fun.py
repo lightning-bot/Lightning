@@ -249,13 +249,6 @@ class Fun(commands.Cog):
         embed.set_footer(text="Powered by dog.ceo", icon_url="https://dog.ceo/img/favicon.png")
         await ctx.send(embed=embed)
         
-    @commands.command()
-    async def catto(self, ctx):
-        """polite catto"""
-        embed = discord.Embed(title=ctx.message.author + " says hello", color=discord.Color.blurple())
-        embed.set_image(url=data['https://i.imgur.com/1nQSMLM.png'])
-        embed.set_footer(text="powered by cattos love", icon_url="https://i.imgur.com/1nQSMLM.png")
-        await ctx.send(embed=embed)
 
     @commands.command()
     async def xkcd(self, ctx, xkcd_number: int = None):
