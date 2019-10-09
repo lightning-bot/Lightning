@@ -248,7 +248,6 @@ class Fun(commands.Cog):
         embed.set_image(url=data['message'])
         embed.set_footer(text="Powered by dog.ceo", icon_url="https://dog.ceo/img/favicon.png")
         await ctx.send(embed=embed)
-        
 
     @commands.command()
     async def xkcd(self, ctx, xkcd_number: int = None):
