@@ -671,7 +671,8 @@ class Mod(commands.Cog):
         timer = self.bot.get_cog('TasksManagement')
         if not timer:
             raise TimersUnavailable
-        ext = {"guild_id": ctx.guild.id, "user_id": target.id}
+        ext = {"guild_id": ctx.guild.id, "user_id": target.id,
+               "mod_id": ctx.author.id}
         await timer.add_job("timeban", datetime.utcnow(),
                             duration.dt, ext)
 
@@ -733,7 +734,7 @@ class Mod(commands.Cog):
         if not timer:
             raise TimersUnavailable
         ext = {"guild_id": ctx.guild.id, "user_id": target.id,
-               "role_id": role.id}
+               "role_id": role.id, "mod_id": ctx.author.id}
         await timer.add_job("timed_restriction", datetime.utcnow(),
                             duration.dt, ext)
         safe_name = await commands.clean_content().convert(ctx, str(target))
