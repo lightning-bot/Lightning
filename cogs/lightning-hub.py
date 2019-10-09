@@ -411,8 +411,7 @@ class LightningHub(commands.Cog):
             try:
                 ch = guild.get_channel(channel)
                 await ch.set_permissions(member,
-                                         read_messages=None,
-                                         send_messages=None,
+                                         overwrite=None,
                                          reason="PowersCron: "
                                          "Auto Unblock")
             except Exception as e:
