@@ -43,7 +43,7 @@ class Memes(commands.Cog):
         If no meme is given, it sends a list of memes"""
         if ctx.invoked_subcommand is None:
             memeslist = "Text: `knuckles` `neo-ban` `discordcopypaste` `peng`"\
-                        " `ayy` `lenny` `lmao`"\
+                        " `ayy` `lenny` `lmao` `r11`"\
                         "\nImage: `astar` `hifumi1` `git` `bean` `tuturu` `yert`"\
                         " `bait` `cat` `catto`"
             return await ctx.send(f"Available Memes:\n{memeslist}")
@@ -160,6 +160,18 @@ class Memes(commands.Cog):
         embed.set_image(url="https://i.imgur.com/1nQSMLM.png")
         embed.set_footer(text="powered by cattos love", icon_url="https://i.imgur.com/1nQSMLM.png")
         await ctx.send(embed=embed)
+
+    @memes.command(hidden=True)
+    async def r11(self, ctx, member: discord.Member = None):
+        """da most iMPORTANT rool"""
+        if member is None:
+            member = ctx.author
+        piracyRule = f"da piracy rool."\
+                     f"doont downlod games youo did note dump, {member.mention} or you are break rule!!1"\
+                     f"dont ask hou to get frii game or u are loser {member.mention}"\
+                     f"dont menshon pirate maps or {member.mention} is pirat"\
+                     "don brek law"
+        await ctx.send(piracyRule)
 
 
 def setup(bot):
