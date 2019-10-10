@@ -39,6 +39,7 @@ from contextlib import redirect_stdout
 import io
 import bolt.http
 import bolt.misc
+from utils.db_utils import DatabaseUpdate
 
 
 class Owner(commands.Cog):
@@ -67,14 +68,6 @@ class Owner(commands.Cog):
                 return json.load(blacklist)
         else:
             return {}
-
-    @commands.is_owner()
-    @commands.command(aliases=['sh'])
-    async def shell(self, ctx, *, command: str):
-        """Runs a command in the terminal/shell"""
-        shell_out = await bolt.misc.call_shell(command)
-        pages = TextPages(ctx, shell_out)
-        await pages.paginate()
 
     @commands.is_owner()
     @commands.command()
