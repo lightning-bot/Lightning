@@ -403,10 +403,10 @@ class Meta(commands.Cog):
                                                     "commands used since boot.\n"
                                                     f"{amount} commands used all time.")
         embed.add_field(name="Links", value="[Support Server]"
-                                            "(https://discord.gg/cDPGuYd)\n"
-                                            "[DBL](https://discordbots.org/bot/"
-                                            "532220480577470464)\n"
-                                            "[Website](https://lightsage.gitlab.io/lightning/home/)",
+                                            "(https://discord.gg/cDPGuYd) | "
+                                            "[DBL (top.gg)](https://top.gg/bot/"
+                                            "532220480577470464) | "
+                                            "[Website](https://lightning-bot.gitlab.io)",
                                             inline=False)
         embed.set_footer(text=f"Lightning {self.bot.config.bot_version}")  # | Made with "
         # f"discord.py {discord.__version__}")
