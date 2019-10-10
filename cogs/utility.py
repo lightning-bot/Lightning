@@ -224,7 +224,7 @@ class Utility(commands.Cog):
         async with ctx.typing():
             msg = " ".join(f"{ord(i):08b}" for i in text)
             if len(msg) > 1985:
-                link = await self.bot.haste(msg)
+                link = await bolt.http.haste(self.bot.aiosession, msg)
                 msg = f"Output too big, see the haste {link}"
         await ctx.send(f"```{msg}```")
 
@@ -232,7 +232,7 @@ class Utility(commands.Cog):
     @commands.cooldown(rate=1, per=60.0, type=commands.BucketType.channel)
     async def pastebin(self, ctx, *, message: str):
         """Make a pastebin with your own message"""
-        url = await self.bot.haste(message)
+        url = await bolt.http.haste(self.bot.aiosession, message)
         await ctx.send(f"Here's your pastebin. {ctx.author.mention}\n{url}")
 
     @commands.command()
