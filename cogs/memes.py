@@ -166,12 +166,15 @@ class Memes(commands.Cog):
         """da most iMPORTANT rool"""
         if member is None:
             member = ctx.author
-        piracyRule = f"da piracy rool."\
-                     f"doont downlod games youo did note dump, {member.mention} or you are break rule!!1"\
-                     f"dont ask hou to get frii game or u are loser {member.mention}"\
-                     f"dont menshon pirate maps or {member.mention} is pirat"\
-                     "don brek law"
-        await ctx.send(piracyRule)
+
+        embDescription = f"doont downlod games youo did note dump, {member} , or you are berak rule!\n"\
+                         f"dont ask how to get frii game or u are looser {member}\n"\
+                         f"dont menshon pirat websits or {member} is pirate\n"\
+                         f"dont brek copirite laws plees\n"\
+                         f"share alllllll da data of da gaem\n\n"\
+                         f"biolate any of dese, and get the bean"
+        embed = discord.Embed(title=f"**rool 1 1**", description=embDescription, color=0x000000)
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
