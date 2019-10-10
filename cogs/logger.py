@@ -45,14 +45,16 @@ class Logger(Cog):
         query = """SELECT * FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
-        async with self.bot.db.acquire() as con:
-            ret = await con.fetchrow(query, guild_id)
+        ret = await self.bot.db.fetchrow(query, guild_id)
         if ret:
             guild_config = json.loads(ret['log_channels'])
         else:
             guild_config = {}
 
         return guild_config
+
+    def escape_message(self, text: str):
+        return str(text).replace("@", "@ ").replace("<#", "# ").replace("<&", "& ")
 
     async def invite_filter(self, message):
         if message.author.bot:
@@ -163,7 +165,7 @@ class Logger(Cog):
         config = await self.guild_config_id(message.guild.id)
         if "message_log_channel" in config:
             msg = "🗑️ **Message deleted**: \n"\
-                  f"Author: {self.bot.escape_message(message.author.name)} "\
+                  f"Author: {self.escape_message(message.author.name)} "\
                   f"(ID: {message.author.id})\nChannel: {message.channel.mention}\n"
             embed = discord.Embed(description=f"Message: {message.clean_content}")
             if message.attachments:
@@ -195,7 +197,7 @@ class Logger(Cog):
         config = await self.guild_config_id(before.guild.id)
         if "message_log_channel" in config:
             msg = "📝 **Message edit**: \n"\
-                  f"Author: {self.bot.escape_message(after.author.name)} "\
+                  f"Author: {self.escape_message(after.author.name)} "\
                   f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"
             embed = discord.Embed(description=f"Before: {before.clean_content}\nAfter: {after.clean_content}")
             # if after.attachments:
@@ -208,7 +210,7 @@ class Logger(Cog):
             # If resulting message is too long, upload to hastebin.
             if len(msg) > 1985:
                 hastemsg = "📝 **Message edit**: \n"\
-                           f"Author: {self.bot.escape_message(after.author.name)}\n"\
+                           f"Author: {self.escape_message(after.author.name)}\n"\
                            f"(ID: {after.author.id})\nChannel: {after.channel.mention}\n"\
                            f"Before: {before.clean_content}\n\nAfter: {after.clean_content}"
                 haste_url = await self.bot.haste(hastemsg)
@@ -271,7 +273,7 @@ class Logger(Cog):
                             roles.append(role.name)
                 msg += ", ".join(roles)
             if msg:  # Ending
-                msg = f"ℹ️ **Member update**: {self.bot.escape_message(after)} | "\
+                msg = f"ℹ️ **Member update**: {self.escape_message(after)} | "\
                       f"{after.id} {msg}"
             try:
                 await self.bot.get_channel(config["event_channel"]).send(msg)
