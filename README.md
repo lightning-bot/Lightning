@@ -6,9 +6,9 @@ This version is the successor to Lightning.js
 
 ---
 
-## Features
+## Features & Changelogs
 
-Go to https://lightning-bot.gitlab.io for a list of current features.
+A list of features can be found at https://lightning-bot.gitlab.io. Changelogs can be found at the support server (https://discord.gg/cDPGuYd) in the changelogs channel.
 
 ---
 ## Planned Features
