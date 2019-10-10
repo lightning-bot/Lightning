@@ -39,7 +39,6 @@ from contextlib import redirect_stdout
 import io
 import bolt.http
 import bolt.misc
-from utils.db_utils import DatabaseUpdate
 
 
 class Owner(commands.Cog):
