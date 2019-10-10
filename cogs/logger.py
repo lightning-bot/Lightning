@@ -46,8 +46,11 @@ class Logger(Cog):
                    WHERE guild_id=$1;
                 """
         ret = await self.bot.db.fetchrow(query, guild_id)
-        if 'log_channels' in ret:
-            guild_config = json.loads(ret['log_channels'])
+        if ret:
+            if ret['log_channels']:
+                guild_config = json.loads(ret['log_channels'])
+            else:
+                guild_config = {}
         else:
             guild_config = {}
 
