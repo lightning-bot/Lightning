@@ -43,8 +43,8 @@ Go to https://lightning-bot.gitlab.io for a list of current features.
 </details>
 
 ---
-[![Discord Bots](https://discordbots.org/api/widget/status/532220480577470464.svg)](https://discordbots.org/bot/532220480577470464)
-[![Discord Bots](https://discordbots.org/api/widget/owner/532220480577470464.svg)](https://discordbots.org/bot/532220480577470464)
+[![DBL (top.gg)](https://top.gg/api/widget/status/532220480577470464.svg)](https://top.gg/bot/532220480577470464)
+[![DBL (top.gg)](https://top.gg/api/widget/owner/532220480577470464.svg)](https://top.gg/bot/532220480577470464)
 ## Invite
 
 If you want to invite Lightning to your guild, use this link https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=470150390&scope=bot.
