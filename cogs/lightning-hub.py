@@ -238,10 +238,10 @@ class LightningHub(commands.Cog):
         duration_text = get_utc_timestamp(duration.dt)
         timed_txt = natural_timedelta(duration.dt)
         duration_text = f"{timed_txt} ({duration_text})"
-        timer = self.bot.get_cog('PowersCronManagement')
+        timer = self.bot.get_cog('TasksManagement')
         if not timer:
             return await ctx.send("Sorry, the timer system "
-                                  "(PowersCron) is currently unavailable.")
+                                  "is currently unavailable.")
         ext = {"guild_id": ctx.guild.id, "user_id": member.id,
                "channels": idlist}
         await timer.add_job("timeblock", datetime.utcnow(),
