@@ -304,6 +304,25 @@ class Git(commands.Cog):
             return await ctx.send(f"An Error Occurred! `{e}`")
         await ctx.send(f"Successfully merged !{mr.iid} to {mr.target_branch}. {mr.web_url}")
 
+    @gitlab.command(aliases=['listmrs'])
+    @commands.check(is_bot_manager)
+    @commands.check(is_git_whitelisted)
+    async def openmrs(self, ctx):
+        """Lists currently opened merge requests"""
+        try:
+            project = self.gl.projects.get(config.gitlab_project_id, lazy=True)
+            prs = project.mergerequests.list(state='opened', per_page=25, page=1)
+        except Exception as e:
+            return await ctx.send(f"An Error Occurred! `{e}`")
+        if len(prs) != 0:
+            msg = ""
+            for p in prs:
+                msg += f'"!{p.iid}": '\
+                       f'"https://gitlab.com/LightSage/Lightning/merge_requests/{p.iid}"\n'
+            await ctx.send(f"Currently open merge requests: ```json\n{msg}```")
+        else:
+            await ctx.send(f"No open merge requests!")
+
 
 def setup(bot):
     bot.add_cog(Git(bot))
