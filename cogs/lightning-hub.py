@@ -219,7 +219,8 @@ class LightningHub(commands.Cog):
                    f"`{ctx.prefix}block {ctx.command.signature}`"
         await mod_log_chan.send(msg)
 
-    @commands.command(aliases=['timeblock'])
+    @commands.command(usage="<member> <channels...> <duration> [reason]",
+                      aliases=['timeblock'])
     @is_guild(527887739178188830)
     @has_staff_role("Helper")
     async def tempblock(self, ctx, member: discord.Member,
