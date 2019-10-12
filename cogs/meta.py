@@ -266,10 +266,10 @@ class Meta(commands.Cog):
                 """
         ext = {"text": information, "author_id": ctx.author.id}
         async with self.bot.db.acquire() as con:
-            id = await con.fetchrow(query, "Received", json.dumps(ext), datetime.datetime.utcnow())
+            id = await con.fetchrow(query, "Received", json.dumps(ext), datetime.utcnow())
         e = discord.Embed(title=f"{title} Report - ID: {id[0]}", description=information)
         e.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
-        e.timestamp = datetime.datetime.utcnow()
+        e.timestamp = datetime.utcnow()
         e.set_footer(text="Status: Received")
         ch = self.bot.get_channel(self.bot.config.bug_reports_channel)
         msg = await ch.send(embed=e)
