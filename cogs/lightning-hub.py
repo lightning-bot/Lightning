@@ -41,12 +41,12 @@ class LightningHub(commands.Cog):
 
     async def cog_before_invoke(self, ctx):
         if os.path.isfile(f"config/{ctx.guild.id}/config.json"):
-            ctx.guild_config = json.load(open(f'config/{ctx.guild.id}/config.json'))
+            ctx.guild_config = json.load(open(f'config/{ctx.guild.id}/config.json', "r"))
         else:
             ctx.guild_config = {}
 
     async def cog_after_invoke(self, ctx):
-        json.dump(ctx.guild_config, open(f'config/{ctx.guild.id}/config.json'))
+        json.dump(ctx.guild_config, open(f'config/{ctx.guild.id}/config.json', "w"))
 
     @commands.command()
     @is_guild(527887739178188830)
