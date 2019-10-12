@@ -169,10 +169,10 @@ class Memes(commands.Cog):
 
         embDescription = f"doont downlod games youo did note dump, {member} , or you are berak rule!\n"\
                          f"dont ask how to get frii game or u are looser {member}\n"\
-                         f"dont menshon pirat websits or {member} is pirate\n"\
-                         f"dont brek copirite laws plees\n"\
-                         f"share alllllll da data of da gaem\n\n"\
-                         f"biolate any of dese, and get the bean"
+                         "dont menshon pirating websits\n"\
+                         "dont brek copirite laws plees\n"\
+                         "share alllllll da data of da gaem\n\n"\
+                         "biolate any of dese, and get the bean"
         embed = discord.Embed(title=f"**rool 1 1**", description=embDescription, color=0x000000)
         await ctx.send(embed=embed)
 
