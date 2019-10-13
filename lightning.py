@@ -315,6 +315,6 @@ class LightningBot(commands.AutoShardedBot):
             return  # We don't need to say anything
         elif isinstance(error, errors.LightningError):
             return await ctx.safe_send(error_text)
-        #err = self.get_cog('Meta')
-        #if err:
-        #    await err.create_error_ticket(ctx, "Command Error", f"{error}")
+        err = self.get_cog('Meta')
+        if err:
+            await err.create_error_ticket(ctx, "Command Error", f"{error}")
