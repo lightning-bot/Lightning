@@ -63,7 +63,7 @@ class LightningHub(commands.Cog):
         await ctx.message.add_reaction("✅")
         await ctx.send("Online staff have been notified of your request.", delete_after=50)
 
-    @commands.command()
+    @commands.command(aliases=['gatekeep'])
     @is_guild(527887739178188830)
     @commands.has_any_role("Helpers", "Staff")
     async def probate(self, ctx, target: discord.Member, *, reason: str = ""):
@@ -71,12 +71,12 @@ class LightningHub(commands.Cog):
         mod_log_chan = self.bot.get_channel(552583376566091805)
         safe_name = await commands.clean_content().convert(ctx, str(target))
         role = discord.Object(id=546379342943617025)
-        dm_message = f"You were probated on {ctx.guild.name}."
+        dm_message = f"You were gatekeeped on {ctx.guild.name}."
         if reason:
             dm_message += f" The given reason is: \"{reason}\"."
 
         await target.add_roles(role, reason=str(ctx.author))
-        msg = f"❗️ **Probate**: {ctx.author.mention} probated {target.mention} | {safe_name}"
+        msg = f"❗️ **Gatekeeped**: {ctx.author.mention} probated {target.mention} | {safe_name}"
         if reason:
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
@@ -99,7 +99,7 @@ class LightningHub(commands.Cog):
         await mod_log_chan.send(msg)
         await ctx.send(f"{target.mention} is now probated.")
 
-    @commands.command()
+    @commands.command(aliases=['gatepass'])
     @is_guild(527887739178188830)
     @commands.has_any_role("Helpers", "Staff")
     async def unprobate(self, ctx, target: discord.Member, *, reason: str = ""):
@@ -108,7 +108,7 @@ class LightningHub(commands.Cog):
         safe_name = await commands.clean_content().convert(ctx, str(target))
         role = discord.Object(id=546379342943617025)
         await target.remove_roles(role, reason=str(ctx.author))
-        msg = f"❗️ **Unprobate**: {ctx.author.mention} unprobated {target.mention} | {safe_name}"
+        msg = f"❗️ **GatePass**: {ctx.author.mention} unprobated {target.mention} | {safe_name}"
         if reason:
             msg += f"✏️ __Reason__: \"{reason}\""
         else:
@@ -133,12 +133,12 @@ class LightningHub(commands.Cog):
                                 'r', encoding='utf8'))
         if "auto_probate" in config:
             role = discord.Object(id=546379342943617025)
-            await member.add_roles(role, reason="Auto Probate")
-            dm_message = "You were automatically probated. "\
+            await member.add_roles(role, reason="Auto Gatekeeper")
+            dm_message = "You were automatically gated. "\
                          "Please read the rules for this "\
-                         "server and speak in the probation "\
+                         "server and speak in the gate "\
                          "channel when you are ready."
-            msg = f"**Auto Probate:** {member.mention}"
+            msg = f"**Auto Gatekeeped:** {member.mention}"
             try:
                 await member.send(dm_message)
             except discord.errors.Forbidden:
@@ -149,17 +149,17 @@ class LightningHub(commands.Cog):
     @commands.command()
     @is_guild(527887739178188830)
     @has_staff_role("Moderator")
-    async def autoprobate(self, ctx, status="on"):
-        """Turns on or off auto probate.
-        Use "disable" to disable auto probate."""
+    async def autogatekeep(self, ctx, status="on"):
+        """Turns on or off auto gatekeep.
+        Use "disable" to disable auto gatekeep."""
         if status == "disable":
             ctx.guild_config.pop("auto_probate")
-            await ctx.send("Auto Probate is now disabled.")
+            await ctx.send("Auto Gatekeep is now disabled.")
         else:
             ctx.guild_config["auto_probate"] = ctx.author.id
-            await ctx.send("Auto Probate is now enabled\n"
-                           "To turn off Auto Probate in the "
-                           f"future, use `{ctx.prefix}autoprobate disable`")
+            await ctx.send("Auto Gatekeep is now enabled\n"
+                           "To turn off Auto Gatekeep in the "
+                           f"future, use `{ctx.prefix}autogatekeep disable`")
 
     @commands.command()
     @is_guild(527887739178188830)
