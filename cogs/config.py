@@ -60,7 +60,10 @@ class Configuration(commands.Cog):
                 """
         ret = await self.bot.db.fetchrow(query, ctx.guild.id)
         if ret:
-            guild_config = json.loads(ret['log_channels'])
+            if ret['log_channels']:
+                guild_config = json.loads(ret['log_channels'])
+            else:
+                guild_config = {}
         else:
             guild_config = {}
 
