@@ -322,13 +322,8 @@ class LightningHub(commands.Cog):
         guid = self.bot.get_guild(info['guild_id'])
         cid = guid.get_channel(info['channel_id'])
         mid = await cid.fetch_message(info['message_id'])
-        ext = json.loads(info['ticket_info'])
-        embed = discord.Embed(title=f"Report - ID: {id}",
-                              description=ext['text'],
-                              color=color)
-        uid = await self.bot.fetch_user(ext['author_id'])
-        embed.set_author(name=uid, icon_url=uid.avatar_url)
-        embed.timestamp = mid.created_at
+        embed = mid.embeds[0].copy()
+        embed.color = color
         embed.set_footer(text=f"Status: {status}")
         await mid.edit(embed=embed)
 
