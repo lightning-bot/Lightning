@@ -35,7 +35,7 @@ from utils.time import natural_timedelta, FutureTime
 import io
 from bolt.paginator import Pages
 from utils.converters import TargetMember
-from utils.errors import TimersUnavailable
+from utils.errors import TimersUnavailable, MuteRoleError
 from bolt.time import get_utc_timestamp
 
 # Most Commands Taken From Robocop-NG. MIT Licensed
@@ -71,10 +71,6 @@ class ReasonTooLong(commands.UserInputError):
     pass
 
 
-class NoMuteRole(commands.UserInputError):
-    pass
-
-
 class Mod(commands.Cog):
     """
     Moderation and server management commands.
@@ -89,8 +85,6 @@ class Mod(commands.Cog):
 
     async def cog_command_error(self, ctx, error):
         if isinstance(error, ReasonTooLong):
-            await ctx.safe_send(error)
-        elif isinstance(error, NoMuteRole):
             return await ctx.safe_send(error)
 
     def mod_reason(self, ctx, reason: str):
@@ -478,11 +472,11 @@ class Mod(commands.Cog):
             if role:
                 return role
             else:
-                raise NoMuteRole("The mute role that was configured "
-                                 "seems to be deleted! "
-                                 "Please setup a new mute role.")
+                raise MuteRoleError("The mute role that was configured "
+                                    "seems to be deleted! "
+                                    "Please setup a new mute role.")
         else:
-            raise NoMuteRole("You do not have a mute role setup!")
+            raise MuteRoleError("You do not have a mute role setup!")
 
     @commands.guild_only()
     @commands.command(aliases=['muteuser'])

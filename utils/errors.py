@@ -66,3 +66,7 @@ class MessageNotFoundInChannel(LightningError):
 class NotOwnerorBotManager(LightningError):
     def __init__(self):
         super().__init__("This command is restricted to my bot manager(s) and owner.")
+
+
+class MuteRoleError(LightningError):
+    pass
