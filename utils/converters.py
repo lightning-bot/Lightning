@@ -29,6 +29,19 @@ from utils.checks import member_at_least_has_staff_role
 from utils.errors import BadTarget, ChannelPermissionFailure
 
 
+class WarnNumber(commands.Converter):
+    async def convert(self, ctx, argument):
+        try:
+            val = int(argument)
+        except ValueError:
+            raise commands.BadArgument('Number needs to be a whole number.')
+        if val <= 0:
+            raise commands.BadArgument("You can\'t set a warn punishment to zero or less.")
+        elif val >= 100:
+            raise commands.BadArgument("You can\'t set a warn punishment to 100 or higher!")
+        return val
+
+
 class TargetMember(commands.Converter):
     async def convert(self, ctx, argument):
         target = await commands.MemberConverter().convert(ctx, argument)
