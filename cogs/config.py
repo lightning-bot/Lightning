@@ -128,6 +128,13 @@ class Configuration(commands.Cog):
                 em.add_field(name="Mute Role", value=f"{role.name} ({role.id})")
         if ret['prefix']:
             em.add_field(name="Prefixes", value="\n".join(ret['prefix']))
+        if ret['warn_kick'] or ret['warn_ban']:
+            msg = ""
+            if ret['warn_kick']:
+                msg += f"Kick: at {ret['warn_kick']} warns\n"
+            if ret['warn_ban']:
+                msg += f"Ban: at {ret['warn_ban']}+ warns\n"
+            em.add_field(name="Warn Punishments", value=msg)
         await ctx.send(embed=em)
 
     @commands.group(aliases=['logging'])
@@ -241,7 +248,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @log.command(name='ban-logs', aliases=['banlogs'], enabled=False)
+    @log.command(name='ban-logs', aliases=['banlogs'], enabled=False, hidden=True)
     async def set_ban_logs(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set server ban log channel."""
         guild_config = await self.grab_modconfig(ctx)
@@ -275,7 +282,7 @@ class Configuration(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    @log.command(name="invite-watch", aliases=['invitewatch'], enabled=False)
+    @log.command(name="invite-watch", aliases=['invitewatch'], enabled=False, hidden=True)
     async def set_invite_watch(self, ctx, channel: Union[discord.TextChannel, str]):
         """Set the Invite Watching Channel"""
         guild_config = await self.grab_modconfig(ctx)

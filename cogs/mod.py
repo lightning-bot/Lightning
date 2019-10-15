@@ -34,7 +34,7 @@ import json
 from utils.time import natural_timedelta, FutureTime
 import io
 from bolt.paginator import Pages
-from utils.converters import TargetMember
+from utils.converters import TargetMember, WarnNumber
 from utils.errors import TimersUnavailable, MuteRoleError
 from bolt.time import get_utc_timestamp
 
@@ -102,7 +102,7 @@ class Mod(commands.Cog):
                 """
         async with self.bot.db.acquire() as con:
             ret = await con.fetchrow(query, ctx.guild.id)
-        if ret:
+        if ret['log_channels']:
             guild_config = json.loads(ret['log_channels'])
         else:
             guild_config = {}
@@ -120,7 +120,7 @@ class Mod(commands.Cog):
                 """
         async with self.bot.db.acquire() as con:
             ret = await con.fetchrow(query, ctx.guild.id)
-        if ret:
+        if ret['log_channels']:
             guild_config = json.loads(ret['log_channels'])
         else:
             guild_config = {}
@@ -140,7 +140,7 @@ class Mod(commands.Cog):
                 """
         async with self.bot.db.acquire() as con:
             ret = await con.fetchrow(query, guild_id)
-        if ret:
+        if ret['log_channels']:
             guild_config = json.loads(ret['log_channels'])
         else:
             guild_config = {}
@@ -327,55 +327,81 @@ class Mod(commands.Cog):
                             f" as the reason is automatically sent to the user."
         await self.log_send(ctx, chan_message)
 
-    @commands.guild_only()
-    @commands.bot_has_permissions(kick_members=True, ban_members=True)
-    @has_staff_role("Helper")
-    @commands.command()
-    async def warn(self, ctx, target: TargetMember, *, reason: str = ""):
-        """Warns a user.
+    async def warn_settings(self, guild_id):
+        """Returns the warn settings for a guild"""
+        query = """SELECT warn_ban, warn_kick
+                   FROM guild_mod_config
+                   WHERE guild_id=$1;"""
+        ret = await self.bot.db.fetchrow(query, guild_id)
+        if ret:
+            return ret
+        else:
+            return None
 
-        In order to use this command, you must have a role
-        that is assigned as a Helper or above in the bot."""
-
-        warn_count = await userlog(self.bot, ctx.guild, target.id,
-                                   ctx.author, reason,
-                                   "warns", target.name)
-
+    async def warn_count_check(self, ctx, target, reason: str = ""):
         msg = f"You were warned on {ctx.guild.name}."
         if reason:
             msg += " The given reason is: " + reason
+        warn_count = await userlog(self.bot, ctx.guild, target.id,
+                                   ctx.author, reason,
+                                   "warns", target.name)
         msg += f"\n\nThis is warn #{warn_count}."
-        if warn_count == 2:
-            msg += " __The next warn will automatically kick.__"
-        if warn_count == 3:
-            msg += "\n\nYou were kicked because of this warning. " \
-                   "You can join again right away. " \
-                   "Two more warnings will result in an automatic ban."
-        if warn_count == 4:
-            msg += "\n\nYou were kicked because of this warning. " \
-                   "This is your final warning. " \
-                   "You can join again, but " \
-                   "**one more warn will result in a ban**."
-        if warn_count == 5:
-            msg += "\n\nYou were automatically banned due to five warnings."
-            msg += "\nIf you believe this to be in error, please message the staff."
+        punishable_warn = await self.warn_settings(ctx.guild.id)
+        if not punishable_warn:
+            try:
+                await target.send(msg)
+                return warn_count
+            except discord.errors.Forbidden:
+                return warn_count
+        if punishable_warn['warn_kick']:
+            if warn_count == punishable_warn['warn_kick'] - 1:
+                msg += " __The next warn will automatically kick.__"
+            if warn_count == punishable_warn['warn_kick']:
+                msg += "\n\nYou were kicked because of this warning. " \
+                       "You can join again right away. "
+        if punishable_warn['warn_ban']:
+            if warn_count == punishable_warn['warn_ban'] - 1:
+                msg += "\n\nYou were kicked because of this warning. " \
+                       "This is your final warning. " \
+                       "You can join again, but " \
+                       "**one more warn will result in a ban**."
+            if warn_count >= punishable_warn['warn_ban']:
+                msg += f"\n\nYou were automatically banned due to reaching "\
+                       f"the guild's warn ban limit of "\
+                       f"{punishable_warn['warn_ban']} warnings."
+                msg += "\nIf you believe this to be in error, please message the staff."
         try:
             await target.send(msg)
         except discord.errors.Forbidden:
             # Prevents log issues in cases where user blocked bot
             # or has DMs disabled
             pass
-        if warn_count == 3 or warn_count == 4:
-            opt_reason = f"[AutoKick] Reached {warn_count} warns. "
-            if reason:
-                opt_reason += f"{reason}"
-            await ctx.guild.kick(target, reason=f"{self.mod_reason(ctx, opt_reason)}")
-        if warn_count >= 5:  # just in case
-            opt_reason = f"[AutoBan] Exceeded Warn Limit ({warn_count}). "
-            if reason:
-                opt_reason += f"{reason}"
-            await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, opt_reason)}",
-                                delete_message_days=0)
+        if punishable_warn['warn_kick']:
+            if warn_count == punishable_warn['warn_kick']:
+                opt_reason = f"[WarnKick] Reached {warn_count} warns. "
+                if reason:
+                    opt_reason += f"{reason}"
+                await ctx.guild.kick(target, reason=f"{self.mod_reason(ctx, opt_reason)}")
+        if punishable_warn['warn_ban']:
+            if warn_count >= punishable_warn['warn_ban']:  # just in case
+                opt_reason = f"[WarnBan] Exceeded WarnBan Limit ({warn_count}). "
+                if reason:
+                    opt_reason += f"{reason}"
+                await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, opt_reason)}",
+                                    delete_message_days=0)
+        return warn_count
+
+    @commands.guild_only()
+    @commands.bot_has_permissions(kick_members=True, ban_members=True)
+    @has_staff_role("Helper")
+    @commands.group(invoke_without_command=True)
+    async def warn(self, ctx, target: TargetMember, *, reason: str = ""):
+        """Warns a user.
+
+        In order to use this command, you must have a role
+        that is assigned as a Helper or above in the bot."""
+        warn_count = await self.warn_count_check(ctx, target, reason)
+
         await ctx.send(f"{target.mention} warned. "
                        f"User has {warn_count} warning(s).")
         safe_name = await commands.clean_content().convert(ctx, str(target))
@@ -389,6 +415,109 @@ class Mod(commands.Cog):
                    f", it is recommended to use `{ctx.prefix}warn <user> [reason]`" \
                    f" as the reason is automatically sent to the user."
         await self.log_send(ctx, msg)
+
+    @commands.guild_only()
+    @commands.bot_has_permissions(kick_members=True, ban_members=True)
+    @is_staff_or_has_perms("Admin", manage_guild=True)
+    @warn.group(name="punishments", aliases=['punishment'])
+    async def warn_punish(self, ctx):
+        """Configures warn punishments for the server.
+
+        In order to use this command, you must either have
+        Manage Guild permission or a role that
+        is assigned as a Admin or above in the bot."""
+        if ctx.invoked_subcommand is None:
+            query = '''SELECT warn_kick, warn_ban
+                       FROM guild_mod_config
+                       WHERE guild_id=$1;'''
+            ret = await self.bot.db.fetchrow(query, ctx.guild.id)
+            if not ret['warn_kick'] or ret['warn_ban']:
+                return await ctx.send("Warn punishments have not been setup.")
+            msg = ""
+            if ret['warn_kick']:
+                msg += f"Kick: at {ret['warn_kick']} warns\n"
+            if ret['warn_ban']:
+                msg += f"Ban: at {ret['warn_ban']}+ warns\n"
+            return await ctx.send(msg)
+
+    @commands.guild_only()
+    @commands.bot_has_permissions(kick_members=True, ban_members=True)
+    @is_staff_or_has_perms("Admin", manage_guild=True)
+    @warn_punish.command(name="kick")
+    async def warn_kick(self, ctx, number: WarnNumber):
+        """Configures the warn kick punishment.
+
+        This kicks the member after acquiring a certain amount of warns.
+
+        In order to use this command, you must either have
+        Manage Guild permission or a role that
+        is assigned as a Admin or above in the bot."""
+        query = """SELECT warn_ban
+                   FROM guild_mod_config
+                   WHERE guild_id=$1;"""
+        ban_count = await self.bot.db.fetchval(query, ctx.guild.id)
+        if ban_count:
+            if number >= ban_count:
+                return await ctx.send("You cannot set the same or a higher value "
+                                      "for warn kick punishment "
+                                      "as the warn ban punishment.")
+        query = """INSERT INTO guild_mod_config (guild_id, warn_kick)
+                   VALUES ($1, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET warn_kick = EXCLUDED.warn_kick;
+                """
+        await self.bot.db.execute(query, ctx.guild.id, number)
+        await ctx.send(f"Users will now get kicked if they reach "
+                       f"{number} amount of warns.")
+
+    @commands.guild_only()
+    @commands.bot_has_permissions(kick_members=True, ban_members=True)
+    @is_staff_or_has_perms("Admin", manage_guild=True)
+    @warn_punish.command(name="ban")
+    async def warn_ban(self, ctx, number: WarnNumber):
+        """Configures the warn ban punishment.
+
+        This bans the member after acquiring a certain
+        amount of warns or higher.
+
+        In order to use this command, you must either have
+        Manage Guild permission or a role that
+        is assigned as a Admin or above in the bot."""
+        query = """SELECT warn_kick
+                   FROM guild_mod_config
+                   WHERE guild_id=$1;"""
+        kick_count = await self.bot.db.fetchval(query, ctx.guild.id)
+        if kick_count:
+            if number <= kick_count:
+                return await ctx.send("You cannot set the same or a lesser value "
+                                      "for warn ban punishment "
+                                      "as the warn kick punishment.")
+        query = """INSERT INTO guild_mod_config (guild_id, warn_ban)
+                   VALUES ($1, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET warn_ban = EXCLUDED.warn_ban;
+                """
+        await self.bot.db.execute(query, ctx.guild.id, number)
+        await ctx.send(f"Users will now get banned if they reach "
+                       f"{number} or higher amount of warns.")
+
+    @commands.guild_only()
+    @commands.bot_has_permissions(kick_members=True, ban_members=True)
+    @is_staff_or_has_perms("Admin", manage_guild=True)
+    @warn_punish.command(name="clear")
+    async def warn_remove(self, ctx):
+        """Removes all warn punishment configuration.
+
+        In order to use this command, you must either have
+        Manage Guild permission or a role that
+        is assigned as a Admin or above in the bot."""
+        query = """UPDATE guild_mod_config
+                   SET warn_ban=NULL,
+                   warn_kick=NULL
+                   WHERE guild_id=$1;
+                """
+        await self.bot.db.execute(query, ctx.guild.id)
+        await ctx.send("Removed warn punishment configuration!")
 
     @commands.guild_only()
     @commands.bot_has_permissions(manage_messages=True)
@@ -667,7 +796,7 @@ class Mod(commands.Cog):
             raise TimersUnavailable
         ext = {"guild_id": ctx.guild.id, "user_id": target.id,
                "mod_id": ctx.author.id}
-        await timer.add_job("timeban", datetime.utcnow(),
+        await timer.add_job("timeban", ctx.message.created_at,
                             duration.dt, ext)
 
         safe_name = await commands.clean_content().convert(ctx, str(target))
@@ -729,7 +858,7 @@ class Mod(commands.Cog):
             raise TimersUnavailable
         ext = {"guild_id": ctx.guild.id, "user_id": target.id,
                "role_id": role.id, "mod_id": ctx.author.id}
-        await timer.add_job("timed_restriction", datetime.utcnow(),
+        await timer.add_job("timed_restriction", ctx.message.created_at,
                             duration.dt, ext)
         safe_name = await commands.clean_content().convert(ctx, str(target))
         dm_message = f"You were muted on {ctx.guild.name}!"
@@ -953,21 +1082,30 @@ class Mod(commands.Cog):
             return
         try:
             uid = await self.bot.fetch_user(ext['user_id'])
+            msg = f"⚠ **Ban expired**: <@!{ext['user_id']}> | {discord.utils.escape_mentions(str(uid))}"\
+                  f"\nTimeban was made by"
         except Exception:
             uid = discord.Object(id=ext['user_id'])
-        mod = guild.get_member(ext['mod_id'])
-        if mod is None:
+            msg = f"⚠ **Ban expired**: <@!{ext['user_id']}>"\
+                  f"\nTimeban was made by"
+        moderator = guild.get_member(ext['mod_id'])
+        if moderator is None:
             try:
-                mod = await self.bot.fetch_user(ext['mod_id'])
+                moderator = await self.bot.fetch_user(ext['mod_id'])
             except Exception:
                 # Discord Broke/Failed/etc.
                 mod = f"Moderator ID {ext['mod_id']}"
+                msg += f" {mod}"
             else:
-                mod = f'{mod} (ID: {mod.id})'
+                mod = f'{moderator} (ID: {moderator.id})'
+                msg += f" <@!{moderator}> | {discord.utils.escape_mentions(str(moderator))}"
         else:
-            mod = f'{mod} (ID: {mod.id})'
+            mod = f'{moderator} (ID: {moderator.id})'
+            msg += f" {moderator.mention} | {discord.utils.escape_mentions(str(moderator))}"
         reason = f"Timed ban made by {mod} at {jobinfo['created']} expired"
+        msg += f" at {get_utc_timestamp(jobinfo['created'])}."
         await guild.unban(uid, reason=reason)
+        await self.logid_send(ext['guild_id'], msg)
 
     @commands.Cog.listener()
     async def on_timed_restriction_job_complete(self, jobinfo):
@@ -976,35 +1114,50 @@ class Mod(commands.Cog):
         if guild is None:
             # Bot was kicked.
             return
-        user = guild.get_member(ext['user_id'])
-        if user is None:
-            # User left so we remove the restriction and return.
-            await self.remove_user_restriction(guild.id,
-                                               ext['user_id'],
-                                               ext['role_id'])
-            return
-        role = guild.get_role(ext['role_id'])
-        if role is None:
-            # Role was deleted or something.
-            await self.remove_user_restriction(guild.id,
-                                               user.id,
-                                               ext['role_id'])
-            return
-        mod = guild.get_member(ext['mod_id'])
-        if mod is None:
+        moderator = guild.get_member(ext['mod_id'])
+        if moderator is None:
             try:
                 mod = await self.bot.fetch_user(ext['mod_id'])
             except Exception:
                 # Discord Broke/Failed/etc.
                 mod = f"Moderator ID {ext['mod_id']}"
             else:
-                mod = f'{mod} (ID: {mod.id})'
+                mod = f'{moderator} (ID: {moderator.id})'
         else:
-            mod = f'{mod} (ID: {mod.id})'
-        reason = f"Timed restriction made by {mod} at {jobinfo['created']} expired"
+            mod = f'{moderator} (ID: {moderator.id})'
+        role = guild.get_role(ext['role_id'])
+        if role is None:
+            # Role was deleted or something.
+            await self.remove_user_restriction(guild.id,
+                                               ext['user_id'],
+                                               ext['role_id'])
+            return
+        user = guild.get_member(ext['user_id'])
+        if user is None:
+            # User left so we remove the restriction and return.
+            await self.remove_user_restriction(guild.id,
+                                               ext['user_id'],
+                                               ext['role_id'])
+            msg = f"⚠ **Timed restriction expired** {ext['user_id']}\n"\
+                  f"\N{LABEL} __Role__: {discord.utils.escape_mentions(role.name)} "\
+                  f"| {role.id}\n"\
+                  f"Timed restriction was made by "\
+                  f"{discord.utils.escape_mentions(str(mod))} at "\
+                  f"{get_utc_timestamp(jobinfo['created'])}."
+            await self.logid_send(ext['guild_id'], msg)
+            return
+        reason = f"Timed restriction made by {mod} at "\
+                 f"{get_utc_timestamp(jobinfo['created'])} expired"
         await self.remove_user_restriction(guild.id,
                                            user.id,
                                            role.id)
+        msg = f"⚠ **Timed restriction expired:** {user.mention} | {user.id}\n"\
+              f"\N{LABEL} __Role__: {discord.utils.escape_mentions(role.name)} "\
+              f"| {role.id}\n"\
+              f"Timed restriction was made by "\
+              f"{discord.utils.escape_mentions(str(mod))} at "\
+              f"{get_utc_timestamp(jobinfo['created'])}."
+        await self.logid_send(ext['guild_id'], msg)
         await user.remove_roles(role, reason=reason)
 
 # Most commands here taken from robocop-ngs mod.py
