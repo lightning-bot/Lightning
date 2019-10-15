@@ -468,7 +468,7 @@ class Mod(commands.Cog):
                 """
         await self.bot.db.execute(query, ctx.guild.id, number)
         await ctx.send(f"Users will now get kicked if they reach "
-                       f"{number} amount of warns.")
+                       f"{number} warns.")
 
     @commands.guild_only()
     @commands.bot_has_permissions(kick_members=True, ban_members=True)
@@ -499,7 +499,7 @@ class Mod(commands.Cog):
                 """
         await self.bot.db.execute(query, ctx.guild.id, number)
         await ctx.send(f"Users will now get banned if they reach "
-                       f"{number} or higher amount of warns.")
+                       f"{number} or a higher amount of warns.")
 
     @commands.guild_only()
     @commands.bot_has_permissions(kick_members=True, ban_members=True)
