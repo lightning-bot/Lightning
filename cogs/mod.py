@@ -833,7 +833,7 @@ class Mod(commands.Cog):
         await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
-    @commands.command()
+    @commands.command(aliases=['tempmute'])
     @commands.bot_has_permissions(manage_roles=True)
     @is_staff_or_has_perms("Moderator", manage_roles=True)
     async def timemute(self, ctx, target: TargetMember,
