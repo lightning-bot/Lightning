@@ -285,6 +285,9 @@ class LightningBot(commands.AutoShardedBot):
         elif isinstance(error, commands.NotOwner):
             return await ctx.send(f"{ctx.author.mention}: ❌ You cannot use this command "
                                   "as it's only for the owner of the bot!")
+        elif isinstance(error, commands.NSFWChannelRequired):
+            return await ctx.send(f"{ctx.author.mention}: This command "
+                                  "can only be run in a NSFW marked channel or DMs.")
         elif isinstance(error, commands.CheckFailure):
             return await ctx.send(f"{ctx.author.mention}: Check failed. "
                                   "You do not have the right permissions "
