@@ -29,6 +29,7 @@ import datetime
 import re
 import resources.botemojis as em
 import json
+import asyncio
 
 
 class Logger(Cog):
@@ -75,6 +76,56 @@ class Logger(Cog):
                     pass
 
     @Cog.listener()
+    async def on_member_ban(self, guild, user):
+        # Wait for Audit Log to update
+        await asyncio.sleep(0.5)
+        if not guild.me.guild_permissions.view_audit_log:
+            return
+        async for entry in guild.audit_logs(limit=50,
+                                            action=discord.AuditLogAction.ban):
+            # Entry.target = user that was banned fyi
+            if entry.target == user:
+                author = entry.user
+                reason = entry.reason if entry.reason else ""
+                #  If author of the entry is the bot itself, don't log since
+                #  this would've been already logged.
+                if author.id != self.bot.user.id:
+                    message = f"⛔ **Ban**: {author.mention} banned " \
+                              f"{entry.target.mention} | "\
+                              f"{discord.utils.escape_mentions(str(entry.target))}\n" \
+                              f"🏷 __User ID__: {entry.target.id}\n"
+                    if reason:
+                        message += f"✏️ __Reason__: \"{reason}\""
+                    log = self.bot.get_cog('Mod')
+                    if log:
+                        await log.logid_send(guild.id, message)
+                break
+
+    @Cog.listener()
+    async def on_member_unban(self, guild, user):
+        # Wait for Audit Log to update
+        await asyncio.sleep(0.5)
+        if not guild.me.guild_permissions.view_audit_log:
+            return
+        async for entry in guild.audit_logs(limit=50,
+                                            action=discord.AuditLogAction.unban):
+            # Entry.target = user that was unbanned fyi
+            if entry.target == user:
+                author = entry.user
+                reason = entry.reason if entry.reason else ""
+                if author.id != self.bot.user.id:
+                    message = f"⚠ **Unban**: {author.mention} unbanned " \
+                              f"{entry.target.mention} | "\
+                              f"{discord.utils.escape_mentions(str(entry.target))}\n" \
+                              f"🏷 __User ID__: {entry.target.id}\n"
+                    if reason:
+                        message += f"✏️ __Reason__: \"{reason}\""
+                    log = self.bot.get_cog('Mod')
+                    if log:
+                        await log.logid_send(guild.id, message)
+                break
+
+    @Cog.listener()
     async def on_member_join(self, member):
         await self.bot.wait_until_ready()
         try:
@@ -118,6 +169,7 @@ class Logger(Cog):
     async def on_member_remove(self, member):
         await self.bot.wait_until_ready()
         config = await self.guild_config_id(member.guild.id)
+        guild = member.guild
         if "join_log_embed_channel" in config:
             embed = discord.Embed(title=f"{em.member_leave} Member Leave",
                                   timestamp=datetime.datetime.utcnow(), color=discord.Color.red())
@@ -136,29 +188,28 @@ class Logger(Cog):
                 await self.bot.get_channel(config["join_log_channel"]).send(msg)
             except Exception:
                 pass
-
-    @Cog.listener()
-    async def on_guild_ban(self, guild, user):
-        config = await self.guild_config_id(guild.id)
-        if "ban_channel" in config:
-            message = f"🔨 **Ban**: {user.mention} | {user}\n"\
-                      f"🏷 __User ID__: {user.id}"
-            try:
-                await self.bot.get_channel(config["ban_channel"]).send(message)
-            except Exception:
-                pass
-
-    @Cog.listener()
-    async def on_member_unban(self, guild, user):
-        await self.bot.wait_until_ready()
-        config = await self.guild_config_id(guild.id)
-        if "ban_channel" in config:
-            message = f"⚠ **Unban**: {user.mention} | {user}\n"\
-                      f"🏷 __User ID__: {user.id}"
-            try:
-                await self.bot.get_channel(config["ban_channel"]).send(message)
-            except Exception:
-                pass
+        await asyncio.sleep(0.5)
+        if not guild.me.guild_permissions.view_audit_log:
+            return
+        async for entry in guild.audit_logs(limit=50):
+            # If ban comes up first, break
+            if entry.action == discord.AuditLogAction.ban:
+                break
+            # Entry.target = user that was banned fyi
+            if entry.target == member:
+                author = entry.user
+                reason = entry.reason if entry.reason else ""
+                if author.id != self.bot.user.id:
+                    message = f"👢 **Kick**: {author.mention} kicked " \
+                              f"{entry.target.mention} | "\
+                              f"{discord.utils.escape_mentions(str(entry.target))}\n" \
+                              f"🏷 __User ID__: {entry.target.id}\n"
+                    if reason:
+                        message += f"✏️ __Reason__: \"{reason}\""
+                    log = self.bot.get_cog('Mod')
+                    if log:
+                        await log.logid_send(guild.id, message)
+                break
 
     @Cog.listener()
     async def on_message_delete(self, message):
