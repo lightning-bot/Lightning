@@ -405,7 +405,8 @@ class Mod(commands.Cog):
         await ctx.send(f"{target.mention} warned. "
                        f"User has {warn_count} warning(s).")
         safe_name = await commands.clean_content().convert(ctx, str(target))
-        msg = f"⚠️ **Warned**: {ctx.author.mention} warned {target.mention}" \
+        msg = f"\N{WARNING SIGN} **Warned**: "\
+              f"{ctx.author.mention} warned {target.mention}" \
               f" (warn #{warn_count}) | {safe_name}\n"
 
         if reason:
