@@ -548,32 +548,6 @@ class Mod(commands.Cog):
         await self.log_send(ctx, msg, file=fi)
 
     @commands.guild_only()
-    @commands.bot_has_permissions(ban_members=True)
-    @commands.command(aliases=['slientban'])  # For some reason, I can't spell
-    @is_staff_or_has_perms("Moderator", ban_members=True)
-    async def silentban(self, ctx, target: TargetMember, *, reason: str = ""):
-        """Bans a user without sending the reason to the member.
-
-        In order to use this command, you must either have
-        Ban Members permission or a role that
-        is assigned as a Moderator or above in the bot."""
-
-        safe_name = await commands.clean_content().convert(ctx, str(target))
-
-        await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, reason)}",
-                            delete_message_days=0)
-        chan_message = f"⛔ **Silent Ban**: {ctx.author.mention} banned "\
-                       f"{target.mention} | {safe_name}\n"\
-                       f"🏷 __User ID__: {target.id}\n"
-        if reason:
-            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            chan_message += f"\nPlease add an explanation below. In the future"\
-                            f", it is recommended to use `{ctx.prefix}ban <user> [reason]`"\
-                            f" as the reason is automatically sent to the user."
-        await self.log_send(ctx, chan_message)
-
-    @commands.guild_only()
     @commands.command(aliases=["nick"])
     @is_staff_or_has_perms("Helper", manage_nicknames=True)
     async def nickname(self, ctx, target: discord.Member, *, nickname: str = ''):
@@ -745,31 +719,6 @@ class Mod(commands.Cog):
             chan_message += f"\nPlease add an explanation below. In the future"\
                             f", it is recommended to use "\
                             f"`{ctx.prefix}banid <user> [reason]`."
-        await self.log_send(ctx, chan_message)
-
-    @commands.guild_only()
-    @commands.bot_has_permissions(kick_members=True)
-    @is_staff_or_has_perms("Moderator", kick_members=True)
-    @commands.command()
-    async def silentkick(self, ctx, target: TargetMember, *, reason: str = ""):
-        """Silently kicks a user. Does not DM a message to the target user.
-
-        In order to use this command, you must either have
-        Kick Members permission or a role that
-        is assigned as a Moderator or above in the bot."""
-
-        safe_name = await commands.clean_content().convert(ctx, str(target))
-
-        await target.kick(reason=f"{self.mod_reason(ctx, reason)}")
-        chan_message = f"👢 **Silent Kick**: {ctx.author.mention} kicked " \
-                       f"{target.mention} | {safe_name}\n" \
-                       f"🏷 __User ID__: {target.id}\n"
-        if reason:
-            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            chan_message += f"\nPlease add an explanation below. In the future" \
-                            f", it is recommended to use " \
-                            f"`{ctx.prefix}silentkick <user> [reason]`."
         await self.log_send(ctx, chan_message)
 
     @commands.guild_only()
