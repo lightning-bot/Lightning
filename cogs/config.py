@@ -212,9 +212,10 @@ class Configuration(commands.Cog):
         await self.set_modconfig(ctx, guild_config)
 
     @commands.has_permissions(administrator=True)
+    @commands.bot_has_permissions(view_audit_log=True)
     @log.command(name="mod-logs", aliases=['modlogs'])
     async def set_mod_logs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set where moderation actions should be logged"""
+        """Set where moderation actions should be logged."""
         guild_config = await self.grab_modconfig(ctx)
         if channel == "disable":
             guild_config.pop("modlog_chan")
@@ -244,23 +245,6 @@ class Configuration(commands.Cog):
         else:
             guild_config["event_channel"] = channel.id
             await ctx.send(f"Member role logs have been set to {channel.mention} {emoji.mayushii}")
-        await self.set_modconfig(ctx, guild_config)
-
-    @commands.guild_only()
-    @commands.has_permissions(administrator=True)
-    @log.command(name='ban-logs', aliases=['banlogs'], enabled=False, hidden=True)
-    async def set_ban_logs(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set server ban log channel."""
-        guild_config = await self.grab_modconfig(ctx)
-        if channel == "disable":
-            if "ban_channel" in guild_config:
-                guild_config.pop("ban_channel")
-                await ctx.send("Ban logging has been disabled.")
-            else:
-                return await ctx.send("Ban logging was never setup!")
-        else:
-            guild_config["ban_channel"] = channel.id
-            await ctx.send(f"Server ban log channel has been set to {channel.mention} {emoji.mayushii}")
         await self.set_modconfig(ctx, guild_config)
 
     @commands.guild_only()
