@@ -95,7 +95,7 @@ class Logger(Cog):
                               f"{discord.utils.escape_mentions(str(entry.target))}\n" \
                               f"🏷 __User ID__: {entry.target.id}\n"
                     if reason:
-                        message += f"✏️ __Reason__: \"{reason}\""
+                        message += f"\N{PENCIL} __Reason__: \"{reason}\""
                     log = self.bot.get_cog('Mod')
                     if log:
                         await log.logid_send(guild.id, message)
@@ -119,7 +119,7 @@ class Logger(Cog):
                               f"{discord.utils.escape_mentions(str(entry.target))}\n" \
                               f"🏷 __User ID__: {entry.target.id}\n"
                     if reason:
-                        message += f"✏️ __Reason__: \"{reason}\""
+                        message += f"\N{PENCIL} __Reason__: \"{reason}\""
                     log = self.bot.get_cog('Mod')
                     if log:
                         await log.logid_send(guild.id, message)
@@ -205,7 +205,7 @@ class Logger(Cog):
                               f"{discord.utils.escape_mentions(str(entry.target))}\n" \
                               f"🏷 __User ID__: {entry.target.id}\n"
                     if reason:
-                        message += f"✏️ __Reason__: \"{reason}\""
+                        message += f"\N{PENCIL} __Reason__: \"{reason}\""
                     log = self.bot.get_cog('Mod')
                     if log:
                         await log.logid_send(guild.id, message)
