@@ -208,7 +208,7 @@ class Mod(commands.Cog):
                       f"🏷 __User ID__: {target.id}\n"
         # Send the initial message then edit it with our reason.
         if reason:
-            message += f"✏️ __Reason__: \"{reason}\""
+            message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             message += f"*Responsible moderator* please add a reason to the case."\
                        f" `l.case "
@@ -279,7 +279,7 @@ class Mod(commands.Cog):
                        f"{target.mention} | {safe_name}\n" \
                        f"🏷 __User ID__: {target.id}\n"
         if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
+            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             chan_message += f"\nPlease add an explanation below. In the future" \
                             f", it is recommended to use " \
@@ -320,7 +320,7 @@ class Mod(commands.Cog):
                        f"{target.mention} | {safe_name}\n" \
                        f"🏷 __User ID__: {target.id}\n"
         if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
+            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             chan_message += f"\nPlease add an explanation below. In the future" \
                             f", it is recommended to use `{ctx.prefix}ban <user> [reason]`" \
@@ -409,7 +409,7 @@ class Mod(commands.Cog):
               f" (warn #{warn_count}) | {safe_name}\n"
 
         if reason:
-            msg += f"✏️ __Reason__: \"{reason}\""
+            msg += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             msg += f"\nPlease add an explanation below. In the future" \
                    f", it is recommended to use `{ctx.prefix}warn <user> [reason]`" \
@@ -541,7 +541,7 @@ class Mod(commands.Cog):
         msg = f'🗑️ **{len(pmsg)} messages purged** in {ctx.channel.mention} | {ctx.channel.name}\n'
         msg += f'Purger was {ctx.author.mention} | {ctx.author}\n'
         if reason:
-            msg += f"✏️ __Reason__: \"{reason}\""
+            msg += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             pass
         await self.log_send(ctx, msg, file=fi)
@@ -565,7 +565,7 @@ class Mod(commands.Cog):
                        f"{target.mention} | {safe_name}\n"\
                        f"🏷 __User ID__: {target.id}\n"
         if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
+            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             chan_message += f"\nPlease add an explanation below. In the future"\
                             f", it is recommended to use `{ctx.prefix}ban <user> [reason]`"\
@@ -638,7 +638,7 @@ class Mod(commands.Cog):
                        f"{target.mention} | {safe_name}\n"\
                        f"🏷 __User ID__: {target.id}\n"
         if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
+            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             chan_message += f"\nPlease add an explanation below. In the future, "\
                             f"it is recommended to use `{ctx.prefix}mute <user> [reason]`"\
@@ -697,7 +697,7 @@ class Mod(commands.Cog):
                        f"{member.mention} | {member}\n"\
                        f"🏷 __User ID__: {member.id}\n"
         if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
+            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             chan_message += f"\nPlease add an explanation below. In the future, "\
                             f"it is recommended to use `{ctx.prefix}unban <user_id> [reason]`."
@@ -739,7 +739,7 @@ class Mod(commands.Cog):
                        f"{user.mention} | {safe_name}\n"\
                        f"🏷 __User ID__: {user_id}\n"
         if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
+            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             chan_message += f"\nPlease add an explanation below. In the future"\
                             f", it is recommended to use "\
@@ -764,7 +764,7 @@ class Mod(commands.Cog):
                        f"{target.mention} | {safe_name}\n" \
                        f"🏷 __User ID__: {target.id}\n"
         if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
+            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             chan_message += f"\nPlease add an explanation below. In the future" \
                             f", it is recommended to use " \
@@ -822,7 +822,7 @@ class Mod(commands.Cog):
                        f"{target.mention} for {duration_text} | {safe_name}\n"\
                        f"🏷 __User ID__: {target.id}\n"
         if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
+            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             chan_message += "\nPlease add an explanation below. In the future"\
                             f", it is recommended to use `{ctx.prefix}timeban"\
@@ -883,7 +883,7 @@ class Mod(commands.Cog):
                        f"{target.mention} for {duration_text} | {safe_name}\n"\
                        f"🏷 __User ID__: {target.id}\n"
         if reason:
-            chan_message += f"✏️ __Reason__: \"{reason}\""
+            chan_message += f"\N{PENCIL} __Reason__: \"{reason}\""
         else:
             chan_message += "\nPlease add an explanation below. In the future, "\
                             f"it is recommended to use `{ctx.prefix}timemute <user> "\
