@@ -180,14 +180,6 @@ class Owner(commands.Cog):
 
     @commands.is_owner()
     @commands.command()
-    async def logout(self, ctx):
-        """Logout the bot"""
-        await ctx.send('Logging out now...')
-        await asyncio.sleep(5.0)
-        await self.bot.logout()
-
-    @commands.is_owner()
-    @commands.command()
     async def leaveguild(self, ctx, server_id: int):
         """Leaves the guild via ID"""
         server = self.bot.get_guild(server_id)
@@ -326,7 +318,7 @@ class Owner(commands.Cog):
         await ctx.send(f"👋 {random.choice(shutdown_messages)}")
         await self.bot.db.close()
         await self.bot.aiosession.close()
-        await self.bot.close()
+        await self.bot.logout()
 
     @commands.command()
     @commands.is_owner()
