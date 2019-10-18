@@ -390,7 +390,7 @@ class Meta(commands.Cog):
         embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url_as(static_format='png'))
         embed.url = "https://gitlab.com/LightSage/Lightning"
         embed.set_thumbnail(url=ctx.me.avatar_url)
-        embed.description = f"Lightning.py, the successor to Lightning(.js)"
+        embed.description = f"Lightning.py, a Discord bot"
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
         async with self.bot.db.acquire() as con:
