@@ -393,12 +393,13 @@ class Mod(commands.Cog):
 
     @commands.guild_only()
     @commands.bot_has_permissions(kick_members=True, ban_members=True)
-    @has_staff_role("Helper")
+    @is_staff_or_has_perms("Helper", manage_messages=True)
     @commands.group(invoke_without_command=True)
     async def warn(self, ctx, target: TargetMember, *, reason: str = ""):
         """Warns a user.
 
-        In order to use this command, you must have a role
+        In order to use this command, you must either have
+        Manage Messages permission or a role
         that is assigned as a Helper or above in the bot."""
         warn_count = await self.warn_count_check(ctx, target, reason)
 
