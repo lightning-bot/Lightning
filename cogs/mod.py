@@ -27,7 +27,7 @@ import discord
 from discord.ext import commands
 from utils.user_log import userlog
 from utils.user_log import get_userlog, set_userlog, userlog_event_types
-from utils.checks import is_staff_or_has_perms, has_staff_role, member_at_least_has_staff_role
+from utils.checks import is_staff_or_has_perms, member_at_least_has_staff_role
 from datetime import datetime, timedelta
 import json
 # import asyncio
