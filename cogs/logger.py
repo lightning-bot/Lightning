@@ -327,7 +327,8 @@ class Logger(Cog):
                             roles.append(role.name)
                 msg += ", ".join(roles)
             if msg:  # Ending
-                msg = f"ℹ️ **Member update**: {self.escape_message(after)} | "\
+                msg = f"\N{INFORMATION SOURCE} "\
+                      f"**Member update**: {self.escape_message(after)} | "\
                       f"{after.id} {msg}"
             try:
                 await self.bot.get_channel(config["event_channel"]).send(msg)
