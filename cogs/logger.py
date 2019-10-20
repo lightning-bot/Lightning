@@ -72,7 +72,8 @@ class Logger(Cog):
                       f"\nMessage contained invite link: https://{invite[0]}"
                 try:
                     await self.bot.get_channel(config["invite_watch"]).send(msg)
-                except Exception:
+                except discord.Forbidden:
+                    await self.forbidden_removal('invite_watch', message.guild.id)
                     pass
 
     @Cog.listener()
@@ -98,7 +99,10 @@ class Logger(Cog):
                         message += f"\N{PENCIL} __Reason__: \"{reason}\""
                     log = self.bot.get_cog('Mod')
                     if log:
-                        await log.logid_send(guild.id, message)
+                        try:
+                            await log.logid_send(guild.id, message)
+                        except discord.Forbidden:
+                            await self.forbidden_removal('modlog_chan', guild.id)
                 break
 
     @Cog.listener()
@@ -122,7 +126,10 @@ class Logger(Cog):
                         message += f"\N{PENCIL} __Reason__: \"{reason}\""
                     log = self.bot.get_cog('Mod')
                     if log:
-                        await log.logid_send(guild.id, message)
+                        try:
+                            await log.logid_send(guild.id, message)
+                        except discord.Forbidden:
+                            await self.forbidden_removal('modlog_chan', guild.id)
                 break
 
     @Cog.listener()
@@ -151,7 +158,8 @@ class Logger(Cog):
                                 f"{member.created_at}\n🏷 __User ID__: {member.id}"
             try:
                 await self.bot.get_channel(config["join_log_embed_channel"]).send(embed=embed)
-            except Exception:
+            except discord.Forbidden:
+                await self.forbidden_removal('join_log_embed_channel', member.guild.id)
                 pass
         if "join_log_channel" in config:
             msg = f"{em.member_join}"\
@@ -162,8 +170,15 @@ class Logger(Cog):
                   f"🏷 __User ID__: {member.id}"
             try:
                 await self.bot.get_channel(config["join_log_channel"]).send(msg)
-            except Exception:
+            except discord.Forbidden:
+                await self.forbidden_removal('join_log_channel', member.guild.id)
                 pass
+
+    async def forbidden_removal(self, item, guild_id):
+        query = """UPDATE guild_mod_config
+                   SET log_channels = log_channels - $1
+                   WHERE guild_id=$2;"""
+        await self.bot.db.execute(query, item, guild_id)
 
     @Cog.listener()
     async def on_member_remove(self, member):
@@ -176,7 +191,8 @@ class Logger(Cog):
             embed.description = f"{member.mention} | {member}\n🏷 __User ID__: {member.id}"
             try:
                 await self.bot.get_channel(config["join_log_embed_channel"]).send(embed=embed)
-            except Exception:
+            except discord.Forbidden:
+                await self.forbidden_removal('join_log_embed_channel', guild.id)
                 pass
         if "join_log_channel" in config:
             msg = f"{em.member_leave} "\
@@ -186,7 +202,8 @@ class Logger(Cog):
                   f"🏷 __User ID__: {member.id}"
             try:
                 await self.bot.get_channel(config["join_log_channel"]).send(msg)
-            except Exception:
+            except discord.Forbidden:
+                await self.forbidden_removal('join_log_channel', guild.id)
                 pass
         await asyncio.sleep(0.5)
         if not guild.me.guild_permissions.view_audit_log:
@@ -208,7 +225,10 @@ class Logger(Cog):
                         message += f"\N{PENCIL} __Reason__: \"{reason}\""
                     log = self.bot.get_cog('Mod')
                     if log:
-                        await log.logid_send(guild.id, message)
+                        try:
+                            await log.logid_send(guild.id, message)
+                        except discord.Forbidden:
+                            await self.forbidden_removal('modlog_chan', guild.id)
                 break
 
     @Cog.listener()
@@ -235,7 +255,8 @@ class Logger(Cog):
                 msg = f"🗑️ **Message deleted**: \nMessage was too long. See the link: <{haste_url}>"
             try:
                 await self.bot.get_channel(config["message_log_channel"]).send(msg, embed=embed)
-            except Exception:
+            except discord.Forbidden:
+                await self.forbidden_removal('message_log_channel', message.guild.id)
                 pass
 
     @Cog.listener()
@@ -271,7 +292,8 @@ class Logger(Cog):
                 msg = f"📝 **Message Edited**: \nMessage was too long. See the link: <{haste_url}>"
             try:
                 await self.bot.get_channel(config["message_log_channel"]).send(msg, embed=embed)
-            except Exception:
+            except discord.Forbidden:
+                await self.forbidden_removal('message_log_channel', before.guild.id)
                 pass
 
     @Cog.listener()
@@ -297,7 +319,8 @@ class Logger(Cog):
                 embed.add_field(name="Removed Role", value=", ".join(removed_roles))
             try:
                 await self.bot.get_channel(config["event_embed_channel"]).send(embed=embed)
-            except Exception:
+            except discord.Forbidden:
+                await self.forbidden_removal('event_embed_channel', before.guild.id)
                 pass
         if "event_channel" in config:
             msg = ""
@@ -332,7 +355,8 @@ class Logger(Cog):
                       f"{after.id} {msg}"
             try:
                 await self.bot.get_channel(config["event_channel"]).send(msg)
-            except Exception:
+            except discord.Forbidden:
+                await self.forbidden_removal('event_channel', before.guild.id)
                 pass
 
 
