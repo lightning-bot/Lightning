@@ -824,7 +824,10 @@ class Meta(commands.Cog):
                               color=discord.Color.red())
         self.bot.log.info(f"🚧 Guild Unavailable | {guild.name} "
                           f"| {guild.id}")
-        self.unavailable_guilds.append(guild.id)
+        try:
+            self.unavailable_guilds.append(guild.id)
+        except ValueError:
+            return
         await self.send_guild_info(embed, guild)
 
     @commands.Cog.listener()
@@ -835,7 +838,10 @@ class Meta(commands.Cog):
                               color=discord.Color.green())
         self.bot.log.info(f"✅ Guild Available | {guild.name} "
                           f"| {guild.id}")
-        self.unavailable_guilds.remove(guild.id)
+        try:
+            self.unavailable_guilds.remove(guild.id)
+        except ValueError:
+            return
         await self.send_guild_info(embed, guild)
 
 
