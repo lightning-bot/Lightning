@@ -353,11 +353,11 @@ class Logger(Cog):
                 msg = f"\N{INFORMATION SOURCE} "\
                       f"**Member update**: {self.escape_message(after)} | "\
                       f"{after.id} {msg}"
-            try:
-                await self.bot.get_channel(config["event_channel"]).send(msg)
-            except discord.Forbidden:
-                await self.forbidden_removal('event_channel', before.guild.id)
-                pass
+                try:
+                    await self.bot.get_channel(config["event_channel"]).send(msg)
+                except discord.Forbidden:
+                    await self.forbidden_removal('event_channel', before.guild.id)
+                    pass
 
 
 def setup(bot):
