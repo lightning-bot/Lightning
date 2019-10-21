@@ -415,26 +415,24 @@ class Meta(commands.Cog):
     @commands.command(aliases=['invite', 'join'])
     async def botinvite(self, ctx):
         """Gives you a link to add Lightning to your server."""
-        adperms = discord.Permissions.none()
-        adperms.administrator = True
-        essentialperms = discord.Permissions.none()
-        essentialperms.kick_members = True
-        essentialperms.ban_members = True
-        essentialperms.manage_channels = True
-        essentialperms.add_reactions = True
-        essentialperms.view_audit_log = True
-        essentialperms.attach_files = True
-        essentialperms.manage_messages = True
-        essentialperms.external_emojis = True
-        essentialperms.manage_nicknames = True
-        essentialperms.manage_emojis = True
-        invites = "[Admin Permissions]"\
-                  f"({discord.utils.oauth_url('532220480577470464', adperms)})\n"\
-                  "[Regular Permissions]"\
-                  f"({discord.utils.oauth_url('532220480577470464', essentialperms)})"
-        embed = discord.Embed(title="Bot Invite", description=invites,
-                              color=0xf74b06)
-        await ctx.send(embed=embed)
+        perms = discord.Permissions.none()
+        perms.kick_members = True
+        perms.ban_members = True
+        perms.manage_channels = True
+        perms.add_reactions = True
+        perms.view_audit_log = True
+        perms.attach_files = True
+        perms.manage_messages = True
+        perms.external_emojis = True
+        perms.manage_nicknames = True
+        perms.manage_emojis = True
+        perms.manage_roles = True
+        perms.read_messages = True
+        perms.send_messages = True
+        # perms.manage_webhooks = True
+        await ctx.send("You can use this link to invite me to your server. "
+                       "(Select permissions as needed) "
+                       f"{discord.utils.oauth_url('532220480577470464', perms)}")
 
     @commands.command()
     async def support(self, ctx):
