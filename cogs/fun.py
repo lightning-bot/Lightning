@@ -254,7 +254,7 @@ class Fun(commands.Cog):
         """Returns an embed with information about the specified xkcd comic.
 
         If no value is supplied or the value isn't found, it gives the latest xkcd instead."""
-        xkcd_latest = await self.bot.aiojson("https://xkcd.com/info.0.json")
+        xkcd_latest = await bolt.http.getjson(self.bot.aiosession, "https://xkcd.com/info.0.json")
         xkcd_max = xkcd_latest.get("num")
 
         if xkcd_number is not None and int(xkcd_number) > 0 and int(xkcd_number) < xkcd_max:
@@ -262,7 +262,7 @@ class Fun(commands.Cog):
         else:
             entry = xkcd_max
 
-        xkcd = await self.bot.aiojson(f"https://xkcd.com/{entry}/info.0.json")
+        xkcd = await bolt.http.getjson(self.bot.aiosession, f"https://xkcd.com/{entry}/info.0.json")
         if xkcd is False:
             return await ctx.send("Something went wrong grabbing that XKCD!")
 
