@@ -1,6 +1,6 @@
 # Lightning.py
 [![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/cDPGuYd)
-[![Pipeline Status](https://img.shields.io/gitlab/pipeline/LightSage/Lightning?label=Pipeline&logo=GitLab)](https://gitlab.com/LightSage/Lightning/pipelines/latest)
+[![Pipeline Status](https://img.shields.io/gitlab/pipeline/lightning-bot/Lightning?label=Pipeline&logo=GitLab)](https://gitlab.com/lightning-bot/Lightning/pipelines/latest)
 
 This version is the successor to Lightning.js
 
@@ -47,7 +47,7 @@ A list of features can be found at https://lightning-bot.gitlab.io. Changelogs c
 [![DBL (top.gg)](https://top.gg/api/widget/owner/532220480577470464.svg)](https://top.gg/bot/532220480577470464)
 ## Invite
 
-If you want to invite Lightning to your guild, use this link https://discordapp.com/api/oauth2/authorize?client_id=532220480577470464&permissions=470150390&scope=bot.
+If you want to invite Lightning to your guild, use this link https://discordapp.com/oauth2/authorize?client_id=532220480577470464&scope=bot&permissions=1476766934.
 
 ---
 ## License

@@ -388,7 +388,7 @@ class Meta(commands.Cog):
         embed = discord.Embed(title="Lightning", color=0xf74b06)
         bot_owner = self.bot.get_user(self.bot.owner_id)
         embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url_as(static_format='png'))
-        embed.url = "https://gitlab.com/LightSage/Lightning"
+        embed.url = "https://gitlab.com/lightning-bot/Lightning"
         embed.set_thumbnail(url=ctx.me.avatar_url)
         embed.description = f"Lightning.py, a Discord bot"
         embed.add_field(name="Servers", value=len(self.bot.guilds))
@@ -446,8 +446,8 @@ class Meta(commands.Cog):
 
     @commands.command(hidden=True, aliases=['sourcecode'])
     async def source(self, ctx):
-        """My source code"""
-        await ctx.send("This is my source code. https://gitlab.com/LightSage/Lightning")
+        """Links to my source code"""
+        await ctx.send("https://gitlab.com/lightning-bot/Lightning")
 
     @commands.command()
     async def ping(self, ctx):
