@@ -35,7 +35,7 @@ from datetime import datetime
 import textwrap
 from utils.errors import NoImageProvided
 from jishaku.functools import executor_function
-import bolt.http
+from bolt.http import getbytes, getjson
 
 
 class Fun(commands.Cog):
@@ -98,7 +98,7 @@ class Fun(commands.Cog):
             if url is None:
                 raise NoImageProvided
             if url:
-                image_url = await bolt.http.getbytes(self.bot.aiosession, url)
+                image_url = await getbytes(self.bot.aiosession, url)
                 image_buffer = await ctx.bot.loop.run_in_executor(None,
                                                                   self.make_jpegify,
                                                                   image_url)
@@ -254,7 +254,7 @@ class Fun(commands.Cog):
         """Returns an embed with information about the specified xkcd comic.
 
         If no value is supplied or the value isn't found, it gives the latest xkcd instead."""
-        xkcd_latest = await bolt.http.getjson(self.bot.aiosession, "https://xkcd.com/info.0.json")
+        xkcd_latest = await getjson(self.bot.aiosession, "https://xkcd.com/info.0.json")
         xkcd_max = xkcd_latest.get("num")
 
         if xkcd_number is not None and int(xkcd_number) > 0 and int(xkcd_number) < xkcd_max:
@@ -262,7 +262,7 @@ class Fun(commands.Cog):
         else:
             entry = xkcd_max
 
-        xkcd = await bolt.http.getjson(self.bot.aiosession, f"https://xkcd.com/{entry}/info.0.json")
+        xkcd = await getjson(self.bot.aiosession, f"https://xkcd.com/{entry}/info.0.json")
         if xkcd is False:
             return await ctx.send("Something went wrong grabbing that XKCD!")
 
