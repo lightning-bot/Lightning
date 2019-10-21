@@ -473,11 +473,12 @@ class Configuration(commands.Cog):
         If called without a subcommand, this will list
         the currently set prefixes for this guild."""
         if ctx.invoked_subcommand is None:
-            embed = discord.Embed(title=f"Custom Prefixes Set for {ctx.guild.name}",
+            embed = discord.Embed(title="Prefixes",
                                   description="",
                                   color=discord.Color(0xd1486d))
+            embed.description += f"\"{ctx.me.mention}\"\n\"l.\"\n"
             for p in await self.get_guild_prefixes(ctx.guild.id):
-                embed.description += f"- {p}\n"
+                embed.description += f"\"{p}\"\n"
             await ctx.send(embed=embed)
 
     @prefix.command(name="add")
