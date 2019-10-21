@@ -429,6 +429,7 @@ class Meta(commands.Cog):
         perms.manage_roles = True
         perms.read_messages = True
         perms.send_messages = True
+        perms.read_message_history = True
         # perms.manage_webhooks = True
         await ctx.send("You can use this link to invite me to your server. "
                        "(Select permissions as needed) "
