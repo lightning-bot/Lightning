@@ -97,13 +97,12 @@ class Mod(commands.Cog):
         return to_return
 
     async def log_send(self, ctx, message, **kwargs):
-        query = """SELECT * FROM guild_mod_config
+        query = """SELECT log_channels FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
-        async with self.bot.db.acquire() as con:
-            ret = await con.fetchrow(query, ctx.guild.id)
-        if ret['log_channels']:
-            guild_config = json.loads(ret['log_channels'])
+        ret = await self.bot.db.fetchval(query, ctx.guild.id)
+        if ret:
+            guild_config = json.loads(ret)
         else:
             guild_config = {}
 
@@ -118,8 +117,7 @@ class Mod(commands.Cog):
         query = """SELECT * FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
-        async with self.bot.db.acquire() as con:
-            ret = await con.fetchrow(query, ctx.guild.id)
+        ret = await self.bot.db.fetchrow(query, ctx.guild.id)
         if ret['log_channels']:
             guild_config = json.loads(ret['log_channels'])
         else:
