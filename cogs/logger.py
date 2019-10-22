@@ -43,15 +43,12 @@ class Logger(Cog):
     async def guild_config_id(self, guild_id: int):
         """Async Function to use a provided guild ID instead of relying
         on context (ctx)."""
-        query = """SELECT * FROM guild_mod_config
+        query = """SELECT log_channels FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
-        ret = await self.bot.db.fetchrow(query, guild_id)
+        ret = await self.bot.db.fetchval(query, guild_id)
         if ret:
-            if ret['log_channels']:
-                guild_config = json.loads(ret['log_channels'])
-            else:
-                guild_config = {}
+            guild_config = json.loads(ret)
         else:
             guild_config = {}
 
