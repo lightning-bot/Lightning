@@ -562,8 +562,7 @@ class Meta(commands.Cog):
                    ORDER BY "cmd_uses" DESC
                    LIMIT 5;
                 """
-        async with self.bot.db.acquire() as con:
-            cmds = await con.fetch(query2, ctx.guild.id)
+        cmds = await self.bot.db.fetch(query2, ctx.guild.id)
         commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
                                       for (index, (command_name, cmd_uses)) in enumerate(cmds))
         if len(commands_used_des) == 0:
@@ -580,8 +579,7 @@ class Meta(commands.Cog):
                    ORDER BY "cmd_uses" DESC
                    LIMIT 5;
                 """
-        async with self.bot.db.acquire() as con:
-            fetched = await con.fetch(query, ctx.guild.id)
+        fetched = await self.bot.db.fetch(query, ctx.guild.id)
         # Shoutouts to R.Danny for this code
         commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
                                       for (index, (command_name, cmd_uses)) in enumerate(fetched))
