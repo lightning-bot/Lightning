@@ -517,8 +517,9 @@ class Meta(commands.Cog):
         verification_text = vlevel_replace[v_raw_text] if v_raw_text in vlevel_replace else v_raw_text
         embed.add_field(name="Verification Level", value=verification_text)
         boosts = f"Tier: {guild.premium_tier}\n"\
-                 f"Users Boosted Count: {guild.premium_subscription_count}"
-        embed.add_field(name="Nitro Server Boost", value=boosts)
+                 f"{guild.premium_subscription_count} boosts."
+        if guild.premium_subscription_count:
+            embed.add_field(name="Nitro Server Boost", value=boosts)
         await ctx.send(embed=embed)
 
     @commands.command()
