@@ -130,23 +130,22 @@ class Mod(commands.Cog):
             except discord.Forbidden:
                 pass
 
-    async def logid_send(self, guild_id: int, message):
+    async def logid_send(self, guild_id: int, message, **kwargs):
         """Async Function to use a provided guild ID instead of relying
         on context (ctx). This is more for being used for Mod Log Cases"""
-        query = """SELECT * FROM guild_mod_config
+        query = """SELECT log_channels FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
-        async with self.bot.db.acquire() as con:
-            ret = await con.fetchrow(query, guild_id)
-        if ret['log_channels']:
-            guild_config = json.loads(ret['log_channels'])
+        ret = await self.bot.db.fetchval(query, guild_id)
+        if ret:
+            guild_config = json.loads(ret)
         else:
             guild_config = {}
 
         if "modlog_chan" in guild_config:
             try:
                 log_channel = self.bot.get_channel(guild_config["modlog_chan"])
-                msg = await log_channel.send(message)
+                msg = await log_channel.send(message, **kwargs)
                 return msg
             except KeyError:
                 pass
