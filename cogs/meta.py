@@ -358,6 +358,11 @@ class Meta(commands.Cog):
         embed.set_footer(text=f'User ID: {member.id}')
         await ctx.send(embed=embed)
 
+    @userinfo.error
+    async def userinfo_error(self, ctx, error):
+        if isinstance(error, commands.BadUnionArgument):
+            return await ctx.send("Error finding that user.")
+
     @commands.command(name="about")
     async def about_bot(self, ctx):
         """Gives basic information about the bot.

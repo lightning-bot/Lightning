@@ -265,6 +265,9 @@ class LightningBot(commands.AutoShardedBot):
             except Exception:
                 pass
 
+        if hasattr(ctx.command, 'on_error'):
+            return
+
         if isinstance(error, commands.NoPrivateMessage):
             return await ctx.send("This command doesn't work in DMs.")
         elif isinstance(error, commands.MissingPermissions):
