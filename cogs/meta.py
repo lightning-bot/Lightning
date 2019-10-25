@@ -46,11 +46,11 @@ from bolt.time import get_relative_timestamp
 class NonGuildUser(commands.Converter):
     async def convert(self, ctx, argument):
         if argument.isdigit() is False:
-            return await ctx.send("Not a valid user ID!")
+            raise commands.BadArgument("Not a valid user ID!")
         try:
             return await ctx.bot.fetch_user(argument)
         except discord.NotFound:
-            return await ctx.send("Not a valid user ID!")
+            raise commands.BadArgument("Not a valid user ID!")
 
 # Paginated Help Command taken from https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/meta.py
 # MIT Licensed - Copyright (c) 2015 Rapptz
