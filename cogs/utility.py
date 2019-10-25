@@ -324,7 +324,21 @@ class Utility(commands.Cog):
             else:
                 return await ctx.send("This is not a `.bmp` file.")
 
+    @commands.guild_only()
+    @commands.command()
+    @commands.bot_has_permissions(manage_roles=True)
+    @commands.has_permissions(manage_roles=True)
+    async def saferoleping(self, ctx, *, role: discord.Role):
+        """Safely pings a role.
+
+        To use this command, you must have Manage Roles permission."""
+        await role.edit(mentionable=True)
+        await ctx.message.delete()
+        await ctx.send(f'{role.mention}')
+        await role.edit(mentionable=False)
+
     @commands.group()
+    @commands.guild_only()
     @has_staff_role("Moderator")
     async def announce(self, ctx):
         """Announcements"""
