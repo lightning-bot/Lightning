@@ -155,6 +155,8 @@ class Fun(commands.Cog):
     async def dice_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             return await ctx.send("You need to specify a number!")
+        elif isinstance(error, commands.BadArgument):
+            return await ctx.send(error)
 
     @commands.command()  # Technically more of a meme, but /shrug
     async def bam(self, ctx, target: discord.Member):
