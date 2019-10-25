@@ -51,6 +51,8 @@ class NonGuildUser(commands.Converter):
             return await ctx.bot.fetch_user(argument)
         except discord.NotFound:
             raise commands.BadArgument("Not a valid user ID!")
+        except discord.HTTPException:
+            raise commands.BadArgument('Error occurred while finding the user!')
 
 # Paginated Help Command taken from https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/meta.py
 # MIT Licensed - Copyright (c) 2015 Rapptz
