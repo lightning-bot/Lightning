@@ -353,9 +353,10 @@ class Meta(commands.Cog):
             roles = [x.mention for x in member.roles]
             if f"<@&{ctx.guild.id}>" in roles:
                 roles.remove(f"<@&{ctx.guild.id}>")
-            embed.add_field(name=f"Roles [{len(roles)}]",
-                            value=", ".join(roles) if len(roles) < 10 else "Cannot show all roles",
-                            inline=False)
+            if roles:
+                embed.add_field(name=f"Roles [{len(roles)}]",
+                                value=", ".join(roles) if len(roles) < 10 else "Cannot show all roles",
+                                inline=False)
         embed.set_footer(text=f'User ID: {member.id}')
         await ctx.send(embed=embed)
 
