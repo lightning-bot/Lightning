@@ -361,6 +361,7 @@ class Meta(commands.Cog):
         await ctx.send(embed=embed)
 
     @userinfo.error
+    @avatar.error
     async def userinfo_error(self, ctx, error):
         if isinstance(error, commands.BadUnionArgument):
             return await ctx.send("Error finding that user.")
