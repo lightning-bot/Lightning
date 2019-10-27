@@ -58,12 +58,9 @@ class Configuration(commands.Cog):
         query = """SELECT log_channels FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
-        ret = await self.bot.db.fetchrow(query, ctx.guild.id)
+        ret = await self.bot.db.fetchval(query, ctx.guild.id)
         if ret:
-            if ret['log_channels']:
-                guild_config = json.loads(ret['log_channels'])
-            else:
-                guild_config = {}
+            guild_config = json.loads(ret)
         else:
             guild_config = {}
 
@@ -282,6 +279,37 @@ class Configuration(commands.Cog):
                            f"Please note that this doesn't delete "
                            f"invites. {emoji.mayushii}")
         await self.set_modconfig(ctx, guild_config)
+
+    @commands.is_owner()
+    @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    @log.command(name="aio", aliases=['allinone'], hidden=True)
+    async def log_aio(self, ctx):
+        """Creates 3 channels for logging."""
+        overwrites = {
+            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            ctx.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True,
+                                                      manage_channels=True),
+            ctx.author: discord.PermissionOverwrite(read_messages=True, send_messages=True,
+                                                    manage_channels=True, manage_messages=True)
+        }
+        logcategory = await ctx.guild.create_category('Logs', overwrites=overwrites)
+        modlogchannel = await ctx.guild.create_text_channel('mod-logs', category=logcategory)
+        memberevtlog = await ctx.guild.create_text_channel('member-event-logs',
+                                                           category=logcategory)
+        guild_config = await self.grab_modconfig(ctx)
+        if "event_embed_channel" in guild_config:
+            guild_config.pop("event_embed_channel")
+        guild_config['modlog_chan'] = modlogchannel.id
+        guild_config['event_channel'] = memberevtlog.id
+        await self.set_modconfig(ctx, guild_config)
+        await ctx.send(f"Successfully created 3 log channels")
+
+    @log_aio.error
+    async def log_aio_err(self, ctx, error):
+        if isinstance(error, commands.NotOwner):
+            return await ctx.send("This is a testing command and you cannot use "
+                                  "it at this time.")
 
     @commands.group(aliases=['mod-role', 'modroles'])
     @commands.guild_only()
