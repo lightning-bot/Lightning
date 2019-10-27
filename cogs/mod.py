@@ -350,9 +350,8 @@ class Mod(commands.Cog):
                        "You can join again right away. "
         if punishable_warn['warn_ban']:
             if warn_count == punishable_warn['warn_ban'] - 1:
-                msg += "\n\nYou were kicked because of this warning. " \
-                       "This is your final warning. " \
-                       "You can join again, but " \
+                msg += "This is your final warning. " \
+                       "Do note that " \
                        "**one more warn will result in a ban**."
             if warn_count >= punishable_warn['warn_ban']:
                 msg += f"\n\nYou were automatically banned due to reaching "\
