@@ -610,10 +610,10 @@ class Mod(commands.Cog):
         await ctx.send(f"{target.mention} can no longer speak.")
         await self.log_send(ctx, chan_message)
 
-    async def mute_role_check(self, ctx, target, role):
+    async def mute_role_check(self, guild_id, target_id, role_id):
         query = """SELECT * FROM user_restrictions
                 WHERE guild_id=$1 AND user_id=$2 AND role_id=$3"""
-        return await self.bot.db.fetchval(query, ctx.guild.id, target.id, role.id)
+        return await self.bot.db.fetchval(query, guild_id, target_id, role_id)
 
     @commands.guild_only()
     @commands.command()
@@ -626,7 +626,7 @@ class Mod(commands.Cog):
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
         role = await self.get_mute_role(ctx)
-        role_check_2 = await self.mute_role_check(ctx, target, role)
+        role_check_2 = await self.mute_role_check(ctx.guild.id, target.id, role.id)
         if role not in target.roles or role_check_2 is None:
             return await ctx.send('This user is not muted!')
         await target.remove_roles(role, reason=f"{self.mod_reason(ctx, '[Unmute]')}")
@@ -1057,6 +1057,10 @@ class Mod(commands.Cog):
     async def on_timed_restriction_job_complete(self, jobinfo):
         ext = json.loads(jobinfo['extra'])
         guild = self.bot.get_guild(ext['guild_id'])
+        if await self.mute_role_check(ext['guild_id'],
+                                      ext['user_id'],
+                                      ext['role_id']) is None:
+            return
         if guild is None:
             # Bot was kicked.
             return
