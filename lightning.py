@@ -243,6 +243,19 @@ class LightningBot(commands.AutoShardedBot):
     # https://github.com/reswitched/robocop-ng/blob/master/Robocop.py
     async def on_error(self, event_method, *args, **kwargs):
         log.error(f"Error on {event_method}: {sys.exc_info()}")
+        await self.wait_until_ready()
+        while not self.is_closed():
+            webhook = discord.Webhook.from_url
+            adp = discord.AsyncWebhookAdapter(self.aiosession)
+            try:
+                webhook = webhook(config.webhookurl, adapter=adp)
+                embed = discord.Embed(title=f"⚠ Error on {event_method}",
+                                      description=f"{sys.exc_info()}",
+                                      color=discord.Color(0xff0000),
+                                      timestamp=datetime.utcnow())
+                await webhook.execute(embed=embed, username=f"{str(event_method)}")
+            except Exception:
+                pass
 
     async def on_command_error(self, ctx, error):
         error_text = str(error)
