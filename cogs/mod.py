@@ -559,8 +559,7 @@ class Mod(commands.Cog):
         query = """SELECT mute_role_id FROM guild_mod_config
                    WHERE guild_id=$1;
                 """
-        async with self.bot.db.acquire() as con:
-            config = await con.fetchval(query, ctx.guild.id)
+        config = await self.bot.db.fetchval(query, ctx.guild.id)
         if config:
             role = discord.utils.get(ctx.guild.roles, id=config)
             if role:
@@ -612,6 +611,11 @@ class Mod(commands.Cog):
         await ctx.send(f"{target.mention} can no longer speak.")
         await self.log_send(ctx, chan_message)
 
+    async def mute_role_check(self, ctx, target, role):
+        query = """SELECT * FROM user_restrictions
+                WHERE guild_id=$1 AND user_id=$2 AND role_id=$3"""
+        return await self.bot.db.fetchval(query, ctx.guild.id, target.id, role.id)
+
     @commands.guild_only()
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
@@ -623,6 +627,9 @@ class Mod(commands.Cog):
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
         role = await self.get_mute_role(ctx)
+        role_check_2 = await self.mute_role_check(ctx, target, role)
+        if role not in target.roles or role_check_2 is None:
+            return await ctx.send('This user is not muted!')
         await target.remove_roles(role, reason=f"{self.mod_reason(ctx, '[Unmute]')}")
         safe_name = await commands.clean_content().convert(ctx, str(target))
         chan_message = f"🔈 **Unmuted**: {ctx.author.mention} unmuted "\
