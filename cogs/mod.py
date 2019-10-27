@@ -67,10 +67,6 @@ class WarnPages(Pages):
             self.embed.set_footer(text=text)
 
 
-class ReasonTooLong(commands.UserInputError):
-    pass
-
-
 class Mod(commands.Cog):
     """
     Moderation and server management commands.
@@ -83,17 +79,13 @@ class Mod(commands.Cog):
             raise commands.NoPrivateMessage()
         return True
 
-    async def cog_command_error(self, ctx, error):
-        if isinstance(error, ReasonTooLong):
-            return await ctx.safe_send(error)
-
     def mod_reason(self, ctx, reason: str):
         if reason:
             to_return = f"{ctx.author} (ID: {ctx.author.id}): {reason}"
         else:
             to_return = f"Action done by {ctx.author} (ID: {ctx.author.id})"
         if len(to_return) > 512:
-            raise ReasonTooLong('Reason is too long!')
+            raise commands.BadArgument('Reason is too long!')
         return to_return
 
     async def log_send(self, ctx, message, **kwargs):
