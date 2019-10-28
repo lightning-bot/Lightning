@@ -69,7 +69,10 @@ def has_staff_role(min_role: str):
         if not ctx.guild:
             return False
         sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
-        return sr
+        if sr is True:
+            return sr
+        else:
+            raise errors.MissingStaffRole(min_role)
     return commands.check(predicate)
 
 
@@ -81,8 +84,13 @@ def is_staff_or_has_perms(min_role: str, **perms):
         if not ctx.guild:
             return False
         sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
+        if sr is True:
+            return sr
         permissions = ctx.author.guild_permissions
-        return sr or all(getattr(permissions, perms, None) == value for perms, value in perms.items())
+        permcheck = all(getattr(permissions, perms, None) == value for perms, value in perms.items())
+        if permcheck is False:
+            raise errors.MissingRequiredPerms(perms.keys())
+        return permcheck
     return commands.check(predicate)
 
 

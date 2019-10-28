@@ -27,6 +27,7 @@
 # Custom Error Handlers
 
 from discord.ext import commands
+from resources import botemojis
 
 
 class LightningError(commands.CommandError):
@@ -70,3 +71,14 @@ class NotOwnerorBotManager(LightningError):
 
 class MuteRoleError(LightningError):
     pass
+
+
+class MissingStaffRole(LightningError):
+    def __init__(self, staffrole):
+        super().__init__(f"None of your roles indicate you are a {staffrole}.")
+
+
+class MissingRequiredPerms(LightningError):
+    def __init__(self, permission):
+        super().__init__(f"{botemojis.x} You are missing required "
+                         f"permission(s) `{', '.join(permission)}`!")
