@@ -332,6 +332,10 @@ class Utility(commands.Cog):
         """Safely pings a role.
 
         To use this command, you must have Manage Roles permission."""
+        if role.is_default():
+            return await ctx.safe_send(':x:')
+        if role > ctx.me.top_role:
+            return await ctx.send('Role is higher than my highest role.')
         await role.edit(mentionable=True)
         await ctx.message.delete()
         await ctx.send(f'{role.mention}')
