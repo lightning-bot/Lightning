@@ -72,7 +72,7 @@ class Misc(commands.Cog):
                     summary = self.clean_text(summary)
                 else:
                     summary = "No information available!"
-                episode_info.append((e['name'], f"Episode Info: {summary}\n**Aired:** {ts}"))
+                episode_info.append((e['name'], f"Episode Info: {summary}\n**Air Date:** {ts}"))
         p = FieldPages(ctx, entries=episode_info, per_page=5)
         await p.paginate()
 
