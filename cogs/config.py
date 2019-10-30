@@ -504,7 +504,7 @@ class Configuration(commands.Cog):
             embed = discord.Embed(title="Prefixes",
                                   description="",
                                   color=discord.Color(0xd1486d))
-            embed.description += f"\"{ctx.me.mention}\"\n\"l.\"\n"
+            embed.description += f"\"{ctx.me.mention}\"\n"
             for p in await self.get_guild_prefixes(ctx.guild.id):
                 embed.description += f"\"{p}\"\n"
             await ctx.send(embed=embed)

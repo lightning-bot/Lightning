@@ -66,11 +66,9 @@ def _callable_prefix(bot, message):
         return commands.when_mentioned_or(*prefixed)(bot, message)
     if message.guild.id in bot.prefixes:
         prefixes = bot.prefixes[message.guild.id]
-        if "l." not in prefixes:
-            prefixes.append("l.")
         return commands.when_mentioned_or(*prefixes)(bot, message)
     else:
-        return commands.when_mentioned_or(*prefixed)(bot, message)
+        return commands.when_mentioned(bot, message)
 
 
 initial_extensions = ['cogs.config',
