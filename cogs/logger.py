@@ -30,6 +30,7 @@ import re
 import resources.botemojis as em
 import json
 import asyncio
+import time
 
 
 class Logger(Cog):
@@ -205,12 +206,14 @@ class Logger(Cog):
         await asyncio.sleep(0.5)
         if not guild.me.guild_permissions.view_audit_log:
             return
-        async for entry in guild.audit_logs(limit=50):
-            # If ban comes up first, break
-            if entry.action == discord.AuditLogAction.ban:
-                break
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.kick,
+                                            limit=50):
             # Entry.target = user that was banned fyi
             if entry.target == member:
+                if member.joined_at is None or member.joined_at > entry.created_at \
+                        or entry.created_at < datetime.datetime.utcfromtimestamp(
+                        time.time() - 30):
+                    break
                 author = entry.user
                 reason = entry.reason if entry.reason else ""
                 if author.id != self.bot.user.id:
