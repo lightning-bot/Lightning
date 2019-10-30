@@ -23,12 +23,7 @@
 import json
 import time
 
-userlog_event_types = {"warns": "Warn",
-                       "bans": "Ban",
-                       "kicks": "Kick",
-                       "mutes": "Mute",
-                       "notes": "Note"
-                       }
+userlog_event_types = {"warns": "Warn"}
 
 
 async def get_userlog(bot, guild):
