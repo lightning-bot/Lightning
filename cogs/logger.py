@@ -301,6 +301,8 @@ class Logger(Cog):
     @Cog.listener()
     async def on_message(self, message):
         await self.bot.wait_until_ready()
+        if message.guild is None:
+            return
         await self.invite_filter(message)  # Check if message has invite
 
     @Cog.listener()
