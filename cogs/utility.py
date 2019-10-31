@@ -163,6 +163,8 @@ class Utility(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
+        if message.guild is None:
+            return
         ignored = await self.get_snipe_channels(message.guild.id)
         if message.channel.id in ignored:
             return
