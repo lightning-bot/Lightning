@@ -30,7 +30,6 @@ from datetime import datetime
 import json
 import config
 from utils.time import natural_timedelta, FutureTime
-import os
 from bolt.time import get_utc_timestamp
 
 
@@ -38,15 +37,6 @@ class LightningHub(commands.Cog):
     """Helper commands for Lightning Hub only."""
     def __init__(self, bot):
         self.bot = bot
-
-    async def cog_before_invoke(self, ctx):
-        if os.path.isfile(f"config/{ctx.guild.id}/config.json"):
-            ctx.guild_config = json.load(open(f'config/{ctx.guild.id}/config.json', "r"))
-        else:
-            ctx.guild_config = {}
-
-    async def cog_after_invoke(self, ctx):
-        json.dump(ctx.guild_config, open(f'config/{ctx.guild.id}/config.json', "w"))
 
     @commands.command()
     @is_guild(527887739178188830)
@@ -62,104 +52,6 @@ class LightningHub(commands.Cog):
         await staff.send(f"‼ {ctx.author.mention} needs a staff member. @here", embed=(embed if text != "" else None))
         await ctx.message.add_reaction("✅")
         await ctx.send("Online staff have been notified of your request.", delete_after=50)
-
-    @commands.command(aliases=['gatekeep'])
-    @is_guild(527887739178188830)
-    @commands.has_any_role("Helpers", "Staff")
-    async def probate(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Probates a user. Staff only."""
-        mod_log_chan = self.bot.get_channel(552583376566091805)
-        safe_name = await commands.clean_content().convert(ctx, str(target))
-        role = discord.Object(id=546379342943617025)
-        dm_message = f"You were gatekeeped on {ctx.guild.name}."
-        if reason:
-            dm_message += f" The given reason is: \"{reason}\"."
-
-        await target.add_roles(role, reason=str(ctx.author))
-        msg = f"❗️ **Gatekeeped**: {ctx.author.mention} probated {target.mention} | {safe_name}"
-        if reason:
-            msg += f"✏️ __Reason__: \"{reason}\""
-        else:
-            msg += f"\nPlease add an explanation below. In the future" \
-                   f", it is recommended to use "\
-                   f"`{ctx.prefix}probate <user> [reason]`" \
-                   f" as the reason is automatically sent to the user."
-        try:
-            await target.send(dm_message)
-        except discord.errors.Forbidden:
-            msg += f"\n\n{target.mention} has their DMs off "\
-                   "and I was unable to send the reason."
-            pass
-
-        mod = self.bot.get_cog('Mod')
-        if not mod:
-            return await ctx.send("Cannot add restriction "
-                                  "as `cogs.mod` is not loaded")
-        await mod.set_user_restrictions(ctx.guild.id, target.id, role.id)
-        await mod_log_chan.send(msg)
-        await ctx.send(f"{target.mention} is now probated.")
-
-    @commands.command(aliases=['gatepass'])
-    @is_guild(527887739178188830)
-    @commands.has_any_role("Helpers", "Staff")
-    async def unprobate(self, ctx, target: discord.Member, *, reason: str = ""):
-        """Removes probation role/unprobates the user. Staff only."""
-        mod_log_chan = self.bot.get_channel(552583376566091805)
-        safe_name = await commands.clean_content().convert(ctx, str(target))
-        role = discord.Object(id=546379342943617025)
-        await target.remove_roles(role, reason=str(ctx.author))
-        msg = f"❗️ **GatePass**: {ctx.author.mention} unprobated {target.mention} | {safe_name}"
-        if reason:
-            msg += f"✏️ __Reason__: \"{reason}\""
-        else:
-            msg += f"\nPlease add an explanation below. In the future" \
-                   f", it is recommended to use "\
-                   f"`{ctx.prefix}unprobate <user> [reason]`"
-
-        mod = self.bot.get_cog('Mod')
-        if not mod:
-            return await ctx.send("Cannot remove restriction "
-                                  "as `cogs.mod` is not loaded")
-        await mod.remove_user_restriction(ctx.guild.id, target.id, role.id)
-        await mod_log_chan.send(msg)
-        await ctx.send(f"{target.mention} is now unprobated.")
-
-    @commands.Cog.listener()
-    async def on_member_join(self, member):
-        await self.bot.wait_until_ready()
-        if member.guild.id != 527887739178188830:
-            return
-        config = json.load(open(f'config/{member.guild.id}/config.json',
-                                'r', encoding='utf8'))
-        if "auto_probate" in config:
-            role = discord.Object(id=546379342943617025)
-            await member.add_roles(role, reason="Auto Gatekeeper")
-            dm_message = "You were automatically gated. "\
-                         "Please read the rules for this "\
-                         "server and speak in the gate "\
-                         "channel when you are ready."
-            msg = f"**Auto Gatekeeped:** {member.mention}"
-            try:
-                await member.send(dm_message)
-            except discord.errors.Forbidden:
-                msg += "\nUnable to deliver message in DMs"
-                mod_log_chan = self.bot.get_channel(552583376566091805)
-                await mod_log_chan.send(msg)
-
-    @commands.command()
-    @is_guild(527887739178188830)
-    @has_staff_role("Moderator")
-    async def autogatekeep(self, ctx, status="on"):
-        """Turns on or off auto gatekeep.
-        Use "disable" to disable auto gatekeep."""
-        if status == "disable":
-            ctx.guild_config.pop("auto_probate")
-            await ctx.send("Auto Gatekeep is now disabled.")
-        else:
-            ctx.guild_config["auto_probate"] = ctx.author.id
-            await ctx.send("Auto Gatekeep is now enabled\n"
-                           "To turn off Auto Gatekeep in the "
-                           f"future, use `{ctx.prefix}autogatekeep disable`")
 
     @commands.command()
     @is_guild(527887739178188830)
