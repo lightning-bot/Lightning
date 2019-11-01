@@ -36,7 +36,7 @@ import asyncpg
 class Prefix(commands.Converter):
     async def convert(self, ctx, argument):
         user_id = ctx.bot.user.id
-        if argument.startswith((f'<@{user_id}>', f'<@!{user_id}>', "l.")):
+        if argument.startswith((f'<@{user_id}>', f'<@!{user_id}>')):
             raise commands.BadArgument('That is a reserved prefix already in use.')
         if len(argument) > 35:
             raise commands.BadArgument('You can\'t have a prefix longer than 35 characters!')
