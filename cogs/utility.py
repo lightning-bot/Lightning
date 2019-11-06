@@ -230,7 +230,7 @@ class Utility(commands.Cog):
     @commands.bot_has_permissions(manage_webhooks=True)
     @is_staff_or_has_perms("Admin", manage_webhooks=True)
     async def nuf_configure(self, ctx, *, channel: discord.TextChannel = None):
-        """Sets up a channel that will send Nintendo console updates via a webhook"""
+        """Sets up a webhook in the specified channel that will send Nintendo console updates."""
         if channel is None:
             channel = ctx.channel
         try:
