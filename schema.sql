@@ -108,3 +108,10 @@ CREATE TABLE IF NOT EXISTS snipe_settings
 ALTER TABLE guild_mod_config ADD COLUMN prefix TEXT [];
 ALTER TABLE guild_mod_config ADD COLUMN warn_ban SMALLINT;
 ALTER TABLE guild_mod_config ADD COLUMN warn_kick SMALLINT;
+
+CREATE TABLE IF NOT EXISTS nin_updates
+(
+    guild_id BIGINT PRIMARY KEY,
+    id BIGINT,
+    webhook_token VARCHAR (500)
+);

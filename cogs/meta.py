@@ -440,7 +440,7 @@ class Meta(commands.Cog):
         perms.read_messages = True
         perms.send_messages = True
         perms.read_message_history = True
-        # perms.manage_webhooks = True
+        perms.manage_webhooks = True
         await ctx.send("You can use this link to invite me to your server. "
                        "(Select permissions as needed) "
                        f"{discord.utils.oauth_url('532220480577470464', perms)}")

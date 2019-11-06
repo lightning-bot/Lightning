@@ -55,3 +55,9 @@ CREATE TABLE IF NOT EXISTS snipe_settings
     user_ids BIGINT []
 );
                 """
+    console_updates = """CREATE TABLE IF NOT EXISTS nin_updates
+(
+    guild_id BIGINT PRIMARY KEY,
+    id BIGINT,
+    webhook_token VARCHAR (500)
+);"""

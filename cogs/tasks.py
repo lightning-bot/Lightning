@@ -37,6 +37,7 @@ import dbl
 import os
 import asyncpg
 from bolt.time import get_relative_timestamp
+from utils.nin_updates import nintendo_updates_feed
 
 
 class RemoveRestrictionError(Exception):
@@ -55,16 +56,15 @@ class TasksManagement(commands.Cog):
                                        'r', encoding='utf8'))
         self.status_rotate.start()
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
-        # self.cron_6_hours.start()
         self.cron_hourly.start()
+        self.stability.start()
         self.discordbotlist = dbl.DBLClient(self.bot, config.dbl_token)
 
     # Here we cancel our loops on cog unload
     def cog_unload(self):
         self.dispatch_jobs.cancel()
         self.status_rotate.cancel()
-        # Not being used since we moved over to postgresql
-        # self.cron_6_hours.cancel()
+        self.stability.cancel()
         self.cron_hourly.cancel()
 
     async def cog_command_error(self, ctx, error):
@@ -253,29 +253,18 @@ class TasksManagement(commands.Cog):
 
     @tasks.loop(minutes=7)
     async def status_rotate(self):
-        while not self.bot.is_closed():
-            await self.randomize_status()
-            await asyncio.sleep(7 * 60)  # Use our same value here
+        await self.randomize_status()
 
     @status_rotate.before_loop
     async def sr_prep(self):
         await self.bot.wait_until_ready()
 
-    @tasks.loop(hours=6)
-    async def cron_6_hours(self):
-        while not self.bot.is_closed():
-            try:
-                await self.send_db()
-            except Exception:
-                wbhk = discord.Webhook.from_url
-                adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
-                webhook = wbhk(config.powerscron_errors, adapter=adp)
-                await webhook.execute("PowersCron 6 Hours has Errored:"
-                                      f"```{traceback.format_exc()}```")
-            await asyncio.sleep(21600)  # 6 Hours
+    @tasks.loop(seconds=45)
+    async def stability(self):
+        await nintendo_updates_feed(self.bot)
 
-    @cron_6_hours.before_loop
-    async def c_6hr_prep(self):
+    @stability.before_loop
+    async def stability_load(self):
         await self.bot.wait_until_ready()
 
     @tasks.loop(hours=1)
