@@ -416,8 +416,6 @@ class Meta(commands.Cog):
                                                     f"{amount} commands used all time.")
         embed.add_field(name="Links", value="[Support Server]"
                                             "(https://discord.gg/cDPGuYd) | "
-                                            "[DBL (top.gg)](https://top.gg/bot/"
-                                            "532220480577470464) | "
                                             "[Website](https://lightning-bot.gitlab.io)",
                                             inline=False)
         embed.set_footer(text=f"Lightning {self.bot.config['bot']['version']}")  # | Made with "
