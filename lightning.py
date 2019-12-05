@@ -227,7 +227,7 @@ class LightningBot(commands.AutoShardedBot):
         aioh = {"User-Agent": f"Lightning/{self.config['bot']['version']}'"}
         self.aiosession = aiohttp.ClientSession(headers=aioh)
         self.app_info = await self.application_info()
-        self.botlog_channel = self.get_channel(self.config['logging']['bot_errors'])
+        self.botlog_channel = self.get_channel(self.config['logging']['startup'])
 
         log.info(f'\nLogged in as: {self.user.name} - '
                  f'{self.user.id}\ndpy version: '

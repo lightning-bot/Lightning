@@ -26,6 +26,7 @@ auto_blacklist = ""
 # Logging for guild additions and removals
 guild_alerts = ""
 bug_reports_channnel = 603389648211017738
+startup = id
 
 # Extra information bot wise
 [bot]
