@@ -40,7 +40,7 @@ def is_guild(guild_id):
 def is_git_whitelisted(ctx):
     if not ctx.guild:
         return False
-    guild = (ctx.guild.id in ctx.bot.config['git']['whitelisted_guilds'])
+    guild = (ctx.guild.id in ctx.bot.config['git']['gitlab']['whitelisted_guilds'])
     return (guild)
 
 
