@@ -402,7 +402,8 @@ class Meta(commands.Cog):
         embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url_as(static_format='png'))
         embed.url = "https://gitlab.com/lightning-bot/Lightning"
         embed.set_thumbnail(url=ctx.me.avatar_url)
-        embed.description = f"Lightning.py, a Discord bot"
+        if self.bot.config['bot']['description']:
+            embed.description = self.bot.config['bot']['description']
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
         postgresversion = await self.bot.db.fetchval("SHOW server_version;")
@@ -419,7 +420,7 @@ class Meta(commands.Cog):
                                             "532220480577470464) | "
                                             "[Website](https://lightning-bot.gitlab.io)",
                                             inline=False)
-        embed.set_footer(text=f"Lightning {self.bot.config.bot_version}")  # | Made with "
+        embed.set_footer(text=f"Lightning {self.bot.config['bot']['version']}")  # | Made with "
         # f"discord.py {discord.__version__}")
         await ctx.send(embed=embed)
 
