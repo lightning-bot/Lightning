@@ -526,7 +526,10 @@ class Configuration(commands.Cog):
     @commands.group()
     @has_guild_permissions(manage_guild=True)
     async def config(self, ctx):
-        """Manages command disabling and enabling"""
+        """Manages most of the configuration for the bot.
+
+        This manages autorole configuration, muterole configuration,
+        and command plonking configuration"""
         # TODO: Add Autorole under config group
         if ctx.invoked_subcommand is None:
             await ctx.send_help('config')
