@@ -30,7 +30,7 @@ import platform
 from discord.ext import commands, tasks
 from typing import Union
 from collections import Counter
-from bolt.paginator import Pages, TextPages
+from utils.paginator import Pages, TextPages
 import asyncio
 import itertools
 import time
@@ -101,6 +101,7 @@ class HelpPaginator(Pages):
         messages = [f'{emoji} {func.__doc__}' for emoji, func in self.reaction_emojis]
         self.embed.clear_fields()
         self.embed.add_field(name='What are these reactions for?', value='\n'.join(messages), inline=False)
+        self.embed.add_field(name='Support Server', value="https://discord.gg/cDPGuYd", inline=False)
 
         self.embed.set_footer(text=f'We were on page {self.current_page} before this message.')
         await self.message.edit(embed=self.embed)
@@ -273,7 +274,7 @@ class Meta(commands.Cog):
         e.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         e.timestamp = datetime.utcnow()
         e.set_footer(text="Status: Received")
-        ch = self.bot.get_channel(self.bot.config.bug_reports_channel)
+        ch = self.bot.get_channel(self.bot.config['logging']['bug_reports_channnel'])
         msg = await ch.send(embed=e)
         query = """UPDATE bug_tickets
                    SET guild_id=$2, channel_id=$3, message_id=$4
@@ -383,8 +384,7 @@ class Meta(commands.Cog):
         """Gives more information about the bot than the standard about command."""
         query = """SELECT COUNT(*)
                    FROM commands_usage;"""
-        async with self.bot.db.acquire() as con:
-            amount = await con.fetchval(query)
+        amount = await self.bot.db.fetchval(query)
         # Member Stats
         membertotal = 0
         membertotal_online = 0
@@ -397,18 +397,19 @@ class Meta(commands.Cog):
                       f"Unique Members Online: {membertotal_online}"
         embed = discord.Embed(title="Lightning", color=0xf74b06)
         bot_owner = self.bot.get_user(self.bot.owner_id)
+        if not bot_owner:
+            bot_owner = await self.bot.fetch_user(376012343777427457)
         embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url_as(static_format='png'))
         embed.url = "https://gitlab.com/lightning-bot/Lightning"
         embed.set_thumbnail(url=ctx.me.avatar_url)
         embed.description = f"Lightning.py, a Discord bot"
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
-        async with self.bot.db.acquire() as con:
-            postgresversion = await con.fetchval("SHOW server_version;")
+        postgresversion = await self.bot.db.fetchval("SHOW server_version;")
         backend_msg = f"{emoji.python} **Python Version:** {platform.python_version()}\n"\
                       f"{emoji.dpy} **Discord.py Version:** {discord.__version__}\n"\
                       f"{emoji.postgres} **PostgreSQL Version:** {postgresversion}"
-        embed.add_field(name="Backend", value=backend_msg)
+        embed.add_field(name="Backend", value=backend_msg, inline=False)
         embed.add_field(name="Command Stats", value=f"{self.bot.successful_command} "
                                                     "commands used since boot.\n"
                                                     f"{amount} commands used all time.")
@@ -467,14 +468,14 @@ class Meta(commands.Cog):
         after = time.monotonic()
         latencyms = round(self.bot.latency * 1000)
         rtt_ms = round((after - before) * 1000)
-        msg = f"🏓 Ping:\nRound Time Trip: `{rtt_ms} ms` | Latency: `{latencyms} ms`"
+        msg = f"🏓 Ping:\nrtt: `{rtt_ms} ms` | gw: `{latencyms} ms`"
         await tmpmsg.edit(content=msg)
 
     @commands.command()
     async def uptime(self, ctx):
         """Displays my uptime"""
         times = natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)
-        await ctx.send(f"I've been up for {times} "
+        await ctx.send(f"Uptime: {times} "
                        "<:meowbox:563009533530734592>")
 
     @commands.guild_only()
@@ -525,10 +526,11 @@ class Meta(commands.Cog):
                                      "have a verified phone on their Discord account."}
         v_raw_text = str(guild.verification_level)
         verification_text = vlevel_replace[v_raw_text] if v_raw_text in vlevel_replace else v_raw_text
-        embed.add_field(name="Verification Level", value=verification_text)
-        boosts = f"Tier: {guild.premium_tier}\n"\
-                 f"{guild.premium_subscription_count} boosts."
+        if verification_text:
+            embed.add_field(name="Verification Level", value=verification_text, inline=False)
         if guild.premium_subscription_count:
+            boosts = f"Tier: {guild.premium_tier}\n"\
+                     f"{guild.premium_subscription_count} boosts."
             embed.add_field(name="Nitro Server Boost", value=boosts)
         await ctx.send(embed=embed)
 
@@ -557,8 +559,7 @@ class Meta(commands.Cog):
         query = """SELECT COUNT(*), MIN(used_at)
                    FROM commands_usage
                    WHERE guild_id=$1;"""
-        async with self.bot.db.acquire() as con:
-            res = await con.fetchrow(query, ctx.guild.id)
+        res = await self.bot.db.fetchrow(query, ctx.guild.id)
         em.description = f"{res[0]} commands used so far."
         # Default to utcnow() if no value
         em.set_footer(text=f'Lightning has been tracking '
@@ -637,8 +638,7 @@ class Meta(commands.Cog):
                    ORDER BY "cmd_uses" DESC
                    LIMIT 5;
                 """
-        async with self.bot.db.acquire() as con:
-            fetched = await con.fetch(query, ctx.guild.id, member.id)
+        fetched = await self.bot.db.fetch(query, ctx.guild.id, member.id)
         # Shoutouts to R.Danny for this code.
         commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (has been used {cmd_uses} times)'
                                       for (index, (command_name, cmd_uses)) in enumerate(fetched))

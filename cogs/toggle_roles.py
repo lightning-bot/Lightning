@@ -46,16 +46,17 @@ class ToggleRoles(commands.Cog):
 
         Use '.togglerole list' for a list of roles that you can toggle."""
         query = """SELECT role_id FROM toggleable_roles WHERE guild_id=$1 AND role_id=$2"""
-        async with self.bot.db.acquire() as con:
-            res = await con.fetchval(query, ctx.guild.id, role.id)
+        res = await self.bot.db.fetchval(query, ctx.guild.id, role.id)
 
         member = ctx.author
-        if role in member.roles:
-            return await ctx.send("You already have that role.")
-
-        if res:
+        if role > ctx.me.top_role:
+            return await ctx.send('That role is higher than my highest role.')
+        if role in member.roles and res:
+            await member.remove_roles(role, reason="Untoggled Role")
+            return await ctx.safe_send(f"You have untoggled the role **{role.name}**")
+        elif res:
             await member.add_roles(role, reason="Toggled Role")
-            return await ctx.send(f"{member.mention} now has the role **{role.name}** 🎉")
+            return await ctx.safe_send(f"You now have the role **{role.name}**")
         else:
             return await ctx.send("That role is not toggleable.")
 
@@ -72,11 +73,10 @@ class ToggleRoles(commands.Cog):
         query = """INSERT INTO toggleable_roles (guild_id, role_id)
                    VALUES ($1, $2);
                 """
-        async with self.bot.db.acquire() as con:
-            try:
-                await con.execute(query, ctx.guild.id, role.id)
-            except asyncpg.UniqueViolationError:
-                return await ctx.send("That role is already added as a toggleable role.")
+        try:
+            await self.bot.db.execute(query, ctx.guild.id, role.id)
+        except asyncpg.UniqueViolationError:
+            return await ctx.send("That role is already added as a toggleable role.")
         await ctx.safe_send(f"Added {role.name} as a toggleable role!")
 
     @commands.guild_only()
@@ -113,8 +113,7 @@ class ToggleRoles(commands.Cog):
         role_list = []
         query = """SELECT role_id FROM toggleable_roles WHERE guild_id=$1;
                 """
-        async with self.bot.db.acquire() as con:
-            res = await con.fetch(query, ctx.guild.id)
+        res = await self.bot.db.fetch(query, ctx.guild.id)
         if len(res) == 0:
             return await ctx.send("This guild does not have any toggleable roles.")
         for row in res:
@@ -124,26 +123,6 @@ class ToggleRoles(commands.Cog):
         for s in role_list:
             pages.append(f"{s.mention} | Role ID {s.id}")
         await paginator_embed(self.bot, ctx, embed, size=1250, page_list=pages)
-
-    @commands.guild_only()
-    @togglerole.command(name="remove")
-    @commands.bot_has_permissions(manage_roles=True)
-    async def removetogglerole(self, ctx, *, role: discord.Role):
-        """Untoggles a role that this server has setup.
-
-        Use '.togglerole list' for a list of roles that you can untoggle."""
-        query = """SELECT role_id FROM toggleable_roles WHERE guild_id=$1 AND role_id=$2"""
-        async with self.bot.db.acquire() as con:
-            res = await con.fetchval(query, ctx.guild.id, role.id)
-        member = ctx.author
-
-        if role in member.roles and res:
-            await member.remove_roles(role, reason="Untoggled Role")
-            return await ctx.send(f"{member.mention} You have untoggled the role **{role.name}**")
-        elif role not in member.roles and res:
-            return await ctx.send(f"You do not have {role.name}.")
-        else:
-            return await ctx.send("That role is not toggleable.")
 
 
 def setup(bot):

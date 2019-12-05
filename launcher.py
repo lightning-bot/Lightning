@@ -26,7 +26,7 @@
 # import click
 from lightning import LightningBot
 import asyncio
-import config
+import toml
 
 try:
     import uvloop
@@ -38,14 +38,15 @@ else:
 
 def startbot():
     loop = asyncio.get_event_loop()
+    config = toml.load(open("config.toml", "r"))
     bot = LightningBot()
     try:
-        bot.db = loop.run_until_complete(bot.create_pool(config.database_connection,
+        bot.db = loop.run_until_complete(bot.create_pool(config['tokens']['postgresql'],
                                                          command_timeout=60))
     except Exception as e:
         print(f"Could not set up PostgreSQL. {e}\n----\nExiting...")
         return
-    bot.run(config.token, bot=True, reconnect=True)
+    bot.run(config['tokens']['discord'], bot=True, reconnect=True)
 
 
 if __name__ == '__main__':

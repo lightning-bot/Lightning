@@ -23,20 +23,23 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import os
-import sys
-import discord
-import platform
+import asyncio
 import logging
 import logging.handlers
+import os
+import platform
+import sys
 import traceback
-from discord.ext import commands
-import aiohttp
 from datetime import datetime
-import config
-import asyncpg
-from utils import errors
 
+import aiohttp
+import asyncpg
+import discord
+import toml
+from discord.ext import commands
+
+from utils import errors
+from resources import botemojis
 
 log_file_name = "lightning.log"
 
@@ -57,18 +60,22 @@ log.addHandler(file_handler)
 log.addHandler(stdout_handler)
 # logging.getLogger('discord.http').setLevel(logging.WARNING)
 
-default_prefix = config.default_prefix
 
-
-def _callable_prefix(bot, message):
-    prefixed = default_prefix
+async def _callable_prefix(bot, message):
+    prefixed = ['l+']
     if message.guild is None:
         return commands.when_mentioned_or(*prefixed)(bot, message)
     if message.guild.id in bot.prefixes:
         prefixes = bot.prefixes[message.guild.id]
         return commands.when_mentioned_or(*prefixes)(bot, message)
     else:
-        return commands.when_mentioned(bot, message)
+        ret = await bot.db.fetchval("SELECT prefix FROM guild_config WHERE guild_id=$1",
+                                    message.guild.id)
+        if ret:
+            bot.prefixes[message.guild.id] = ret
+            return commands.when_mentioned_or(*ret)(bot, message)
+        else:
+            return commands.when_mentioned(bot, message)
 
 
 initial_extensions = ['cogs.config',
@@ -76,7 +83,6 @@ initial_extensions = ['cogs.config',
                       'cogs.fun',
                       'cogs.git',
                       'cogs.lightning-hub',
-                      'cogs.logger',
                       'cogs.memes',
                       'cogs.meta',
                       'cogs.mod',
@@ -85,7 +91,6 @@ initial_extensions = ['cogs.config',
                       'cogs.timers',
                       'cogs.toggle_roles',
                       'cogs.utility',
-                      'cogs.weeb',
                       'stabilite.stabilite',
                       'cogs.misc',
                       'bolt']
@@ -113,12 +118,75 @@ class LightningContext(commands.Context):
             await self.message.channel.send(emoji)
         except discord.Forbidden:
             await self.message.add_reaction(emoji)
+    # R.Danny based ctx.prompt.
+    # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/utils/context.py#L86
+
+    async def prompt(self, message, *, timeout=60.0, delete_after=True, author_id=None):
+        """An interactive reaction confirmation dialog.
+        Parameters
+        -----------
+        message: str
+            The message to show along with the prompt.
+        timeout: float
+            How long to wait before returning.
+        delete_after: bool
+            Whether to delete the confirmation message after we're done.
+        author_id: Optional[int]
+            The member who should respond to the prompt. Defaults to the author of the
+            Context's message.
+        Returns
+        --------
+        Optional[bool]
+            ``True`` if explicit confirm,
+            ``False`` if explicit deny,
+            ``None`` if deny due to timeout
+        """
+
+        if not self.channel.permissions_for(self.me).add_reactions:
+            raise errors.LightningError('Bot does not have Add Reactions permission.')
+
+        fmt = f'{message}\n\nReact with \N{WHITE HEAVY CHECK MARK} to confirm or \N{CROSS MARK} to deny.'
+
+        author_id = author_id or self.author.id
+        msg = await self.send(fmt)
+
+        confirm = None
+
+        def check(payload):
+            nonlocal confirm
+
+            if payload.message_id != msg.id or payload.user_id != author_id:
+                return False
+
+            codepoint = str(payload.emoji)
+
+            if codepoint == '\N{WHITE HEAVY CHECK MARK}':
+                confirm = True
+                return True
+            elif codepoint == '\N{CROSS MARK}':
+                confirm = False
+                return True
+
+            return False
+
+        for emoji in ('\N{WHITE HEAVY CHECK MARK}', '\N{CROSS MARK}'):
+            await msg.add_reaction(emoji)
+
+        try:
+            await self.bot.wait_for('raw_reaction_add', check=check, timeout=timeout)
+        except asyncio.TimeoutError:
+            confirm = None
+
+        try:
+            if delete_after:
+                await msg.delete()
+        finally:
+            return confirm
 
 
 class LightningBot(commands.AutoShardedBot):
     def __init__(self):
-        super().__init__(command_prefix=_callable_prefix,
-                         description=config.description)
+        super().__init__(command_prefix=_callable_prefix)
         self.log = log
         self.launch_time = datetime.utcnow()
         self.script_name = "lightning"
@@ -126,6 +194,7 @@ class LightningBot(commands.AutoShardedBot):
         self.command_spammers = {}
         # Initialize as none then cache our prefixes on_ready
         self.prefixes = {}
+        self.config = toml.load('config.toml')
 
         for ext in initial_extensions:
             try:
@@ -139,48 +208,47 @@ class LightningBot(commands.AutoShardedBot):
             log.error("Failed to load jishaku.")
             log.error(traceback.print_exc())
 
+        bl = self.get_cog('Owner')
+        if not bl:
+            self.log.error("Owner Cog Is Not Loaded.")
+        if bl:
+            self.blacklisted_users = bl.grab_blacklist()
+            self.blacklisted_guilds = bl.grab_blacklist_guild()
+
     async def create_pool(self, dbs, **kwargs):
         """Creates a connection pool and initializes our prefixes"""
         # Mainly prevent multiple pools
         pool = await asyncpg.create_pool(dbs, **kwargs)
-        try:
-            # Initialize prefixes on pool creation :meowhero:
-            prefixes = await pool.fetch("SELECT guild_id, prefix FROM guild_mod_config")
-            for p in prefixes:
-                if p['prefix']:
-                    self.prefixes[p['guild_id']] = p['prefix']
-        except Exception:
-            pass
         return pool
 
     async def on_ready(self):
-        aioh = {"User-Agent": f"Lightning/{config.bot_version}'"}
+        aioh = {"User-Agent": f"Lightning/{self.config['bot']['version']}'"}
         self.aiosession = aiohttp.ClientSession(headers=aioh)
         self.app_info = await self.application_info()
-        self.botlog_channel = self.get_channel(config.error_channel)
-        self.config = config
+        self.botlog_channel = self.get_channel(self.config['logging']['bot_errors'])
 
         log.info(f'\nLogged in as: {self.user.name} - '
                  f'{self.user.id}\ndpy version: '
-                 f'{discord.__version__}\nVersion: {self.config.bot_version}\n')
+                 f'{discord.__version__}\nVersion: {self.config["bot"]["version"]}\n')
         summary = f"{len(self.guilds)} guild(s) and {len(self.users)} user(s)"
         msg = f"{self.user.name} has started! "\
               f"I can see {summary}\n\nDiscord.py Version: "\
               f"{discord.__version__}"\
               f"\nRunning on Python {platform.python_version()}"\
-              f"\nI'm currently on **{self.config.bot_version}**"
+              f"\nI'm currently on **{self.config['bot']['version']}**"
         await self.botlog_channel.send(msg, delete_after=250)
-        init_game = discord.Game("rewrite is the future!")
-        await self.change_presence(activity=init_game)
+        if self.config['bot']['game']:
+            init_game = discord.Game(self.config['bot']['game'])
+            await self.change_presence(activity=init_game)
 
     async def auto_blacklist_check(self, message):
-        if message.author.id in config.bot_managers:
+        if message.author.id in self.config['bot']['managers']:
             return
         try:
             self.command_spammers[str(message.author.id)] += 1
         except KeyError:
             self.command_spammers[str(message.author.id)] = 1
-        if self.command_spammers[str(message.author.id)] >= config.spam_count:
+        if self.command_spammers[str(message.author.id)] >= self.config['bot']['spam_count']:
             bl = self.get_cog('Owner')
             if not bl:
                 self.log.error("Owner Cog Is Not Loaded.")
@@ -188,7 +256,7 @@ class LightningBot(commands.AutoShardedBot):
                 # If owner cog is loaded, grab blacklist and blacklist the user
                 # who is spamming and notify us of the person who just got
                 # blacklisted for spamming.
-                td = bl.grab_blacklist()
+                td = self.blacklisted_users
                 if str(message.author.id) in td:
                     return
                 td[str(message.author.id)] = "Automatic blacklist on command spam"
@@ -201,21 +269,17 @@ class LightningBot(commands.AutoShardedBot):
                                     f"{self.command_spammers[str(message.author.id)]}"
                 wbhk = discord.Webhook.from_url
                 adp = discord.AsyncWebhookAdapter(self.aiosession)
-                webhook = wbhk(config.webhook_blacklist_alert, adapter=adp)
+                webhook = wbhk(self.config['logging']['auto_blacklist'], adapter=adp)
                 self.log.info(f"User automatically blacklisted for command spam |"
                               f" {message.author} | ID: {message.author.id}")
                 await webhook.execute(embed=embed)
 
     async def process_command_usage(self, message):
-        bl = self.get_cog('Owner')
-        if not bl:
-            self.log.error("Owner Cog Is Not Loaded.")
-        if bl:
-            if str(message.author.id) in bl.grab_blacklist():
+        if str(message.author.id) in self.blacklisted_users:
+            return
+        if message.guild:
+            if str(message.guild.id) in self.blacklisted_guilds:
                 return
-            if message.guild:
-                if str(message.guild.id) in bl.grab_blacklist_guild():
-                    return
         ctx = await self.get_context(message, cls=LightningContext)
         if ctx.command is None:
             return
@@ -245,7 +309,7 @@ class LightningBot(commands.AutoShardedBot):
         webhook = discord.Webhook.from_url
         adp = discord.AsyncWebhookAdapter(self.aiosession)
         try:
-            webhook = webhook(config.webhookurl, adapter=adp)
+            webhook = webhook(self.config['logging']['bot_errors'], adapter=adp)
             embed = discord.Embed(title=f"⚠ Error on {event_method}",
                                   description=f"{sys.exc_info()}",
                                   color=discord.Color(0xff0000),
@@ -266,7 +330,7 @@ class LightningBot(commands.AutoShardedBot):
             webhook = discord.Webhook.from_url
             adp = discord.AsyncWebhookAdapter(self.aiosession)
             try:
-                webhook = webhook(config.webhookurl, adapter=adp)
+                webhook = webhook(self.config['logging']['bot_errors'], adapter=adp)
                 embed = discord.Embed(title="⚠ Error",
                                       description=err_msg,
                                       color=discord.Color(0xff0000),
@@ -287,17 +351,19 @@ class LightningBot(commands.AutoShardedBot):
                                   f"```- {roles_needed}```")
         elif isinstance(error, commands.BotMissingPermissions):
             roles_needed = '\n- '.join(error.missing_perms)
-            return await ctx.send(f"{ctx.author.mention}: Bot doesn't have "
+            return await ctx.send(f"{ctx.author.mention}: I don't have "
                                   "the right permissions to run this command. "
-                                  "Please add the following permissions: "
+                                  "Please add the following permissions to me: "
                                   f"```- {roles_needed}```")
         elif isinstance(error, commands.CommandOnCooldown):
-            return await ctx.send(f"{ctx.author.mention}: ⚠ You're being "
+            return await ctx.send("⚠ You're being "
                                   "ratelimited. Try again in "
                                   f"{error.retry_after:.1f} seconds.")
         elif isinstance(error, commands.NotOwner):
-            return await ctx.send(f"{ctx.author.mention}: ❌ You cannot use this command "
-                                  "as it's only for the owner of the bot!")
+            try:
+                return await ctx.message.add_reaction(botemojis.x)
+            except discord.HTTPException:
+                return
         elif isinstance(error, commands.NSFWChannelRequired):
             return await ctx.send(f"{ctx.author.mention}: This command "
                                   "can only be run in a NSFW marked channel or DMs.")
@@ -329,6 +395,8 @@ class LightningBot(commands.AutoShardedBot):
                                   "run the command again.")
         elif isinstance(error, commands.CommandNotFound):
             return  # We don't need to say anything
+        elif isinstance(error, errors.NoWarns):
+            return await ctx.send(error_text)
         elif isinstance(error, errors.LightningError):
             return await ctx.safe_send(error_text)
         err = self.get_cog('Meta')

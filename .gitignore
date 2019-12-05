@@ -117,3 +117,4 @@ stabilite_config.py
 /resources/fonts
 /resources/templates
 /migration/output
+/config.toml

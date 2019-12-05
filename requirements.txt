@@ -6,7 +6,7 @@ parsedatetime
 Pillow
 github3.py
 python-gitlab
-dblpy
 asyncpg
 feedparser
+toml
 git+https://gitlab.com/lightning-bot/bolt@master#egg=bolt

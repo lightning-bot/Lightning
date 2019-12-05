@@ -23,26 +23,27 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import aiohttp
-import discord
-from discord.ext import commands
+import colorsys
 import io
-from PIL import Image, ImageDraw, ImageFont
-import random
 import math
-import config
-from datetime import datetime
+import random
 import textwrap
-from utils.errors import NoImageProvided
-from jishaku.functools import executor_function
+import urllib
+from datetime import datetime
+
+import discord
 from bolt.http import getbytes, getjson
+from discord.ext import commands
+from jishaku.functools import executor_function
+from PIL import Image, ImageDraw, ImageFont
+
+from utils.errors import NoImageProvided
 
 
 class Fun(commands.Cog):
     """Fun Stuff"""
     def __init__(self, bot):
         self.bot = bot
-        self.session = aiohttp.ClientSession()
 
     def c_to_f(self, c):
         """stolen from Robocop-ng. """
@@ -158,10 +159,17 @@ class Fun(commands.Cog):
         elif isinstance(error, commands.BadArgument):
             return await ctx.send(error)
 
+    # @commands.command()
+    # @commands.bot_has_permissions(manage_messages=True)
+    # async def ooftoggle(self, ctx):
+    #    """Deletes messages that contain "oof" in them.
+    # This isn't guaranteed to catch all instances of "oof"
+    # and may misfire sometimes."""
+    #    query = """INSERT INTO ooftoggle VALUES ($1, $2)"""
+
     @commands.command()  # Technically more of a meme, but /shrug
     async def bam(self, ctx, target: discord.Member):
         """Bams a user"""
-        safe_name = await commands.clean_content().convert(ctx, str(target))
         # :idontfeelsogood:
         random_bams = ["n̟̤͙̠̤̖ǫ̺̻ͅw̴͍͎̱̟ ̷̭̖̫͙̱̪b͏͈͇̬̠̥ͅ&̻̬.̶̜͍̬͇̬ ҉̜̪̘̞👍̡̫͙͚͕ͅͅ", "n͢ow̢ ͜b&͢. ̷👍̷",
                        "n҉̺o̧̖̱w̯̬̜̺̘̮̯ ͉͈͎̱̰͎͡b&̪̗̮̣̻͉.͍͖̪͕̤͔ ͢👍̵͙̯͍̫̬",
@@ -172,21 +180,21 @@ class Fun(commands.Cog):
                        "n̐̆ow͘ ̌̑b͛͗&͗̂̍̒.̄ ͊👍͂̿͘",
                        "ₙₒw b&. 👍", "n҉o҉w҉ b҉&. 👍"]
 
-        await ctx.send(f"{safe_name} is {random.choice(random_bams)}")
+        await ctx.safe_send(f"{target} is {random.choice(random_bams)}")
 
     @commands.command()  # Another meme
     async def warm(self, ctx, user: discord.Member):
         """Warms a user"""
         celsius = random.randint(15, 100)
         fahrenheit = self.c_to_f(celsius)
-        await ctx.send(f"{user.mention} warmed. User is now {celsius}°C ({fahrenheit}°F).")
+        await ctx.safe_send(f"{user} warmed. User is now {celsius}°C ({fahrenheit}°F).")
 
     @commands.command(aliases=['cool', 'cold'])  # Another meme again
     async def chill(self, ctx, user: discord.Member):
         """Chills/cools a user"""
         celsius = random.randint(-50, 15)
         fahrenheit = self.c_to_f(celsius)
-        await ctx.send(f"{user.mention} chilled. User is now {celsius}°C ({fahrenheit}°F).")
+        await ctx.safe_send(f"{user} chilled. User is now {celsius}°C ({fahrenheit}°F).")
 
     @commands.command()
     async def cryofreeze(self, ctx, user: discord.Member = None):
@@ -195,15 +203,61 @@ class Fun(commands.Cog):
             user = ctx.author
         celsius = random.randint(-100, 0)
         fahrenheit = self.c_to_f(celsius)
-        await ctx.send(f"{user.mention} cryofreezed. User is now {celsius}°C ({fahrenheit}°F).")
+        await ctx.safe_send(f"{user} cryofreezed. User is now {celsius}°C ({fahrenheit}°F).")
 
-    @commands.group(aliases=['cade'])
+    @commands.command()
+    async def owoify(self, ctx, *, text: commands.clean_content()):
+        """An owo-ifier"""
+        url = f'https://nekos.life/api/v2/owoify?text={urllib.parse.quote(text)}'
+        async with self.bot.aiosession.get(url) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+            else:
+                return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)")
+        await ctx.safe_send(data['owo'])
+
+    @commands.command()
+    async def lolice(self, ctx, *, user: discord.Member = None):
+        """Lolice chief"""
+        if not user:
+            user = ctx.author
+        url = f'https://nekobot.xyz/api/imagegen?type=lolice&url={user.avatar_url_as(format="png")}'
+        async with self.bot.aiosession.get(url) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+            else:
+                return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)")
+        embed = discord.Embed()
+        embed.set_image(url=data['message'])
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def awooify(self, ctx, *, user: discord.Member = None):
+        """Awooify a user"""
+        if not user:
+            user = ctx.author
+        url = f'https://nekobot.xyz/api/imagegen?type=awooify&url={user.avatar_url_as(format="png")}'
+        async with self.bot.aiosession.get(url) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+            else:
+                return await ctx.send(f"HTTP ERROR {resp.status}. Try again later(?)")
+        embed = discord.Embed()
+        embed.set_image(url=data['message'])
+        await ctx.send(embed=embed)
+
+    @lolice.before_invoke
+    @owoify.before_invoke
+    @awooify.before_invoke
+    async def do_typing_before(self, ctx):
+        await ctx.trigger_typing()
+
+    @commands.group(aliases=['cade'], invoke_without_command=True)
     async def cat(self, ctx):
         """Random cats pics either from TheCatAPI or random.cat"""
-        if ctx.invoked_subcommand is None:
-            ranco = ["catapi", "randomcat"]
-            listo = random.choice(ranco)
-            await ctx.invoke(self.bot.get_command(f"cat {listo}"))
+        ranco = ["catapi", "randomcat"]
+        listo = random.choice(ranco)
+        await ctx.invoke(self.bot.get_command(f"cat {listo}"))
 
     @cat.command()
     async def randomcat(self, ctx):
@@ -223,9 +277,8 @@ class Fun(commands.Cog):
     @cat.command(aliases=['capi'])
     async def catapi(self, ctx):
         """Random Cat Pics from thecatapi.com"""
-        capi = {"x-api-key": config.catapi_token}
-        session = aiohttp.ClientSession(headers=capi)
-        async with session.get(url='https://api.thecatapi.com/v1/images/search') as resp:
+        capi = {"x-api-key": self.bot.config['tokens']['catapi']}
+        async with self.bot.aiosession.get(url='https://api.thecatapi.com/v1/images/search', headers=capi) as resp:
             if resp.status == 200:
                 dat = await resp.json()
             else:
@@ -275,6 +328,44 @@ class Fun(commands.Cog):
                               timestamp=timestamp, color=discord.Color(0x96A8C8))
         embed.set_image(url=xkcd["img"])
         embed.set_footer(text=xkcd["alt"])
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
+    async def headpat(self, ctx):
+        """Random headpat gifs"""
+        async with self.bot.aiosession.get("https://nekos.life/api/pat") as resp:
+            headpat = await resp.json()
+        url = headpat["url"]
+        color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
+        embed = discord.Embed(title='Headpat, owo', colour=discord.Color.from_rgb(*color_random))
+        embed.set_image(url=url)
+        embed.set_footer(text="Powered by nekos.life", icon_url="https://nekos.life/static/icons/favicon-194x194.png")
+        await ctx.send(embed=embed)
+
+    @commands.command(name='slap')
+    @commands.bot_has_permissions(embed_links=True)
+    async def slap(self, ctx, person):
+        """Slap yourself or someone."""
+        async with self.bot.aiosession.get("https://nekos.life/api/v2/img/slap") as resp:
+            slap = await resp.json()
+        url = slap["url"]
+        color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
+        embed = discord.Embed(colour=discord.Color.from_rgb(*color_random))
+        embed.set_image(url=url)
+        embed.set_footer(text="Powered by nekos.life", icon_url="https://nekos.life/static/icons/favicon-194x194.png")
+        try:
+            person = await (commands.MemberConverter()).convert(ctx=ctx, argument=person)
+        except commands.BadArgument:
+            pass
+        if isinstance(person, discord.Member) and person.id == ctx.author.id:
+            embed.title = (f"*{ctx.author.name} slapped themself.*")
+        else:
+            if isinstance(person, discord.Member):
+                name = person.name
+            else:
+                name = person[:30]
+            embed.title = (f"*{ctx.author.name} slapped {name}*")
         await ctx.send(embed=embed)
 
 

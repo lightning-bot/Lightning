@@ -27,12 +27,12 @@ userlog_event_types = {"warns": "Warn"}
 
 
 async def get_userlog(bot, guild):
-    query = """SELECT * FROM userlogs
+    query = """SELECT userlog FROM userlogs
                WHERE guild_id=$1
             """
-    ret = await bot.db.fetchrow(query, guild.id)
-    if ret['userlog']:
-        return json.loads(ret['userlog'])
+    ret = await bot.db.fetchval(query, guild.id)
+    if ret:
+        return json.loads(ret)
     else:
         return {}
 
@@ -61,11 +61,6 @@ async def userlog(bot, guild, uid, issuer, reason, event_type, uname: str = ""):
     uid = str(uid)
     if uid not in userlogs:
         userlogs[uid] = {"warns": [],
-                         "mutes": [],
-                         "kicks": [],
-                         "bans": [],
-                         "notes": [],
-                         "watch": False,
                          "name": "n/a"}
     if uname:
         userlogs[uid]["name"] = uname

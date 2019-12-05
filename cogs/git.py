@@ -23,21 +23,23 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-from discord.ext import commands
+import datetime
+
 import discord
 import github3
-import config
-import datetime
 import gitlab
-from utils.checks import is_git_whitelisted, is_bot_manager
+from discord.ext import commands
+
+from utils.checks import is_bot_manager, is_git_whitelisted
 
 
 class Git(commands.Cog):
     """Helper Commands for GitHub/GitLab Related Things."""
     def __init__(self, bot):
         self.bot = bot
-        self.gh = github3.login(token=config.github_key)
-        self.gl = gitlab.Gitlab(config.gitlab_instance, private_token=config.gitlab_token)
+        self.gh = github3.login(token=self.bot.config['git']['github']['key'])
+        self.gl = gitlab.Gitlab(self.bot.config['git']['gitlab']['instance'],
+                                private_token=self.bot.config['git']['gitlab']['key'])
 
     @commands.guild_only()
     @commands.check(is_bot_manager)
@@ -54,8 +56,9 @@ class Git(commands.Cog):
     async def commentonissue(self, ctx, issue_number: int, *, comment: str):
         """Adds a comment to an issue"""
         try:
-            issue = self.gh.issue(config.github_username,
-                                  config.github_repo, issue_number)
+            issue = self.gh.issue(self.bot.config['git']['github']['username'],
+                                  self.bot.config['git']['github']['repository_name'],
+                                  issue_number)
             if issue.is_closed():
                 return await ctx.send(f"That issue is closed! (Since `{issue.closed_at}`)")
             issue.create_comment(f"**<{ctx.author}>**: {comment}")
@@ -72,8 +75,9 @@ class Git(commands.Cog):
         Either pass 'open' or 'closed'
         """
         try:
-            issue = self.gh.issue(config.github_username,
-                                  config.github_repo, issue_number)
+            issue = self.gh.issue(self.bot.config['git']['github']['username'],
+                                  self.bot.config['git']['github']['repository_name'],
+                                  issue_number)
             issue.edit(state=status)
             await ctx.send(f"Done! See {issue.html_url}")
         except Exception as e:
@@ -85,8 +89,9 @@ class Git(commands.Cog):
     async def closeandcomment(self, ctx, issue_number: int, *, comment: str):
         """Comments then closes an issue"""
         try:
-            issue = self.gh.issue(config.github_username,
-                                  config.github_repo, issue_number)
+            issue = self.gh.issue(self.bot.config['git']['github']['username'],
+                                  self.bot.config['git']['github']['repository_name'],
+                                  issue_number)
             if issue.is_closed():
                 return await ctx.send(f"That issue is already closed! (Since `{issue.closed_at}`)")
             issue.create_comment(f"**<{ctx.author}>**: {comment}")
@@ -102,8 +107,9 @@ class Git(commands.Cog):
         """Prints an embed with various info on an issue or pull"""
         tmp = await ctx.send("Fetching info....")
         try:
-            issue = self.gh.issue(config.github_username,
-                                  config.github_repo, number)
+            issue = self.gh.issue(self.bot.config['git']['github']['username'],
+                                  self.bot.config['git']['github']['repository_name'],
+                                  number)
         except Exception as e:
             return await tmp.edit(content=f"An Error Occurred! `{e}`")
         embed = discord.Embed(title=f"{issue.title} | #{issue.number}")
@@ -205,7 +211,8 @@ class Git(commands.Cog):
     @commands.check(is_git_whitelisted)
     async def close(self, ctx, number: int):
         """Closes an issue"""
-        project1 = self.gl.projects.get(config.gitlab_project_id, lazy=True)
+        project1 = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
+                                        lazy=True)
         project = project1.issues.get(number, lazy=True)
         closev = project.state_event = 'close'
         if closev is not False:
@@ -221,7 +228,8 @@ class Git(commands.Cog):
         """Cancels a pipeline by ID"""
         # We pass lazy so we don't make multiple calls
         try:
-            project = self.gl.projects.get(config.gitlab_project_id, lazy=True)
+            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
+                                           lazy=True)
             pipeline = project.pipelines.get(pipeline_number, lazy=True)
             pipeline.cancel()
         except Exception as e:
@@ -234,7 +242,8 @@ class Git(commands.Cog):
     async def listpipelines(self, ctx):
         """Lists all the pipelines for the repository"""
         try:
-            project = self.gl.projects.get(config.gitlab_project_id, lazy=True)
+            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
+                                           lazy=True)
             pipelines = project.pipelines.list()
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
@@ -254,7 +263,8 @@ class Git(commands.Cog):
     async def latestpipeline(self, ctx):
         """Grabs the most recent pipeline's ID and URL"""
         try:
-            project = self.gl.projects.get(config.gitlab_project_id, lazy=True)
+            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
+                                           lazy=True)
             pipe = project.pipelines.list()[0]
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
@@ -271,7 +281,8 @@ class Git(commands.Cog):
     async def mrchange(self, ctx, mr_id: int, event: str):
         """Closes or Reopens a MR. Pass either `close` or `reopen` """
         try:
-            project = self.gl.projects.get(config.gitlab_project_id, lazy=True)
+            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
+                                           lazy=True)
             mr = project.mergerequests.get(mr_id)
             mr.state_event = event
             mr.save()
@@ -285,7 +296,8 @@ class Git(commands.Cog):
     async def labelcreate(self, ctx, label_name: str, color: str):
         """Creates a label"""
         try:
-            project = self.gl.projects.get(config.gitlab_project_id, lazy=True)
+            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
+                                           lazy=True)
             _label = project.labels.create({'name': label_name, 'color': color})
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
@@ -297,7 +309,8 @@ class Git(commands.Cog):
     async def merge(self, ctx, mr_id: int):
         """Merges a Merge Request"""
         try:
-            project = self.gl.projects.get(config.gitlab_project_id, lazy=True)
+            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
+                                           lazy=True)
             mr = project.mergerequests.get(mr_id)
             mr.merge()
         except Exception as e:
@@ -310,7 +323,8 @@ class Git(commands.Cog):
     async def openmrs(self, ctx):
         """Lists currently opened merge requests"""
         try:
-            project = self.gl.projects.get(config.gitlab_project_id, lazy=True)
+            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
+                                           lazy=True)
             prs = project.mergerequests.list(state='opened', per_page=25, page=1)
         except Exception as e:
             return await ctx.send(f"An Error Occurred! `{e}`")
@@ -318,7 +332,7 @@ class Git(commands.Cog):
             msg = ""
             for p in prs:
                 msg += f'"!{p.iid}": '\
-                       f'"https://gitlab.com/LightSage/Lightning/merge_requests/{p.iid}"\n'
+                       f'"https://gitlab.com/lightning-bot/Lightning/merge_requests/{p.iid}"\n'
             await ctx.send(f"Currently open merge requests: ```json\n{msg}```")
         else:
             await ctx.send(f"No open merge requests!")

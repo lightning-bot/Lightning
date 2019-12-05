@@ -27,7 +27,7 @@ from discord.ext import commands
 import discord
 import io
 from discord.ext.commands import Cog
-from utils.checks import is_one_of_guilds, is_staff_or_has_perms
+from utils.checks import is_one_of_guilds
 from utils.paginators_jsk import paginator_reg_nops
 import random
 import bolt.http
@@ -53,7 +53,7 @@ class Emoji(commands.Cog):
         if emoji:
             return await ctx.send(emoji)
         emojiname = emojiname.lower()
-        rand = list(filter(lambda m: emojiname in m.name.lower(), self.bot.emojis))
+        rand = list(filter(lambda m: emojiname in m.name.lower() and m.is_usable(), self.bot.emojis))
         if rand:
             em = random.choice(rand)
             await ctx.emoji_send(em)
@@ -69,13 +69,11 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @is_staff_or_has_perms("Helper", manage_emojis=True)
+    @commands.has_permissions(manage_emojis=True)
     async def add(self, ctx, emoji_name, *, url):
         """Adds the URL as an emoji to the guild
 
-        In order to use this command, you must either have
-        Manage Emojis permission or a role that
-        is assigned as a Helper or above in the bot."""
+        In order to use this command, you must have Manage Emojis permission."""
         if len(emoji_name) > 32:
             return await ctx.send("Emoji name cannot be longer than 32 characters!")
         emoji_link = await bolt.http.getbytes(self.bot.aiosession, url)
@@ -97,13 +95,11 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @is_staff_or_has_perms("Helper", manage_emojis=True)
+    @commands.has_permissions(manage_emojis=True)
     async def copy(self, ctx, emoji: discord.PartialEmoji):
         """ "Copies" an emoji and adds it to the guild.
 
-        In order to use this command, you must either have
-        Manage Emojis permission or a role that
-        is assigned as a Helper or above in the bot."""
+        In order to use this command, you must have Manage Emojis permission."""
         emoji_link = await bolt.http.getbytes(self.bot.aiosession, str(emoji.url))
         if emoji_link is not False:
             try:
@@ -122,13 +118,11 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @is_staff_or_has_perms("Helper", manage_emojis=True)
+    @commands.has_permissions(manage_emojis=True)
     async def delete(self, ctx, emote: discord.Emoji):
         """Deletes an emoji from the guild
 
-        In order to use this command, you must either have
-        Manage Emojis permission or a role that
-        is assigned as a Moderator or above in the bot."""
+        In order to use this command, you must have Manage Emojis permission."""
         if ctx.guild.id != emote.guild_id:
             return await ctx.send("This emoji isn't in this guild!")
 
@@ -138,13 +132,11 @@ class Emoji(commands.Cog):
     @emoji.command()
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
-    @is_staff_or_has_perms("Moderator", manage_emojis=True)
+    @commands.has_permissions(manage_emojis=True)
     async def rename(self, ctx, name: str, emote_to_rename: discord.Emoji):
         """Renames an emoji from the guild
 
-        In order to use this command, you must either have
-        Manage Emojis permission or a role that
-        is assigned as a Moderator or above in the bot."""
+        In order to use this command, you must have Manage Emojis permission."""
         if ctx.guild.id != emote_to_rename.guild_id:
             return await ctx.send("This emoji does not belong to this guild!")
 
@@ -164,7 +156,8 @@ class Emoji(commands.Cog):
         """Sends a paginator with a fancy list of the server's emotes"""
         page = []
         for emoji in ctx.guild.emojis:
-            page.append(f'{emoji} -- `{emoji}`')
+            if emoji.is_usable():
+                page.append(f'{emoji} -- `{emoji}`')
         await paginator_reg_nops(self.bot, ctx, size=1000, page_list=page)
 
     @emoji.command(aliases=['stat', 'statistics'])
