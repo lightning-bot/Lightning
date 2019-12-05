@@ -32,9 +32,10 @@ import io
 import asyncio
 import colorsys
 from PIL import Image
-from utils.converters import SafeSend, ReadableChannel
+from utils.converters import SafeSend, ReadableChannel, SendableChannel
 import asyncpg
 import bolt.http
+from jishaku.functools import executor_function
 
 
 class Utility(commands.Cog):
@@ -42,6 +43,7 @@ class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @executor_function
     def finalize_image(self, image):  # Image Save
         image_b = Image.open(io.BytesIO(image))
         image_file = io.BytesIO()
@@ -197,17 +199,15 @@ class Utility(commands.Cog):
 
     @commands.command(aliases=['say'])
     @commands.guild_only()
-    @has_staff_role("Helper")
-    async def speak(self, ctx, channel: discord.TextChannel, *, inp: SafeSend):
-        """Say something through the bot to the specified channel. Staff only."""
-        await channel.trigger_typing()
-        await channel.send(inp)
+    async def speak(self, ctx, channel: SendableChannel, *, say: SafeSend):
+        """Say something through the bot to the specified channel."""
+        await channel.send(say)
 
     @commands.group(aliases=['nuf', 'stability'])
     @commands.bot_has_permissions(manage_webhooks=True)
     @is_staff_or_has_perms("Admin", manage_webhooks=True)
     async def nintendoupdatesfeed(self, ctx):
-        """Manages the guild's configuration for Nintendo console updates.
+        """Manages the guild's configuration for Nintendo console update alerts.
 
         If invoked with no subcommands, this will show the current configuration."""
         if ctx.invoked_subcommand is None:
@@ -234,7 +234,7 @@ class Utility(commands.Cog):
         if channel is None:
             channel = ctx.channel
         try:
-            webhook = await channel.create_webhook(name="Nintendo Console Update")
+            webhook = await channel.create_webhook(name="Nintendo Console Updates")
         except discord.HTTPException as e:
             return await ctx.safe_send(f"Failed to create webhook. {e}")
         query = """INSERT INTO nin_updates
@@ -369,7 +369,7 @@ class Utility(commands.Cog):
                 f = ctx.message.attachments[0]
                 if f.filename.lower().endswith('.bmp'):
                     image_bmp = await bolt.http.getbytes(self.bot.aiosession, f.url)
-                    img_final = self.finalize_image(image_bmp)
+                    img_final = await self.finalize_image(image_bmp)
                     filex = discord.File(img_final,
                                          filename=f"BMP conversion from {ctx.author}.png")
                     await ctx.send(file=filex)
@@ -381,7 +381,7 @@ class Utility(commands.Cog):
             if link.lower().endswith('.bmp'):
                 try:
                     image_bmp = await bolt.http.getbytes(self.bot.aiosession, link)
-                    img_final = self.finalize_image(image_bmp)
+                    img_final = await self.finalize_image(image_bmp)
                     filex = discord.File(img_final, filename=f"BMP conversion from {ctx.author}.png")
                     await ctx.send(file=filex)
                 except Exception:

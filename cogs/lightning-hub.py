@@ -59,15 +59,9 @@ class LightningHub(commands.Cog):
     async def elevate(self, ctx):
         """Gains the elevated role. Use with care!"""
         target = ctx.author
-        mod_log_chan = self.bot.get_channel(552583376566091805)
-        safe_name = await commands.clean_content().convert(ctx, str(target))
         role = discord.Object(id=527996858908540928)
-
         await target.add_roles(role, reason=str(ctx.author))
-        msg = f"🚑️ **Elevated**: {ctx.author.mention} | {safe_name}"
-
-        await mod_log_chan.send(msg)
-        await ctx.send(f"{target.mention} is now elevated!")
+        await ctx.safe_send(f"{target} is now elevated!")
 
     @commands.command(aliases=['unelevate'])
     @is_guild(527887739178188830)
@@ -75,14 +69,10 @@ class LightningHub(commands.Cog):
     async def deelevate(self, ctx):
         """Removes the elevated role. Use with care."""
         target = ctx.author
-        mod_log_chan = self.bot.get_channel(552583376566091805)
-        safe_name = await commands.clean_content().convert(ctx, str(target))
         role = discord.Object(id=527996858908540928)
 
         await target.remove_roles(role, reason=str(ctx.author))
-        msg = f"❗️ **De-elevated**: {ctx.author.mention} | {safe_name}"
-        await mod_log_chan.send(msg)
-        await ctx.send(f"{target.mention} is now unelevated!")
+        await ctx.safe_send(f"{target} is now unelevated!")
 
     @commands.command()
     @is_guild(527887739178188830)

@@ -23,20 +23,20 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import config
-from datetime import datetime
-from discord.ext import commands, tasks
 import asyncio
-import traceback
-import discord
-from utils.checks import is_bot_manager
-import subprocess
-import random
 import json
-import dbl
 import os
+import random
+import subprocess
+import traceback
+from datetime import datetime
+
 import asyncpg
+import discord
 from bolt.time import get_relative_timestamp
+from discord.ext import commands, tasks
+
+from utils.checks import is_bot_manager
 from utils.nin_updates import nintendo_updates_feed
 
 
@@ -56,16 +56,13 @@ class TasksManagement(commands.Cog):
                                        'r', encoding='utf8'))
         self.status_rotate.start()
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
-        self.cron_hourly.start()
         self.stability.start()
-        self.discordbotlist = dbl.DBLClient(self.bot, config.dbl_token)
 
     # Here we cancel our loops on cog unload
     def cog_unload(self):
         self.dispatch_jobs.cancel()
         self.status_rotate.cancel()
         self.stability.cancel()
-        self.cron_hourly.cancel()
 
     async def cog_command_error(self, ctx, error):
         if isinstance(error, RemoveRestrictionError):
@@ -129,7 +126,7 @@ class TasksManagement(commands.Cog):
 
     async def randomize_status(self):
         ext_list = [f"on commit {C_HASH}", [3, f"{len(self.bot.guilds)} servers"],
-                    f"on {self.bot.config.bot_version}"]
+                    f"on {self.bot.config['bot']['version']}"]
         msg = random.randint(1, 2)
         if msg == 1:
             msg = random.choice(self.statuses)
@@ -195,11 +192,13 @@ class TasksManagement(commands.Cog):
                                 value=f"Expiry: {duration_text}\n"
                                       f"Extra Details: {job['extra']}")
         except Exception:
-            self.bot.log.error(f"PowersCron ERROR: "
+            self.bot.log.error(f"Tasks ERROR: "
                                f"{traceback.format_exc()}")
-            log_channel = self.bot.get_channel(config.powerscron_errors)
-            await log_channel.send(f"PowersCron has Errored! "
-                                   f"```{traceback.format_exc()}```")
+            wbhk = discord.Webhook.from_url
+            adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
+            webhook = wbhk(self.bot.config['logging']['timer_errors'], adapter=adp)
+            await webhook.execute(f"Tasks has Errored!\n"
+                                  f"```{traceback.format_exc()}```")
             embed.description = "Something went wrong grabbing jobs!"\
                                 " Try again later(?)"
         await ctx.send(embed=embed)
@@ -245,7 +244,7 @@ class TasksManagement(commands.Cog):
                                    f"{traceback.format_exc()}")
                 wbhk = discord.Webhook.from_url
                 adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
-                webhook = wbhk(config.powerscron_errors, adapter=adp)
+                webhook = wbhk(self.bot.config['logging']['timer_errors'], adapter=adp)
                 await webhook.execute(f"Timers has Errored!\n"
                                       f"```{traceback.format_exc()}```")
 
@@ -253,7 +252,10 @@ class TasksManagement(commands.Cog):
 
     @tasks.loop(minutes=7)
     async def status_rotate(self):
-        await self.randomize_status()
+        if self.bot.config['bot']['status_rotate']:
+            await self.randomize_status()
+        else:
+            self.status_rotate.cancel()
 
     @status_rotate.before_loop
     async def sr_prep(self):
@@ -265,26 +267,6 @@ class TasksManagement(commands.Cog):
 
     @stability.before_loop
     async def stability_load(self):
-        await self.bot.wait_until_ready()
-
-    @tasks.loop(hours=1)
-    async def cron_hourly(self):
-        try:
-            self.bot.log.info("Attempting to Post Guild Count to DBL")
-            await self.discordbotlist.post_guild_count()
-            self.bot.log.info("Successfully posted guild count!")
-        except Exception as e:
-            self.bot.log.error(f"PowersCron Hourly ERROR: {e}\n---\n"
-                               f"{traceback.print_exc()}")
-            wbhk = discord.Webhook.from_url
-            adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
-            webhook = wbhk(config.powerscron_errors, adapter=adp)
-            await webhook.execute(f"PowersCron Hourly has Errored!\n"
-                                  f"```{traceback.format_exc()}```")
-        await asyncio.sleep(3600)
-
-    @cron_hourly.before_loop
-    async def cron_hourly_before_loop(self):
         await self.bot.wait_until_ready()
 
     # LightningClean - Lightning's File Cleanup System

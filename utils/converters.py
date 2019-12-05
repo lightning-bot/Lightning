@@ -26,7 +26,7 @@
 from discord.ext import commands
 import discord
 from utils.checks import member_at_least_has_staff_role
-from utils.errors import BadTarget, ChannelPermissionFailure
+from utils.errors import BadTarget, ChannelPermissionFailure, LightningError
 
 
 class WarnNumber(commands.Converter):
@@ -49,8 +49,10 @@ class TargetMember(commands.Converter):
             raise BadTarget("You can't do mod actions on me.")
         elif target == ctx.author:
             raise BadTarget("You can't do mod actions on yourself.")
-        elif await member_at_least_has_staff_role(ctx, target):
+        elif target.guild_permissions.manage_messages or await member_at_least_has_staff_role(ctx, target):
             raise BadTarget("You can't do mod actions on other staff!")
+        elif ctx.author.top_role < target.top_role:
+            raise BadTarget("You can't do mod actions on this user due to role hierarchy.")
         else:
             return target
 
@@ -65,11 +67,24 @@ class ReadableChannel(commands.Converter):
         return channel
 
 
+class SendableChannel(commands.Converter):
+    async def convert(self, ctx, argument):
+        channel = await commands.TextChannelConverter().convert(ctx, argument)
+        if not channel.guild.me.permissions_in(channel).send_messages:
+            raise ChannelPermissionFailure("I don't have permission to send "
+                                           f"messages in {channel.mention}")
+        if not ctx.author or not channel.permissions_for(ctx.author).send_messages:
+            raise ChannelPermissionFailure("You don't have permission to "
+                                           f"send messages in {channel.mention}")
+        return channel
+
+
 class SafeSend(commands.Converter):
     async def convert(self, ctx, message):
         # Extra Converter to save my life. Fuck @everyone pings
         # I hope this saves my life forever. :blobsweat:
-        content = await commands.clean_content().convert(ctx, str(message))
+        escape_mentions = str(message).replace("@", "@\u200B")
+        content = await commands.clean_content().convert(ctx, str(escape_mentions))
         return content
 
 
@@ -84,6 +99,38 @@ class LastImage(commands.Converter):
             for attachment in message.attachments:
                 if attachment.proxy_url:
                     return attachment.proxy_url
-        raise discord.ext.errors.MissingRequiredArgument("Couldn't not "
+        raise discord.ext.errors.MissingRequiredArgument("Couldn't "
                                                          "find an image in the last "
                                                          "15 messages")
+
+
+# https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/mod.py#L122
+class BannedMember(commands.Converter):
+    async def convert(self, ctx, argument):
+        ban_list = await ctx.guild.bans()
+        try:
+            member_id = int(argument, base=10)
+            entity = discord.utils.find(lambda u: u.user.id == member_id, ban_list)
+        except ValueError:
+            entity = discord.utils.find(lambda u: str(u.user) == argument, ban_list)
+
+        if entity is None:
+            raise commands.BadArgument("Not a valid previously-banned member.")
+        return entity
+
+
+class ValidCommandName(commands.Converter):
+    async def convert(self, ctx, argument):
+        lowered = argument.lower()
+
+        valid_commands = {
+            c.qualified_name
+            for c in ctx.bot.walk_commands()
+            if c.cog_name not in ('Configuration', 'Owner', 'TasksManagement',
+                                  'Jishaku', 'Bolt', 'Git')
+        }
+
+        if lowered not in valid_commands:
+            raise LightningError(f'Command {lowered!r} is not valid.')
+
+        return lowered

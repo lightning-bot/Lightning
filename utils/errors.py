@@ -82,3 +82,8 @@ class MissingRequiredPerms(LightningError):
     def __init__(self, permission):
         super().__init__(f"{botemojis.x} You are missing required "
                          f"permission(s) `{', '.join(permission)}`!")
+
+
+class NoWarns(LightningError):
+    def __init__(self, user):
+        super().__init__(f"<@{user}> has no warns.")

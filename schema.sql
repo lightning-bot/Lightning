@@ -47,13 +47,6 @@ CREATE TABLE IF NOT EXISTS toggleable_roles
     CONSTRAINT toggleable_roles_pkey PRIMARY KEY (guild_id, role_id)
 );
 
-CREATE TABLE IF NOT EXISTS auto_roles
-(
-    guild_id BIGINT NOT NULL,
-    role_id BIGINT NOT NULL,
-    CONSTRAINT auto_roles_pkey PRIMARY KEY (guild_id, role_id)
-);
-
 CREATE TABLE IF NOT EXISTS commands_usage
 (
     id BIGSERIAL PRIMARY KEY,
@@ -80,15 +73,6 @@ CREATE TABLE IF NOT EXISTS bug_tickets
     ticket_info JSONB
 );
 
-CREATE TABLE IF NOT EXISTS modlog_cases
-(
-    guild_id BIGINT PRIMARY KEY,
-    channel_id BIGINT,
-    message_id BIGINT,
-    case_id SERIAL,
-    case_info JSONB
-);
-
 CREATE TABLE IF NOT EXISTS sniped_messages
 (
     guild_id BIGINT,
@@ -108,10 +92,37 @@ CREATE TABLE IF NOT EXISTS snipe_settings
 ALTER TABLE guild_mod_config ADD COLUMN prefix TEXT [];
 ALTER TABLE guild_mod_config ADD COLUMN warn_ban SMALLINT;
 ALTER TABLE guild_mod_config ADD COLUMN warn_kick SMALLINT;
+ALTER TABLE guild_mod_config ADD COLUMN log_format SMALLINT;
+DROP TABLE IF EXISTS auto_roles;
 
 CREATE TABLE IF NOT EXISTS nin_updates
 (
     guild_id BIGINT PRIMARY KEY,
     id BIGINT,
     webhook_token VARCHAR (500)
+);
+
+CREATE TABLE IF NOT EXISTS guild_config
+(
+    guild_id BIGINT PRIMARY KEY,
+    prefix TEXT [],
+    autorole BIGINT
+);
+
+CREATE TABLE IF NOT EXISTS command_plonks
+(
+    id SERIAL PRIMARY KEY,
+    guild_id BIGINT,
+    channel_id BIGINT [],
+    name TEXT,
+    whitelist BOOLEAN
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS command_plonks_uniq_idx ON command_plonks (guild_id, channel_id, name, whitelist);
+
+CREATE TABLE IF NOT EXISTS warns
+(
+    guild_id BIGINT NOT NULL,
+    warn_id SERIAL,
+
 );

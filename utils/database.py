@@ -22,6 +22,8 @@
 # c) Prohibiting misrepresentation of the origin of that material, or
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
+import discord
+from utils.errors import LightningError
 
 
 class Sniped:
@@ -34,6 +36,28 @@ class Sniped:
 
     def is_ignored_channel(self, channel):
         return channel.id in self.ignored_channels
+
+
+class GuildModConfig:
+    __slots__ = ("mute_role_id", "log_channels", "log_format", "warn_kick", "warn_ban")
+
+    def __init__(self, record):
+        self.mute_role_id = record['mute_role_id']
+        self.log_channels = record['log_channels']
+        self.log_format = record['log_format']
+        self.warn_kick = record['warn_kick']
+        self.warn_ban = record['warn_ban']
+
+    def mute_role(self, ctx):
+        if self.mute_role_id:
+            ret = discord.utils.get(ctx.guild.roles, id=self.mute_role_id)
+            if ret:
+                return ret
+            else:
+                raise LightningError('The mute role that was set seems to be deleted.'
+                                     ' Please set a new one.')
+        else:
+            return None
 
 
 class DatabaseUpdate:
@@ -61,3 +85,8 @@ CREATE TABLE IF NOT EXISTS snipe_settings
     id BIGINT,
     webhook_token VARCHAR (500)
 );"""
+    ooftoggle = """CREATE TABLE IF NOT EXISTS ooftoggle
+(
+    guild_id BIGINT PRIMARY KEY
+);"""
+    logformat = """ALTER TABLE guild_mod_config ADD COLUMN log_format SMALLINT;"""

@@ -2,52 +2,71 @@
 [![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/cDPGuYd)
 [![Pipeline Status](https://img.shields.io/gitlab/pipeline/lightning-bot/Lightning?label=Pipeline&logo=GitLab)](https://gitlab.com/lightning-bot/Lightning/pipelines/latest)
 
-This version is the successor to Lightning.js
+Lightning is a multi-purpose bot.
+
+To find Lightning's commands, run the help command.
 
 ---
 
 ## Features & Changelogs
 
-A list of features can be found at https://lightning-bot.gitlab.io. Changelogs can be found at the support server (https://discord.gg/cDPGuYd) in the changelogs channel.
+A list of features can be found below or at https://lightning-bot.gitlab.io. Changelogs can be found at the support server (https://discord.gg/cDPGuYd) in the changelogs channel.
 
 ---
-## Planned Features
+**Moderation Tools**
 
-<details>
-<summary>Completed Features</summary>
-<p>
+- Warnings
+  - With optional punishments, such as kicking the user once the user has reached a certain amount of warns.
+  - The ability to remove warns from users.
+  - As a note, warnings are guild specific.
+- Ban
+  - You can also temporarily ban members for a specified time, just use the timeban command!
+- Mute
+  - You can also temporarily mute members too with the timemute command!
+  - The mute and tempmute commands only assign a role and make it sticky, it's not a channel permission modifier. You'll need to setup those perms yourself.
+- Kick
+- Purge messages from a channel.
+  - If you want to cleanup responses from Lightning, use the clean command.
+- Channel Lockdown
+  - This sets the channel permissions as `@everyone` can't send messages. To undo the lock command, use the unlock command to allow `@everyone` to send messages in the channel.
+  - The hlock command does what the regular lock command does, but it also removes read message permission for `@everyone`. To undo a hard lockdown, use the hunlock command.
+- Mod Logging
 
-- [x] Message Logging 
-- [x] Logging: Invite Watching (soon to be rewritten)
-- [x] Member Count
-- [x] Announcement Maker
-- [x] Moderation: Mute
-- [x] Moderation: Restrictions
-- [x] Moderation: Ban ID/Hackban
-- [x] Moderation: Silent Kick
-- [x] Moderation: Reapply Restrictions on Member Join
-- [x] Admin: Fetch the guild's userlog.json file (Obsolete since v2)
-- [x] Status Switching
-- [x] Support Server: Special commands that help moderate the support server
-- [x] Bot Owner: Blacklist Guilds and Users
-- [x] Bot Owner: Search blacklist with an ID
-- [x] Lightning's Timer System: Reminders/Timers
-- [x] Moderation: Time Ban (relies on Lightning's Timer System)
-- [x] Lightning's Timer System: Allow reminder author to delete their own reminders
-- [x] Lightning's Timer System: Management Cog (PCA/PCM)
-- [x] Lightning's Timer System: 6 Hour Data Backup (Now Unused since v2)
-- [x] Moderation: Time Mute (relies on Lightning's Timer System)
-- [x] Better Help Command
+**Configuration**
 
-</p>
-</details>
+- Custom Prefixes
+    - Custom prefixes are guild specific and are limited to 5 different custom prefixes.
+- Mod Roles
+    - If you don't trust your moderators with certain permissions, this is for you!
+  - Mod roles allow members with a configured role to have permissions in the bot without needing the actual role permission itself! For more information on mod roles, go to [https://lightning-bot.gitlab.io/config/settings/#moderation-roles](https://lightning-bot.gitlab.io/config/settings/#moderation-roles).
+- Logging
+  - You can specify what your guild wants to log in a channel.
+    - __Supported Logging__:
+      - Moderation logs
+      - Role change logs
+      - Member join and leave logs
+        - Bot Additions
+  - To disable logging, just run the setup command!
+- Auto Roles
+  - Have you wanted to have members get a certain role on joining your server? Well, now you can with auto roles! To add an automatic role, use the `config autorole set` command. For more information, use the `help config autorole` command.
+
+**Other Features Include**:
+
+- Emoji Management
+- Memes
+- Reminders
+- Image Manipulation
+- Message Snipes
+- Nintendo Console Update Alerts
+
+and more!
 
 ---
 [![DBL (top.gg)](https://top.gg/api/widget/status/532220480577470464.svg)](https://top.gg/bot/532220480577470464)
 [![DBL (top.gg)](https://top.gg/api/widget/owner/532220480577470464.svg)](https://top.gg/bot/532220480577470464)
 ## Invite
 
-If you want to invite Lightning to your guild, use this link https://discordapp.com/oauth2/authorize?client_id=532220480577470464&scope=bot&permissions=1476766934.
+If you want to invite Lightning to your guild, use this link https://discordapp.com/oauth2/authorize?client_id=532220480577470464&scope=bot&permissions=2013637846. (Select permissions as needed.)
 
 ---
 ## License

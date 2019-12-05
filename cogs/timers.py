@@ -23,15 +23,16 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-from datetime import datetime
-from discord.ext import commands
-import traceback
-import discord
-import config
 import json
+import textwrap
+import traceback
+from datetime import datetime
+
+import discord
+from discord.ext import commands
+
 from utils import time
 from utils.errors import TimersUnavailable
-import textwrap
 
 STIMER = "%Y-%m-%d %H:%M:%S (UTC)"
 
@@ -42,7 +43,8 @@ class Reminders(commands.Cog):
 
     @commands.group(usage="<when>", aliases=["timer", "reminder"],
                     invoke_without_command=True)
-    async def remind(self, ctx, *, when: time.UserFriendlyTime(default='something')):
+    async def remind(self, ctx, *, when: time.UserFriendlyTime(commands.clean_content,
+                                                               default='something')):
         """Reminds you of something after a certain date.
 
         The input can be any direct date (e.g. YYYY-MM-DD)
@@ -80,11 +82,10 @@ class Reminders(commands.Cog):
                    LIMIT 10;
                 """
         rem = await self.bot.db.fetch(query, str(ctx.author.id))
-        embed = discord.Embed(title="Reminders", color=discord.Color(0xf74b06))
+        embed = discord.Embed(title="Reminders", color=0xf74b06)
         if len(rem) == 0:
             embed.description = "No reminders were found!"
             return await ctx.send(embed=embed)
-        # Kinda hacky-ish code
         try:
             for job in rem:
                 ext = json.loads(job['extra'])
@@ -95,8 +96,8 @@ class Reminders(commands.Cog):
                                 value=reminder_text_s, inline=False)
         except Exception:
             self.bot.log.error(traceback.format_exc())
-            log_channel = self.bot.get_channel(config.powerscron_errors)
-            await log_channel.send(f"PowersCron has Errored! "
+            log_channel = self.bot.get_channel(self.bot.config['logging']['timer_errors'])
+            await log_channel.send(f"Tasks has Errored! "
                                    f"```{traceback.format_exc()}```")
             embed.description = "Something went wrong getting your timers!"\
                                 " Try again later"
@@ -116,8 +117,7 @@ class Reminders(commands.Cog):
                    AND event = 'reminder'
                    AND extra ->> 'author' = $2;
                 """
-        async with self.bot.db.acquire() as con:
-            result = await con.execute(query, reminder_id, str(ctx.author.id))
+        result = await self.bot.db.execute(query, reminder_id, str(ctx.author.id))
         if result == 'DELETE 0':
             await ctx.message.add_reaction("❌")
             return await ctx.send(f"I couldn't delete a reminder with that ID!")
@@ -143,14 +143,14 @@ class Reminders(commands.Cog):
             await channel.send(f"{uid.mention}: "
                                "You asked to be reminded "
                                f"{timed_txt} "
-                               f"about `{ext['reminder_text']}`")
+                               f"about {ext['reminder_text']}")
         # Attempt to DM User if we failed to send Reminder
         except discord.errors.Forbidden:
             try:
                 await uid.send(f"{uid.mention}: "
                                "You asked to be reminded "
                                f"{timed_txt} "
-                               f"about `{ext['reminder_text']}`")
+                               f"about {ext['reminder_text']}")
             except Exception:
                 # Optionally add to the db as a failed job
                 self.bot.log.error(f"Failed to remind {ext['author']}.")

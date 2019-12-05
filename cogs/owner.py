@@ -23,22 +23,24 @@
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
 
-import discord
-from discord.ext import commands
-import traceback
-import textwrap
 import asyncio
-import random
-import config
-from utils.checks import is_bot_manager
-import os
-import json
-import shutil
-from bolt.paginator import TextPages
-from contextlib import redirect_stdout
 import io
+import json
+import os
+import random
+import shutil
+import textwrap
+import traceback
+from contextlib import redirect_stdout
+
 import bolt.http
 import bolt.misc
+import discord
+import toml
+from bolt.paginator import TextPages
+from discord.ext import commands
+
+from utils.checks import is_bot_manager
 
 
 class Owner(commands.Cog):
@@ -72,7 +74,7 @@ class Owner(commands.Cog):
     @commands.command()
     async def fetchlog(self, ctx):
         """Returns log"""
-        log_channel = self.bot.get_channel(config.error_channel)
+        log_channel = self.bot.get_channel(self.bot.config['logging']['startup'])
         await ctx.message.add_reaction("✅")
         try:
             await ctx.author.send("Here's the current log file:",
@@ -141,7 +143,7 @@ class Owner(commands.Cog):
     async def blacklist_user(self, ctx, userid: int, *, reason_for_blacklist: str = ""):
         """Blacklist an user from using the bot"""
         bl = self.grab_blacklist()
-        if userid in config.bot_managers:
+        if userid in self.bot.config['bot']['managers']:
             return await ctx.send("You cannot blacklist a bot manager!")
         elif str(userid) in bl:
             return await ctx.send("User already blacklisted!")
@@ -319,6 +321,22 @@ class Owner(commands.Cog):
         await self.bot.db.close()
         await self.bot.aiosession.close()
         await self.bot.logout()
+
+    @commands.group()
+    @commands.is_owner()
+    async def reload(self, ctx):
+        """Reloads internal cached dicts.
+
+        All commands besides config under the reload group have a dump argument,
+        to dump pass a truthy value"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help('reload')
+
+    @reload.command(name="config")
+    async def r_config(self, ctx):
+        with open("config.toml", "r") as c:
+            self.bot.config = toml.load(c)
+        await ctx.send("\N{OK HAND SIGN}")
 
     @commands.command()
     @commands.is_owner()

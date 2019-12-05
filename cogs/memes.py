@@ -36,17 +36,16 @@ class Memes(commands.Cog):
         self.memes_list = json.load(open('resources/memes.json',
                                          'r', encoding='utf8'))
 
-    @commands.group(aliases=['meme'])
+    @commands.group(aliases=['meme'], invoke_without_command=True)
     async def memes(self, ctx):
         """Runs a meme command.
 
         If no meme is given, it sends a list of memes"""
-        if ctx.invoked_subcommand is None:
-            memeslist = "Text: `knuckles` `neo-ban` `discordcopypaste` `peng`"\
-                        " `ayy` `lenny` `lmao` `r11`"\
-                        "\nImage: `astar` `hifumi1` `git` `bean` `tuturu` `yert`"\
-                        " `bait` `cat` `catto`"
-            return await ctx.send(f"Available Memes:\n{memeslist}")
+        memeslist = "Text: `knuckles` `neo-ban` `discordcopypaste` `peng`"\
+                    " `ayy` `lenny` `lmao` `r11`"\
+                    "\nImage: `astar` `hifumi1` `git` `bean` `tuturu` `yert`"\
+                    " `bait` `cat` `catto`"
+        await ctx.send(f"Available Memes:\n{memeslist}")
 
     @memes.command(hidden=True)
     @commands.cooldown(rate=1, per=10.0, type=commands.BucketType.channel)

@@ -25,7 +25,6 @@
 
 import discord
 from discord.ext import commands
-import config
 from utils import errors
 
 
@@ -41,7 +40,7 @@ def is_guild(guild_id):
 def is_git_whitelisted(ctx):
     if not ctx.guild:
         return False
-    guild = (ctx.guild.id in config.gh_whitelisted_guilds)
+    guild = (ctx.guild.id in ctx.bot.config['git']['whitelisted_guilds'])
     return (guild)
 
 
@@ -83,24 +82,52 @@ def is_staff_or_has_perms(min_role: str, **perms):
     async def predicate(ctx):
         if not ctx.guild:
             return False
+        permcheck = await check_guild_permissions(ctx, perms, check=all)
         sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
-        permissions = ctx.author.guild_permissions
-        permcheck = all(getattr(permissions, perms, None) == value for perms, value in perms.items())
-        if sr is False:
-            if permcheck is False:
-                raise errors.MissingRequiredPerms(perms.keys())
+        if sr is False and permcheck is False:
+            permissions = []
+            for permname in list(perms.keys()):
+                permname = permname.replace('_', ' ').replace('guild', 'server').title()
+                permissions.append(permname)
+            raise errors.MissingRequiredPerms(permissions)
         return permcheck or sr
     return commands.check(predicate)
+
+
+async def check_guild_permissions(ctx, perms, *, check=all):
+    is_owner = await ctx.bot.is_owner(ctx.author)
+    if is_owner or ctx.author.id in ctx.bot.config['bot']['managers']:
+        return True
+
+    if not ctx.guild:
+        return False
+
+    resolved = ctx.author.guild_permissions
+    return check(getattr(resolved, name, None) == value for name, value in perms.items())
+
+
+def has_guild_permissions(*, check=all, **perms):
+    async def pred(ctx):
+        permcheck = await check_guild_permissions(ctx, perms, check=check)
+        if permcheck is False:
+            permissions = []
+            for permname in list(perms.keys()):
+                permname = permname.replace('_', ' ').replace('guild', 'server').title()
+                permissions.append(permname)
+            raise errors.MissingRequiredPerms(permissions)
+        return permcheck
+    return commands.check(pred)
 
 
 def is_bot_manager_or_staff(min_role: str):
     async def predicate(ctx):
         if not ctx.guild:
             return False
-        if not await ctx.bot.is_owner(ctx.author):
-            return False
+        is_owner = await ctx.bot.is_owner(ctx.author)
+        if is_owner:
+            return True
         sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
-        if ctx.author.id in config.bot_managers:
+        if ctx.author.id in ctx.bot.config['bot']['managers']:
             return True
         return sr
     return commands.check(predicate)
@@ -113,7 +140,7 @@ async def is_bot_manager(ctx):
     is_owner = await ctx.bot.is_owner(ctx.author)
     if is_owner:
         return True
-    bm = ctx.author.id in config.bot_managers
+    bm = ctx.author.id in ctx.bot.config['bot']['managers']
     if bm:
         return True
     raise errors.NotOwnerorBotManager
