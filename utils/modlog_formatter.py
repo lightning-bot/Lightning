@@ -330,7 +330,8 @@ log_action_meanings = {"unban": "Unban",
                        "lockdown": "Lockdown",
                        "unlock": "Unlock",
                        "hard-lockdown": "Hard Lockdown",
-                       "temprole": "Timed Role Restriction"}
+                       "temprole": "Timed Role Restriction",
+                       "kick": "Kick"}
 
 
 def lightning_format(log_action: str, target, moderator, reason: str = "", time=None, **kwargs):
