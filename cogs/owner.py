@@ -74,16 +74,12 @@ class Owner(commands.Cog):
     @commands.command()
     async def fetchlog(self, ctx):
         """Returns log"""
-        log_channel = self.bot.get_channel(self.bot.config['logging']['startup'])
         await ctx.message.add_reaction("✅")
         try:
             await ctx.author.send("Here's the current log file:",
                                   file=discord.File(f"{self.bot.script_name}.log"))
         except discord.errors.Forbidden:
-            await ctx.send("💢 I couldn't send the log file in your DMs so I "
-                           "sent it to the bot\'s logging channel.")
-            await log_channel.send("Here's the current log file:",
-                                   file=discord.File(f"{self.bot.script_name}.log"))
+            return await ctx.send("💢 I couldn't send the log file in your DMs")
 
     @commands.check(is_bot_manager)
     @commands.command(aliases=['getguildprefix', 'ggp'])
