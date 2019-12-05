@@ -59,6 +59,8 @@ log.setLevel(logging.INFO)
 log.addHandler(file_handler)
 log.addHandler(stdout_handler)
 # logging.getLogger('discord.http').setLevel(logging.WARNING)
+# Remove spammy log messages
+logging.getLogger('discord.state').addFilter(lambda l: 'Processed a chunk' not in l.msg)
 
 
 async def _callable_prefix(bot, message):
