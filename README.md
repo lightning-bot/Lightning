@@ -62,8 +62,6 @@ A list of features can be found below or at https://lightning-bot.gitlab.io. Cha
 and more!
 
 ---
-[![DBL (top.gg)](https://top.gg/api/widget/status/532220480577470464.svg)](https://top.gg/bot/532220480577470464)
-[![DBL (top.gg)](https://top.gg/api/widget/owner/532220480577470464.svg)](https://top.gg/bot/532220480577470464)
 ## Invite
 
 If you want to invite Lightning to your guild, use this link https://discordapp.com/oauth2/authorize?client_id=532220480577470464&scope=bot&permissions=2013637846. (Select permissions as needed.)
@@ -72,7 +70,7 @@ If you want to invite Lightning to your guild, use this link https://discordapp.
 ## License
 AGPL v3 with additional terms 7b and 7c in effect.
 ```
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose bot.
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
