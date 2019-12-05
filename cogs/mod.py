@@ -321,7 +321,8 @@ class Mod(commands.Cog):
         if ch[1] if ch else None:
             if not ch['log_format'] or ch['log_format'] == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="warn", target=target,
-                                                         moderator=ctx.author, reason=reason)
+                                                         moderator=ctx.author, reason=reason,
+                                                         warn_count=warn_count)
                 await self.channelid_send(ctx.guild.id, int(ch[1]), "modlog_chan", message)
             if ch['log_format'] == "lightning":
                 message = modlog_formatter.lightning_format("warn", target, ctx.author,
