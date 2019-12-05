@@ -483,7 +483,7 @@ class Configuration(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        query = """SELECT auto_role FROM guild_config WHERE guild_id=$1"""
+        query = """SELECT autorole FROM guild_config WHERE guild_id=$1"""
         res = await self.bot.db.fetchval(query, member.guild.id)
         if res:
             role = discord.utils.get(member.guild.roles, id=res)
