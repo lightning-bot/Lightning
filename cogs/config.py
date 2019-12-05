@@ -523,7 +523,7 @@ class Configuration(commands.Cog):
             return True
         return not self.is_command_blocked(ctx, ret)
 
-    @commands.group(aliases=['commandconfig'])
+    @commands.group()
     @has_guild_permissions(manage_guild=True)
     async def config(self, ctx):
         """Manages command disabling and enabling"""
