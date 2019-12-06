@@ -50,7 +50,7 @@ async def non_guild_user(ctx, user_id: str):
         user_id = int(user_id, base=10)
     except ValueError:
         raise commands.BadArgument(f"{user_id} is not a valid member ID.")
-        
+
     user = ctx.bot.get_user(user_id)
     if not user:
         ctx.bot.log.debug("Switching to API Lookup")
