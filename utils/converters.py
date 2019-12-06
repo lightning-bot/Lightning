@@ -42,17 +42,42 @@ class WarnNumber(commands.Converter):
         return val
 
 
+async def non_guild_user(ctx, user_id: str):
+    """
+    Used when a Member or User object cannot be resolved.
+    """
+    try:
+        user_id = int(user_id, base=10)
+    except ValueError:
+        raise commands.BadArgument(f"{user_id} is not a valid member ID.")
+        
+    user = ctx.bot.get_user(user_id)
+    if not user:
+        ctx.bot.log.debug("Switching to API Lookup")
+        try:
+            user = await ctx.bot.fetch_user(user_id)
+        except discord.NotFound:
+            raise commands.BadArgument(f"\"{user_id}\" could not be found")
+        except discord.HTTPException:
+            raise commands.BadArgument("An exception occurred while finding this user!")
+    return user
+
+
 class TargetMember(commands.Converter):
     async def convert(self, ctx, argument):
-        target = await commands.MemberConverter().convert(ctx, argument)
+        try:
+            target = await commands.MemberConverter().convert(ctx, argument)
+        except commands.BadArgument:
+            target = await non_guild_user(ctx, argument)
         if target == ctx.bot.user:
             raise BadTarget("You can't do mod actions on me.")
         elif target == ctx.author:
             raise BadTarget("You can't do mod actions on yourself.")
-        elif target.guild_permissions.manage_messages or await member_at_least_has_staff_role(ctx, target):
-            raise BadTarget("You can't do mod actions on other staff!")
-        elif ctx.author.top_role < target.top_role:
-            raise BadTarget("You can't do mod actions on this user due to role hierarchy.")
+        if isinstance(target, discord.Member):
+            if target.guild_permissions.manage_messages or await member_at_least_has_staff_role(ctx, target):
+                raise BadTarget("You can't do mod actions on other staff!")
+            if ctx.author.top_role < target.top_role:
+                raise BadTarget("You can't do mod actions on this user due to role hierarchy.")
         else:
             return target
 
