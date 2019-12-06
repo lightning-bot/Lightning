@@ -1,5 +1,5 @@
 jishaku
-discord.py
+git+https://github.com/Rapptz/discord.py@master#egg=discord.py
 python-dateutil
 beautifulsoup4
 parsedatetime
