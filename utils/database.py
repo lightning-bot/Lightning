@@ -22,7 +22,10 @@
 # c) Prohibiting misrepresentation of the origin of that material, or
 # requiring that modified versions of such material be marked in
 # reasonable ways as different from the original version
+import json
+
 import discord
+
 from utils.errors import LightningError
 
 
@@ -58,6 +61,19 @@ class GuildModConfig:
                                      ' Please set a new one.')
         else:
             return None
+    
+    def has_log_channel(self, key: str):
+        """Checks if the log channel exists,
+        if so returns the channel id and log format"""
+        if not self.log_channels:
+            return None
+        ext = json.loads(self.log_channels)
+        if key in ext:
+            return ext[key], self.log_format if self.log_format else "kurisu"
+        else:
+            return None
+
+
 
 
 class DatabaseUpdate:
