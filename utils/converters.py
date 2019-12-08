@@ -83,6 +83,15 @@ class TargetMember(commands.Converter):
             return target
 
 
+class GuildorNonGuildUser(commands.Converter):
+    async def convert(self, ctx, argument):
+        try:
+            target = await commands.MemberConverter().convert(ctx, argument)
+        except commands.BadArgument:
+            target = await non_guild_user(ctx, argument)
+        return target
+
+
 class ReadableChannel(commands.Converter):
     async def convert(self, ctx, argument):
         channel = await commands.TextChannelConverter().convert(ctx, argument)
