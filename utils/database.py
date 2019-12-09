@@ -58,7 +58,7 @@ class GuildModConfig:
                 return ret
             else:
                 raise LightningError('The mute role that was set seems to be deleted.'
-                                     ' Please set a new one.')
+                                     ' Please set a new mute role.')
         else:
             return None
 
