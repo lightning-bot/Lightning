@@ -70,12 +70,11 @@ class TargetMember(commands.Converter):
             raise BadTarget("You can't do mod actions on me.")
         elif target.id == ctx.author.id:
             raise BadTarget("You can't do mod actions on yourself.")
-        if isinstance(target, discord.Member):
-            if target.guild_permissions.manage_messages or await member_at_least_has_staff_role(ctx, target) \
-                    or ctx.author.id == ctx.guild.owner.id:
-                raise BadTarget("You can't do mod actions on other staff!")
-            if ctx.author.top_role < target.top_role:
-                raise BadTarget("You can't do mod actions on this user due to role hierarchy.")
+        elif target.guild_permissions.manage_messages or await member_at_least_has_staff_role(ctx, target) \
+                or target.id == ctx.guild.owner.id:
+            raise BadTarget("You can't do mod actions on other staff!")
+        elif ctx.author.top_role < target.top_role:
+            raise BadTarget("You can't do mod actions on this user due to role hierarchy.")
         return target
 
 
