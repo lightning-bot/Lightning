@@ -125,7 +125,7 @@ class Mod(commands.Cog):
                    SET log_channels = log_channels - $1
                    WHERE guild_id=$2;"""
         await self.bot.db.execute(query, item, guild_id)
-        self.get_mod_config.invalidate(self, guild_id)
+        self.get_mod_config.invalidate(guild_id)
 
     async def set_user_restrictions(self, guild_id: int, user_id: int, role_id: int):
         query = """INSERT INTO user_restrictions (guild_id, user_id, role_id)
@@ -394,7 +394,7 @@ class Mod(commands.Cog):
                    DO UPDATE SET warn_kick = EXCLUDED.warn_kick;
                 """
         await self.bot.db.execute(query, ctx.guild.id, number)
-        self.get_mod_config.invalidate(self, ctx.guild.id)
+        self.get_mod_config.invalidate(ctx.guild.id)
         await ctx.send(f"Users will now get kicked if they reach "
                        f"{number} warns.")
 
@@ -426,7 +426,7 @@ class Mod(commands.Cog):
                    DO UPDATE SET warn_ban = EXCLUDED.warn_ban;
                 """
         await self.bot.db.execute(query, ctx.guild.id, number)
-        self.get_mod_config.invalidate(self, ctx.guild.id)
+        self.get_mod_config.invalidate(ctx.guild.id)
         await ctx.send(f"Users will now get banned if they reach "
                        f"{number} or a higher amount of warns.")
 
