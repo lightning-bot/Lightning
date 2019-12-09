@@ -1300,7 +1300,7 @@ class Mod(commands.Cog):
                 if author.id != self.bot.user.id:
                     ch = await self.get_mod_config(guild.id)
                     if not ch:
-                        break
+                        return
                     logch, logstyle = ch.has_log_channel("modlog_chan")
                     if logch:
                         if logstyle == "kurisu":
@@ -1332,8 +1332,8 @@ class Mod(commands.Cog):
                 reason = entry.reason if entry.reason else ""
                 if author.id != self.bot.user.id:
                     ch = await self.get_mod_config(guild.id)
-                    if not ch:
-                        break
+                    if ch is None:
+                        return
                     logch, logstyle = ch.has_log_channel("modlog_chan")
                     if logch:
                         if logstyle == "kurisu":
@@ -1371,9 +1371,9 @@ class Mod(commands.Cog):
             pass
         guild = member.guild
         ch = await self.get_mod_config(guild.id)
-        if ch:
+        if ch is not None:
             logch, logstyle = ch.has_log_channel("member_join")
-            if logch:
+            if logch is not None:
                 if logstyle == "kurisu":
                     message = modlog_formatter.kurisu_join_leave("join", member)
                     await self.channelid_send(guild.id, logch, "member_join", message)
@@ -1387,7 +1387,7 @@ class Mod(commands.Cog):
             await self.forbidden_removal("bot_add", guild.id)
             return
         ch = await self.get_mod_config(guild.id)
-        if ch:
+        if ch is not None:
             logch, logstyle = ch.has_log_channel("bot_add")
             if logch:
                 async for entry in guild.audit_logs(action=discord.AuditLogAction.bot_add):
@@ -1431,7 +1431,7 @@ class Mod(commands.Cog):
                 if author.id != self.bot.user.id:
                     ch = await self.get_mod_config(guild.id)
                     if not ch:
-                        break
+                        return
                     logch, logstyle = ch.has_log_channel("modlog_chan")
                     if logch:
                         if logstyle == "kurisu":
