@@ -1463,8 +1463,9 @@ class Mod(commands.Cog):
             ch = await self.get_mod_config(after.guild.id)
             if not ch:
                 return
-            logch, logstyle = ch.has_log_channel("role_change")
+            logch = ch.has_log_channel("role_change")
             if logch:
+                logch, logstyle = logch
                 if logstyle == "kurisu":
                     added = [role for role in after.roles if role not in before.roles]
                     removed = [role for role in before.roles if role not in after.roles]
