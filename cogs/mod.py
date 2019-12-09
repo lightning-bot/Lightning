@@ -1435,8 +1435,9 @@ class Mod(commands.Cog):
                     ch = await self.get_mod_config(guild.id)
                     if not ch:
                         return
-                    logch, logstyle = ch.has_log_channel("modlog_chan")
-                    if logch:
+                    logch = ch.has_log_channel("modlog_chan")
+                    if logch is not None:
+                        logch, logstyle = logch
                         if logstyle == "kurisu":
                             message = modlog_formatter.kurisu_format(log_action="Kick",
                                                                      target=entry.target,
