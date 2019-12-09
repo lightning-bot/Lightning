@@ -180,9 +180,15 @@ class Configuration(commands.Cog):
     @commands.command()
     @commands.bot_has_permissions(manage_messages=True, view_audit_log=True,
                                   add_reactions=True, send_messages=True)
-    @commands.has_permissions(manage_guild=True)
+    @has_guild_permissions(manage_guild=True)
     async def setup(self, ctx, *, channel: discord.TextChannel = None):
-        """Sets up logging for the server"""
+        """Sets up logging for the server.
+
+        This handles changing the log format, removing logging from a channel,
+        and setting up logging for a channel.
+
+        In order to use this command, you need Manage Server permission.
+        """
         if not channel:
             channel = ctx.channel
         initalemojis = ["\N{LEDGER}", "\N{OPEN BOOK}", "\N{CLOSED BOOK}", "\N{NOTEBOOK}"]
@@ -198,7 +204,6 @@ class Configuration(commands.Cog):
 
         def check(reaction, user):
             return user == ctx.author and str(reaction.emoji) in initalemojis
-
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
         except asyncio.TimeoutError:
@@ -216,7 +221,7 @@ class Configuration(commands.Cog):
             logemojis = ["<:kurisu:644378407009910794>", "<:lightning:634193020950020097>"]
             logformats = [f'{logemojis[0]} for Kurisu format',
                           f'{logemojis[1]} for Lightning format']
-            msg = await self.edit_and_continue(msg, f"React with {', '.join(logformats)}."
+            msg = await self.edit_and_continue(msg, f"React with {' or '.join(logformats)}."
                                                " If you want to cancel setup, react with "
                                                "\N{BLACK SQUARE FOR STOP} to cancel.",
                                                reactions=logemojis)
@@ -232,7 +237,7 @@ class Configuration(commands.Cog):
             elif str(reaction) in logemojis:
                 ext = {f"{logemojis[0]}": "kurisu", f"{logemojis[1]}": "lightning"}
                 await self.change_log_format(ctx.guild.id, ext[str(reaction)])
-                return await ctx.send("Succesfully changed log format!")
+                return await ctx.send("Successfully changed log format!")
         elif str(reaction) == initalemojis[1]:
             eventcontent = "​Send the number of each event "\
                            "you want to log in a single message "\
@@ -677,6 +682,7 @@ class Configuration(commands.Cog):
     @server.command(name="disable")
     @has_guild_permissions(manage_guild=True)
     async def guild_disable(self, ctx, *, command: ValidCommandName):
+        """Disables a command server wide"""
         try:
             await self.command_toggle(ctx.guild.id, None, command, whitelist=False)
         except LightningError:
