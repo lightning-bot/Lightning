@@ -1334,8 +1334,9 @@ class Mod(commands.Cog):
                     ch = await self.get_mod_config(guild.id)
                     if ch is None:
                         return
-                    logch, logstyle = ch.has_log_channel("modlog_chan")
-                    if logch:
+                    logch = ch.has_log_channel("modlog_chan")
+                    if logch is not None:
+                        logch, logstyle = logch
                         if logstyle == "kurisu":
                             message = modlog_formatter.kurisu_format(log_action="Unban",
                                                                      target=entry.target,
@@ -1372,8 +1373,9 @@ class Mod(commands.Cog):
         guild = member.guild
         ch = await self.get_mod_config(guild.id)
         if ch is not None:
-            logch, logstyle = ch.has_log_channel("member_join")
+            logch = ch.has_log_channel("member_join")
             if logch is not None:
+                logch, logstyle = logch
                 if logstyle == "kurisu":
                     message = modlog_formatter.kurisu_join_leave("join", member)
                     await self.channelid_send(guild.id, logch, "member_join", message)
@@ -1388,8 +1390,9 @@ class Mod(commands.Cog):
             return
         ch = await self.get_mod_config(guild.id)
         if ch is not None:
-            logch, logstyle = ch.has_log_channel("bot_add")
-            if logch:
+            logch = ch.has_log_channel("bot_add")
+            if logch is not None:
+                logch, logstyle = logch
                 async for entry in guild.audit_logs(action=discord.AuditLogAction.bot_add):
                     if entry.target == member:
                         if logstyle == "kurisu":
