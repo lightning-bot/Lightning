@@ -30,22 +30,19 @@ import time
 from datetime import datetime, timedelta
 
 import asyncpg
-from async_lru import alru_cache
 import discord
+from async_lru import alru_cache
 from bolt.paginator import Pages
 from bolt.time import get_utc_timestamp
 from discord.ext import commands
 
-from utils import modlog_formatter, converters
-from utils.checks import is_staff_or_has_perms, member_at_least_has_staff_role
+from utils import converters, modlog_formatter
+from utils.checks import is_staff_or_has_perms
+from utils.database import GuildModConfig
 from utils.errors import MuteRoleError, NoWarns, TimersUnavailable
 from utils.time import FutureTime, natural_timedelta
 from utils.user_log import (get_userlog, set_userlog, userlog,
                             userlog_event_types)
-from utils.database import GuildModConfig
-
-# Most Commands Taken From Robocop-NG. MIT Licensed
-# https://github.com/aveao/robocop-ng/blob/master/cogs/mod.py
 
 
 class WarnPages(Pages):
