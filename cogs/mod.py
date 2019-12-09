@@ -204,8 +204,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="kick", target=target,
                                                          moderator=ctx.author, reason=reason)
@@ -245,8 +246,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="ban", target=target,
                                                          moderator=ctx.author, reason=reason)
@@ -329,8 +331,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="warn", target=target,
                                                          moderator=ctx.author, reason=reason,
@@ -468,8 +471,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="purge", target=ctx.channel,
                                                          moderator=ctx.author, reason=reason,
@@ -539,8 +543,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="mute", target=target,
                                                          moderator=ctx.author, reason=reason)
@@ -576,8 +581,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="unmute", target=target,
                                                          moderator=ctx.author, reason=reason)
@@ -606,8 +612,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="unban", target=target.user,
                                                          moderator=ctx.author, reason=reason)
@@ -664,8 +671,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="timeban", target=target,
                                                          moderator=ctx.author, reason=reason,
@@ -731,8 +739,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="timemute", target=target,
                                                          moderator=ctx.author, reason=reason,
@@ -784,8 +793,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_temprole(target=target,
                                                            mod=ctx.author, reason=reason,
@@ -824,8 +834,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="lockdown", target=None,
                                                          moderator=ctx.author, reason=None,
@@ -864,8 +875,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="hard-lockdown", target=None,
                                                          moderator=ctx.author, reason=None,
@@ -900,8 +912,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="unlock", target=None,
                                                          moderator=ctx.author, reason=None,
@@ -936,8 +949,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="unlock", target=None,
                                                          moderator=ctx.author, reason=None,
@@ -1040,8 +1054,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_time_ban_expired(uid, moderator, jobinfo['created'])
                 await self.channelid_send(ext['guild_id'], logch, "modlog_chan", message)
@@ -1088,8 +1103,9 @@ class Mod(commands.Cog):
             ch = await self.get_mod_config(guild_id=guild.id)
             if not ch:
                 return
-            logch, logstyle = ch.has_log_channel("modlog_chan")
-            if logch:
+            logch = ch.has_log_channel("modlog_chan")
+            if logch is not None:
+                logch, logstyle = logch
                 if logstyle == "kurisu":
                     message = modlog_formatter.kurisu_format('timed_restriction_removed',
                                                              ext['user_id'],
@@ -1112,8 +1128,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format('timed_restriction_removed',
                                                          user,
@@ -1233,8 +1250,9 @@ class Mod(commands.Cog):
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
-        logch, logstyle = ch.has_log_channel("modlog_chan")
-        if logch:
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format('clearwarns',
                                                          target,
@@ -1266,8 +1284,9 @@ class Mod(commands.Cog):
             ch = await self.get_mod_config(guild_id=ctx.guild.id)
             if not ch:
                 return
-            logch, logstyle = ch.has_log_channel("modlog_chan")
-            if logch:
+            logch = ch.has_log_channel("modlog_chan")
+            if logch is not None:
+                logch, logstyle = logch
                 if logstyle == "kurisu":
                     message = modlog_formatter.kurisu_format('clearwarn',
                                                              target,
@@ -1301,8 +1320,9 @@ class Mod(commands.Cog):
                     ch = await self.get_mod_config(guild.id)
                     if not ch:
                         return
-                    logch, logstyle = ch.has_log_channel("modlog_chan")
-                    if logch:
+                    logch = ch.has_log_channel("modlog_chan")
+                    if logch is not None:
+                        logch, logstyle = logch
                         if logstyle == "kurisu":
                             message = modlog_formatter.kurisu_format(log_action="Ban",
                                                                      target=entry.target,
@@ -1411,8 +1431,9 @@ class Mod(commands.Cog):
         guild = member.guild
         ch = await self.get_mod_config(guild.id)
         if ch:
-            logch, logstyle = ch.has_log_channel("member_leave")
-            if logch:
+            logch = ch.has_log_channel("member_leave")
+            if logch is not None:
+                logch, logstyle = logch
                 if logstyle == "kurisu":
                     message = modlog_formatter.kurisu_join_leave("leave", member)
                     await self.channelid_send(guild.id, logch, "member_leave", message)
