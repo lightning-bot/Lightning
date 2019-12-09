@@ -314,8 +314,14 @@ class Owner(commands.Cog):
         """Stop the Bot."""
         shutdown_messages = ['Shutting Down...', "See ya!", "RIP", "Turning off...."]
         await ctx.send(f"👋 {random.choice(shutdown_messages)}")
+        mod = self.bot.get_cog('Mod')
+        # Close our LRU cache
+        await mod.get_mod_config.close()
+        # Close our pool
         await self.bot.db.close()
+        # Close aiohttp session
         await self.bot.aiosession.close()
+        # Finally logout
         await self.bot.logout()
 
     @commands.group()
