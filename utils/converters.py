@@ -65,13 +65,29 @@ async def non_guild_user(ctx, user_id: str):
 
 class TargetMember(commands.Converter):
     async def convert(self, ctx, argument):
+        target = await commands.MemberConverter().convert(ctx, argument)
+        if target.id == ctx.bot.user.id:
+            raise BadTarget("You can't do mod actions on me.")
+        elif target.id == ctx.author.id:
+            raise BadTarget("You can't do mod actions on yourself.")
+        if isinstance(target, discord.Member):
+            if target.guild_permissions.manage_messages or await member_at_least_has_staff_role(ctx, target) \
+                    or ctx.author.id == ctx.guild.owner.id:
+                raise BadTarget("You can't do mod actions on other staff!")
+            if ctx.author.top_role < target.top_role:
+                raise BadTarget("You can't do mod actions on this user due to role hierarchy.")
+        return target
+
+
+class TargetNonGuildMember(commands.Converter):
+    async def convert(self, ctx, argument):
         try:
             target = await commands.MemberConverter().convert(ctx, argument)
         except commands.BadArgument:
             target = await non_guild_user(ctx, argument)
-        if target == ctx.bot.user:
+        if target.id == ctx.bot.user.id:
             raise BadTarget("You can't do mod actions on me.")
-        elif target == ctx.author:
+        elif target.id == ctx.author.id:
             raise BadTarget("You can't do mod actions on yourself.")
         if isinstance(target, discord.Member):
             if target.guild_permissions.manage_messages or await member_at_least_has_staff_role(ctx, target) \

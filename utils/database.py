@@ -61,7 +61,7 @@ class GuildModConfig:
                                      ' Please set a new one.')
         else:
             return None
-    
+
     def has_log_channel(self, key: str):
         """Checks if the log channel exists,
         if so returns the channel id and log format"""
@@ -72,8 +72,6 @@ class GuildModConfig:
             return ext[key], self.log_format if self.log_format else "kurisu"
         else:
             return None
-
-
 
 
 class DatabaseUpdate:
