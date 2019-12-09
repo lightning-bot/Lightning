@@ -446,6 +446,7 @@ class Mod(commands.Cog):
                    WHERE guild_id=$1;
                 """
         ret = await self.bot.db.execute(query, ctx.guild.id)
+        self.get_mod_config.invalidate(self, ctx.guild.id)
         if ret == "DELETE 0":
             return await ctx.send("Warn punishments were never configured!")
         await ctx.send("Removed warn punishment configuration!")
