@@ -505,7 +505,7 @@ class Mod(commands.Cog):
             if config.mute_role(ctx):
                 return config.mute_role(ctx)
             else:
-               raise MuteRoleError("You do not have a mute role setup!") 
+                raise MuteRoleError("You do not have a mute role setup!")
         else:
             raise MuteRoleError("You do not have a mute role setup!")
 
