@@ -89,6 +89,8 @@ class Configuration(commands.Cog):
                    DO UPDATE SET log_channels = EXCLUDED.log_channels;"""
         await self.bot.db.execute(query, ctx.guild.id,
                                   json.dumps(to_dump))
+        mod = self.bot.get_cog('Mod')
+        mod.get_mod_config.invalidate(ctx.guild.id)
 
     @commands.command(name="settings")
     @commands.has_permissions(manage_guild=True)
@@ -164,6 +166,8 @@ class Configuration(commands.Cog):
                    DO UPDATE SET log_format = EXCLUDED.log_format;
                 """
         await self.bot.db.execute(query, guild_id, log_format)
+        mod = self.bot.get_cog('Mod')
+        mod.get_mod_config.invalidate(guild_id)
 
     async def edit_and_continue(self, message, new_content, clear_reacts=True, **kwargs):
         if clear_reacts:
@@ -599,6 +603,8 @@ class Configuration(commands.Cog):
                    DO UPDATE SET mute_role_id = EXCLUDED.mute_role_id;
                 """
         await self.bot.db.execute(query, ctx.guild.id, role.id)
+        mod = self.bot.get_cog('Mod')
+        mod.get_mod_config.invalidate(ctx.guild.id)
         await ctx.safe_send(f"Successfully set the mute role to {role.name}")
 
     @muterole.command(name="reset",
@@ -612,6 +618,8 @@ class Configuration(commands.Cog):
         async with self.bot.db.acquire() as con:
             async with con.transaction():
                 await con.execute(query, ctx.guild.id)
+        mod = self.bot.get_cog('Mod')
+        mod.get_mod_config.invalidate(ctx.guild.id)
         await ctx.send("Successfully removed the configured mute role.")
 
     async def update_mute_role_permissions(self, role, guild, author):
