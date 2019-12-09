@@ -71,7 +71,7 @@ class GuildModConfig:
         if key in ext:
             return ext[key], self.log_format if self.log_format else "kurisu"
         else:
-            return None
+            return None, None
 
 
 class DatabaseUpdate:
