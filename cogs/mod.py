@@ -252,26 +252,15 @@ class Mod(commands.Cog):
                                                             reason=reason, time=ctx.message.created_at)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
 
-    async def warn_settings(self, guild_id):
-        """Returns the warn settings for a guild"""
-        query = """SELECT warn_ban, warn_kick
-                   FROM guild_mod_config
-                   WHERE guild_id=$1;"""
-        ret = await self.bot.db.fetchrow(query, guild_id)
-        if ret:
-            return ret
-        else:
-            return None
-
     async def warn_count_check(self, ctx, target, reason: str = ""):
-        msg = f"You were warned on {ctx.guild.name}."
+        msg = f"You were warned in {ctx.guild.name}."
         if reason:
             msg += " The given reason is: " + reason
         warn_count = await userlog(self.bot, ctx.guild, target.id,
                                    ctx.author, reason,
                                    "warns", target.name)
         msg += f"\n\nThis is warn #{warn_count}."
-        punishable_warn = await self.warn_settings(ctx.guild.id)
+        punishable_warn = await self.get_mod_config(ctx.guild.id)
         if not punishable_warn:
             if isinstance(target, discord.Member):
                 try:
@@ -281,21 +270,21 @@ class Mod(commands.Cog):
                     return warn_count
             else:
                 return warn_count
-        if punishable_warn['warn_kick']:
-            if warn_count == punishable_warn['warn_kick'] - 1:
+        if punishable_warn.warn_kick:
+            if warn_count == punishable_warn.warn_kick - 1:
                 msg += " __The next warn will automatically kick.__"
-            if warn_count == punishable_warn['warn_kick']:
+            if warn_count == punishable_warn.warn_kick:
                 msg += "\n\nYou were kicked because of this warning. " \
                        "You can join again right away. "
-        if punishable_warn['warn_ban']:
-            if warn_count == punishable_warn['warn_ban'] - 1:
+        if punishable_warn.warn_ban:
+            if warn_count == punishable_warn.warn_ban - 1:
                 msg += "This is your final warning. " \
                        "Do note that " \
                        "**one more warn will result in a ban**."
-            if warn_count >= punishable_warn['warn_ban']:
+            if warn_count >= punishable_warn.warn_ban:
                 msg += f"\n\nYou were automatically banned due to reaching "\
                        f"the guild's warn ban limit of "\
-                       f"{punishable_warn['warn_ban']} warnings."
+                       f"{punishable_warn.warn_ban} warnings."
                 msg += "\nIf you believe this to be in error, please message the staff."
         if isinstance(target, (discord.Member, discord.User)):
             try:
@@ -304,14 +293,14 @@ class Mod(commands.Cog):
                 # Prevents issues in cases where user blocked bot
                 # or has DMs disabled
                 pass
-            if punishable_warn['warn_kick']:
-                if warn_count == punishable_warn['warn_kick']:
+            if punishable_warn.warn_kick:
+                if warn_count == punishable_warn.warn_kick:
                     opt_reason = f"[WarnKick] Reached {warn_count} warns. "
                     if reason:
                         opt_reason += f"{reason}"
                     await ctx.guild.kick(target, reason=f"{self.mod_reason(ctx, opt_reason)}")
-        if punishable_warn['warn_ban']:
-            if warn_count >= punishable_warn['warn_ban']:  # just in case
+        if punishable_warn.warn_ban:
+            if warn_count >= punishable_warn.warn_ban:  # just in case
                 opt_reason = f"[WarnBan] Exceeded WarnBan Limit ({warn_count}). "
                 if reason:
                     opt_reason += f"{reason}"
@@ -359,17 +348,16 @@ class Mod(commands.Cog):
         In order to use this command, you must either have
         Manage Guild permission or a role that
         is assigned as a Admin or above in the bot."""
-        query = '''SELECT warn_kick, warn_ban
-                   FROM guild_mod_config
-                   WHERE guild_id=$1;'''
-        ret = await self.bot.db.fetchrow(query, ctx.guild.id)
+        ret = await self.get_mod_config(ctx.guild.id)
         if not ret:
             return await ctx.send("Warn punishments have not been setup.")
+        if ret.warn_kick is None and ret.warn_ban is None:
+            return await ctx.send("Warn punishments have not been setup.")
         msg = ""
-        if ret['warn_kick']:
-            msg += f"Kick: at {ret['warn_kick']} warns\n"
-        if ret['warn_ban']:
-            msg += f"Ban: at {ret['warn_ban']}+ warns\n"
+        if ret.warn_kick:
+            msg += f"Kick: at {ret.warn_kick} warns\n"
+        if ret.warn_ban:
+            msg += f"Ban: at {ret.warn_ban}+ warns\n"
         await ctx.send(msg)
 
     @commands.guild_only()
@@ -399,6 +387,7 @@ class Mod(commands.Cog):
                    DO UPDATE SET warn_kick = EXCLUDED.warn_kick;
                 """
         await self.bot.db.execute(query, ctx.guild.id, number)
+        self.get_mod_config.invalidate(ctx.guild.id)
         await ctx.send(f"Users will now get kicked if they reach "
                        f"{number} warns.")
 
@@ -430,6 +419,7 @@ class Mod(commands.Cog):
                    DO UPDATE SET warn_ban = EXCLUDED.warn_ban;
                 """
         await self.bot.db.execute(query, ctx.guild.id, number)
+        self.get_mod_config.invalidate(ctx.guild.id)
         await ctx.send(f"Users will now get banned if they reach "
                        f"{number} or a higher amount of warns.")
 
