@@ -142,11 +142,11 @@ class Mod(commands.Cog):
         finally:
             await self.bot.db.release(con)
 
-    async def insert_into_muted(self, guild_id):
-        query = """INSERT INTO guild_mod_config (guild_id, muted)
-                   VALUES $1, $2::int[]  ON CONFLICT (guild_id)
-                   DO UPDATE SET
-                        muted = EXCLUDED.muted;"""
+    # async def insert_into_muted(self, guild_id):
+    #    query = """INSERT INTO guild_mod_config (guild_id, muted)
+    #               VALUES $1, $2::int[]  ON CONFLICT (guild_id)
+    #               DO UPDATE SET
+    #                    muted = EXCLUDED.muted;"""
 
     async def purged_txt(self, ctx, limit):
 
