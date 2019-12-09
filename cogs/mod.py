@@ -82,6 +82,10 @@ class Mod(commands.Cog):
             raise commands.NoPrivateMessage()
         return True
 
+    def cog_unload(self):
+        # Close our cache
+        self.get_mod_config.close()
+
     def mod_reason(self, ctx, reason: str):
         if reason:
             to_return = f"{ctx.author} (ID: {ctx.author.id}): {reason}"
@@ -496,18 +500,12 @@ class Mod(commands.Cog):
 
     async def get_mute_role(self, ctx):
         """Gets the guild's mute role if it exists"""
-        query = """SELECT mute_role_id FROM guild_mod_config
-                   WHERE guild_id=$1;
-                """
-        config = await self.bot.db.fetchval(query, ctx.guild.id)
-        if config:
-            role = discord.utils.get(ctx.guild.roles, id=config)
-            if role:
-                return role
+        config = await self.get_mod_config(ctx.guild.id)
+        if config and config.mute_role_id:
+            if config.mute_role(ctx):
+                return config.mute_role(ctx)
             else:
-                raise MuteRoleError("The mute role that was configured "
-                                    "seems to be deleted! "
-                                    "Please setup a new mute role.")
+               raise MuteRoleError("You do not have a mute role setup!") 
         else:
             raise MuteRoleError("You do not have a mute role setup!")
 
@@ -537,7 +535,7 @@ class Mod(commands.Cog):
 
         await target.add_roles(role, reason=f"{self.mod_reason(ctx, opt_reason)}")
         await self.set_user_restrictions(ctx.guild.id, target.id, role.id)
-        await ctx.send(f"{target.mention} can no longer speak.")
+        await ctx.safe_send(f"{target} can no longer speak.")
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
@@ -574,7 +572,7 @@ class Mod(commands.Cog):
             return await ctx.send('This user is not muted!')
         await target.remove_roles(role, reason=f"{self.mod_reason(ctx, '[Unmute]')}")
         await self.remove_user_restriction(ctx.guild.id, target.id, role.id)
-        await ctx.send(f"{target.mention} can now speak again.")
+        await ctx.safe_send(f"{target} can now speak again.")
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
@@ -646,28 +644,23 @@ class Mod(commands.Cog):
                "mod_id": ctx.author.id}
         await timer.add_job("timeban", ctx.message.created_at,
                             duration.dt, ext)
-
-        safe_name = await commands.clean_content().convert(ctx, str(target))
-
-        dm_message = f"You were banned from {ctx.guild.name}."
-        if reason:
-            dm_message += f" The given reason is: \"{reason}\"."
-        dm_message += f"\n\nThis ban will expire in {duration_text}."
-
-        try:
-            await target.send(dm_message)
-        except discord.errors.Forbidden:
-            # Prevents ban issues in cases where user blocked bot
-            # or has DMs disabled
-            pass
+        if isinstance(target, (discord.Member, discord.User)):
+            dm_message = f"You were banned from {ctx.guild.name}."
+            if reason:
+                dm_message += f" The given reason is: \"{reason}\"."
+            dm_message += f"\n\nThis ban will expire in {duration_text}."
+            try:
+                await target.send(dm_message)
+            except discord.errors.Forbidden:
+                pass
         if reason:
             opt_reason = f"{reason} (Timeban expires in {duration_text})"
         else:
             opt_reason = f" (Timeban expires in {duration_text})"
         await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, opt_reason)}",
                             delete_message_days=0)
-        await ctx.send(f"{safe_name} is now b&. "
-                       f"It will expire in {duration_text}. 👍")
+        await ctx.safe_send(f"{str(target)} is now b&. 👍 "
+                            f"It will expire in {duration_text}.")
         ch = await self.get_mod_config(guild_id=ctx.guild.id)
         if not ch:
             return
