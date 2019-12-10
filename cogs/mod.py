@@ -620,7 +620,7 @@ class Mod(commands.Cog):
                 message = modlog_formatter.kurisu_format(log_action="unban", target=target.user,
                                                          moderator=ctx.author, reason=reason)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
-            if ch['log_format'] == "lightning":
+            if logstyle == "lightning":
                 message = modlog_formatter.lightning_format("unban", target.user, ctx.author,
                                                             reason=reason, time=ctx.message.created_at)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
