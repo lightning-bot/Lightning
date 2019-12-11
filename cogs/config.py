@@ -131,12 +131,10 @@ class Configuration(commands.Cog):
             em.add_field(name="Log Format", value=f"{ret.log_format.title()}", inline=False)
         await ctx.send(embed=em)
 
-    @commands.group(aliases=['logging'], hidden=True)
-    @commands.has_permissions(administrator=True)
+    @commands.command(aliases=['logging'], hidden=True)
+    @commands.has_permissions(manage_guild=True)
     async def log(self, ctx):
-        """Setup various compact logging for the server"""
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help(ctx.command)
+        await ctx.send("This command is now deprecated. To setup logging, use the setup command!")
 
     async def add_reacts(self, message, reacts):
         reacts.append("\N{BLACK SQUARE FOR STOP}")
@@ -274,56 +272,6 @@ class Configuration(commands.Cog):
                 await ctx.send(f"Successfully set up logging for {channel.mention}!")
             else:
                 await ctx.send("Unable to determine what logging you wanted setup!")
-
-    @commands.guild_only()
-    @commands.has_permissions(administrator=True)
-    @log.command(name="invite-watch", aliases=['invitewatch'], enabled=False, hidden=True)
-    async def set_invite_watch(self, ctx, channel: Union[discord.TextChannel, str]):
-        """Set the Invite Watching Channel"""
-        guild_config = await self.grab_modconfig(ctx)
-        if channel == "disable":
-            if "invite_watch" in guild_config:
-                guild_config.pop("invite_watch")
-                await ctx.send("Invite Watching has been disabled")
-            else:
-                return await ctx.send("Invite Watching was never setup!")
-        else:
-            guild_config["invite_watch"] = channel.id
-            await ctx.send(f"Invite watching will be sent to {channel.mention}. "
-                           f"Please note that this doesn't delete "
-                           f"invites. {emoji.mayushii}")
-        await self.set_modconfig(ctx, guild_config)
-
-    @commands.is_owner()
-    @commands.guild_only()
-    @commands.has_permissions(manage_guild=True)
-    @log.command(name="aio", aliases=['allinone'], hidden=True)
-    async def log_aio(self, ctx):
-        """Creates 3 channels for logging."""
-        overwrites = {
-            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            ctx.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True,
-                                                      manage_channels=True),
-            ctx.author: discord.PermissionOverwrite(read_messages=True, send_messages=True,
-                                                    manage_channels=True, manage_messages=True)
-        }
-        logcategory = await ctx.guild.create_category('Logs', overwrites=overwrites)
-        modlogchannel = await ctx.guild.create_text_channel('mod-logs', category=logcategory)
-        memberevtlog = await ctx.guild.create_text_channel('member-event-logs',
-                                                           category=logcategory)
-        guild_config = await self.grab_modconfig(ctx)
-        if "event_embed_channel" in guild_config:
-            guild_config.pop("event_embed_channel")
-        guild_config['modlog_chan'] = modlogchannel.id
-        guild_config['event_channel'] = memberevtlog.id
-        await self.set_modconfig(ctx, guild_config)
-        await ctx.send(f"Successfully created 3 log channels")
-
-    @log_aio.error
-    async def log_aio_err(self, ctx, error):
-        if isinstance(error, commands.NotOwner):
-            return await ctx.send("This is a testing command and you cannot use "
-                                  "it at this time.")
 
     @commands.group(aliases=['mod-role', 'modroles'])
     @commands.guild_only()
