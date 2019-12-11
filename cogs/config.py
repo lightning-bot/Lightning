@@ -614,7 +614,7 @@ class Configuration(commands.Cog):
 
     @muterole.command(name="reset",
                       aliases=['delete', 'remove'])
-    @has_guild_permissions(manage_guild=True)
+    @has_guild_permissions(manage_guild=True, manage_roles=True)
     async def delete_mute_role(self, ctx):
         """Deletes the configured mute role."""
         query = """UPDATE guild_mod_config SET mute_role_id=NULL
@@ -651,7 +651,7 @@ class Configuration(commands.Cog):
         return success, failure, skipped
 
     @muterole.command(name="update")
-    @has_guild_permissions(manage_guild=True)
+    @has_guild_permissions(manage_guild=True, manage_roles=True)
     async def mute_role_perm_update(self, ctx):
         """Updates the permission overwrites of the mute role.
 
