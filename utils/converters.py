@@ -184,3 +184,15 @@ class ValidCommandName(commands.Converter):
             raise LightningError(f'Command {lowered!r} is not valid.')
 
         return lowered
+
+
+class RoleSearch(commands.Converter):
+    async def convert(self, ctx, argument):
+        try:
+            role = await commands.RoleConverter().convert(ctx, argument)
+        except commands.BadArgument:
+            try:
+                role = await commands.RoleConverter().convert(ctx, argument.lower())
+            except commands.BadArgument:
+                role = await commands.RoleConverter().convert(ctx, argument.title())
+        return role

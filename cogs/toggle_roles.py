@@ -26,6 +26,7 @@
 import discord
 from discord.ext import commands
 from utils.paginators_jsk import paginator_embed
+from utils.converters import RoleSearch
 import asyncpg
 
 
@@ -41,7 +42,7 @@ class ToggleRoles(commands.Cog):
     @commands.guild_only()
     @commands.group(aliases=['roleme'], invoke_without_command=True)
     @commands.bot_has_permissions(manage_roles=True)
-    async def togglerole(self, ctx, *, role: discord.Role):
+    async def togglerole(self, ctx, *, role: RoleSearch):
         """Toggles a role that this server has setup.
 
         Use '.togglerole list' for a list of roles that you can toggle."""
@@ -53,10 +54,10 @@ class ToggleRoles(commands.Cog):
             return await ctx.send('That role is higher than my highest role.')
         if role in member.roles and res:
             await member.remove_roles(role, reason="Untoggled Role")
-            return await ctx.safe_send(f"You have untoggled the role **{role.name}**")
+            return await ctx.safe_send(f"Untoggled role **{role.name}**")
         elif res:
             await member.add_roles(role, reason="Toggled Role")
-            return await ctx.safe_send(f"You now have the role **{role.name}**")
+            return await ctx.safe_send(f"Toggled role **{role.name}**")
         else:
             return await ctx.send("That role is not toggleable.")
 
