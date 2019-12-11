@@ -612,7 +612,7 @@ class Configuration(commands.Cog):
     @has_guild_permissions(manage_guild=True)
     async def delete_mute_role(self, ctx):
         """Deletes the configured mute role."""
-        query = """"UPDATE guild_mod_config SET mute_role_id=NULL
+        query = """UPDATE guild_mod_config SET mute_role_id=NULL
                     WHERE guild_id=$1;
                 """
         async with self.bot.db.acquire() as con:
