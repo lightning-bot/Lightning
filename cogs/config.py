@@ -577,10 +577,15 @@ class Configuration(commands.Cog):
         await ctx.safe_send("Successfully removed the guild's autorole")
 
     @config.group(aliases=['mute-role'], invoke_without_command=True)
-    @has_guild_permissions(manage_guild=True)
+    @has_guild_permissions(manage_guild=True, manage_roles=True)
     @commands.bot_has_permissions(manage_roles=True)
+    @commands.cooldown(1, 60.0, commands.BucketType.guild)
     async def muterole(self, ctx, *, role: discord.Role = None):
-        """Handles mute role configuration"""
+        """Handles mute role configuration.
+
+        This command allows you to set the mute role for the server or view the configured mute role.
+
+        To use these commands, you must have Manage Server and Manage Roles permission."""
         if not role:
             ret = await self.get_mod_config(ctx)
             if not ret and ret.mute_role(ctx):
