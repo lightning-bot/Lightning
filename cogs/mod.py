@@ -589,7 +589,7 @@ class Mod(commands.Cog):
                 message = modlog_formatter.kurisu_format(log_action="unmute", target=target,
                                                          moderator=ctx.author, reason=reason)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
-            if ch['log_format'] == "lightning":
+            if logstyle == "lightning":
                 message = modlog_formatter.lightning_format("unmute", target, ctx.author,
                                                             reason=reason, time=ctx.message.created_at)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
