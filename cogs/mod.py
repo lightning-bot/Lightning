@@ -131,7 +131,7 @@ class Mod(commands.Cog):
         query = """INSERT INTO user_restrictions (guild_id, user_id, role_id)
                    VALUES ($1, $2, $3)
                 """
-        return await self.bot.db.execute(query)
+        return await self.bot.db.execute(query, guild_id, user_id, role_id)
 
     async def remove_user_restriction(self, guild_id: int,
                                       user_id: int, role_id: int):
