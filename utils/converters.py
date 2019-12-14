@@ -97,8 +97,7 @@ class TargetNonGuildMember(commands.Converter):
                 raise BadTarget("You can't do mod actions on other staff!")
             if ctx.author.top_role < target.top_role:
                 raise BadTarget("You can't do mod actions on this user due to role hierarchy.")
-        else:
-            return target
+        return target
 
 
 class GuildorNonGuildUser(commands.Converter):
