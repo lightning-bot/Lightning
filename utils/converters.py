@@ -60,7 +60,10 @@ async def non_guild_user(ctx, user_id: str):
             raise commands.BadArgument(f"\"{user_id}\" could not be found")
         except discord.HTTPException:
             raise commands.BadArgument("An exception occurred while finding this user!")
-    return user
+        else:
+            return user
+    else:
+        return user
 
 
 class TargetMember(commands.Converter):
