@@ -277,10 +277,10 @@ class LightningBot(commands.AutoShardedBot):
                 await webhook.execute(embed=embed)
 
     async def process_command_usage(self, message):
-        if str(message.author.id) in self.blacklisted_users:
+        if f"{message.author.id}" in self.blacklisted_users:
             return
         if message.guild:
-            if str(message.guild.id) in self.blacklisted_guilds:
+            if f"{message.guild.id}" in self.blacklisted_guilds:
                 return
         ctx = await self.get_context(message, cls=LightningContext)
         if ctx.command is None:
