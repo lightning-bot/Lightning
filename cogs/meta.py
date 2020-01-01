@@ -1,4 +1,4 @@
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose Discord bot
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
@@ -12,35 +12,29 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
+
+import asyncio
+import collections
+import inspect
+import itertools
+import json
+import os
+import platform
+import time
+import traceback
+from datetime import datetime
+from typing import Union
 
 import discord
-from datetime import datetime
-import config
-import platform
+from bolt.time import get_relative_timestamp
 from discord.ext import commands, tasks
-from typing import Union
-from collections import Counter
-from utils.paginator import Pages, TextPages
-import asyncio
-import itertools
-import time
-import json
+
 import resources.botemojis as emoji
 from utils.checks import is_bot_manager
-from utils.time import natural_timedelta
 from utils.converters import ReadableChannel
-from utils.errors import MessageNotFoundInChannel, ChannelPermissionFailure
-from bolt.time import get_relative_timestamp
+from utils.errors import ChannelPermissionFailure, MessageNotFoundInChannel
+from utils.paginator import Pages, TextPages
+from utils.time import natural_timedelta
 
 
 class NonGuildUser(commands.Converter):
@@ -263,14 +257,22 @@ class Meta(commands.Cog):
         self.bulk_command_insertion.stop()
 
     async def create_error_ticket(self, ctx, title, information):
+        if await ctx.bot.is_owner(ctx.author):
+            error = information
+            exc = traceback.format_exception(type(error), error, error.__traceback__)
+            em = discord.Embed(title="Exception",
+                               description=f"```py\n{''.join(exc)}```")
+            em.set_footer(text=ctx.command.qualified_name)
+            return await ctx.send(embed=em)
+
         query = """INSERT INTO bug_tickets (status, ticket_info, created)
                    VALUES ($1, $2, $3)
                    RETURNING id;
                 """
-        ext = {"text": information, "author_id": ctx.author.id}
+        ext = {"text": str(information), "author_id": ctx.author.id}
         async with self.bot.db.acquire() as con:
             id = await con.fetchrow(query, "Received", json.dumps(ext), datetime.utcnow())
-        e = discord.Embed(title=f"{title} Report - ID: {id[0]}", description=information)
+        e = discord.Embed(title=f"{title} Report - ID: {id[0]}", description=str(information))
         e.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         e.timestamp = datetime.utcnow()
         e.set_footer(text="Status: Received")
@@ -282,7 +284,7 @@ class Meta(commands.Cog):
                 """
         async with self.bot.db.acquire() as con:
             await con.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
-        msg = f"```{information}```\n\nCreated a ticket with ID {id[0]}. "\
+        msg = f"```py\n{str(information)}```\nCreated a ticket with ID {id[0]}. "\
               "You can see updates on your ticket by joining "\
               "the [support server](https://discord.gg/cDPGuYd) and looking in the "\
               f"reports channel."
@@ -366,6 +368,27 @@ class Meta(commands.Cog):
     async def userinfo_error(self, ctx, error):
         if isinstance(error, commands.BadUnionArgument):
             return await ctx.send("Error finding that user.")
+
+    @commands.command()
+    @commands.guild_only()
+    async def roleinfo(self, ctx, *, role: discord.Role):
+        """Gives information for a role"""
+        em = discord.Embed(title=f"Info for {role.name}")
+        em.color = role.color if role.color.value != 0 else em.Empty
+        em.add_field(name="Creation", value=natural_timedelta(role.created_at, accuracy=3))
+        # Permissions
+        allowed = []
+        for name, value in role.permissions:
+            name = name.replace('_', ' ').replace('guild', 'server').title()
+            if value:
+                allowed.append(name)
+        em.add_field(name="Permissions",
+                     value=f"Value: {role.permissions.value}\n\n" + ", ".join(allowed),
+                     inline=False)
+        em.add_field(name="Role Members", value=len(role.members))
+        if role.managed:
+            em.description = ("This role is managed by an integration of some sort.")
+        await ctx.send(embed=em)
 
     @commands.command(name="about")
     async def about_bot(self, ctx):
@@ -457,10 +480,31 @@ class Meta(commands.Cog):
         except discord.Forbidden:
             await ctx.send("Official Support Server Invite: https://discord.gg/cDPGuYd")
 
-    @commands.command(hidden=True, aliases=['sourcecode'])
-    async def source(self, ctx):
-        """Links to my source code"""
-        await ctx.send("https://gitlab.com/lightning-bot/Lightning")
+    @commands.command()
+    async def source(self, ctx, *, command: str = None):
+        """Gives a link to the source code for a command."""
+        source = "https://gitlab.com/lightning-bot/Lightning"
+        if command is None:
+            return await ctx.send(source)
+        obj = self.bot.get_command(command.replace(".", " "))
+        if obj is None:
+            return await ctx.send("I could not find that command.")
+        src = obj.callback.__code__
+        lines, firstlineno = inspect.getsourcelines(src)
+        location = ""
+        if not obj.callback.__module__.startswith("discord"):
+            location = os.path.relpath(src.co_filename).replace("\\", "/")
+        await ctx.send(f"<{source}/blob/master/{location}#L{firstlineno}"
+                       f"-{firstlineno + len(lines) - 1}>")
+
+    @commands.command(hidden=True)
+    async def socketstats(self, ctx):
+        delta = datetime.utcnow() - self.bot.launch_time
+        minutes = delta.total_seconds() / 60
+        total = sum(self.bot.socket_stats.values())
+        cpm = total / minutes
+        events = "\n".join([f"{x}: {y}" for x, y in self.bot.socket_stats.items()])
+        await ctx.send(f"{total} events observed ({cpm:.2f}/minute) ```prolog\n{events}```")
 
     @commands.command()
     async def ping(self, ctx):
@@ -484,7 +528,7 @@ class Meta(commands.Cog):
     @commands.command(aliases=['server', 'guildinfo'])
     async def serverinfo(self, ctx):
         """Shows information about the server"""
-        guild = ctx.guild  # Simplify
+        guild = ctx.guild
         embed = discord.Embed(title=f"Server Info for {guild.name}")
         embed.add_field(name='Owner', value=f"{guild.owner.mention} ({guild.owner})")
         embed.add_field(name="Server ID", value=guild.id)
@@ -494,12 +538,17 @@ class Meta(commands.Cog):
         embed.add_field(name="Creation", value=f"{tmp} UTC "
                         f"({natural_timedelta(guild.created_at, accuracy=3)})\n"
                         f"Relative Date: {get_relative_timestamp(time_to=guild.created_at)}")
-        member_by_status = Counter(str(m.status) for m in guild.members)
+        member_by_status = collections.Counter()
+        for m in guild.members:
+            member_by_status[str(m.status)] += 1
+            if m.bot:
+                member_by_status["bots"] += 1
         # Little snippet taken from R. Danny. Under the MIT License
         sta = f'<:online:572962188114001921> {member_by_status["online"]} ' \
               f'<:idle:572962188201820200> {member_by_status["idle"]} ' \
               f'<:dnd:572962188134842389> {member_by_status["dnd"]} ' \
-              f'<:offline:572962188008882178> {member_by_status["offline"]}\n\n' \
+              f'<:offline:572962188008882178> {member_by_status["offline"]} ' \
+              f'<:bot_tag:596576775555776522> {member_by_status["bots"]}\n\n'\
               f'Total: {guild.member_count}'
 
         embed.add_field(name="Members", value=sta)
@@ -534,15 +583,6 @@ class Meta(commands.Cog):
             boosts = f"Tier: {guild.premium_tier}\n"\
                      f"{guild.premium_subscription_count} boosts."
             embed.add_field(name="Nitro Server Boost", value=boosts)
-        await ctx.send(embed=embed)
-
-    @commands.command()
-    @commands.guild_only()
-    async def membercount(self, ctx):
-        """Prints the server's member count"""
-        embed = discord.Embed(title=f"Member Count",
-                              description=f"{ctx.guild.name} has {ctx.guild.member_count} members.",
-                              color=discord.Color.orange())
         await ctx.send(embed=embed)
 
     @commands.command()
@@ -810,7 +850,7 @@ class Meta(commands.Cog):
         embed.add_field(name='Owner', value=f"{guild.owner} | ID: {guild.owner.id}")
         wbhk = discord.Webhook.from_url
         adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
-        webhook = wbhk(config.webhook_glog, adapter=adp)
+        webhook = wbhk(self.bot.config['logging']['guild_alerts'], adapter=adp)
         await webhook.execute(embed=embed)
 
     @commands.Cog.listener()

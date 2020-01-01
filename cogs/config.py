@@ -1,4 +1,4 @@
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose Discord bot
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
@@ -12,16 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 
 
 import asyncio
@@ -156,7 +146,7 @@ class Configuration(commands.Cog):
                 ret.pop(v)
         await self.set_modconfig(ctx, ret)
 
-    async def change_log_format(self, guild_id, log_format):
+    async def change_log_format(self, guild_id: int, log_format):
         query = """INSERT INTO guild_mod_config (guild_id, log_format)
                    VALUES ($1, $2)
                    ON CONFLICT (guild_id)

@@ -1,4 +1,4 @@
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose Discord bot
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
@@ -12,16 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 
 from discord.ext import commands
 import discord
@@ -46,9 +36,9 @@ class Emoji(commands.Cog):
         return file_e.read()
 
     @commands.command(aliases=['nemoji'])
-    async def nitroemoji(self, ctx, emojiname):
+    async def nitroemoji(self, ctx, emoji):
         """Posts either an animated emoji or non-animated emoji if found"""
-        emojiname = emojiname.strip(':')
+        emojiname = emoji.strip(':')
         emoji = discord.utils.get(self.bot.emojis, name=emojiname)
         if emoji:
             return await ctx.send(emoji)
@@ -160,10 +150,10 @@ class Emoji(commands.Cog):
                 page.append(f'{emoji} -- `{emoji}`')
         await paginator_reg_nops(self.bot, ctx, size=1000, page_list=page)
 
-    @emoji.command(aliases=['stat', 'statistics'])
+    @emoji.command(aliases=['room'])
     @commands.guild_only()
     async def stats(self, ctx):
-        """Gives stats on how much room is left for emotes"""
+        """Gives information on how much room is left for emotes"""
         static = 0
         animated = 0
         for x, y in enumerate(ctx.guild.emojis):

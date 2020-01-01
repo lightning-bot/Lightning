@@ -19,4 +19,5 @@ exclude = .git,
           .pyc,
           utils/paginator.py,
           utils/time.py,
-          /plugins
+          /plugins,
+          utils/cache.py

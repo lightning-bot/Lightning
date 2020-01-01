@@ -12,16 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 
 from datetime import datetime
 
@@ -29,17 +19,83 @@ import discord
 from bolt.time import get_utc_timestamp
 
 from resources import botemojis
+from utils.time import plural
 
 
-class Action:
-    def __init__(self, target, mod, *, reason=None, **kwargs):
+class KurisuFormat:
+    __slots__ = ("log_action", "target", "moderator", "reason")
+
+    def __init__(self, log_action, target, moderator, reason=None):
+        self.log_action = log_action
         self.target = target
-        self.mod = mod
-        self.kwargs = kwargs
-        self.reason = reason
+        self.moderator = moderator
+        self.reason = discord.utils.escape_mentions(str(reason))
+
+    def log_action_emoji(self):
+        """Returns a log action emoji"""
+        log_action = self.log_action.lower()
+        aliases = {"hard-lockdown": "lockdown"}
+        if log_action in aliases:
+            log_action = aliases[log_action]
+        emojis = {"kick": "\U0001f462", "ban": "\U000026d4", "warn": "\U000026a0",
+                  "unban": "\U000026a0", "timed_restriction_removed": "\U000026a0",
+                  "purge": "\U0001f5d1", "clearwarns": "\U0001f6ae",
+                  "lockdown": "\U0001f512", "unlock": "\U0001f513", "mute": "\U0001f507",
+                  "unmute": "\U0001f508", "pardonwarn": "\U0001f516",
+                  "unpardonwarn": "\U000026a0", "timemute": "\U0001f507",
+                  "timeban": "\U000026d4"}
+        if log_action in emojis:
+            return emojis[log_action]
+        else:
+            raise Exception("Invalid log action type!")
+
+    def log_action_past_tense(self):
+        """Returns past tense of a log action.
+
+        Valid log actions are "kick", "ban", "warn", "unban",
+        "purge", "clearwarns", "mute", "unmute", "timemute",
+        "timeban", "pardonwarn", "unpardonwarn".
+        """
+        log_action = self.log_action.lower()
+        pt = {"kick": "kicked", "ban": "banned", "warn": "warned",
+              "unban": "unbanned", "purge": "purged",
+              "clearwarns": "cleared all warns from", "mute": "muted",
+              "unmute": "unmuted",
+              "timemute": "temporarily muted", "timeban": "temporarily banned",
+              "pardonwarn": "pardoned a warn from",
+              "unpardonwarn": "unpardoned a warn from"}
+        if log_action in pt:
+            return pt[log_action]
+        else:
+            raise Exception("Invalid log action type!")
+
+    def target_mention_and_safe_name(self):
+        if self.target is None:
+            return ""
+        if hasattr(self.target, 'mention'):
+            mention = self.target.mention
+        else:
+            mention = f"<@!{self.target.id}>"
+        if isinstance(self.target, discord.Object):
+            return f"{mention}"
+        return f"{mention} | {discord.utils.escape_mentions(str(self.target))}"
+
+    def temp_action_target(self, expiry):
+        if hasattr(self.target, 'mention'):
+            mention = self.target.mention
+        else:
+            mention = f"<@!{self.target.id}>"
+        if isinstance(self.target, discord.Object):
+            return f"{mention}"
+        return f"{mention} for {expiry} | {discord.utils.escape_mentions(str(self.target))}"
+
+    # def lockdown(self, channel):
+
+    def __repr__(self):
+        return f"<KurisuFormat log_action={self.log_action} target={self.target} "\
+               f"moderator={self.moderator} reason={self.reason}>"
 
 
-# TODO: Clean this function
 def kurisu_format(log_action: str, target, moderator, reason: str = "", **kwargs):
     """Formats a log entry, NH Kurisu style.
 
@@ -47,119 +103,18 @@ def kurisu_format(log_action: str, target, moderator, reason: str = "", **kwargs
     -----------
     log_action: `str`
         The type of mod action that was done.
+
     target:
         The member that got the log_action taken.
+
     moderator:
         The responsible moderator who did the action.
+
     reason: `str`
         The reason why the action was taken.
     """
-    safe_name = discord.utils.escape_mentions(str(target))
-    if log_action.lower() == "kick":
-        message = f"\N{WOMANS BOOTS} **Kick**: {moderator.mention} kicked "\
-                  f"{target.mention} | {safe_name}\n"\
-                  f"🏷 __User ID__: {target.id}\n"
-        if reason:
-            message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            message += "\nPlease add an explanation below."
-        return message
-    elif log_action.lower() == "ban":
-        message = f"\N{NO ENTRY} **Ban**: {moderator.mention} banned "\
-                  f"{target.mention} | {safe_name}\n"\
-                  f"\N{LABEL} __User ID__: {target.id}\n"
-        if reason:
-            message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            message += "\nPlease add an explanation below."
-        return message
-    elif log_action.lower() == "mute":
-        message = f"\N{SPEAKER WITH CANCELLATION STROKE} **Mute**: "\
-                  f"{moderator.mention} muted {target.mention}"\
-                  f" | {safe_name}\n"\
-                  f"\N{LABEL} __User ID__: {target.id}\n"
-        if reason:
-            message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            message += "\nPlease add an explanation below."
-        return message
-    elif log_action.lower() == "timemute":
-        expiry = kwargs.pop('expiry')
-        message = f"\N{SPEAKER WITH CANCELLATION STROKE} **Time Mute**: "\
-                  f"{moderator.mention} temporarily muted {target.mention}"\
-                  f" for {expiry} | {safe_name}\n"\
-                  f"\N{LABEL} __User ID__: {target.id}\n"
-        if reason:
-            message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            message += "\nPlease add an explanation below."
-        return message
-    elif log_action.lower() == "timeban":
-        expiry = kwargs.pop('expiry')
-        message = f"\N{NO ENTRY} **Timed Ban**: {moderator.mention} banned "\
-                  f"{target.mention} for {expiry} | {safe_name}\n"\
-                  f"\N{LABEL} __User ID__: {target.id}\n"
-        if reason:
-            message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            message += "\nPlease add an explanation below."
-        return message
-    elif log_action.lower() == "warn":
-        warn_count = kwargs.pop('warn_count')
-        message = f"\N{WARNING SIGN} **Warned**: "\
-                  f"{moderator.mention} warned {target.mention}" \
-                  f" (warn #{warn_count}) | {safe_name}\n"
-        if reason:
-            message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            message += "\nPlease add an explanation below."
-        return message
-    elif log_action.lower() == "lockdown":
-        channel = kwargs.pop('lockdown_channel')
-        safe_name = discord.utils.escape_mentions(str(moderator))
-        message = f"\N{LOCK} **Lockdown** in {channel.mention} "\
-                  f"by {moderator.mention} | {safe_name}"
-        return message
-    elif log_action.lower() == "hard-lockdown":
-        channel = kwargs.pop('lockdown_channel')
-        safe_name = discord.utils.escape_mentions(str(moderator))
-        message = f"\N{LOCK} **Hard Lockdown** in {channel.mention} "\
-                  f"by {moderator.mention} | {safe_name}"
-        return message
-    elif log_action.lower() == "unlock":
-        channel = kwargs.pop('lockdown_channel')
-        safe_name = discord.utils.escape_mentions(str(moderator))
-        message = f"\N{OPEN LOCK} **Unlock** in {channel.mention} "\
-                  f"by {moderator.mention} | {safe_name}"
-        return message
-    elif log_action.lower() == "unmute":
-        message = "\N{SPEAKER} **Unmuted**: "\
-                  f"{moderator.mention} unmuted {target.mention}"\
-                  f" | {safe_name}\n"\
-                  f"\N{LABEL} __User ID__: {target.id}\n"
-        if reason:
-            message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            message += "\nPlease add an explanation below."
-        return message
-    elif log_action.lower() == "clearwarns":
-        message = "\N{WASTEBASKET} **Cleared warns**: "\
-                  f"{moderator.mention} cleared all warns of "
-        if hasattr(target, 'id'):
-            message += f"{target.mention} | {safe_name}"
-        else:
-            message += f"<@!{target}>"
-        return message
-    elif log_action.lower() == "clearwarn":
-        idx = kwargs.pop('warn_number')
-        message = "\N{WASTEBASKET} **Deleted warn**: "\
-                  f"{moderator.mention} removed warn {idx}"
-        if hasattr(target, 'id'):
-            message += f" from {target.mention} | {safe_name}"
-        else:
-            message += f" from <@!{target}>"
-        return message
-    elif log_action.lower() == "timed_restriction_removed":
+    # Lazy things I don't want to fix yet
+    if log_action.lower() == "timed_restriction_removed":
         role = kwargs.pop('role')
         job_created = kwargs.pop('job_creation')
         if hasattr(target, 'id'):
@@ -173,26 +128,65 @@ def kurisu_format(log_action: str, target, moderator, reason: str = "", **kwargs
                    f"{discord.utils.escape_mentions(str(moderator))} at "\
                    f"{get_utc_timestamp(job_created)}."
         return message
-    elif log_action.lower() == "unban":
-        message = f"\N{WARNING SIGN} **Unban**: {moderator.mention} "\
-                  f"unbanned {target.mention} | {safe_name}\n"\
-                  f"\N{LABEL} __User ID__: {target.id}\n"
-        if reason:
-            message += f"\N{PENCIL} __Reason__: \"{reason}\""
-        else:
-            message += "\nPlease add an explanation below."
+    if log_action.lower() in ("lockdown", "hard-lockdown", "unlock"):
+        channel = kwargs.pop('lockdown_channel')
+        safe_name = discord.utils.escape_mentions(str(moderator))
+        kf = KurisuFormat(log_action, channel, moderator)
+        message = f"{kf.log_action_emoji()} **{log_action.title()}**"\
+                  f" in {channel.mention} "\
+                  f"by {moderator.mention} | {safe_name}"
         return message
-    elif log_action.lower() == "purge":
+    if log_action.lower() == "purge":
         message_count = kwargs.pop('messages')
-        message = f"\N{WASTEBASKET} **{message_count} messages purged** in "\
-                  f"{safe_name} | {target.mention}\n"\
+        message = f"\N{WASTEBASKET} **{plural(message_count):message} purged** in "\
+                  f"{discord.utils.escape_mentions(str(target))} | {target.mention}\n"\
                   f"Purger was {moderator.mention} | "\
                   f"{discord.utils.escape_mentions(str(moderator))}"
-        if reason:
-            message += f"\n\N{PENCIL} __Reason__: {reason}"
         return message
+    entry = KurisuFormat(log_action, target, moderator, reason)
+    logemoji = entry.log_action_emoji()
+    message = f"{logemoji} **{log_action_meanings[entry.log_action.lower()]}**: {entry.moderator.mention}"\
+              f" {entry.log_action_past_tense()} "
+    if log_action.lower() in ("timemute", "timeban", "temprole"):
+        expiration = kwargs.pop('expiry')
+        message += entry.temp_action_target(expiration)
     else:
-        return None
+        message += entry.target_mention_and_safe_name()
+    if entry.log_action.lower() in ("warn", "pardonwarn", "unpardonwarn", "deletewarn"):
+        warn = kwargs.pop('warn_id')
+        message += f"\n\U0001f5c3 __Warn ID__: {warn}"
+    if hasattr(target, 'id'):
+        message += f"\n\U0001f3f7 __User ID__: {target.id}\n"
+    if reason:
+        message += f"\U0000270f __Reason__: \"{entry.reason}\""
+    else:
+        message += "\nPlease add an explanation below."
+    return message
+
+
+def kurisu_remove_warn_id(mod, warn_id: int, member=None):
+    msg = f"\N{WASTEBASKET} **Deleted Warn** "\
+          f"{mod.mention} deleted warn {warn_id}"
+    # Future proofing
+    if member:
+        if isinstance(member, (discord.Object, discord.User)):
+            msg += f" from {member.id}"
+        else:
+            msg += f" from {member.mention} | {discord.utils.escape_mentions(str(member))}"
+    return msg
+
+
+def lightning_remove_warn_id(mod, warn_id, time, member=None):
+    msg = f"`[{time.strftime('%H:%M:%S UTC')}]` **Deleted Warn**"
+    if member:
+        if isinstance(member, (discord.Object)):
+            msg += f"\n**User**: {member.id}"
+        else:
+            msg += f"\n**User**: {discord.utils.escape_mentions(str(member))}"\
+                   f" ({member.id})"
+    msg += f"\n**Moderator**: {discord.utils.escape_mentions(str(mod))}"\
+           f" ({mod.id})\n**Warn ID**: {warn_id}"
+    return msg
 
 
 def kurisu_join_leave(log_type: str, member) -> str:
@@ -202,7 +196,6 @@ def kurisu_join_leave(log_type: str, member) -> str:
               f" **Member Join**: {member.mention} | "\
               f"{safe_name}\n"\
               f"\N{CLOCK FACE FOUR OCLOCK} __Account Creation__: {member.created_at}\n"\
-              f"\N{SPIRAL CALENDAR PAD} Join Date: {member.joined_at}\n"\
               f"\N{LABEL} __User ID__: {member.id}"
     elif log_type.lower() == "leave":
         msg = f"{botemojis.member_leave} "\
@@ -268,7 +261,7 @@ def lightning_time_ban_expired(user, mod, creation, expiry):
     return msg
 
 
-def kurisu_role_change(added, removed, after, mod):
+def kurisu_role_change(added, removed, after, mod=None):
     msg = ""
     if len(added) != 0 or len(removed) != 0:
         msg += "\n👑 __Role change__: "
@@ -286,8 +279,10 @@ def kurisu_role_change(added, removed, after, mod):
     if msg:  # Ending
         msg = f"\N{INFORMATION SOURCE} "\
               f"**Member update**: {discord.utils.escape_mentions(str(after))} | "\
-              f"{after.id} {msg}\n\N{BLUE BOOK} __Moderator__: "\
-              f"{discord.utils.escape_mentions(str(mod))} ({mod.id})"
+              f"{after.id} {msg}"
+        if mod:
+            msg += f"\n\N{BLUE BOOK} __Moderator__: "\
+                   f"{discord.utils.escape_mentions(str(mod))} ({mod.id})"
         return msg
 
 
@@ -300,7 +295,10 @@ def lightning_role_change(user, added, removed, mod, time, reason: str = ""):
     if removed != 0:
         for role in removed:
             base += f"**Role Removed**: {discord.utils.escape_mentions(str(role))} ({role.id})\n"
-    base += f"**Moderator**: {discord.utils.escape_mentions(str(mod))} ({mod.id})"
+    if mod is not None:
+        base += f"**Moderator**: {discord.utils.escape_mentions(str(mod))} ({mod.id})"
+    else:
+        pass
     if reason:
         base += f"\n**Reason**: {discord.utils.escape_mentions(reason)}"
     return base
@@ -331,7 +329,8 @@ log_action_meanings = {"unban": "Unban",
                        "unlock": "Unlock",
                        "hard-lockdown": "Hard Lockdown",
                        "temprole": "Timed Role Restriction",
-                       "kick": "Kick"}
+                       "kick": "Kick",
+                       "pardonwarn": "Pardon Warn"}
 
 
 def lightning_format(log_action: str, target, moderator, reason: str = "", time=None, **kwargs):
@@ -364,8 +363,8 @@ def lightning_format(log_action: str, target, moderator, reason: str = "", time=
         base += f"\n**Channel**: #{safe_name} ({target.id})\n"
         return base
     if log_action == "warn":
-        warn_count = kwargs.pop('warn_count')
-        base += f" (warn #{warn_count})"
+        warn_count = kwargs.pop('warn_id')
+        base += f" (Warn ID #{warn_count})"
     if log_action == "timed_restriction_removed":
         role = kwargs.pop('role')
         base += f"\n**Role**: {discord.utils.escape_mentions(str(role))} ({role.id})"

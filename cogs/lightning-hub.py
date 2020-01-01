@@ -1,4 +1,4 @@
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose Discord bot
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
@@ -12,16 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 
 from discord.ext import commands
 import discord
@@ -100,6 +90,21 @@ class LightningHub(commands.Cog):
                    f", it is recommended to use "\
                    f"`{ctx.prefix}block {ctx.command.signature}`"
         await mod_log_chan.send(msg)
+
+    @commands.command()
+    @is_guild(527887739178188830)
+    @commands.is_owner()
+    async def rolelock(self, ctx, emoji: discord.Emoji, roles: commands.Greedy[discord.Role] = None):
+        if roles is None:
+            return await emoji.edit(roles=None)
+        role = []
+        if roles:
+            for r in roles:
+                role.append(r)
+        realroles = list(emoji.roles)
+        realroles.extend(role)
+        await emoji.edit(name=emoji.name, roles=realroles)
+        await ctx.send(f"Role locked {emoji}")
 
     @commands.command(usage="<member> <channels...> <duration> [reason]",
                       aliases=['timeblock'])

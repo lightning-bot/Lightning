@@ -1,4 +1,4 @@
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose Discord bot
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
@@ -12,16 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 import json
 
 import discord
@@ -42,9 +32,11 @@ class Sniped:
 
 
 class GuildModConfig:
-    __slots__ = ("mute_role_id", "log_channels", "log_format", "warn_kick", "warn_ban")
+    __slots__ = ("guild_id", "mute_role_id", "log_channels", "log_format", "warn_kick", "warn_ban")
 
     def __init__(self, record):
+        # self.bot = bot # LOL
+        self.guild_id = record['guild_id']
         self.mute_role_id = record['mute_role_id']
         self.log_channels = record['log_channels']
         self.log_format = record['log_format']
@@ -72,6 +64,11 @@ class GuildModConfig:
             return ext[key], self.log_format if self.log_format else "kurisu"
         else:
             return None
+
+    def __repr__(self):
+        return f"<GuildModConfig guild_id={self.guild_id} mute_role_id={self.mute_role_id}"\
+               f" log_channels={self.log_channels} log_format={self.log_format} warn_kick="\
+               f"{self.warn_kick} warn_ban={self.warn_ban}>"
 
 
 class DatabaseUpdate:
@@ -104,3 +101,23 @@ CREATE TABLE IF NOT EXISTS snipe_settings
     guild_id BIGINT PRIMARY KEY
 );"""
     logformat = """ALTER TABLE guild_mod_config ADD COLUMN log_format SMALLINT;"""
+    warnings = """CREATE TABLE IF NOT EXISTS warns
+(
+    guild_id BIGINT NOT NULL,
+    warn_id SERIAL,
+    user_id BIGINT,
+    mod_id BIGINT,
+    timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc'),
+    reason TEXT,
+    pardoned BOOLEAN,
+    CONSTRAINT warns_pkey PRIMARY KEY (guild_id, warn_id)
+);"""
+    pardonwarnings = """CREATE TABLE IF NOT EXISTS pardoned_warns
+(
+    guild_id BIGINT,
+    warn_id SERIAL,
+    mod_id BIGINT,
+    timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc'),
+    FOREIGN KEY (guild_id, warn_id) REFERENCES warns (guild_id, warn_id) ON DELETE CASCADE,
+    CONSTRAINT pardoned_warns_pkey PRIMARY KEY (guild_id, warn_id)
+);"""

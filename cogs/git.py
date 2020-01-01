@@ -1,4 +1,4 @@
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose Discord bot
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
@@ -12,25 +12,16 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 
 import datetime
 
+import dateutil.parser
 import discord
 import github3
-import gitlab
 from discord.ext import commands
 
 from utils.checks import is_bot_manager, is_git_whitelisted
+from utils.errors import LightningError
 
 
 class Git(commands.Cog):
@@ -38,8 +29,55 @@ class Git(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.gh = github3.login(token=self.bot.config['git']['github']['key'])
-        self.gl = gitlab.Gitlab(self.bot.config['git']['gitlab']['instance'],
-                                private_token=self.bot.config['git']['gitlab']['key'])
+        self.base_api_url = f"{self.bot.config['git']['gitlab']['instance']}/api/v4/projects"
+        self.gitlab_headers = {"Private-Token": str(self.bot.config['git']['gitlab']['key']),
+                               "User-Agent": "Lightning.py Git Cog"}
+
+    async def cog_command_error(self, ctx, error):
+        if isinstance(error, LightningError):
+            return await ctx.send(f'```{error}```')
+        elif isinstance(error, commands.CommandInvokeError):
+            original = error.original
+            if isinstance(original, discord.HTTPException):
+                return await ctx.send(f"```HTTP Exception: {original}```")
+
+    def create_api_url(self, path="/merge_requests",
+                       project_id=None):
+        if project_id is None:
+            project_id = self.bot.config['git']['gitlab']['project_id']
+        url = f"{self.base_api_url}/{project_id}{path}"
+        return url
+
+    def status_emoji(self, status: str):
+        if status == "success":
+            return "\U00002705"
+        elif status == "failed":
+            return "\U0000274c"
+        elif status in ("running", "pending"):
+            return "\U0000231b"
+        # Unknown
+        return "\U00002754"
+
+    async def make_gitlab_request(self, method, url):
+        """Makes a request to the Gitlab API
+
+        Parameters
+        -----------
+        method: str
+            The type of method to use.
+
+        url: str
+            The URL you are requesting.
+        """
+        async with self.bot.aiosession.request(method, url, headers=self.gitlab_headers) as resp:
+            ratelimit = resp.headers.get("RateLimit-Remaining")
+            if ratelimit == 0:
+                raise LightningError("Ratelimited")
+            if resp.status != 200:
+                raise discord.HTTPException(response=resp, message=str(resp.reason))
+            else:
+                data = await resp.json()
+        return data
 
     @commands.guild_only()
     @commands.check(is_bot_manager)
@@ -206,52 +244,53 @@ class Git(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
+    @gitlab.command(name="mergerequest", aliases=['mr'])
+    @commands.check(is_git_whitelisted)
+    async def get_merge_request(self, ctx, id: int):
+        """Gives information for a merge request"""
+        url = self.create_api_url() + f"/{id}"
+        data = await self.make_gitlab_request("GET", url)
+        em = discord.Embed(title=f"{data['title']} | !{id}")
+        timestamp = dateutil.parser.isoparse(data['created_at'])
+        em.set_footer(text="Created at")
+        em.timestamp = timestamp
+        em.set_author(name=data['author']['name'],
+                      url=data['author']['web_url'],
+                      icon_url=data['author']['avatar_url'])
+        em.description = f"[{data['web_url']}]({data['web_url']})"
+        pipeline = f"__URL__: [{data['pipeline']['web_url']}]({data['pipeline']['web_url']})"\
+                   f"\n**Status**: {self.status_emoji(data['head_pipeline']['status'])}"
+        em.add_field(name="**Pipeline Info**", value=pipeline)
+        em.add_field(name="**Labels**",
+                     value="> " + "\n> ".join(data['labels']), inline=False)
+        if len(data['assignees']) != 0:
+            assigned = []
+            for e in data['assignees']:
+                assigned.append(f"[{e['name']}]({e['web_url']})")
+            em.add_field(name="**Assignees**", value="\n".join(assigned), inline=False)
+        await ctx.send(embed=em)
+
     @gitlab.command()
     @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
-    async def close(self, ctx, number: int):
+    async def close(self, ctx, issue: int):
         """Closes an issue"""
-        project1 = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
-                                        lazy=True)
-        project = project1.issues.get(number, lazy=True)
-        closev = project.state_event = 'close'
-        if closev is not False:
-            return await ctx.send("That Issue is Already Closed!")
-        project.state_event = 'close'
-        project.save()
-        await ctx.send(f"Successfully closed {number}")
-
-    @gitlab.command(aliases=['pc'])
-    @commands.check(is_bot_manager)
-    @commands.check(is_git_whitelisted)
-    async def pipelinecancel(self, ctx, pipeline_number: int):
-        """Cancels a pipeline by ID"""
-        # We pass lazy so we don't make multiple calls
-        try:
-            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
-                                           lazy=True)
-            pipeline = project.pipelines.get(pipeline_number, lazy=True)
-            pipeline.cancel()
-        except Exception as e:
-            return await ctx.send(f"An Error Occurred! `{e}`")
-        await ctx.send(f"Successfully cancelled pipeline {pipeline_number}")
+        url = self.create_api_url(path=f"/issues/{issue}?state_event=close")
+        await self.make_gitlab_request("PUT", url)
+        await ctx.send(f"Successfully closed {issue}")
 
     @gitlab.command()
     @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def listpipelines(self, ctx):
         """Lists all the pipelines for the repository"""
-        try:
-            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
-                                           lazy=True)
-            pipelines = project.pipelines.list()
-        except Exception as e:
-            return await ctx.send(f"An Error Occurred! `{e}`")
+        url = self.create_api_url(path="/pipelines")
+        data = await self.make_gitlab_request("GET", url)
         paginator = commands.Paginator(prefix="", suffix="")
         paginator.add_line("🔧 __Pipelines:__")
         count = 0
-        for pipe in pipelines:
-            paginator.add_line(f"- #{pipe.id} (URL: <{pipe.web_url}>)")
+        for p in data:
+            paginator.add_line(f"- #{p['id']} (URL: <{p['web_url']}>)")
             count += 1
 
         for page in paginator.pages:
@@ -262,17 +301,16 @@ class Git(commands.Cog):
     @commands.check(is_git_whitelisted)
     async def latestpipeline(self, ctx):
         """Grabs the most recent pipeline's ID and URL"""
-        try:
-            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
-                                           lazy=True)
-            pipe = project.pipelines.list()[0]
-        except Exception as e:
-            return await ctx.send(f"An Error Occurred! `{e}`")
-        embed = discord.Embed(title=f"Pipeline Stats for #{pipe.id}",
+        url = self.create_api_url(path="/pipelines")
+        data = await self.make_gitlab_request("GET", url)
+        data = data[0]
+        embed = discord.Embed(title=f"Pipeline Stats for #{data['id']}",
                               color=discord.Color.blue())
-        embed.add_field(name="Branch", value=pipe.ref)
-        embed.add_field(name="Status", value=pipe.status)
-        embed.description = f"URL: {pipe.web_url}"
+        embed.add_field(name="Branch", value=data['ref'])
+        embed.add_field(name="Status",
+                        value=f"{self.status_emoji(data['status'])}"
+                              f" {data['status'].title()}")
+        embed.description = (f"URL: {data['web_url']}")
         await ctx.send(embed=embed)
 
     @gitlab.command(aliases=['mrc'])
@@ -280,62 +318,64 @@ class Git(commands.Cog):
     @commands.check(is_git_whitelisted)
     async def mrchange(self, ctx, mr_id: int, event: str):
         """Closes or Reopens a MR. Pass either `close` or `reopen` """
-        try:
-            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
-                                           lazy=True)
-            mr = project.mergerequests.get(mr_id)
-            mr.state_event = event
-            mr.save()
-        except Exception as e:
-            return await ctx.send(f"An Error Occurred! `{e}`")
-        await ctx.send(f"Successfully changed !{mr_id}. {mr.web_url}")
-
-    @gitlab.command(aliases=['lc'])
-    @commands.check(is_bot_manager)
-    @commands.check(is_git_whitelisted)
-    async def labelcreate(self, ctx, label_name: str, color: str):
-        """Creates a label"""
-        try:
-            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
-                                           lazy=True)
-            _label = project.labels.create({'name': label_name, 'color': color})
-        except Exception as e:
-            return await ctx.send(f"An Error Occurred! `{e}`")
-        await ctx.send(f"Succesfully created {_label.name} (Color: {_label.color})")
+        url = self.create_api_url() + f"/{mr_id}?state_event={event}"
+        data = await self.make_gitlab_request("PUT", url)
+        await ctx.send(f"Successfully changed !{mr_id}. {data['web_url']}")
 
     @gitlab.command()
     @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def merge(self, ctx, mr_id: int):
         """Merges a Merge Request"""
-        try:
-            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
-                                           lazy=True)
-            mr = project.mergerequests.get(mr_id)
-            mr.merge()
-        except Exception as e:
-            return await ctx.send(f"An Error Occurred! `{e}`")
-        await ctx.send(f"Successfully merged !{mr.iid} to {mr.target_branch}. {mr.web_url}")
+        url = self.create_api_url() + f"/{mr_id}/merge"
+        data = await self.make_gitlab_request("PUT", url)
+        await ctx.send(f"Successfully merged !{mr_id} to "
+                       f"`{data['target_branch']}`. {data['web_url']}")
+
+    @gitlab.command()
+    @commands.check(is_bot_manager)
+    @commands.check(is_git_whitelisted)
+    async def addmrlabel(self, ctx, mr_id: int, *labels):
+        """Adds a label to a merge request.
+
+        Provide no labels to remove all labels"""
+        url = self.create_api_url() + f"/{mr_id}"
+        data = await self.make_gitlab_request("GET", url)
+        _labels = [e for e in data['labels']]
+        _labels.extend(labels)
+        url = self.create_api_url() + f"/{mr_id}?labels={','.join(_labels)}"
+        await self.make_gitlab_request("PUT", url)
+        await ctx.send("Successfully added labels")
+
+    @gitlab.command()
+    @commands.check(is_bot_manager)
+    @commands.check(is_git_whitelisted)
+    async def addlabel(self, ctx, issue: int, *labels):
+        """Adds a label to an issue.
+
+        Provide no labels to remove all labels"""
+        url = self.create_api_url(path="/issues") + f"/{issue}"
+        data = await self.make_gitlab_request("GET", url)
+        _labels = [e for e in data['labels']]
+        _labels.extend(labels)
+        url = self.create_api_url() + f"/{issue}?labels={','.join(_labels)}"
+        await self.make_gitlab_request("PUT", url)
+        await ctx.send("Successfully added labels")
 
     @gitlab.command(aliases=['listmrs'])
     @commands.check(is_bot_manager)
     @commands.check(is_git_whitelisted)
     async def openmrs(self, ctx):
         """Lists currently opened merge requests"""
-        try:
-            project = self.gl.projects.get(self.bot.config['git']['gitlab']['project_id'],
-                                           lazy=True)
-            prs = project.mergerequests.list(state='opened', per_page=25, page=1)
-        except Exception as e:
-            return await ctx.send(f"An Error Occurred! `{e}`")
+        url = self.create_api_url(path="/merge_requests?state=opened")
+        prs = await self.make_gitlab_request("GET", url)
         if len(prs) != 0:
-            msg = ""
+            msgd = {}
             for p in prs:
-                msg += f'"!{p.iid}": '\
-                       f'"https://gitlab.com/lightning-bot/Lightning/merge_requests/{p.iid}"\n'
-            await ctx.send(f"Currently open merge requests: ```json\n{msg}```")
+                msgd[str(p['iid'])] = p['web_url']
+            await ctx.send(f"Currently open merge requests: ```json\n{msgd}```")
         else:
-            await ctx.send(f"No open merge requests!")
+            await ctx.send("No open merge requests!")
 
 
 def setup(bot):

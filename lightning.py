@@ -1,4 +1,4 @@
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose Discord bot
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
@@ -12,16 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 
 import asyncio
 import logging
@@ -31,6 +21,7 @@ import platform
 import sys
 import traceback
 from datetime import datetime
+from collections import Counter
 
 import aiohttp
 import asyncpg
@@ -197,6 +188,7 @@ class LightningBot(commands.AutoShardedBot):
         # Initialize as none then cache our prefixes on_ready
         self.prefixes = {}
         self.config = toml.load('config.toml')
+        self.socket_stats = Counter()
 
         for ext in initial_extensions:
             try:
@@ -303,8 +295,9 @@ class LightningBot(commands.AutoShardedBot):
             log_text += f"on DMs ({ctx.channel.id})"
         log.info(log_text)
 
-    # Error Handling mostly based on Robocop-NG (MIT Licensed)
-    # https://github.com/reswitched/robocop-ng/blob/master/Robocop.py
+    async def on_socket_response(self, msg):
+        self.socket_stats[msg.get('t')] += 1
+
     async def on_error(self, event_method, *args, **kwargs):
         log.error(f"Error on {event_method}: {sys.exc_info()}")
         await self.wait_until_ready()
@@ -312,13 +305,14 @@ class LightningBot(commands.AutoShardedBot):
         adp = discord.AsyncWebhookAdapter(self.aiosession)
         try:
             webhook = webhook(self.config['logging']['bot_errors'], adapter=adp)
-            embed = discord.Embed(title=f"⚠ Error on {event_method}",
-                                  description=f"{sys.exc_info()}",
+            embed = discord.Embed(title=f"Event Error",
+                                  description=f"```py\n{traceback.format_exc()}```",
                                   color=discord.Color(0xff0000),
                                   timestamp=datetime.utcnow())
-            await webhook.execute(embed=embed, username=f"{str(event_method)}")
+            embed.add_field(name="Event", value=event_method)
+            await webhook.execute(embed=embed, username=f"Event Error")
         except Exception:
-            return
+            pass
 
     async def on_command_error(self, ctx, error):
         error_text = str(error)
@@ -340,23 +334,25 @@ class LightningBot(commands.AutoShardedBot):
                 await webhook.execute(embed=embed)
             except Exception:
                 pass
-
-        if hasattr(ctx.command, 'on_error'):
+        # If command or cog has it's own error handler, return
+        handler = getattr(ctx.cog, 'cog_command_error')
+        overridden = ctx.cog._get_overridden_method(handler)
+        if hasattr(ctx.command, 'on_error') or overridden:
             return
 
         if isinstance(error, commands.NoPrivateMessage):
             return await ctx.send("This command doesn't work in DMs.")
         elif isinstance(error, commands.MissingPermissions):
-            roles_needed = '\n- '.join(error.missing_perms)
+            p = '\n- '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
             return await ctx.send(f"{ctx.author.mention}: You don't have the right"
                                   " permissions to run this command. You need: "
-                                  f"```- {roles_needed}```")
+                                  f"```- {p}```")
         elif isinstance(error, commands.BotMissingPermissions):
-            roles_needed = '\n- '.join(error.missing_perms)
-            return await ctx.send(f"{ctx.author.mention}: I don't have "
+            p = '\n- '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
+            return await ctx.send("I don't have "
                                   "the right permissions to run this command. "
                                   "Please add the following permissions to me: "
-                                  f"```- {roles_needed}```")
+                                  f"```- {p}```")
         elif isinstance(error, commands.CommandOnCooldown):
             return await ctx.send("⚠ You're being "
                                   "ratelimited. Try again in "
@@ -403,4 +399,4 @@ class LightningBot(commands.AutoShardedBot):
             return await ctx.safe_send(error_text)
         err = self.get_cog('Meta')
         if err:
-            await err.create_error_ticket(ctx, "Command Error", f"{error}")
+            await err.create_error_ticket(ctx, "Command Error", error)
