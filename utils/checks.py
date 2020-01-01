@@ -1,4 +1,4 @@
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose Discord bot
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
@@ -12,16 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 
 import discord
 from discord.ext import commands
@@ -34,6 +24,8 @@ def is_guild(guild_id):
             return False
         if ctx.guild.id == guild_id:
             return True
+        else:
+            raise errors.LightningError("This command cannot be run in this server!")
     return commands.check(predicate)
 
 
@@ -91,6 +83,38 @@ def is_staff_or_has_perms(min_role: str, **perms):
                 permissions.append(permname)
             raise errors.MissingRequiredPerms(permissions)
         return permcheck or sr
+    return commands.check(predicate)
+
+
+def has_channel_permissions(ctx, perms):
+    """A copy of discord.py's has_permissions check
+    https://github.com/Rapptz/discord.py/blob/d9a8ae9c78f5ca0eef5e1f033b4151ece4ed1028/discord/ext/commands/core.py#L1533
+    """
+    ch = ctx.channel
+    permissions = ch.permissions_for(ctx.author)
+    missing = [perm for perm, value in perms.items() if getattr(permissions, perm, None) != value]
+
+    if missing is None:
+        return True
+    return False
+
+
+def is_staff_or_has_channel_perms(min_role: str, **perms):
+    """
+    Checks and verifies if a user has the needed staff level or channel permission
+    """
+    async def predicate(ctx):
+        if not ctx.guild:
+            return False
+        permissions = has_channel_permissions(ctx, perms)
+        sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
+        if sr is False and permissions is False:
+            permissions = []
+            for permname in list(perms.keys()):
+                permname = permname.replace('_', ' ').replace('guild', 'server').title()
+                permissions.append(permname)
+            raise errors.MissingRequiredPerms(permissions)
+        return permissions or sr
     return commands.check(predicate)
 
 

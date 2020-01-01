@@ -5,9 +5,9 @@ beautifulsoup4
 parsedatetime
 Pillow
 github3.py
-python-gitlab
 asyncpg
 feedparser
 toml
 git+https://gitlab.com/lightning-bot/bolt@master#egg=bolt
-async_lru
+lru_dict
+dateutil

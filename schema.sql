@@ -89,10 +89,9 @@ CREATE TABLE IF NOT EXISTS snipe_settings
     user_ids BIGINT []
 );
 
-ALTER TABLE guild_mod_config ADD COLUMN prefix TEXT [];
-ALTER TABLE guild_mod_config ADD COLUMN warn_ban SMALLINT;
-ALTER TABLE guild_mod_config ADD COLUMN warn_kick SMALLINT;
-ALTER TABLE guild_mod_config ADD COLUMN log_format SMALLINT;
+ALTER TABLE guild_mod_config ADD COLUMN IF NOT EXISTS warn_ban SMALLINT;
+ALTER TABLE guild_mod_config ADD COLUMN IF NOT EXISTS warn_kick SMALLINT;
+ALTER TABLE guild_mod_config ADD COLUMN IF NOT EXISTS log_format SMALLINT;
 DROP TABLE IF EXISTS auto_roles;
 
 CREATE TABLE IF NOT EXISTS nin_updates
@@ -124,5 +123,22 @@ CREATE TABLE IF NOT EXISTS warns
 (
     guild_id BIGINT NOT NULL,
     warn_id SERIAL,
-
+    user_id BIGINT,
+    mod_id BIGINT,
+    timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc'),
+    reason TEXT,
+    pardoned BOOLEAN DEFAULT FALSE,
+    CONSTRAINT warns_pkey PRIMARY KEY (guild_id, warn_id)
 );
+
+CREATE TABLE IF NOT EXISTS pardoned_warns
+(
+    guild_id BIGINT,
+    warn_id SERIAL,
+    mod_id BIGINT,
+    timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc'),
+    FOREIGN KEY (guild_id, warn_id) REFERENCES warns (guild_id, warn_id) ON DELETE CASCADE,
+    CONSTRAINT pardoned_warns_pkey PRIMARY KEY (guild_id, warn_id)
+);
+
+ALTER TABLE guild_mod_config ADD COLUMN IF NOT EXISTS muted BIGINT [];

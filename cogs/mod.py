@@ -1,4 +1,4 @@
-# Lightning.py - The Successor to Lightning.js
+# Lightning.py - A multi-purpose Discord bot
 # Copyright (C) 2019 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
@@ -12,37 +12,27 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 
 import asyncio
 import io
 import json
 import time
 from datetime import datetime, timedelta
+from collections import Counter
 
 import asyncpg
+import dateutil.parser
 import discord
-from async_lru import alru_cache
 from bolt.paginator import Pages
 from bolt.time import get_utc_timestamp
 from discord.ext import commands
 
-from utils import converters, modlog_formatter
-from utils.checks import is_staff_or_has_perms
+from utils import converters, modlog_formatter, cache, flags
+from utils.checks import is_staff_or_has_perms, is_staff_or_has_channel_perms
 from utils.database import GuildModConfig
-from utils.errors import MuteRoleError, NoWarns, TimersUnavailable
-from utils.time import FutureTime, natural_timedelta
-from utils.user_log import (get_userlog, set_userlog, userlog,
-                            userlog_event_types)
+from utils.errors import MuteRoleError, TimersUnavailable, WarnError, LightningError
+from utils.time import FutureTime, natural_timedelta, plural
+from resources import botemojis
 
 
 class WarnPages(Pages):
@@ -77,14 +67,26 @@ class Mod(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def __repr__(self):
+        return '<cogs.Mod>'
+
     async def cog_check(self, ctx):
         if ctx.guild is None:
             raise commands.NoPrivateMessage()
         return True
 
-    def cog_unload(self):
-        # Close our cache
-        self.get_mod_config.close()
+    @cache.cache(maxsize=32, strategy=cache.Strategy.lru)
+    async def get_mod_config(self, guild_id):
+        """
+        Returns: :class: `GuildModConfig` if guild_id is in the database,
+        else returns None
+        """
+        query = """SELECT * FROM guild_mod_config WHERE guild_id=$1"""
+        async with self.bot.db.acquire() as con:
+            record = await con.fetchrow(query, guild_id)
+        if not record:
+            return None
+        return GuildModConfig(record)
 
     def mod_reason(self, ctx, reason: str):
         if reason:
@@ -94,18 +96,6 @@ class Mod(commands.Cog):
         if len(to_return) > 512:
             raise commands.BadArgument('Reason is too long!')
         return to_return
-
-    @alru_cache(maxsize=32)
-    async def get_mod_config(self, guild_id):
-        """
-        Returns: :class: `GuildModConfig` if guild_id is in the database,
-        else returns None
-        """
-        query = """SELECT * FROM guild_mod_config WHERE guild_id=$1"""
-        ret = await self.bot.db.fetchrow(query, guild_id)
-        if not ret:
-            return None
-        return GuildModConfig(ret)
 
     async def channelid_send(self, guild_id: int, channel_id: int, item, message, **kwargs):
         guild = self.bot.get_guild(guild_id)
@@ -183,25 +173,26 @@ class Mod(commands.Cog):
     async def kick(self, ctx, target: converters.TargetMember, *, reason: str = ""):
         """Kicks a user.
 
+        Flag options (no arguments):
+        `--no-dm` or `--nodm`: Bot does not DM the user the reason for the action.
+
         In order to use this command, you must either have
         Kick Members permission or a role that
         is assigned as a Moderator or above in the bot."""
+        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        if pflags['--no-dm'] is False:
+            dm_message = f"You were kicked from {ctx.guild.name}."
+            if pflags['text']:
+                dm_message += f" The given reason is: \"{pflags['text']}\"."
 
-        dm_message = f"You were kicked from {ctx.guild.name}."
-        if reason:
-            dm_message += f" The given reason is: \"{reason}\"."
-        dm_message += "\n\nYou are able to rejoin the server," \
-                      " but please be sure to behave when participating again."
+            try:
+                await target.send(dm_message)
+            except (AttributeError, discord.errors.Forbidden):
+                pass
 
-        try:
-            await target.send(dm_message)
-        except discord.errors.Forbidden:
-            # Prevents kick issues in cases where user blocked bot
-            # or has DMs disabled
-            pass
-        await ctx.guild.kick(target, reason=f"{self.mod_reason(ctx, reason)}")
-        await ctx.send(f"{target} has been kicked. 👌 ")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        await ctx.guild.kick(target, reason=f"{self.mod_reason(ctx, pflags['text'])}")
+        await ctx.safe_send(f"{target} has been kicked. 👌 ")
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -209,11 +200,12 @@ class Mod(commands.Cog):
             logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="kick", target=target,
-                                                         moderator=ctx.author, reason=reason)
+                                                         moderator=ctx.author, reason=pflags['text'])
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
             if logstyle == "lightning":
                 message = modlog_formatter.lightning_format("kick", target, ctx.author,
-                                                            reason=reason, time=ctx.message.created_at)
+                                                            reason=pflags['text'],
+                                                            time=ctx.message.created_at)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
 
     @commands.guild_only()  # This isn't needed but w/e :shrugkitty:
@@ -223,27 +215,29 @@ class Mod(commands.Cog):
     async def ban(self, ctx, target: converters.TargetNonGuildMember, *, reason: str = ""):
         """Bans a user.
 
+        Flag options (no arguments):
+        `--no-dm` or `--nodm`: Bot does not DM the user the reason for the action.
+
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        dm_message = f"You were banned from {ctx.guild.name}."
-        if reason:
-            dm_message += f" The given reason is: \"{reason}\"."
-        dm_message += "\n\nThis ban does not expire."
-        dm_message += "\n\nIf you believe this to be in error, please message the staff."
+        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        if pflags['--no-dm'] is False:
+            dm_message = f"You were banned from {ctx.guild.name}."
+            if reason:
+                dm_message += f" The given reason is: \"{pflags['text']}\"."
+            dm_message += "\n\nThis ban does not expire."
+            dm_message += "\n\nIf you believe this to be in error, please message the staff."
 
-        if isinstance(target, discord.Member):
             try:
                 await target.send(dm_message)
-            except discord.errors.Forbidden:
-                # Prevents ban issues in cases where user blocked bot
-                # or has DMs disabled
+            except (AttributeError, discord.errors.Forbidden):
                 pass
 
-        await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, reason)}",
+        await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, pflags['text'])}",
                             delete_message_days=0)
         await ctx.safe_send(f"{target} is now b&. 👍")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -251,28 +245,40 @@ class Mod(commands.Cog):
             logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="ban", target=target,
-                                                         moderator=ctx.author, reason=reason)
+                                                         moderator=ctx.author, reason=pflags['text'])
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
             if logstyle == "lightning":
                 message = modlog_formatter.lightning_format("ban", target, ctx.author,
-                                                            reason=reason, time=ctx.message.created_at)
+                                                            reason=pflags['text'],
+                                                            time=ctx.message.created_at)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
 
-    async def warn_count_check(self, ctx, target, reason: str = ""):
+    async def warn_user(self, ctx, target, reason: str = ""):
+        query = """INSERT INTO warns (guild_id, user_id, mod_id, timestamp, reason)
+                   VALUES ($1, $2, $3, $4, $5)
+                   RETURNING warn_id, (SELECT COUNT(*) FROM warns
+                                       WHERE guild_id=$1 AND user_id=$2 AND pardoned='0')
+                """
+        if not reason:
+            reason = "No reason provided."
+        return await self.bot.db.fetchrow(query, ctx.guild.id, target.id,
+                                          ctx.author.id, ctx.message.created_at,
+                                          reason)
+
+    async def warn_count_check(self, ctx, warn_count, target, reason: str = "", no_dm=False):
         msg = f"You were warned in {ctx.guild.name}."
         if reason:
             msg += " The given reason is: " + reason
-        warn_count = await userlog(self.bot, ctx.guild, target.id,
-                                   ctx.author, reason,
-                                   "warns", target.name)
         msg += f"\n\nThis is warn #{warn_count}."
         punishable_warn = await self.get_mod_config(ctx.guild.id)
         if not punishable_warn:
             if isinstance(target, discord.Member):
+                if no_dm is True:
+                    return warn_count
                 try:
                     await target.send(msg)
                     return warn_count
-                except discord.Forbidden:
+                except (AttributeError, discord.errors.Forbidden):
                     return warn_count
             else:
                 return warn_count
@@ -293,42 +299,50 @@ class Mod(commands.Cog):
                        f"{punishable_warn.warn_ban} warnings."
                 msg += "\nIf you believe this to be in error, please message the staff."
         if isinstance(target, (discord.Member, discord.User)):
-            try:
-                await target.send(msg)
-            except discord.errors.Forbidden:
-                # Prevents issues in cases where user blocked bot
-                # or has DMs disabled
-                pass
+            if no_dm is False:
+                try:
+                    await target.send(msg)
+                except (AttributeError, discord.errors.Forbidden):
+                    pass
             if punishable_warn.warn_kick:
                 if warn_count == punishable_warn.warn_kick:
-                    opt_reason = f"[WarnKick] Reached {warn_count} warns. "
-                    if reason:
-                        opt_reason += f"{reason}"
-                    await ctx.guild.kick(target, reason=f"{self.mod_reason(ctx, opt_reason)}")
+                    opt_reason = f"[AutoMod] Reached {warn_count} warns. "
+                    try:
+                        await ctx.guild.kick(target,
+                                             reason=f"{self.mod_reason(ctx, opt_reason)}")
+                    except discord.Forbidden:
+                        return warn_count
+                    self.bot.dispatch("automod_action", ctx.guild, "kick", target, opt_reason)
         if punishable_warn.warn_ban:
             if warn_count >= punishable_warn.warn_ban:  # just in case
-                opt_reason = f"[WarnBan] Exceeded WarnBan Limit ({warn_count}). "
-                if reason:
-                    opt_reason += f"{reason}"
-                await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, opt_reason)}",
-                                    delete_message_days=0)
+                opt_reason = f"[AutoMod] Exceeded WarnBan Limit ({warn_count}). "
+                try:
+                    await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, opt_reason)}",
+                                        delete_message_days=0)
+                except discord.Forbidden:
+                    return warn_count
+                self.bot.dispatch("automod_action", ctx.guild, "ban", target, opt_reason)
         return warn_count
 
     @commands.guild_only()
-    @commands.bot_has_permissions(kick_members=True, ban_members=True)
     @is_staff_or_has_perms("Helper", manage_messages=True)
     @commands.group(invoke_without_command=True)
-    async def warn(self, ctx, target: converters.TargetMember, *, reason: str = ""):
+    async def warn(self, ctx, target: converters.TargetMember, *, reason: str = ''):
         """Warns a user.
+
+        Flag options (no arguments):
+        `--no-dm` or `--nodm`: Bot does not DM the user the reason for the action.
 
         In order to use this command, you must either have
         Manage Messages permission or a role
         that is assigned as a Helper or above in the bot."""
-        warn_count = await self.warn_count_check(ctx, target, reason)
-
-        await ctx.safe_send(f"{target} warned. "
-                            f"User has {warn_count} warning(s).")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        warns = await self.warn_user(ctx, target, pflags['text'])
+        warn_count = await self.warn_count_check(ctx, warns['count'] + 1, target,
+                                                 pflags['text'], pflags['--no-dm'])
+        await ctx.safe_send(f"{target} warned. (Warn ID: {warns['warn_id']}) "
+                            f"User now has {plural(warn_count):warning}.")
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -336,17 +350,34 @@ class Mod(commands.Cog):
             logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="warn", target=target,
-                                                         moderator=ctx.author, reason=reason,
-                                                         warn_count=warn_count)
+                                                         moderator=ctx.author,
+                                                         reason=pflags['text'],
+                                                         warn_id=warns['warn_id'])
                 await self.channelid_send(ctx.guild.id, int(logch), "modlog_chan", message)
             if logstyle == "lightning":
                 message = modlog_formatter.lightning_format("warn", target, ctx.author,
-                                                            reason=reason, time=ctx.message.created_at,
-                                                            warn_count=warn_count)
+                                                            reason=pflags['text'],
+                                                            time=ctx.message.created_at,
+                                                            warn_id=warns['warn_id'])
                 await self.channelid_send(ctx.guild.id, int(logch), "modlog_chan", message)
 
+    @warn.command(name="transfer")
+    @commands.cooldown(rate=1, per=30.0, type=commands.BucketType.guild)
+    @is_staff_or_has_perms("Admin", manage_guild=True)
+    async def warn_transfer(self, ctx, old_user: discord.Member, new_user: discord.Member):
+        """Transfers warnings to another member.
+
+        You must have both members in the server to transfer warnings.
+
+        In order to use this command, you must either have
+        Manage Server permission or a role
+        that is assigned as an Administrator in the bot."""
+        warns = await self.transfer_warns_to_id(ctx.guild.id, old_user.id, new_user.id)
+        if len(warns) == 0:
+            return await ctx.safe_send(f"{str(old_user)} does not have any warnings!")
+        await ctx.safe_send(f"\U0001f44c Transferred {plural(len(warns)):warning} to {str(new_user)}")
+
     @commands.guild_only()
-    @commands.bot_has_permissions(kick_members=True, ban_members=True)
     @is_staff_or_has_perms("Admin", manage_guild=True)
     @warn.group(name="punishments", aliases=['punishment'], invoke_without_command=True)
     async def warn_punish(self, ctx):
@@ -368,7 +399,7 @@ class Mod(commands.Cog):
         await ctx.send(msg)
 
     @commands.guild_only()
-    @commands.bot_has_permissions(kick_members=True, ban_members=True)
+    @commands.bot_has_permissions(kick_members=True)
     @is_staff_or_has_perms("Admin", manage_guild=True)
     @warn_punish.command(name="kick")
     async def warn_kick(self, ctx, number: converters.WarnNumber):
@@ -399,7 +430,7 @@ class Mod(commands.Cog):
                        f"{number} warns.")
 
     @commands.guild_only()
-    @commands.bot_has_permissions(kick_members=True, ban_members=True)
+    @commands.bot_has_permissions(ban_members=True)
     @is_staff_or_has_perms("Admin", manage_guild=True)
     @warn_punish.command(name="ban")
     async def warn_ban(self, ctx, number: converters.WarnNumber):
@@ -431,7 +462,6 @@ class Mod(commands.Cog):
                        f"{number} or a higher amount of warns.")
 
     @commands.guild_only()
-    @commands.bot_has_permissions(kick_members=True, ban_members=True)
     @is_staff_or_has_perms("Admin", manage_guild=True)
     @warn_punish.command(name="clear")
     async def warn_remove(self, ctx):
@@ -451,40 +481,83 @@ class Mod(commands.Cog):
             return await ctx.send("Warn punishments were never configured!")
         await ctx.send("Removed warn punishment configuration!")
 
-    @commands.guild_only()
-    @commands.bot_has_permissions(manage_messages=True)
-    @is_staff_or_has_perms("Moderator", manage_messages=True)
-    @commands.command()
-    async def purge(self, ctx, message_count: int, *, reason: str = ""):
-        """Purges a channel's last x messages.
+    async def do_message_purge(self, ctx, limit, predicate, *, before=None, after=None):
+        if limit > 150:
+            return await ctx.send("You can only purge 150 messages at a time!")
+        if before is None:
+            before = ctx.message
+        else:
+            before = discord.Object(id=before)
+        if after is not None:
+            after = discord.Object(id=after)
+        try:
+            purged = await ctx.channel.purge(limit=limit, before=before, after=after, check=predicate)
+        except discord.Forbidden:
+            raise commands.MissingPermissions(['manage_messages'])
+        except discord.HTTPException as e:
+            raise LightningError(f"Error: {e} (try a smaller message search?)")
+        spam = Counter(str(m.author) for m in purged)
+        dcount = len(purged)
+        messages = [f"**{plural(dcount):message} purged**"]
+        if dcount:
+            messages.append('')
+            spam = sorted(spam.items(), key=lambda m: m[1], reverse=True)
+            messages.extend(f'{name}: {count}' for name, count in spam)
+        msg = '\n'.join(messages)
+        if len(messages) > 2000:
+            # Cool.
+            await ctx.send(f"Purged {plural(dcount):message}.")
+        else:
+            await ctx.safe_send(msg)
 
-        In order to use this command, You must either have
+    @commands.bot_has_permissions(manage_messages=True)
+    @is_staff_or_has_channel_perms("Moderator", manage_messages=True)
+    @commands.group(invoke_without_command=True)
+    async def purge(self, ctx, search: int):
+        """Purges messages that meet a certain criteria.
+
+        If called without a subcommand, the bot will remove all messages.
+
+        In order to use this command, you must either have
         Manage Messages permission or a role that
         is assigned as a Moderator or above in the bot."""
-        if message_count > 100:
-            return await ctx.send("You cannot purge more than 100 messages at a time!")
-        fi = await self.purged_txt(ctx, message_count)
-        try:
-            pmsg = await ctx.channel.purge(limit=message_count)
-        except Exception as e:
-            self.bot.log.error(e)
-            return await ctx.send('❌ Cannot purge messages!')
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
-        if not ch:
-            return
-        logch = ch.has_log_channel("modlog_chan")
-        if logch is not None:
-            logch, logstyle = logch
-            if logstyle == "kurisu":
-                message = modlog_formatter.kurisu_format(log_action="purge", target=ctx.channel,
-                                                         moderator=ctx.author, reason=reason,
-                                                         messages=len(pmsg))
-                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message, file=fi)
-            if logstyle == "lightning":
-                message = modlog_formatter.lightning_format("purge", ctx.channel, ctx.author,
-                                                            reason=reason, time=ctx.message.created_at,
-                                                            messages=len(pmsg))
-                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message, file=fi)
+        await self.do_message_purge(ctx, search, lambda m: True)
+
+    @purge.error
+    async def purge_error(self, ctx, error):
+        if isinstance(error, LightningError):
+            return await ctx.safe_send(error)
+        elif isinstance(error, commands.MissingRequiredArgument):
+            return await ctx.send("You need to provide a number of messages to search!")
+        elif isinstance(error, commands.MissingPermissions):
+            p = ', '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
+            return await ctx.send("I don't have "
+                                  "the right permissions to run this command. "
+                                  f"Please add the following permissions to me: {p}")
+
+    @commands.bot_has_permissions(manage_messages=True)
+    @is_staff_or_has_channel_perms("Moderator", manage_messages=True)
+    @purge.command(name="user")
+    async def purge_from_user(self, ctx, member: discord.Member, search: int = 100):
+        """Removes messages from a member"""
+        await self.do_message_purge(ctx, search, lambda m: m.author == member)
+
+    @commands.bot_has_permissions(manage_messages=True)
+    @is_staff_or_has_channel_perms("Moderator", manage_messages=True)
+    @purge.command(name="attachments", aliases=['files'])
+    async def purge_files(self, ctx, search: int = 100):
+        """Removes messages that contains attachments in the message."""
+        await self.do_message_purge(ctx, search, lambda e: len(e.attachments))
+
+    @commands.bot_has_permissions(manage_messages=True)
+    @is_staff_or_has_channel_perms("Moderator", manage_messages=True)
+    @purge.command()
+    async def contains(self, ctx, *, string: str):
+        """Removes messages containing a certain substring."""
+        if len(string) < 5:
+            raise LightningError("The string length must be at least 5 characters!")
+        else:
+            await self.do_message_purge(ctx, 100, lambda e: string in e.content)
 
     @commands.guild_only()
     @commands.command(aliases=["nick"])
@@ -521,27 +594,27 @@ class Mod(commands.Cog):
     async def mute(self, ctx, target: converters.TargetMember, *, reason: str = ""):
         """Mutes a user.
 
+        Flag options (no arguments):
+        `--no-dm` or `--nodm`: Bot does not DM the user the reason for the action.
+
         In order to use this command, you must either have
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
         role = await self.get_mute_role(ctx)
-
-        dm_message = f"You were muted on {ctx.guild.name}!"
-        opt_reason = "[Mute] "
-        if reason:
-            dm_message += f" The given reason is: \"{reason}\"."
-            opt_reason += f"{reason}"
-        try:
-            await target.send(dm_message)
-        except discord.errors.Forbidden:
-            # Prevents issues in cases where user blocked bot
-            # or has DMs disabled
-            pass
-
-        await target.add_roles(role, reason=f"{self.mod_reason(ctx, opt_reason)}")
+        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        if pflags['--no-dm'] is False:
+            dm_message = f"You were muted in {ctx.guild.name}!"
+            if pflags['text']:
+                dm_message += f" The given reason is: \"{pflags['text']}\"."
+            try:
+                await target.send(dm_message)
+            except (AttributeError, discord.errors.Forbidden):
+                # rip
+                pass
+        await target.add_roles(role, reason=f"{self.mod_reason(ctx, '[Mute]')}")
         await self.set_user_restrictions(ctx.guild.id, target.id, role.id)
         await ctx.safe_send(f"{target} can no longer speak.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -549,11 +622,13 @@ class Mod(commands.Cog):
             logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="mute", target=target,
-                                                         moderator=ctx.author, reason=reason)
+                                                         moderator=ctx.author, reason=pflags['text'])
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
             if logstyle == "lightning":
-                message = modlog_formatter.lightning_format("mute", target, ctx.author,
-                                                            reason=reason, time=ctx.message.created_at)
+                message = modlog_formatter.lightning_format("mute", target,
+                                                            ctx.author,
+                                                            reason=pflags['text'],
+                                                            time=ctx.message.created_at)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
 
     async def mute_role_check(self, guild_id, target_id, role_id):
@@ -579,7 +654,7 @@ class Mod(commands.Cog):
         await target.remove_roles(role, reason=f"{self.mod_reason(ctx, '[Unmute]')}")
         await self.remove_user_restriction(ctx.guild.id, target.id, role.id)
         await ctx.safe_send(f"{target} can now speak again.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -607,10 +682,9 @@ class Mod(commands.Cog):
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-
         await ctx.guild.unban(target.user, reason=f"{self.mod_reason(ctx, reason)}")
-        await ctx.safe_send(f"{target.user} is now unbanned.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        await ctx.safe_send(f"\U0001f44c {target.user} is now unbanned.")
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -639,6 +713,9 @@ class Mod(commands.Cog):
 
         Note that duration time is in UTC.
 
+        Flag options (no arguments):
+        `--no-dm` or `--nodm`: Bot does not DM the user the reason for the action.
+
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
@@ -652,37 +729,40 @@ class Mod(commands.Cog):
                "mod_id": ctx.author.id}
         await timer.add_job("timeban", ctx.message.created_at,
                             duration.dt, ext)
-        if isinstance(target, (discord.Member, discord.User)):
-            dm_message = f"You were banned from {ctx.guild.name}."
-            if reason:
-                dm_message += f" The given reason is: \"{reason}\"."
-            dm_message += f"\n\nThis ban will expire in {duration_text}."
-            try:
-                await target.send(dm_message)
-            except discord.errors.Forbidden:
-                pass
-        if reason:
-            opt_reason = f"{reason} (Timeban expires in {duration_text})"
+        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        if pflags['--no-dm'] is False:
+            if isinstance(target, (discord.Member, discord.User)):
+                dm_message = f"You were banned from {ctx.guild.name}."
+                if pflags['text']:
+                    dm_message += f" The given reason is: \"{pflags['text']}\"."
+                dm_message += f"\n\nThis ban will expire in {duration_text}."
+                try:
+                    await target.send(dm_message)
+                except (AttributeError, discord.errors.Forbidden):
+                    pass
+        if pflags['text']:
+            opt_reason = f"{pflags['text']} (Timeban expires in {duration_text})"
         else:
             opt_reason = f" (Timeban expires in {duration_text})"
         await ctx.guild.ban(target, reason=f"{self.mod_reason(ctx, opt_reason)}",
                             delete_message_days=0)
         await ctx.safe_send(f"{str(target)} is now b&. 👍 "
                             f"It will expire in {duration_text}.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
         if logch is not None:
             logch, logstyle = logch
             if logstyle == "kurisu":
-                message = modlog_formatter.kurisu_format(log_action="timeban", target=target,
-                                                         moderator=ctx.author, reason=reason,
+                message = modlog_formatter.kurisu_format("timeban", target,
+                                                         ctx.author, pflags['text'],
                                                          expiry=duration_text)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
             if logstyle == "lightning":
                 message = modlog_formatter.lightning_format("timeban", target, ctx.author,
-                                                            reason=reason, time=ctx.message.created_at,
+                                                            reason=pflags['text'],
+                                                            time=ctx.message.created_at,
                                                             expiry=duration_text)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
 
@@ -700,6 +780,9 @@ class Mod(commands.Cog):
 
         Note that duration time is in UTC.
 
+        Flag options (no arguments):
+        `--no-dm` or `--nodm`: Bot does not DM the user the reason for the action.
+
         In order to use this command, you must either have
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
@@ -714,19 +797,18 @@ class Mod(commands.Cog):
                "role_id": role.id, "mod_id": ctx.author.id}
         await timer.add_job("timed_restriction", ctx.message.created_at,
                             duration.dt, ext)
-        dm_message = f"You were muted on {ctx.guild.name}!"
-        if reason:
-            dm_message += f" The given reason is: \"{reason}\"."
-        dm_message += f"\n\nThis mute will expire in {duration_text}."
-
-        try:
-            await target.send(dm_message)
-        except discord.errors.Forbidden:
-            # Prevents mute issues in cases where user blocked bot
-            # or has DMs disabled
-            pass
-        if reason:
-            opt_reason = f"{reason} (Timemute expires in {duration_text})"
+        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        if pflags['--no-dm'] is False:
+            dm_message = f"You were muted in {ctx.guild.name}!"
+            if pflags['text']:
+                dm_message += f" The given reason is: \"{pflags['text']}\"."
+            dm_message += f"\n\nThis mute will expire in {duration_text}."
+            try:
+                await target.send(dm_message)
+            except (AttributeError, discord.errors.Forbidden):
+                pass
+        if pflags['text']:
+            opt_reason = f"{pflags['text']} (Timemute expires in {duration_text})"
         else:
             opt_reason = f" (Timemute expires in {duration_text})"
         if isinstance(target, discord.Member):
@@ -737,7 +819,7 @@ class Mod(commands.Cog):
             pass
         await ctx.safe_send(f"{str(target)} can no longer speak. "
                             f"It will expire in {duration_text}.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -745,12 +827,14 @@ class Mod(commands.Cog):
             logch, logstyle = logch
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="timemute", target=target,
-                                                         moderator=ctx.author, reason=reason,
+                                                         moderator=ctx.author,
+                                                         reason=pflags['text'],
                                                          expiry=duration_text)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
             if logstyle == "lightning":
                 message = modlog_formatter.lightning_format("timemute", target, ctx.author,
-                                                            reason=reason, time=ctx.message.created_at,
+                                                            reason=pflags['text'],
+                                                            time=ctx.message.created_at,
                                                             expiry=duration_text)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
 
@@ -771,6 +855,10 @@ class Mod(commands.Cog):
         In order to use this command, you must either have
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
+        if role > ctx.author.top_role:
+            return await ctx.send('That role is higher than your highest role.')
+        if role > ctx.me.top_role:
+            return await ctx.send('That role is higher than my highest role.')
         dtxt = get_utc_timestamp(duration.dt)
         timed_txt = natural_timedelta(duration.dt, source=ctx.message.created_at)
         duration_text = f"{timed_txt} ({dtxt})"
@@ -791,7 +879,7 @@ class Mod(commands.Cog):
         await self.set_user_restrictions(ctx.guild.id, target.id, role.id)
         await ctx.safe_send(f"Restricted role: {role.name} to {target}. "
                             f"It will expire in {duration_text}.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -808,10 +896,9 @@ class Mod(commands.Cog):
                                                             expiry=duration_text)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
 
-    @commands.guild_only()
     @commands.bot_has_permissions(manage_channels=True)
     @is_staff_or_has_perms("Moderator", manage_channels=True)
-    @commands.command(aliases=['lockdown'])
+    @commands.group(aliases=['lockdown'], invoke_without_command=True)
     async def lock(self, ctx, channel: discord.TextChannel = None):
         """Locks down the channel mentioned.
 
@@ -830,9 +917,11 @@ class Mod(commands.Cog):
                            f"Use `{ctx.prefix}unlock` to unlock.")
             return
 
-        await channel.set_permissions(ctx.guild.default_role, send_messages=False, add_reactions=False)
+        await channel.set_permissions(ctx.guild.default_role, send_messages=False,
+                                      add_reactions=False)
+        await channel.set_permissions(ctx.me, send_messages=True, manage_channels=True)
         await ctx.send(f"🔒 {channel.mention} is now locked.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -848,10 +937,9 @@ class Mod(commands.Cog):
                                                             reason=None, time=ctx.message.created_at)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
 
-    @commands.guild_only()
     @commands.bot_has_permissions(manage_channels=True)
     @is_staff_or_has_perms("Admin", manage_channels=True)
-    @commands.command(aliases=['hard-lock'])
+    @lock.command(name="hard")
     async def hlock(self, ctx, channel: discord.TextChannel = None):
         """Hard locks a channel.
 
@@ -868,12 +956,15 @@ class Mod(commands.Cog):
 
         if channel.overwrites_for(ctx.guild.default_role).read_messages is False:
             await ctx.send(f"🔒 {channel.mention} is already hard locked. "
-                           f"Use `{ctx.prefix}hard-unlock` to unlock the channel.")
+                           f"Use `{ctx.prefix}unlock hard` to unlock the channel.")
             return
 
-        await channel.set_permissions(ctx.guild.default_role, read_messages=False)
+        await channel.set_permissions(ctx.guild.default_role, read_messages=False,
+                                      send_messages=False)
+        await channel.set_permissions(ctx.me, read_messages=True,
+                                      send_messages=True, manage_channels=True)
         await ctx.send(f"🔒 {channel.mention} is now hard locked.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -892,7 +983,7 @@ class Mod(commands.Cog):
     @commands.guild_only()
     @commands.bot_has_permissions(manage_channels=True)
     @is_staff_or_has_perms("Moderator", manage_channels=True)
-    @commands.command()
+    @commands.group(invoke_without_command=True)
     async def unlock(self, ctx, channel: discord.TextChannel = None):
         """Unlocks the channel mentioned.
 
@@ -910,7 +1001,7 @@ class Mod(commands.Cog):
 
         await channel.set_permissions(ctx.guild.default_role, send_messages=None, add_reactions=None)
         await ctx.send(f"🔓 {channel.mention} is now unlocked.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -926,10 +1017,9 @@ class Mod(commands.Cog):
                                                             reason=None, time=ctx.message.created_at)
                 await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
 
-    @commands.guild_only()
     @commands.bot_has_permissions(manage_channels=True)
     @is_staff_or_has_perms("Admin", manage_channels=True)
-    @commands.command(aliases=['hard-unlock'])
+    @unlock.command(name='hard')
     async def hunlock(self, ctx, channel: discord.TextChannel = None):
         """Hard unlocks the channel mentioned.
 
@@ -945,9 +1035,10 @@ class Mod(commands.Cog):
             await ctx.send(f"🔓 {channel.mention} is already unlocked.")
             return
 
-        await channel.set_permissions(ctx.guild.default_role, read_messages=None)
+        await channel.set_permissions(ctx.guild.default_role,
+                                      read_messages=None, send_messages=None)
         await ctx.send(f"🔓 {channel.mention} is now unlocked.")
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -1052,7 +1143,7 @@ class Mod(commands.Cog):
             mod = f'{moderator} (ID: {moderator.id})'
         reason = f"Timed ban made by {mod} at {jobinfo['created']} expired"
         await guild.unban(uid, reason=reason)
-        ch = await self.get_mod_config(guild_id=guild.id)
+        ch = await self.get_mod_config(guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -1101,7 +1192,7 @@ class Mod(commands.Cog):
             await self.remove_user_restriction(guild.id,
                                                ext['user_id'],
                                                ext['role_id'])
-            ch = await self.get_mod_config(guild_id=guild.id)
+            ch = await self.get_mod_config(guild.id)
             if not ch:
                 return
             logch = ch.has_log_channel("modlog_chan")
@@ -1126,7 +1217,7 @@ class Mod(commands.Cog):
                                            user.id,
                                            role.id)
         await user.remove_roles(role, reason=reason)
-        ch = await self.get_mod_config(guild_id=guild.id)
+        ch = await self.get_mod_config(guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -1145,110 +1236,315 @@ class Mod(commands.Cog):
                                                             time=jobinfo['expiry'], role=role)
                 await self.channelid_send(ext['guild_id'], logch, "modlog_chan", message)
 
-# Most commands here taken from robocop-ngs mod.py
-# https://github.com/aveao/robocop-ng/blob/master/cogs/mod_user.py
-# robocop-ng is MIT licensed
+    async def get_warns_for_id(self, ctx, user_id: int, author_warns: bool = True,
+                               name: str = ""):
+        query = """SELECT warn_id, reason, timestamp, mod_id, pardoned FROM warns
+                   WHERE guild_id=$1
+                   AND user_id=$2
+                   ORDER BY warn_id ASC
+                """
+        ret = await self.bot.db.fetch(query, ctx.guild.id, user_id)
+        if len(ret) == 0:
+            return await ctx.safe_send(f"{name if name else user_id} has no warnings!")
+        warnings = []
 
-    async def get_userlog_embed_for_id(self, ctx, uid: str, name: str, guild,
-                                       own: bool = False, event=""):
-        own_note = " Good for you!" if own else ""
-        wanted_events = ["warns", "bans", "kicks", "mutes"]
-        if event:
-            wanted_events = [event]
-        userlog = await get_userlog(self.bot, guild)
+        for w in ret:
+            if author_warns is False:
+                moderator = ctx.guild.get_member(w['mod_id'])
+                if moderator:
+                    moderator = f": {moderator} ({moderator.id})"
+                else:
+                    moderator = f" ID: {w['mod_id']}"
+                moderator_text = f"Moderator{moderator}"
+            else:
+                moderator_text = ""
+            if w['pardoned']:
+                query = """SELECT mod_id, timestamp FROM pardoned_warns
+                           WHERE guild_id=$1
+                           AND warn_id=$2;
+                        """
+                p = await self.bot.db.fetchrow(query, ctx.guild.id, w['warn_id'])
+                pmod = ctx.guild.get_member(p['mod_id'])
+                if pmod:
+                    pmod = f"{pmod} ({pmod.id})"
+                else:
+                    pmod = f"Mod ID: {p['mod_id']}"
+                pardon = f"\n**Pardoned Warn by: {pmod} at {get_utc_timestamp(p['timestamp'])}**"
+            else:
+                pardon = ""
+            warnings.append((f"Warn ID **{w['warn_id']}**: {get_utc_timestamp(w['timestamp'])}",
+                             f"{moderator_text if moderator_text else ''}\nReason: "
+                             f"{w['reason']}" + pardon))
+        if name:
+            name = f"{name} ({user_id})"
+        else:
+            name = f"ID: {user_id}"
+        p = WarnPages(f"Warns for {name}", ctx, entries=warnings, per_page=5)
+        p.embed.color = 0xf51515
+        return await p.paginate()
 
-        if uid not in userlog:
-            embed = discord.Embed(title=f"Warns for {name}")
-            embed.description = f"There are none!{own_note} (no entry)"
-            embed.color = discord.Color.green()
-            return await ctx.send(embed=embed)
-        entries = []
-        for event_type in wanted_events:
-            if event_type in userlog[uid] and userlog[uid][event_type]:
-                event_name = userlog_event_types[event_type]
-                for idx, event in enumerate(userlog[uid][event_type]):
-                    issuer = "" if own else f"Issuer: {event['issuer_name']} " \
-                                            f"({event['issuer_id']})\n"
-                    entries.append((f"{event_name} {idx + 1}: "
-                                    f"{event['timestamp']}",
-                                    issuer + f"Reason: {event['reason']}"))
-        if len(entries) == 0:
-            embed = discord.Embed(title=f"Warns for {name}")
-            embed.description = f"There are none!{own_note}"
-            embed.color = 0x2ecc71
-            return await ctx.send(embed=embed)
-        embed = WarnPages(f"Warns for {name}", ctx, entries=entries, per_page=5)
-        embed.embed.color = 0xf51515
-        return await embed.paginate()
+    async def pardon_warn(self, ctx, warn_id: int):
+        query = """INSERT INTO pardoned_warns (guild_id, warn_id, mod_id, timestamp)
+                   VALUES ($1, $2, $3, $4);
+                """
+        query2 = """UPDATE warns
+                    SET pardoned = '1'
+                    WHERE guild_id=$1 AND warn_id=$2
+                    RETURNING user_id
+                 """
+        async with self.bot.db.acquire() as con:
+            async with con.transaction():
+                try:
+                    await con.execute(query, ctx.guild.id, warn_id, ctx.author.id,
+                                      ctx.message.created_at)
+                except asyncpg.UniqueViolationError:
+                    raise WarnError(f"Warn ID: `{warn_id}` is already pardoned.")
+                except asyncpg.ForeignKeyViolationError:
+                    raise WarnError(f"{botemojis.x} That warn ID does not exist!")
+                return await con.fetchrow(query2, ctx.guild.id, warn_id)
 
-    async def clear_event_from_id(self, uid: str, event_type, guild):
-        userlog = await get_userlog(self.bot, guild)
-        if uid not in userlog:
-            raise NoWarns(uid)
-        event_count = len(userlog[uid][event_type])
-        if not event_count:
-            raise NoWarns(uid)
-        userlog[uid][event_type] = []
-        await set_userlog(self.bot, guild, userlog)
-        return f"<@{uid}> no longer has any {event_type}!"
+    async def transfer_warns_to_id(self, guild_id: int, previous_user: int, new_user: int):
+        """Transfers warns to another ID"""
+        query = """UPDATE warns
+                   SET user_id = $1
+                   WHERE guild_id=$2 AND user_id = $3
+                   RETURNING warn_id;
+                """
+        async with self.bot.db.acquire() as con:
+            async with con.transaction():
+                return await con.fetch(query, new_user, guild_id, previous_user)
 
-    async def delete_event_from_id(self, uid: str, idx: int, event_type, guild):
-        userlog = await get_userlog(self.bot, guild)
-        if uid not in userlog:
-            raise NoWarns(uid)
-        event_count = len(userlog[uid][event_type])
-        if not event_count:
-            raise NoWarns(uid)
-        if idx > event_count:
-            return "Index is higher than " \
-                   f"count ({event_count})!"
-        if idx < 1:
-            return "Index is below 1!"
-        event = userlog[uid][event_type][idx - 1]
-        event_name = userlog_event_types[event_type]
-        embed = discord.Embed(color=0xf51515,
-                              title=f"{event_name} {idx} on "
-                                    f"{event['timestamp']}",
-                              description=f"Issuer: {event['issuer_name']}\n"
-                                          f"Reason: {event['reason']}")
-        del userlog[uid][event_type][idx - 1]
-        await set_userlog(self.bot, guild, userlog)
-        return embed
+    async def clear_warns_by_id(self, guild_id: int, user_id: int, name: str = ""):
+        """Clears warns for a user id.
 
-    @commands.guild_only()
+        Parameters
+        -----------
+        guild_id: int
+            The guild ID you are clearing the warnings from.
+        user_id: int
+            The user ID that you are clearing all warnings from.
+        name: str
+            Optional string of the name of the user whose warnings are being cleared.
+
+        Returns
+        --------
+        :class:discord.File containing all warns cleared and a count of
+        how many warnings were cleared."""
+        warnlist = """SELECT warn_id, reason, timestamp, mod_id, pardoned FROM warns
+                      WHERE guild_id=$1
+                      AND user_id=$2
+                      ORDER BY warn_id ASC;
+                   """
+        query = """DELETE FROM warns
+                   WHERE guild_id=$1
+                   AND user_id=$2
+                """
+        async with self.bot.db.acquire() as con:
+            async with con.transaction():
+                warnlist = await con.fetch(warnlist, guild_id, user_id)
+                if not warnlist:
+                    raise WarnError(f"{name if name else user_id} has no warnings!")
+                await con.execute(query, guild_id, user_id)
+        # Prepare a warn file
+        clearedwarns = []
+        for warn in warnlist:
+            clearedwarns.append(warn['warn_id'])
+            clearedwarns.append(get_utc_timestamp(warn['timestamp']))
+            clearedwarns.append(warn['mod_id'])
+            clearedwarns.append(warn['reason'] if warn['reason'] else "No reason provided")
+        text = self.make_markdown_formatted_table(['Warn ID', 'Timestamp', 'Moderator ID', 'Reason'], clearedwarns)
+        file = io.StringIO()
+        file.write(text)
+        file.seek(0)
+        return discord.File(file, filename=f"cleared_warn_list_{user_id}.md"), len(clearedwarns) // 4
+
+    def make_markdown_formatted_table(self, columns: list, data: list):
+        """Makes a table in Github flavored markdown"""
+        table = ""
+        for c in columns:
+            table += "|{:^{table}}".format(c, table=(len(c) + 2))
+        table += "|\n"
+        table += f"| --- " * len(columns)
+        table += "|\n"
+        counter = 0
+        for d in data:
+            if counter >= len(columns):
+                table += f"|\n"
+                # Reset our counter
+                counter = 0
+            table += f"| {d} "
+            counter += 1
+        table += "|\n"
+        return table
+
+    async def delete_warn_by_id(self, ctx, guild_id: int, warn_id: int, uid: int = None) -> discord.Embed:
+        """Deletes a warn by Warn ID.
+
+        Parameters
+        -----------
+        ctx: Context
+            The context of the command.
+        guild_id: int
+            The guild id that you are deleting a warn from.
+        warn_id: int
+            The warning ID of the warning you are deleting.
+        uid: int
+            An optional extra lookup for the warning ID.
+            Default: None
+
+        Returns
+        -------
+        :class:discord.Embed containing information about the warning that was deleted"""
+        if uid is None:
+            query1 = """SELECT reason, mod_id, timestamp, user_id FROM warns
+                        WHERE guild_id=$1
+                        AND warn_id=$2;
+                    """
+        else:
+            query1 = """SELECT reason, mod_id, timestamp, user_id FROM warns
+                        WHERE guild_id=$1
+                        AND warn_id=$2 AND user_id=$3;
+                    """
+        query2 = """DELETE FROM warns
+                    WHERE guild_id=$1
+                    AND warn_id=$2;
+                """
+        async with self.bot.db.acquire() as con:
+            async with con.transaction():
+                if uid is None:
+                    entry = await con.fetchrow(query1, guild_id, warn_id)
+                else:
+                    entry = await con.fetchrow(query1, guild_id, warn_id, uid)
+                if entry is None:
+                    raise WarnError(f"Warn ID \"{warn_id}\" does not exist!")
+                await con.execute(query2, guild_id, warn_id)
+        msg = ""
+        user = ctx.guild.get_member(entry['user_id'])
+        if user:
+            msg += f"User: {user} ({user.id})\n"
+        else:
+            msg += f"User ID: {entry['user_id']}"
+        moderator = ctx.guild.get_member(entry['mod_id'])
+        if moderator:
+            msg += f"Moderator: {moderator} ({moderator.id})\n"
+        else:
+            msg += f"Moderator ID: {entry['mod_id']}\n"
+        msg += f"Timestamp: {get_utc_timestamp(entry['timestamp'])}\nReason: {entry['reason']}"
+        em = discord.Embed(title="Deleted Warn", color=0xf51515,
+                           description=msg, timestamp=ctx.message.created_at)
+        return em
+
     @is_staff_or_has_perms("Helper", manage_messages=True)
-    @commands.command(name="listwarns")
-    async def userlog_cmd(self, ctx, *, target: converters.GuildorNonGuildUser):
+    @commands.command()
+    @commands.cooldown(1, 10.0, commands.BucketType.member)  # Lol
+    async def listwarns(self, ctx, *, target: converters.GuildorNonGuildUser):
         """Lists warns for a user.
 
-        In order to use this command, You must either have
+        In order to use this command, you must either have
         Manage Messages permission or a role that
         is assigned as a Helper or above in the bot."""
-        await self.get_userlog_embed_for_id(ctx, str(target.id), str(target),
-                                            event="warns", guild=ctx.guild)
+        await self.get_warns_for_id(ctx, target.id, author_warns=False, name=target)
 
-    @commands.guild_only()
     @commands.command()
     async def mywarns(self, ctx):
         """Lists your warns."""
-        await self.get_userlog_embed_for_id(ctx, str(ctx.author.id),
-                                            str(ctx.author),
-                                            own=True,
-                                            event="warns",
-                                            guild=ctx.guild)
+        await self.get_warns_for_id(ctx, ctx.author.id, author_warns=True, name=str(ctx.author))
+
+    @commands.command(usage="<warn ID>")
+    @is_staff_or_has_perms("Moderator", manage_messages=True)
+    async def pardonwarn(self, ctx, warn_id: int):
+        """Pardons a warning by warn ID.
+
+        This transforms a warn into a "softwarn".
+
+        In order to use this command, you must either have
+        Manage Messages permission or a role that is assigned
+        as a Moderator in the bot."""
+        value = await self.pardon_warn(ctx, warn_id)
+        member = ctx.guild.get_member(value['user_id'])
+        if not member:
+            member = discord.Object(id=value['user_id'])
+        await ctx.send(f"\N{OK HAND SIGN} Pardoned warn `{warn_id}`")
+        ch = await self.get_mod_config(ctx.guild.id)
+        if not ch:
+            return
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
+            if logstyle == "kurisu":
+                message = modlog_formatter.kurisu_format('pardonwarn',
+                                                         member,
+                                                         ctx.author, reason=None, warn_id=warn_id)
+                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
+            if logstyle == "lightning":
+                message = modlog_formatter.lightning_format('pardonwarn',
+                                                            member,
+                                                            ctx.author, reason=None,
+                                                            time=ctx.message.created_at, warn_id=warn_id)
+                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
+
+    @pardonwarn.error
+    async def pdw_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            return await ctx.send(f"{botemojis.x} You need to provide a warn ID to pardon.")
+        elif isinstance(error, commands.BadArgument):
+            return await ctx.send(f"{botemojis.x} You need to provide a warn ID.")
+        elif isinstance(error, LightningError):
+            return await ctx.safe_send(error)
+
+    async def get_old_userlog(self, guild):
+        query = """SELECT userlog FROM userlogs WHERE guild_id=$1"""
+        ret = await self.bot.db.fetchval(query, guild.id)
+        if ret:
+            return json.loads(ret)
+        else:
+            return {}
+
+    @commands.command()
+    @is_staff_or_has_perms("Admin", manage_guild=True)
+    @commands.cooldown(1, 60.0, commands.BucketType.guild)
+    async def migratewarns(self, ctx):
+        """Migrates the server's warnings to the new warn system."""
+        userlog = await self.get_old_userlog(ctx.guild)
+        if len(userlog) == 0:
+            return await ctx.send("This server has no warns recorded for any users "
+                                  "or you have already migrated warns.")
+        entries = []
+        for uid in userlog:
+            if userlog[uid]['warns']:
+                for idx, entry in enumerate(userlog[uid]['warns']):
+                    toadd = {"guild_id": ctx.guild.id,
+                             "user_id": int(uid),
+                             "mod_id": entry['issuer_id'],
+                             "timestamp": dateutil.parser.parse(entry['timestamp'][:-4]).isoformat(),
+                             "reason": entry['reason'] if entry['reason'] else "No reason provided."}
+                    entries.append(toadd)
+        query = """INSERT INTO warns (guild_id, user_id, mod_id, timestamp, reason)
+                   SELECT data.guild_id, data.user_id, data.mod_id, data.timestamp, data.reason
+                   FROM jsonb_to_recordset($1::jsonb) AS
+                   data(guild_id BIGINT, user_id BIGINT, mod_id BIGINT,
+                        timestamp TIMESTAMP, reason TEXT)
+                """
+        async with self.bot.db.acquire() as con:
+            async with con.transaction():
+                await con.execute(query, json.dumps(entries))
+                query = """DELETE FROM userlogs WHERE guild_id=$1"""
+                await con.execute(query, ctx.guild.id)
+        await ctx.send(f"\N{OK HAND SIGN} Migrated {len(entries)} warn entries.")
 
     @commands.guild_only()
     @is_staff_or_has_perms("Admin", administrator=True)
     @commands.command()
+    @commands.cooldown(1, 30.0, commands.BucketType.guild)
     async def clearwarns(self, ctx, *, target: converters.GuildorNonGuildUser):
         """Clears all warns for a user.
 
         In order to use this command, You must either have
         Administrator permission or a role that
         is assigned as an Admin or above in the bot."""
-        msg = await self.clear_event_from_id(str(target.id), "warns", guild=ctx.guild)
-        await ctx.send(msg)
-        ch = await self.get_mod_config(guild_id=ctx.guild.id)
+        fattachment, warncount = await self.clear_warns_by_id(ctx.guild.id, target.id, str(target))
+        await ctx.safe_send(f"\N{OK HAND SIGN} Cleared {warncount} warnings from {target}")
+        ch = await self.get_mod_config(ctx.guild.id)
         if not ch:
             return
         logch = ch.has_log_channel("modlog_chan")
@@ -1258,53 +1554,65 @@ class Mod(commands.Cog):
                 message = modlog_formatter.kurisu_format('clearwarns',
                                                          target,
                                                          ctx.author, reason=None)
-                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
+                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message, file=fattachment)
             if logstyle == "lightning":
                 message = modlog_formatter.lightning_format('clearwarns',
                                                             target,
                                                             ctx.author, reason=None,
                                                             time=ctx.message.created_at)
-                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message)
+                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message, file=fattachment)
 
     @commands.guild_only()
     @is_staff_or_has_perms("Admin", administrator=True)
-    @commands.command(aliases=["deletewarn"])
-    async def delwarn(self, ctx, target: converters.GuildorNonGuildUser, idx: int):
-        """Removes a specific warn from a user.
+    @commands.command(aliases=["deletewarn"], usage="<warn ID> [user]")
+    async def delwarn(self, ctx, warn_id: int, *, target: discord.Member = None):
+        """Removes a specific warn ID.
 
-        In order to use this command, You must either have
+        In order to use this command, you must either have
         Administrator permission or a role that
         is assigned as an Admin or above in the bot."""
-        del_event = await self.delete_event_from_id(str(target.id),
-                                                    idx, "warns",
-                                                    guild=ctx.guild)
-        event_name = "warn"
-        # This is hell.
-        if isinstance(del_event, discord.Embed):
-            await ctx.safe_send(f"{str(target)} has a {event_name} removed!")
-            ch = await self.get_mod_config(guild_id=ctx.guild.id)
-            if not ch:
-                return
-            logch = ch.has_log_channel("modlog_chan")
-            if logch is not None:
-                logch, logstyle = logch
-                if logstyle == "kurisu":
-                    message = modlog_formatter.kurisu_format('clearwarn',
-                                                             target,
-                                                             ctx.author, reason=None, warn_number=idx)
-                    await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message, embed=del_event)
-                if logstyle == "lightning":
-                    message = modlog_formatter.lightning_format('clearwarn',
-                                                                target,
-                                                                ctx.author, reason=None,
-                                                                time=ctx.message.created_at,
-                                                                warn_count=idx)
-                    await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message, embed=del_event)
+        if target is None:
+            em = await self.delete_warn_by_id(ctx, ctx.guild.id, warn_id)
         else:
-            await ctx.send(del_event)
+            em = await self.delete_warn_by_id(ctx, ctx.guild.id, warn_id, target.id)
+        if target is None:
+            await ctx.safe_send(f"\N{OK HAND SIGN} Deleted warn ID `{warn_id}`")
+        else:
+            await ctx.safe_send(f"\N{OK HAND SIGN} Deleted warn ID `{warn_id}` from {str(target)}")
+        ch = await self.get_mod_config(ctx.guild.id)
+        if not ch:
+            return
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            logch, logstyle = logch
+            if logstyle == "kurisu":
+                message = modlog_formatter.kurisu_remove_warn_id(ctx.author,
+                                                                 warn_id, member=target)
+                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message, embed=em)
+            if logstyle == "lightning":
+                message = modlog_formatter.lightning_remove_warn_id(ctx.author,
+                                                                    warn_id, ctx.message.created_at,
+                                                                    member=target)
+                await self.channelid_send(ctx.guild.id, logch, "modlog_chan", message, embed=em)
+
+    @commands.Cog.listener()
+    async def on_automod_action(self, guild, action, user, reason):
+        await self.bot.wait_until_ready()
+        ch = await self.get_mod_config(guild.id)
+        if not ch:
+            return
+        logch = ch.has_log_channel("modlog_chan")
+        if logch is not None:
+            if logch[1] == "kurisu":
+                message = modlog_formatter.kurisu_format(action, user, self.bot.user, reason)
+                await self.channelid_send(guild.id, logch[0], "modlog_chan", message)
+            if logch[1] == "lightning":
+                message = modlog_formatter.lightning_format(action, user, self.bot.user, reason)
+                await self.channelid_send(guild.id, logch[0], "modlog_chan", message)
 
     @commands.Cog.listener()
     async def on_member_ban(self, guild, user):
+        await self.bot.wait_until_ready()
         # Wait for Audit Log to update
         await asyncio.sleep(0.5)
         if not guild.me.guild_permissions.view_audit_log:
@@ -1466,7 +1774,7 @@ class Mod(commands.Cog):
                                                                      moderator=author,
                                                                      reason=reason)
                             await self.channelid_send(guild.id, logch, "modlog_chan", message)
-                        elif ch['log_format'] == "lightning":
+                        elif logstyle == "lightning":
                             message = modlog_formatter.lightning_format(log_action="Kick",
                                                                         target=entry.target,
                                                                         moderator=author,
@@ -1475,40 +1783,69 @@ class Mod(commands.Cog):
                             await self.channelid_send(guild.id, logch, "modlog_chan", message)
                 break
 
+    async def find_occurance(self, guild, action, match, limit=50, retry=True):
+        if hasattr(guild, 'me') is False:
+            return None
+        entry = None
+        if guild.me.guild_permissions.view_audit_log:
+            try:
+                async for e in guild.audit_logs(action=action, limit=limit):
+                    if match(e):
+                        if entry is None or e.id > entry.id:
+                            entry = e
+            except discord.Forbidden:
+                pass
+        if entry is None and retry:
+            await asyncio.sleep(2)
+            return await self.find_occurance(guild, action, match, limit, False)
+        # if entry is not None and isinstance(entry.target, discord.Object):
+        #    entry.target = await self.bot.get_user(entry.target.id)
+        return entry
+
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
         await self.bot.wait_until_ready()
+        guild = before.guild
         if before.roles != after.roles:
-            await asyncio.sleep(0.5)
-            if not before.guild.me.guild_permissions.view_audit_log:
-                return
             ch = await self.get_mod_config(after.guild.id)
             if not ch:
                 return
             logch = ch.has_log_channel("role_change")
             if logch:
                 logch, logstyle = logch
+                added = [role for role in after.roles if role not in before.roles]
+                removed = [role for role in before.roles if role not in after.roles]
+                if (len(added) + len(removed)) == 0:
+                    return
+
+                def etc(entry):
+                    e = entry
+                    if entry.target.id == before.id and hasattr(e.changes.before, "roles") \
+                        and hasattr(e.changes.after, "roles") and \
+                        all(r in e.changes.before.roles for r in removed) and \
+                            all(r in e.changes.after.roles for r in added):
+                        return True
+                    return False
+                entry = await self.find_occurance(guild, discord.AuditLogAction.member_role_update,
+                                                  etc)
                 if logstyle == "kurisu":
-                    added = [role for role in after.roles if role not in before.roles]
-                    removed = [role for role in before.roles if role not in after.roles]
-                    async for entry in before.guild.audit_logs(action=discord.AuditLogAction.member_role_update,
-                                                               limit=50):
-                        if entry.target == after and all(role in entry.changes.after.roles for role in added) \
-                                and all(role in entry.changes.before.roles for role in removed):
-                            msg = modlog_formatter.kurisu_role_change(added, removed, after, entry.user)
-                            await self.channelid_send(after.guild.id, logch, "role_change", msg)
-                            break
+                    if entry:
+                        removed = entry.changes.before.roles
+                        added = entry.changes.after.roles
+                        msg = modlog_formatter.kurisu_role_change(added, removed, after, entry.user)
+                    else:
+                        msg = modlog_formatter.kurisu_role_change(added, removed, after)
+                    await self.channelid_send(after.guild.id, logch, "role_change", msg)
                 if logstyle == "lightning":
-                    added = [role for role in after.roles if role not in before.roles]
-                    removed = [role for role in before.roles if role not in after.roles]
-                    async for entry in before.guild.audit_logs(action=discord.AuditLogAction.member_role_update,
-                                                               limit=50):
-                        if entry.target == after and all(role in entry.changes.after.roles for role in added) \
-                                and all(role in entry.changes.before.roles for role in removed):
-                            msg = modlog_formatter.lightning_role_change(after, added, removed, entry.user,
-                                                                         entry.created_at, entry.reason)
-                            await self.channelid_send(after.guild.id, logch, "role_change", msg)
-                            break
+                    if entry:
+                        removed = entry.changes.before.roles
+                        added = entry.changes.after.roles
+                        msg = modlog_formatter.lightning_role_change(after, added, removed, entry.user,
+                                                                     entry.created_at, entry.reason)
+                    else:
+                        msg = modlog_formatter.lightning_role_change(after, added, removed, None,
+                                                                     datetime.utcnow())
+                    await self.channelid_send(after.guild.id, logch, "role_change", msg)
 
 
 def setup(bot):
