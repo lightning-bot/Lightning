@@ -141,4 +141,8 @@ CREATE TABLE IF NOT EXISTS pardoned_warns
     CONSTRAINT pardoned_warns_pkey PRIMARY KEY (guild_id, warn_id)
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS warns_uniq_idx ON warns (warn_id, user_id, mod_id, timestamp, reason, pardoned);
+CREATE UNIQUE INDEX IF NOT EXISTS pardoned_warns_uniq_idx ON pardoned_warns (warn_id, mod_id, timestamp);
+
+
 ALTER TABLE guild_mod_config ADD COLUMN IF NOT EXISTS muted BIGINT [];

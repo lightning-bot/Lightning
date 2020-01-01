@@ -109,10 +109,11 @@ CREATE TABLE IF NOT EXISTS snipe_settings
     mod_id BIGINT,
     timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc'),
     reason TEXT,
-    pardoned BOOLEAN,
+    pardoned BOOLEAN DEFAULT FALSE,
     CONSTRAINT warns_pkey PRIMARY KEY (guild_id, warn_id)
-);"""
-    pardonwarnings = """CREATE TABLE IF NOT EXISTS pardoned_warns
+);
+
+CREATE TABLE IF NOT EXISTS pardoned_warns
 (
     guild_id BIGINT,
     warn_id SERIAL,
@@ -120,4 +121,7 @@ CREATE TABLE IF NOT EXISTS snipe_settings
     timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc'),
     FOREIGN KEY (guild_id, warn_id) REFERENCES warns (guild_id, warn_id) ON DELETE CASCADE,
     CONSTRAINT pardoned_warns_pkey PRIMARY KEY (guild_id, warn_id)
-);"""
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS warns_uniq_idx ON warns (warn_id, user_id, mod_id, timestamp, reason, pardoned);
+CREATE UNIQUE INDEX IF NOT EXISTS pardoned_warns_uniq_idx ON pardoned_warns (warn_id, mod_id, timestamp);"""
