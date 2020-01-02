@@ -178,13 +178,6 @@ class Configuration(commands.Cog):
         mod = self.bot.get_cog('Mod')
         mod.get_mod_config.invalidate(mod, ctx.guild.id)
 
-    @commands.command()
-    async def test(self, ctx):
-        _session = InitialSetup(channel=ctx.channel, timeout=60)
-        _session._emoji_list = ["\N{LEDGER}", "\N{OPEN BOOK}", "\N{CLOSED BOOK}", "\N{NOTEBOOK}"]
-        _session.channel = ctx.channel
-        await _session.start(ctx)
-
     @commands.command(name="settings")
     @commands.has_permissions(manage_guild=True)
     async def view_guild_settings(self, ctx):
