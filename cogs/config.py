@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 import asyncio
 import json
 
@@ -88,7 +87,6 @@ class SelectLogType(ui.Session):
 
     @ui.command(r'^[\s\d]+$')
     async def events(self, message):
-        await self.context.send(repr(message))
         self.msg = message
         await self.stop()
 
@@ -308,9 +306,8 @@ class Configuration(commands.Cog):
     @setup.error
     async def on_setup_err(self, ctx, error):
         if isinstance(error, commands.CommandInvokeError):
-            error = error.original
-            if isinstance(error, TimeoutError):
-                return await ctx.send(error)
+            if isinstance(error.original, asyncio.TimeoutError):
+                return await ctx.send('You took too long to respond. Cancelling...')
 
     @commands.group(aliases=['mod-role', 'modroles'])
     @commands.guild_only()
