@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS warns
     timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc'),
     reason TEXT,
     pardoned BOOLEAN DEFAULT FALSE,
-    CONSTRAINT warns_pkey PRIMARY KEY (guild_id, warn_id)
+    PRIMARY KEY (guild_id, warn_id)
 );
 
 CREATE TABLE IF NOT EXISTS pardoned_warns
