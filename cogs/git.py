@@ -354,7 +354,7 @@ class Git(commands.Cog):
         """Adds a label to an issue.
 
         Provide no labels to remove all labels"""
-        url = self.create_api_url(path="/issues") + f"/{issue}"
+        url = self.create_api_url(path=f"/issues/{issue}")
         data = await self.make_gitlab_request("GET", url)
         _labels = [e for e in data['labels']]
         _labels.extend(labels)
