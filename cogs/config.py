@@ -116,6 +116,22 @@ class InitialSetup(ui.Session):
         await self.context.send(f"Successfully setup logging for {self.channel.mention}")
         return await self.stop()
 
+    @ui.button('\N{OPEN BOOK}')
+    async def specific_logging(self, payload):
+        self.reaction = True
+        return await self.stop()
+
+    @ui.button('\N{CLOSED BOOK}')
+    async def remove_logging(self, payload):
+        await self.context.cog.remove_channel_log(self.context, self.channel)
+        await self.context.send(f"Removed logging from {self.channel.mention}!")
+        return await self.stop()
+
+    @ui.button("\N{NOTEBOOK}")
+    async def change_format(self, payload):
+        self.change = True
+        return await self.stop()
+
     @ui.button('⏹')
     async def quit(self, payload):
         await self.context.send("Cancelled")
@@ -246,18 +262,6 @@ class Configuration(commands.Cog):
         mod = self.bot.get_cog('Mod')
         mod.get_mod_config.invalidate(mod, guild_id)
 
-    async def edit_and_continue(self, message, new_content, clear_reacts=True, **kwargs):
-        if clear_reacts:
-            await message.clear_reactions()
-        msg = await message.edit(content=new_content)
-        if clear_reacts:
-            if "reactions" in kwargs:
-                reacts = kwargs.pop('reactions')
-                reacts.append("\N{BLACK SQUARE FOR STOP}")
-                for r in reacts:
-                    await message.add_reaction(r)
-        return msg
-
     @commands.command()
     @commands.bot_has_permissions(manage_messages=True, view_audit_log=True,
                                   add_reactions=True, send_messages=True)
@@ -272,25 +276,10 @@ class Configuration(commands.Cog):
         """
         if not channel:
             channel = ctx.channel
-        _session = InitialSetup(timeout=60)
+        _session = InitialSetup(channel=channel, timeout=60)
         _session._emoji_list = ["\N{LEDGER}", "\N{OPEN BOOK}", "\N{CLOSED BOOK}", "\N{NOTEBOOK}"]
-        _session.start(ctx)
-        
-
-        
-        if str(reaction) == "\N{BLACK SQUARE FOR STOP}":
-            return await ctx.send("Canceled.")
-        elif str(reaction) == initalemojis[0]:
-            await self.log_all_in_one(ctx, channel)
-            return await ctx.send(f"Successfully setup {channel.mention} as a logging channel.")
-        elif str(reaction) == initalemojis[2]:
-            await self.remove_channel_log(ctx, channel)
-            # TODO: Checks
-            return await ctx.send(f"Successfully removed logging from {channel.mention}.")
-        elif str(reaction) == initalemojis[3]:
-            session = ChangeLogFormat(timeout=60)
-            return await session.start(ctx)
-        elif str(reaction) == initalemojis[1]:
+        await _session.start(ctx)
+        if hasattr(_session, "reaction") is True:
             session = SelectLogType(timeout=60)
             await session.start(ctx)
             if hasattr(session, 'msg') is False:
@@ -309,9 +298,12 @@ class Configuration(commands.Cog):
                     ret[entries[i]] = channel.id
                     await self.set_modconfig(ctx, ret)
             if tempval:
-                await ctx.send(f"Successfully set up logging for {channel.mention}!")
+                return await ctx.send(f"Successfully set up logging for {channel.mention}!")
             else:
-                await ctx.send("Unable to determine what logging you wanted setup!")
+                return await ctx.send("Unable to determine what logging you wanted setup!")
+        if hasattr(_session, 'change') is True:
+            session = ChangeLogFormat(timeout=60)
+            return await session.start(ctx)
 
     @setup.error
     async def on_setup_err(self, ctx, error):
