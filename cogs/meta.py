@@ -486,14 +486,21 @@ class Meta(commands.Cog):
         source = "https://gitlab.com/lightning-bot/Lightning"
         if command is None:
             return await ctx.send(source)
-        obj = self.bot.get_command(command.replace(".", " "))
-        if obj is None:
-            return await ctx.send("I could not find that command.")
-        src = obj.callback.__code__
+        if command == "help":
+            src = type(self.bot.help_command)
+            module = src.__module__
+            filename = inspect.getsourcefile(src)
+        else:
+            obj = self.bot.get_command(command.replace(".", " "))
+            if obj is None:
+                return await ctx.send("I could not find that command.")
+            src = obj.callback.__code__
+            module = obj.callback.__module__
+            filename = src.co_filename
         lines, firstlineno = inspect.getsourcelines(src)
         location = ""
-        if not obj.callback.__module__.startswith("discord"):
-            location = os.path.relpath(src.co_filename).replace("\\", "/")
+        if not module.startswith("discord"):
+            location = os.path.relpath(filename).replace("\\", "/")
         await ctx.send(f"<{source}/blob/master/{location}#L{firstlineno}"
                        f"-{firstlineno + len(lines) - 1}>")
 

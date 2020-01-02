@@ -10,4 +10,5 @@ feedparser
 toml
 git+https://gitlab.com/lightning-bot/bolt@master#egg=bolt
 lru_dict
-dateutil
+python-dateutil
+dpy-ui

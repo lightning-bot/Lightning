@@ -13,13 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 import asyncio
 import json
 
 import asyncpg
 import discord
-from discord.ext import commands
+from discord.ext import commands, ui
 
 import resources.botemojis as emoji
 from utils.converters import ValidCommandName
@@ -37,6 +36,104 @@ class Prefix(commands.Converter):
         if len(argument) > 35:
             raise commands.BadArgument('You can\'t have a prefix longer than 35 characters!')
         return argument
+
+
+LOG_FORMAT_E = ["<:kurisu:644378407009910794>", "<:lightning:634193020950020097>"]
+LOG_FORMAT_D = {f"{LOG_FORMAT_E[0]}": "kurisu", f"{LOG_FORMAT_E[1]}": "lightning"}
+
+
+class ChangeLogFormat(ui.Session):
+    async def send_initial_message(self):
+        logformats = [f'{LOG_FORMAT_E[0]} for Kurisu format',
+                      f'{LOG_FORMAT_E[1]} for Lightning format']
+        return await self.context.send(f"React with {' or '.join(logformats)}."
+                                       " If you want to cancel setup, react with "
+                                       "\N{BLACK SQUARE FOR STOP} to cancel.")
+
+    @ui.button('<:kurisu:644378407009910794>')
+    async def kurisu_format(self, payload):
+        await self.context.cog.change_log_format(self.context.guild.id,
+                                                 LOG_FORMAT_D[str(payload.emoji)])
+        await self.context.send("Successfully changed log format")
+        return await self.stop()
+
+    @ui.button('<:lightning:634193020950020097>')
+    async def lightning_format(self, payload):
+        await self.context.cog.change_log_format(self.context.guild.id,
+                                                 LOG_FORMAT_D[str(payload.emoji)])
+        await self.context.send("Successfully changed log format")
+        return await self.stop()
+
+    @ui.button('⏹')
+    async def quit(self, payload):
+        await self.context.send("Cancelled")
+        return await self.stop()
+
+
+class SelectLogType(ui.Session):
+    async def send_initial_message(self):
+        content = "​Send the number of each event "\
+                  "you want to log in a single message "\
+                  "(space separated, \"1 3 5\"):\n"\
+                  "mod_logging: 1, member_join: 2, member_leave: 3,"\
+                  " role_change: 4, bot_add: 5."\
+                  "\n**To cancel, react with \U000023f9**"
+        return await self.context.send(content)
+
+    @ui.button('\U000023f9')
+    async def quit(self, payload):
+        await self.context.send("Cancelled")
+        return await self.stop()
+
+    @ui.command(r'^[\s\d]+$')
+    async def events(self, message):
+        self.msg = message
+        await self.stop()
+
+
+class InitialSetup(ui.Session):
+    def __init__(self, channel, **kwargs):
+        super().__init__(**kwargs)
+        self.channel = channel
+        self._emoji_list = ["\N{LEDGER}", "\N{OPEN BOOK}", "\N{CLOSED BOOK}", "\N{NOTEBOOK}"]
+
+    async def send_initial_message(self):
+        emoji_init = self._emoji_list
+        content = f"React with {emoji_init[0]} to log everything to {self.channel.mention}, "\
+                  f"react with {emoji_init[1]} to setup specific logging, "\
+                  f"or react with {emoji_init[2]} to remove logging "\
+                  f"from {self.channel.mention}. To change the mod logging format, "\
+                  f"react with {emoji_init[3]}."\
+                  " If you want to cancel setup, react with "\
+                  "\N{BLACK SQUARE FOR STOP} to cancel."
+        return await self.context.send(content)
+
+    @ui.button('\N{LEDGER}')
+    async def log_everything(self, payload):
+        await self.context.cog.log_all_in_one(self.context, self.channel)
+        await self.context.send(f"Successfully setup logging for {self.channel.mention}")
+        return await self.stop()
+
+    @ui.button('\N{OPEN BOOK}')
+    async def specific_logging(self, payload):
+        self.reaction = True
+        return await self.stop()
+
+    @ui.button('\N{CLOSED BOOK}')
+    async def remove_logging(self, payload):
+        await self.context.cog.remove_channel_log(self.context, self.channel)
+        await self.context.send(f"Removed logging from {self.channel.mention}!")
+        return await self.stop()
+
+    @ui.button("\N{NOTEBOOK}")
+    async def change_format(self, payload):
+        self.change = True
+        return await self.stop()
+
+    @ui.button('⏹')
+    async def quit(self, payload):
+        await self.context.send("Cancelled")
+        return await self.stop()
 
 
 class Configuration(commands.Cog):
@@ -80,6 +177,13 @@ class Configuration(commands.Cog):
                                   json.dumps(to_dump))
         mod = self.bot.get_cog('Mod')
         mod.get_mod_config.invalidate(mod, ctx.guild.id)
+
+    @commands.command()
+    async def test(self, ctx):
+        _session = InitialSetup(channel=ctx.channel, timeout=60)
+        _session._emoji_list = ["\N{LEDGER}", "\N{OPEN BOOK}", "\N{CLOSED BOOK}", "\N{NOTEBOOK}"]
+        _session.channel = ctx.channel
+        await _session.start(ctx)
 
     @commands.command(name="settings")
     @commands.has_permissions(manage_guild=True)
@@ -156,18 +260,6 @@ class Configuration(commands.Cog):
         mod = self.bot.get_cog('Mod')
         mod.get_mod_config.invalidate(mod, guild_id)
 
-    async def edit_and_continue(self, message, new_content, clear_reacts=True, **kwargs):
-        if clear_reacts:
-            await message.clear_reactions()
-        msg = await message.edit(content=new_content)
-        if clear_reacts:
-            if "reactions" in kwargs:
-                reacts = kwargs.pop('reactions')
-                reacts.append("\N{BLACK SQUARE FOR STOP}")
-                for r in reacts:
-                    await message.add_reaction(r)
-        return msg
-
     @commands.command()
     @commands.bot_has_permissions(manage_messages=True, view_audit_log=True,
                                   add_reactions=True, send_messages=True)
@@ -182,70 +274,16 @@ class Configuration(commands.Cog):
         """
         if not channel:
             channel = ctx.channel
-        initalemojis = ["\N{LEDGER}", "\N{OPEN BOOK}", "\N{CLOSED BOOK}", "\N{NOTEBOOK}"]
-
-        msg = await ctx.send(f"React with {initalemojis[0]} to log everything to {channel.mention}, "
-                             f"react with {initalemojis[1]} to setup specific logging, "
-                             f"or react with {initalemojis[2]} to remove logging "
-                             f"from {channel.mention}. To change the mod logging format, "
-                             f"react with {initalemojis[3]}."
-                             " If you want to cancel setup, react with "
-                             "\N{BLACK SQUARE FOR STOP} to cancel.")
-        await self.add_reacts(msg, initalemojis)
-
-        def check(reaction, user):
-            return user == ctx.author and str(reaction.emoji) in initalemojis
-        try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
-        except asyncio.TimeoutError:
-            return await ctx.send('You took too long to respond.')
-        if str(reaction) == "\N{BLACK SQUARE FOR STOP}":
-            return await ctx.send("Canceled.")
-        elif str(reaction) == initalemojis[0]:
-            await self.log_all_in_one(ctx, channel)
-            return await ctx.send(f"Successfully setup {channel.mention} as a logging channel.")
-        elif str(reaction) == initalemojis[2]:
-            await self.remove_channel_log(ctx, channel)
-            # TODO: Checks
-            return await ctx.send(f"Successfully removed logging from {channel.mention}.")
-        elif str(reaction) == initalemojis[3]:
-            logemojis = ["<:kurisu:644378407009910794>", "<:lightning:634193020950020097>"]
-            logformats = [f'{logemojis[0]} for Kurisu format',
-                          f'{logemojis[1]} for Lightning format']
-            msg = await self.edit_and_continue(msg, f"React with {' or '.join(logformats)}."
-                                               " If you want to cancel setup, react with "
-                                               "\N{BLACK SQUARE FOR STOP} to cancel.",
-                                               reactions=logemojis)
-
-            def checklog(reaction, user):
-                return user == ctx.author and str(reaction.emoji) in logemojis
-            try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=checklog)
-            except asyncio.TimeoutError:
-                return await ctx.send('You took too long to respond.')
-            if str(reaction) == "\N{BLACK SQUARE FOR STOP}":
-                return await ctx.send("Canceled.")
-            elif str(reaction) in logemojis:
-                ext = {f"{logemojis[0]}": "kurisu", f"{logemojis[1]}": "lightning"}
-                await self.change_log_format(ctx.guild.id, ext[str(reaction)])
-                return await ctx.send("Successfully changed log format!")
-        elif str(reaction) == initalemojis[1]:
-            eventcontent = "​Send the number of each event "\
-                           "you want to log in a single message "\
-                           "(space separated, \"1 3 5\"):\n"\
-                           "mod_logging: 1, member_join: 2, member_leave: 3,"\
-                           " role_change: 4, bot_add: 5."\
-                           " **To cancel, type `cancel`**"
-            await self.edit_and_continue(msg, eventcontent, clear_reacts=True)
-
-            def checkmsg(msg):
-                return msg.channel == ctx.message.channel and msg.author == ctx.message.author
-            try:
-                message = await self.bot.wait_for('message', timeout=60.0, check=checkmsg)
-            except asyncio.TimeoutError:
-                return await ctx.send('You took too long to respond.')
-            if message.content == "cancel":
-                return await ctx.send("Cancelled.")
+        _session = InitialSetup(channel=channel, timeout=60)
+        _session._emoji_list = ["\N{LEDGER}", "\N{OPEN BOOK}", "\N{CLOSED BOOK}", "\N{NOTEBOOK}"]
+        await _session.start(ctx)
+        if hasattr(_session, "reaction") is True:
+            session = SelectLogType(timeout=60)
+            await session.start(ctx)
+            if hasattr(session, 'msg') is False:
+                # We can safely assume the session was stopped
+                return
+            message = session.msg
             message = message.content.split()
             entries = {"1": "modlog_chan", "2": "member_join",
                        "3": "member_leave", "4": "role_change",
@@ -258,9 +296,18 @@ class Configuration(commands.Cog):
                     ret[entries[i]] = channel.id
                     await self.set_modconfig(ctx, ret)
             if tempval:
-                await ctx.send(f"Successfully set up logging for {channel.mention}!")
+                return await ctx.send(f"Successfully set up logging for {channel.mention}!")
             else:
-                await ctx.send("Unable to determine what logging you wanted setup!")
+                return await ctx.send("Unable to determine what logging you wanted setup!")
+        if hasattr(_session, 'change') is True:
+            session = ChangeLogFormat(timeout=60)
+            return await session.start(ctx)
+
+    @setup.error
+    async def on_setup_err(self, ctx, error):
+        if isinstance(error, commands.CommandInvokeError):
+            if isinstance(error.original, asyncio.TimeoutError):
+                return await ctx.send('You took too long to respond. Cancelling...')
 
     @commands.group(aliases=['mod-role', 'modroles'])
     @commands.guild_only()
