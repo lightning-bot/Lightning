@@ -35,7 +35,7 @@ class ToggleRoles(commands.Cog):
     async def togglerole(self, ctx, *, role: RoleSearch):
         """Toggles a role that this server has setup.
 
-        Use '.togglerole list' for a list of roles that you can toggle."""
+        Use 'togglerole list' for a list of roles that you can toggle."""
         query = """SELECT role_id FROM toggleable_roles WHERE guild_id=$1 AND role_id=$2"""
         res = await self.bot.db.fetchval(query, ctx.guild.id, role.id)
 
