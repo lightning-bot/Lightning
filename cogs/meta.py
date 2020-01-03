@@ -159,7 +159,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             alias = fmt
         else:
             alias = command.name if not parent else f'{parent} {command.name}'
-        return f'{alias} {command.signature}'
+        return f'{alias}'
 
     async def send_bot_help(self, mapping):
         def key(c):
@@ -203,10 +203,14 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
     def common_command_formatting(self, page_or_embed, command):
         page_or_embed.title = self.get_command_signature(command)
-        if command.description:
-            page_or_embed.description = f'{command.description}\n\n{command.help}'
+        if command.signature:
+            usage = f"**Usage**: {command.qualified_name} {command.signature}\n\n"
         else:
-            page_or_embed.description = command.help or 'No help found...'
+            usage = f"**Usage**: {command.qualified_name}\n\n"
+        if command.description:
+            page_or_embed.description = f'{usage}{command.description}\n\n{command.help}'
+        else:
+            page_or_embed.description = f'{usage}{command.help}' or 'No help found...'
 
     async def send_command_help(self, command):
         # No pagination necessary for a single command.
@@ -509,9 +513,9 @@ class Meta(commands.Cog):
         delta = datetime.utcnow() - self.bot.launch_time
         minutes = delta.total_seconds() / 60
         total = sum(self.bot.socket_stats.values())
-        cpm = total / minutes
+        cpm = round(total / minutes)
         events = "\n".join([f"{x}: {y}" for x, y in self.bot.socket_stats.items()])
-        await ctx.send(f"{total} events observed ({cpm:.2f}/minute) ```prolog\n{events}```")
+        await ctx.send(f"{total} socket events observed ({cpm}/minute) ```prolog\n{events}```")
 
     @commands.command()
     async def ping(self, ctx):
