@@ -29,8 +29,65 @@ import discord
 import toml
 from bolt.paginator import TextPages
 from discord.ext import commands
+from jishaku.codeblocks import codeblock_converter
+from jishaku.cog import JishakuBase, jsk
+from jishaku.exception_handling import ReplResponseReactor
+from jishaku.flags import SCOPE_PREFIX
+from jishaku.functools import AsyncSender
+from jishaku.metacog import GroupCogMeta
+from jishaku.paginators import PaginatorInterface, WrappedPaginator
+from jishaku.repl import AsyncCodeExecutor, get_var_dict_from_ctx
 
 from utils.checks import is_bot_manager
+
+
+class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
+
+    @commands.command(name="py", aliases=['python', 'eval'])
+    async def jsk_py(self, ctx, *, argument: codeblock_converter):
+        """Direct evaluation of python code"""
+        arg_dict = get_var_dict_from_ctx(ctx, SCOPE_PREFIX)
+        arg_dict["_"] = self.last_result
+
+        scope = self.scope
+
+        try:
+            async with ReplResponseReactor(ctx.message):
+                with self.submit(ctx):
+                    executor = AsyncCodeExecutor(argument.content, scope, arg_dict=arg_dict)
+                    async for send, result in AsyncSender(executor):
+                        if result is None:
+                            continue
+
+                        self.last_result = result
+
+                        if isinstance(result, discord.File):
+                            send(await ctx.send(file=result))
+                        elif isinstance(result, discord.Embed):
+                            send(await ctx.send(embed=result))
+                        elif isinstance(result, PaginatorInterface):
+                            send(await result.send_to(ctx))
+                        else:
+                            if not isinstance(result, str):
+                                # repr all non-strings
+                                result = f"```py\n{repr(result)}```"
+
+                            if len(result) > 2000:
+                                # inconsistency here, results get wrapped in codeblocks when they are too large
+                                #  but don't if they're not. probably not that bad, but noting for later review
+                                paginator = WrappedPaginator(prefix='```py', suffix='```', max_size=1985)
+
+                                paginator.add_line(result)
+
+                                interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
+                                send(await interface.send_to(ctx))
+                            else:
+                                if result.strip() == '':
+                                    result = "\u200b"
+
+                                send(await ctx.send(result.replace(self.bot.http.token, "[token omitted]")))
+        finally:
+            scope.clear_intersection(arg_dict)
 
 
 class Owner(commands.Cog):
@@ -392,3 +449,5 @@ class Owner(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Owner(bot))
+    bot.remove_command('jishaku python')
+    bot.add_cog(Eval(bot))
