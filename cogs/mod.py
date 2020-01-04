@@ -529,11 +529,15 @@ class Mod(commands.Cog):
             return await ctx.safe_send(error)
         elif isinstance(error, commands.MissingRequiredArgument):
             return await ctx.send("You need to provide a number of messages to search!")
-        elif isinstance(error, commands.MissingPermissions):
+        elif isinstance(error, commands.BotMissingPermissions):
             p = ', '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
             return await ctx.send("I don't have "
                                   "the right permissions to run this command. "
                                   f"Please add the following permissions to me: {p}")
+        elif isinstance(error, commands.MissingPermissions):
+            p = ', '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
+            return await ctx.send("You don't have "
+                                  f"the right permissions to run this command. You need {p}.")
 
     @commands.bot_has_permissions(manage_messages=True)
     @is_staff_or_has_channel_perms("Moderator", manage_messages=True)
