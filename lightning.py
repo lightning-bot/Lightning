@@ -196,11 +196,6 @@ class LightningBot(commands.AutoShardedBot):
             except Exception:
                 log.error(f'Failed to load {ext}.')
                 log.error(traceback.print_exc())
-        try:
-            self.load_extension('jishaku')
-        except Exception:
-            log.error("Failed to load jishaku.")
-            log.error(traceback.print_exc())
 
         bl = self.get_cog('Owner')
         if not bl:
