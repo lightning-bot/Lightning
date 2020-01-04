@@ -449,5 +449,4 @@ class Owner(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Owner(bot))
-    bot.remove_command('jishaku python')
     bot.add_cog(Eval(bot))
