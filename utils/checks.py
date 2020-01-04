@@ -94,9 +94,14 @@ def has_channel_permissions(ctx, perms):
     permissions = ch.permissions_for(ctx.author)
     missing = [perm for perm, value in perms.items() if getattr(permissions, perm, None) != value]
 
-    if missing is None:
+    if not missing:
         return True
-    return False
+    permissions = []
+    for perm in missing:
+        perm = perm.replace('_', ' ').replace('guild', 'server').title()
+        permissions.append(perm)
+    if permissions:
+        raise errors.MissingRequiredPerms(permissions)
 
 
 def is_staff_or_has_channel_perms(min_role: str, **perms):
@@ -106,14 +111,12 @@ def is_staff_or_has_channel_perms(min_role: str, **perms):
     async def predicate(ctx):
         if not ctx.guild:
             return False
-        permissions = has_channel_permissions(ctx, perms)
         sr = await member_at_least_has_staff_role(ctx, ctx.author, min_role)
-        if sr is False and permissions is False:
-            permissions = []
-            for permname in list(perms.keys()):
-                permname = permname.replace('_', ' ').replace('guild', 'server').title()
-                permissions.append(permname)
-            raise errors.MissingRequiredPerms(permissions)
+        if sr is True:
+            return True
+        permissions = has_channel_permissions(ctx, perms)
+        if permissions is True:
+            return True
         return permissions or sr
     return commands.check(predicate)
 
