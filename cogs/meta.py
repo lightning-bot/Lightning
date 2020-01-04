@@ -517,6 +517,33 @@ class Meta(commands.Cog):
         events = "\n".join([f"{x}: {y}" for x, y in self.bot.socket_stats.items()])
         await ctx.send(f"{total} socket events observed ({cpm}/minute) ```prolog\n{events}```")
 
+    async def channel_permissions_user(self, channel, member, ctx):
+        perms = channel.permissions_for(member)
+        em = discord.Embed(title="Channel Permissions", color=member.color)
+        allowed = []
+        denied = []
+        for name, value in perms:
+            name = name.replace('_', ' ').replace('guild', 'server').title()
+            if value:
+                allowed.append(name)
+            else:
+                denied.append(name)
+        if allowed:
+            em.add_field(name='Allowed', value='\n'.join(allowed))
+        if denied:
+            em.add_field(name='Denied', value='\n'.join(denied))
+        await ctx.send(embed=em)
+
+    @commands.command()
+    @commands.guild_only()
+    async def permissions(self, ctx, member: discord.Member = None,
+                          channel: discord.TextChannel = None):
+        if member is None:
+            member = ctx.author
+        if channel is None:
+            channel = ctx.channel
+        await self.channel_permissions_user(channel, member, ctx)
+
     @commands.command()
     async def ping(self, ctx):
         """Calculates the ping time."""
