@@ -26,7 +26,6 @@
 
 import datetime
 import re
-from datetime import datetime
 
 import arrow
 import parsedatetime as pdt
