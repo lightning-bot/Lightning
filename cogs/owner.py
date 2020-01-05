@@ -85,7 +85,8 @@ class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
                                 if result.strip() == '':
                                     result = "\u200b"
 
-                                send(await ctx.send(f"```py\n{result.replace(self.bot.http.token, '[token omitted]')}"))
+                                send(await ctx.send("```py\n"
+                                                    f"{result.replace(self.bot.http.token, '[token omitted]')}```"))
         finally:
             scope.clear_intersection(arg_dict)
 
