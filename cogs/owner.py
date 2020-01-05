@@ -90,6 +90,25 @@ class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
         finally:
             scope.clear_intersection(arg_dict)
 
+    @commands.command()
+    async def leaveguild(self, ctx, guild_id: int):
+        """Leaves a guild that the bot is in via ID"""
+        server = self.bot.get_guild(guild_id)
+        if server is None:
+            return await ctx.send('I\'m not in this server.')
+        await server.leave()
+        await ctx.send(f'Successfully left **{server.name}**')
+
+    @commands.command(aliases=['lc'])
+    async def listcogs(self, ctx):
+        """Lists the currently loaded cogs"""
+        paginator = commands.Paginator(prefix="", suffix="")
+        paginator.add_line("✅ __Loaded Cogs:__")
+        for cog in list(self.bot.extensions.keys()):
+            paginator.add_line(f"- {cog}")
+        paginate = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
+        await paginate.send_to(ctx)
+
 
 class Owner(commands.Cog):
     def __init__(self, bot):
@@ -223,16 +242,6 @@ class Owner(commands.Cog):
             return await ctx.send(f"✅ Guild ID `{id}` is currently blacklisted.\n"
                                   f"Reason: {bl[str(id)]}")
         await ctx.send("No matches found!")
-
-    @commands.is_owner()
-    @commands.command()
-    async def leaveguild(self, ctx, server_id: int):
-        """Leaves the guild via ID"""
-        server = self.bot.get_guild(server_id)
-        if server is None:
-            return await ctx.send('I\'m not in this server.')
-        await server.leave()
-        await ctx.send(f'Successfully left {server.name}')
 
     # RoboDanny's eval command. (even though Jishaku exists)
     # MIT Licensed.
@@ -398,18 +407,6 @@ class Owner(commands.Cog):
         text = await bolt.http.get(self.bot.aiosession, url)
         pages = TextPages(ctx, f"{text}")
         await pages.paginate()
-
-    @commands.command(aliases=['list-cogs'])
-    @commands.is_owner()
-    async def listcogs(self, ctx):
-        """Lists the currently loaded cogs"""
-        paginator = commands.Paginator(prefix="", suffix="")
-        paginator.add_line("✅ __Loaded Cogs:__")
-        for cog in list(self.bot.extensions.keys()):
-            paginator.add_line(f"- {cog}")
-
-        for page in paginator.pages:
-            await ctx.send(page)
 
     @commands.command(aliases=['rgf'])
     @commands.is_owner()
