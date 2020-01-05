@@ -70,7 +70,7 @@ class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
                         else:
                             if not isinstance(result, str):
                                 # repr all non-strings
-                                result = f"```py\n{repr(result)}```"
+                                result = repr(result)
 
                             if len(result) > 2000:
                                 # inconsistency here, results get wrapped in codeblocks when they are too large
@@ -85,7 +85,7 @@ class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
                                 if result.strip() == '':
                                     result = "\u200b"
 
-                                send(await ctx.send(result.replace(self.bot.http.token, "[token omitted]")))
+                                send(await ctx.send(f"```py\n{result.replace(self.bot.http.token, '[token omitted]')}"))
         finally:
             scope.clear_intersection(arg_dict)
 
