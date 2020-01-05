@@ -85,8 +85,7 @@ initial_extensions = ['cogs.config',
                       'cogs.toggle_roles',
                       'cogs.utility',
                       'stabilite.stabilite',
-                      'cogs.misc',
-                      'bolt']
+                      'cogs.misc']
 
 # Create config folder if not found
 if not os.path.exists("config"):
