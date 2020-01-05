@@ -25,10 +25,14 @@
 
 
 import datetime
+import re
+from datetime import datetime
+
+import arrow
 import parsedatetime as pdt
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
-import re
+
 
 class ShortTime:
     compiled = re.compile("""(?:(?P<years>[0-9])(?:years?|y))?             # e.g. 2y
@@ -280,3 +284,36 @@ def natural_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True):
             return human_join(output, conj='and') + suffix
         else:
             return ' '.join(output) + suffix
+# --------
+# End
+# --------
+# Extra utilities copied over from Bolt.
+
+def get_utc_timestamp(timestamp):
+    return timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+# Reworked version of robocop's relative timestamp
+def get_relative_timestamp(time_from=None, time_to=None,
+                           include_from=False,
+                           include_to=False):
+    if not time_from:
+        time_from = arrow.utcnow()
+    if not time_to:
+        time_to = arrow.utcnow()
+    arrow_time = arrow.get(time_to)
+    humanized_string = arrow_time.humanize(time_from)
+    if include_from and include_to:
+        str_with_from_and_to = f"{humanized_string} "\
+                               f"({str(time_from).split('.')[0]} "\
+                               f"- {str(time_to).split('.')[0]})"
+        return str_with_from_and_to
+    elif include_from:
+        str_with_from = f"{humanized_string} "\
+                        f"({str(time_from).split('.')[0]} UTC)"
+        return str_with_from
+    elif include_to:
+        str_with_to = f"{humanized_string} "\
+                      f"({str(time_to).split('.')[0]} UTC)"
+        return str_with_to
+    return humanized_string

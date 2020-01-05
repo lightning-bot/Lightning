@@ -23,11 +23,11 @@ import textwrap
 import traceback
 from contextlib import redirect_stdout
 
-import bolt.http
-import bolt.misc
+import utils.http
+import utils.shell
 import discord
 import toml
-from bolt.paginator import TextPages
+from utils.paginator import TextPages
 from discord.ext import commands
 from jishaku.codeblocks import codeblock_converter
 from jishaku.cog import JishakuBase, jsk
@@ -309,7 +309,7 @@ class Owner(commands.Cog):
     async def pull_exit(self, ctx):
         """Git Pulls and then exits"""
         await ctx.send("Git Pulling....")
-        await ctx.invoke(self.bot.get_command('bolt pull'))
+        await ctx.invoke(self.bot.get_command('jishaku git pull'))
         await asyncio.sleep(10.0)
         await ctx.send("Exiting...")
         await ctx.invoke(self.bot.get_command('exit'))
@@ -328,7 +328,7 @@ class Owner(commands.Cog):
         """Checks to see which packages are outdated"""
         tmp = await ctx.send("I\'m figuring this out.")
         async with ctx.typing():
-            out = await bolt.misc.call_shell("pip3 list --outdated")
+            out = await utils.shell.call_shell("pip3 list --outdated")
         await tmp.delete()
         pages = TextPages(ctx, f"{out}")
         await pages.paginate()
@@ -338,7 +338,7 @@ class Owner(commands.Cog):
     async def updatedpy(self, ctx):
         """Updates discord.py. Use .pip chkupdate
         to see if there are updates to any packages."""
-        sh_out = await bolt.misc.call_shell("pip3 install --upgrade discord.py")
+        sh_out = await utils.shell.call_shell("pip3 install --upgrade discord.py")
         pages = TextPages(ctx, f"{sh_out}")
         await pages.paginate()
 
@@ -346,7 +346,7 @@ class Owner(commands.Cog):
     @pip.command()
     async def freeze(self, ctx):
         """Returns a list of pip packages installed"""
-        sh_out = await bolt.misc.call_shell("pip3 freeze -l")
+        sh_out = await utils.shell.call_shell("pip3 freeze -l")
         pages = TextPages(ctx, f"{sh_out}")
         await pages.paginate()
 
@@ -354,7 +354,7 @@ class Owner(commands.Cog):
     @pip.command()
     async def uninstall(self, ctx, package: str):
         """Uninstalls a package. (Use with care.)"""
-        sh_out = await bolt.misc.call_shell(f"pip3 uninstall -y {package}")
+        sh_out = await utils.shell.call_shell(f"pip3 uninstall -y {package}")
         pages = TextPages(ctx, f"{sh_out}")
         await pages.paginate()
 
@@ -404,7 +404,7 @@ class Owner(commands.Cog):
     @commands.check(is_bot_manager)
     async def curl(self, ctx, url: str):
         """Curls a site, returning its contents."""
-        text = await bolt.http.get(self.bot.aiosession, url)
+        text = await utils.http.get(self.bot.aiosession, url)
         pages = TextPages(ctx, f"{text}")
         await pages.paginate()
 

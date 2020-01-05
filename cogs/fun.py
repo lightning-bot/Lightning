@@ -22,7 +22,7 @@ import urllib
 from datetime import datetime
 
 import discord
-from bolt.http import getbytes, getjson
+from utils.http import getbytes, getjson
 from discord.ext import commands
 from jishaku.functools import executor_function
 from PIL import Image, ImageDraw, ImageFont

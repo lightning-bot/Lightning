@@ -20,7 +20,7 @@ from discord.ext.commands import Cog
 from utils.checks import is_one_of_guilds
 from utils.paginators_jsk import paginator_reg_nops
 import random
-import bolt.http
+from utils import http
 
 ROO_EMOTES = [604331487583535124, 604446987844190228, 606517600167526498, 610921560068456448]
 
@@ -66,7 +66,7 @@ class Emoji(commands.Cog):
         In order to use this command, you must have Manage Emojis permission."""
         if len(emoji_name) > 32:
             return await ctx.send("Emoji name cannot be longer than 32 characters!")
-        emoji_link = await bolt.http.getbytes(self.bot.aiosession, url)
+        emoji_link = await http.getbytes(self.bot.aiosession, url)
         if emoji_link is not False:
             emoji_aio = self.aiobytesfinalize(emoji_link)
             try:
@@ -90,7 +90,7 @@ class Emoji(commands.Cog):
         """ "Copies" an emoji and adds it to the guild.
 
         In order to use this command, you must have Manage Emojis permission."""
-        emoji_link = await bolt.http.getbytes(self.bot.aiosession, str(emoji.url))
+        emoji_link = await http.getbytes(self.bot.aiosession, str(emoji.url))
         if emoji_link is not False:
             try:
                 fe = await ctx.guild.create_custom_emoji(name=emoji.name, image=emoji_link,

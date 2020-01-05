@@ -15,7 +15,7 @@
 
 from discord.ext import commands
 import discord
-from bolt.paginator import FieldPages
+from utils.paginator import FieldPages
 from datetime import datetime
 import re
 from bs4 import BeautifulSoup

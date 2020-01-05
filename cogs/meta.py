@@ -26,7 +26,6 @@ from datetime import datetime
 from typing import Union
 
 import discord
-from bolt.time import get_relative_timestamp
 from discord.ext import commands, tasks
 
 import resources.botemojis as emoji
@@ -34,7 +33,7 @@ from utils.checks import is_bot_manager
 from utils.converters import ReadableChannel
 from utils.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from utils.paginator import Pages, TextPages
-from utils.time import natural_timedelta
+from utils.time import natural_timedelta, get_relative_timestamp
 
 
 class NonGuildUser(commands.Converter):

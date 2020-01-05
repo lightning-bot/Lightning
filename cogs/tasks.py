@@ -23,7 +23,7 @@ from datetime import datetime
 
 import asyncpg
 import discord
-from bolt.time import get_relative_timestamp
+from utils.time import get_relative_timestamp
 from discord.ext import commands, tasks
 
 from utils.checks import is_bot_manager

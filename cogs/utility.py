@@ -24,7 +24,7 @@ import colorsys
 from PIL import Image
 from utils.converters import SafeSend, ReadableChannel, SendableChannel
 import asyncpg
-import bolt.http
+import utils.http
 from jishaku.functools import executor_function
 
 
@@ -282,7 +282,7 @@ class Utility(commands.Cog):
         async with ctx.typing():
             msg = " ".join(f"{ord(i):08b}" for i in text)
             if len(msg) > 1985:
-                link = await bolt.http.haste(self.bot.aiosession, msg)
+                link = await utils.http.haste(self.bot.aiosession, msg)
                 msg = f"Output too big, see the haste {link}"
         await ctx.send(f"```{msg}```")
 
@@ -290,7 +290,7 @@ class Utility(commands.Cog):
     @commands.cooldown(rate=1, per=60.0, type=commands.BucketType.channel)
     async def pastebin(self, ctx, *, message: str):
         """Make a pastebin with your own message"""
-        url = await bolt.http.haste(self.bot.aiosession, message)
+        url = await utils.http.haste(self.bot.aiosession, message)
         await ctx.send(f"Here's your pastebin. {ctx.author.mention}\n{url}")
 
     @commands.command()
@@ -360,7 +360,7 @@ class Utility(commands.Cog):
             if ctx.message.attachments:
                 f = ctx.message.attachments[0]
                 if f.filename.lower().endswith('.bmp'):
-                    image_bmp = await bolt.http.getbytes(self.bot.aiosession, f.url)
+                    image_bmp = await utils.http.getbytes(self.bot.aiosession, f.url)
                     img_final = await self.finalize_image(image_bmp)
                     filex = discord.File(img_final,
                                          filename=f"BMP conversion from {ctx.author}.png")
@@ -372,7 +372,7 @@ class Utility(commands.Cog):
         else:
             if link.lower().endswith('.bmp'):
                 try:
-                    image_bmp = await bolt.http.getbytes(self.bot.aiosession, link)
+                    image_bmp = await utils.http.getbytes(self.bot.aiosession, link)
                     img_final = await self.finalize_image(image_bmp)
                     filex = discord.File(img_final, filename=f"BMP conversion from {ctx.author}.png")
                     await ctx.send(file=filex)

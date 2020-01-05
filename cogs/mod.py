@@ -23,19 +23,17 @@ from collections import Counter
 import asyncpg
 import dateutil.parser
 import discord
-from bolt.paginator import Pages
-from bolt.time import get_utc_timestamp
 from discord.ext import commands
 
-from utils import converters, modlog_formatter, cache, flags
+from utils import converters, modlog_formatter, cache, flags, paginator
 from utils.checks import is_staff_or_has_perms, is_staff_or_has_channel_perms
 from utils.database import GuildModConfig
 from utils.errors import MuteRoleError, TimersUnavailable, WarnError, LightningError
-from utils.time import FutureTime, natural_timedelta, plural
+from utils.time import FutureTime, natural_timedelta, plural, get_utc_timestamp
 from resources import botemojis
 
 
-class WarnPages(Pages):
+class WarnPages(paginator.Pages):
     """Similar to FieldPages except entries should be a list of
     tuples having (key, value) to show as embed fields instead.
     """

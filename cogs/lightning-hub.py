@@ -19,8 +19,7 @@ from utils.checks import is_guild, has_staff_role, is_bot_manager_or_staff
 from datetime import datetime
 import json
 import config
-from utils.time import natural_timedelta, FutureTime
-from bolt.time import get_utc_timestamp
+from utils.time import natural_timedelta, FutureTime, get_utc_timestamp
 
 
 class LightningHub(commands.Cog):
