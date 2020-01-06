@@ -29,9 +29,9 @@ class LightningHub(commands.Cog):
 
     @commands.command()
     @is_guild(527887739178188830)
-    @commands.has_any_role("Trusted", "Verified")
+    @commands.has_any_role("Trusted")
     async def sr(self, ctx, *, text: str = ""):
-        """Request staff assistance. Trusted and Verified only."""
+        """Request staff assistance. Trusted only."""
         staff = self.bot.get_channel(536376192727646208)
         if text:
             # Prevent extra mentions. We'll clean this later.
@@ -46,6 +46,7 @@ class LightningHub(commands.Cog):
     @is_guild(527887739178188830)
     @commands.has_any_role("Nitro Booster", "Trusted", "Staff")
     async def disbin(self, ctx, amount: int = 100):
+        """[Testing command] Archives x amount of messages via disb.in"""
         if amount > 100:
             raise commands.BadArgument("You can only test up to 100 messages")
         msgs = []
