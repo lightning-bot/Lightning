@@ -3,6 +3,7 @@ discord = ""
 # TheCatAPI Token (thecatapi.com)
 catapi = ""
 postgresql = ""
+disbin = ""
 
 [git]
     [git.github]

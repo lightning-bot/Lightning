@@ -44,6 +44,36 @@ class LightningHub(commands.Cog):
 
     @commands.command()
     @is_guild(527887739178188830)
+    @commands.has_any_role("Nitro Booster", "Trusted", "Staff")
+    async def disbin(self, ctx, amount: int = 100):
+        if amount > 100:
+            raise commands.BadArgument("You can only test up to 100 messages")
+        msgs = []
+        async for x in ctx.channel.history(limit=amount):
+            msgs.append({'author': str(x.author), 'author_id': x.author.id,
+                         'avatar_url': str(x.author.avatar_url_as(static_format='png')),
+                         'created_at': str(x.created_at), 'content': str(x.content)})
+
+        url = "https://disbin.eviee.host/api/create_log"
+        headers = {'Client-ID': '376012343777427457',
+                   'Authorization': str(self.bot.config['tokens']['disbin'])}
+        async with self.bot.aiosession.post(url, json={'messages': msgs}, headers=headers) as resp:
+            if resp.status != 201:
+                raise discord.HTTPException(response=resp, message=str(resp.reason))
+            else:
+                data = await resp.json()
+        await ctx.send(f"https://disbin.eviee.host/{data['key']}")
+
+    @disbin.error
+    async def disbin_error(self, ctx, error):
+        if isinstance(error, commands.BadArgument):
+            return await ctx.safe_send(error)
+        elif isinstance(error, discord.HTTPException):
+            self.bot.log.error(error)
+            return await ctx.send("Failed.")
+
+    @commands.command()
+    @is_guild(527887739178188830)
     @has_staff_role("Helper")
     async def elevate(self, ctx):
         """Gains the elevated role. Use with care!"""
