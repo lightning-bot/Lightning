@@ -309,8 +309,8 @@ class Owner(commands.Cog):
     async def pull_exit(self, ctx):
         """Git Pulls and then exits"""
         await ctx.send("Git Pulling....")
-        await ctx.invoke(self.bot.get_command('jishaku git pull'))
-        await asyncio.sleep(10.0)
+        await ctx.invoke(self.bot.get_command('jsk git'), argument=codeblock_converter("pull"))
+        await asyncio.sleep(5)
         await ctx.send("Exiting...")
         await ctx.invoke(self.bot.get_command('exit'))
 
