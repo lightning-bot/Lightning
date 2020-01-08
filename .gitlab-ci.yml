@@ -1,12 +1,21 @@
 image: python:latest
 
-before_script:
-  - python -V # Print out python version for debugging
-  #- pip install virtualenv
-  #- virtualenv venv
-  #- source venv/bin/activate
-
 flake8:
   script:
+  - python -V
   - pip install flake8
   - flake8 .
+
+services:
+  - postgres
+
+variables:
+  POSTGRES_DB: lightningbot
+  POSTGRES_USER: lightningbot
+  POSTGRES_PASSWORD: "test"
+
+schema-test:
+  image: postgres
+  script:
+  - export PGPASSWORD=$POSTGRES_PASSWORD
+  - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\i schema.sql"
