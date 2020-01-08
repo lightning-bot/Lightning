@@ -89,7 +89,7 @@ class Misc(commands.Cog):
         em.url = text['url']
         await ctx.send(embed=em)
 
-    @commands.command(name="garfield")
+    @commands.command(name="garfield", enabled=False, hidden=True)
     async def random_garfieldcomic(self, ctx):
         """Displays a random garfield comic
 
