@@ -1240,10 +1240,14 @@ class Mod(commands.Cog):
 
     async def get_warns_for_id(self, ctx, user_id: int, author_warns: bool = True,
                                name: str = ""):
-        query = """SELECT warn_id, reason, timestamp, mod_id, pardoned FROM warns
-                   WHERE guild_id=$1
-                   AND user_id=$2
-                   ORDER BY warn_id ASC
+        query = """SELECT wa.warn_id, wa.reason, wa.timestamp,
+                   wa.mod_id, p.mod_id AS pardon_mod_id,
+                   p.timestamp AS pardon_timestamp
+                   FROM warns wa
+                   LEFT JOIN pardoned_warns p ON wa.warn_id = p.warn_id
+                   WHERE wa.guild_id=$1
+                   AND wa.user_id=$2
+                   ORDER BY wa.warn_id ASC
                 """
         ret = await self.bot.db.fetch(query, ctx.guild.id, user_id)
         if len(ret) == 0:
@@ -1260,18 +1264,14 @@ class Mod(commands.Cog):
                 moderator_text = f"Moderator{moderator}"
             else:
                 moderator_text = ""
-            if w['pardoned']:
-                query = """SELECT mod_id, timestamp FROM pardoned_warns
-                           WHERE guild_id=$1
-                           AND warn_id=$2;
-                        """
-                p = await self.bot.db.fetchrow(query, ctx.guild.id, w['warn_id'])
-                pmod = ctx.guild.get_member(p['mod_id'])
+            if w['pardon_mod_id']:
+                pmod = ctx.guild.get_member(w['pardon_mod_id'])
                 if pmod:
                     pmod = f"{pmod} ({pmod.id})"
                 else:
-                    pmod = f"Mod ID: {p['mod_id']}"
-                pardon = f"\n**Pardoned Warn by: {pmod} at {get_utc_timestamp(p['timestamp'])}**"
+                    pmod = f"Mod ID: {w['pardon_mod_id']}"
+                pardon = f"\n**Pardoned Warn by: {pmod} at "\
+                         f"{get_utc_timestamp(w['pardon_timestamp'])}**"
             else:
                 pardon = ""
             warnings.append((f"Warn ID **{w['warn_id']}**: {get_utc_timestamp(w['timestamp'])}",
