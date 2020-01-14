@@ -206,7 +206,7 @@ class Fun(commands.Cog):
         """An owo-ifier.
 
         Flag options (no arguments):
-        `--random`: Owoifies random text that sent in the channel.
+        `--random`: Owoifies random text that was sent in the channel.
         `--lastmessage` or `--lm`: Owoifies the last message sent in the channel."""
         fwags = flags.boolean_flags(['--random', '--lastmessage'], text, False,
                                     {'--lm': '--lastmessage'})
