@@ -89,7 +89,7 @@ class Homebrew(commands.Cog):
         await ctx.send("Successfully deleted webhook and configuration!")
 
     @commands.group(invoke_without_command=True)
-    async def mod(self, ctx, console: str):
+    async def mod(self, ctx):
         """Gets console modding information
 
 
