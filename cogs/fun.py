@@ -226,7 +226,9 @@ class Fun(commands.Cog):
                                      ' in the previous message.')
         else:
             text = fwags['text']
-        url = f'https://nekos.life/api/v2/owoify?text={urllib.parse.quote(text)}'
+        # if len(text) > 200:
+        #    raise LightningError("No text over 200 characters!")
+        url = f'https://nekos.life/api/v2/owoify?text={urllib.parse.quote(text[:200])}'
         async with self.bot.aiosession.get(url) as resp:
             if resp.status == 200:
                 data = await resp.json()
