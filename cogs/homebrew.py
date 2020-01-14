@@ -122,6 +122,8 @@ class Homebrew(commands.Cog):
                 self.bot.log.info(f"Command match found {match}")
                 return await ctx.invoke(self.mod_3ds.get_command(match[0]))
             # If failed to find a match, pull up the 3ds guide.
+            else:
+                pass
         featurelist = ["Redirect your NAND to the SD card",
                        "Run any software compatible, regardless "
                        "of if Nintendo signed it or if it was made for your region",
@@ -178,6 +180,8 @@ class Homebrew(commands.Cog):
                 self.bot.log.info(f"Command match found {match}")
                 return await ctx.invoke(self.mod_ds.get_command(match[0]))
             # If failed to find a match, pull up the ds guide.
+            else:
+                pass
         features = ["Run Nintendo DS game backups without requiring "
                     "a physical cartridge",
                     "Load multiple backups of Nintendo DS games "
