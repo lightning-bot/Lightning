@@ -313,10 +313,10 @@ class Homebrew(commands.Cog):
                       icon_url="https://elixi.re/i/7lh1.png")
         await ctx.send(embed=em)
 
-    @mod_ds.command(name="twilightmenu++", aliases=['twl menu', 'twilight'])
+    @mod_ds.command(name='twilightmenu++', aliases=['twlmenu', 'twilight'])
     async def mod_ds_twlmenu(self, ctx):
         """Gives information on TWiLightMenu++"""
-        description = "an open-source DSi Menu upgrade/replacement allowing "\
+        description = "An open-source DSi Menu upgrade/replacement allowing "\
                       "you to navigate your SD card and launch a variety of"\
                       " different applications."
         links = ["[GBATemp Thread](https://gbatemp.net/threads/"
