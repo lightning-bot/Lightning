@@ -1,5 +1,5 @@
 # Lightning.py - A multi-purpose Discord bot
-# Copyright (C) 2019 - LightSage
+# Copyright (C) 2020 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -30,7 +30,6 @@ import toml
 from discord.ext import commands
 
 from utils import errors
-from resources import botemojis
 
 log_file_name = "lightning.log"
 
