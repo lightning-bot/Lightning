@@ -292,6 +292,55 @@ class Homebrew(commands.Cog):
         em.set_footer(text="Made by Universal Team (Mainly by Flame)")
         await ctx.send(embed=em)
 
+    @mod_ds.command(name='rocketvideoplayer', aliases=['rvp'])
+    async def mod_ds_rocketvideoplayer(self, ctx):
+        """Gives information on Rocket Video Player"""
+        description = "An open-source video player powered by Rocket "\
+                      "Video Technology. It can be used on a Nintendo DSi"\
+                      ", a Nintendo 3DS or a Nintendo DS Flashcart by "\
+                      "playing a .rvid video file from your SD card."
+        links = ["[GBAtemp Thread](https://gbatemp.net/threads/release"
+                 "-rocket-video-player-play-videos-with-the-ultimate-in-picture-quality.539163/)",
+                 "[Github Repository](https://github.com/RocketRobz/RocketVideoPlayer/releases)",
+                 "[Discord Server](https://discord.gg/yqSut8c)"]
+        em = self.mod_embed("Rocket Video Player", description, links, 0xA701E9)
+        em.set_thumbnail(url="https://elixi.re/i/jm7f.png")
+        em.set_footer(text="Made by RocketRobz",
+                      icon_url="https://elixi.re/i/7lh1.png")
+        await ctx.send(embed=em)
+
+    @mod_ds.command(name="twilightmenu++", aliases=['twl menu', 'twilight'])
+    async def mod_ds_twlmenu(self, ctx):
+        """Gives information on TWiLightMenu++"""
+        description = "an open-source DSi Menu upgrade/replacement allowing "\
+                      "you to navigate your SD card and launch a variety of"\
+                      " different applications."
+        links = ["[GBATemp Thread](https://gbatemp.net/threads/"
+                 "ds-i-3ds-twilight-menu-gui-for-ds-i-games-and"
+                 "-ds-i-menu-replacement.472200/)",
+                 "[Github Repository](https://github.com/DS-Homebrew/TWiLightMenu/releases)",
+                 "[Discord Server](https://discord.gg/yqSut8c)"]
+        formats = ["Nintendo DS titles",
+                   "Sega Game Gear/Master System titles",
+                   "NES/Famicom titles",
+                   "Super NES/Famicom titles",
+                   "Sega Genesis titles",
+                   "(Super) Gameboy (Color) Titles",
+                   # "Gameboy Advanced Titles",
+                   "DSTWO plugins (requires you to have a DSTWO)",
+                   "RocketVideoPlayer videos"]
+        styles = ["Nintendo DSi",
+                  "Nintendo 3DS",
+                  "R4",
+                  "Acekard/akMenu",
+                  "SEGA Saturn"]
+        em = self.mod_embed("TWiLightMenu++", description, links, 0xA701E9)
+        em.add_field(name="Supported Formats", value=', '.join(formats), inline=False)
+        stylesformat = f'\n\U00002022 '.join(styles)
+        em.add_field(name="Styles", value=f"\U00002022 {stylesformat}")
+        em.set_footer(text="Made by RocketRobz", icon_url="https://elixi.re/i/7lh1.png")
+        await ctx.send(embed=em)
+
 
 def setup(bot):
     bot.add_cog(Homebrew(bot))
