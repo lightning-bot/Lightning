@@ -195,70 +195,6 @@ class Utility(commands.Cog):
         """Say something through the bot to the specified channel."""
         await channel.send(say)
 
-    @commands.group(aliases=['nuf', 'stability'])
-    @commands.bot_has_permissions(manage_webhooks=True)
-    @is_staff_or_has_perms("Admin", manage_webhooks=True)
-    async def nintendoupdatesfeed(self, ctx):
-        """Manages the guild's configuration for Nintendo console update alerts.
-
-        If invoked with no subcommands, this will show the current configuration."""
-        if ctx.invoked_subcommand is None:
-            query = "SELECT * FROM nin_updates WHERE guild_id=$1"
-            ret = await self.bot.db.fetchrow(query, ctx.guild.id)
-            if ret is None:
-                return await ctx.send("Nintendo console updates are currently not configured!")
-            webhook = discord.utils.get(await ctx.guild.webhooks(), id=ret['id'])
-            if webhook is None:
-                query = 'DELETE FROM nin_updates WHERE guild_id=$1'
-                await self.bot.db.execute(query, ctx.guild.id)
-                return await ctx.send("The webhook that sent Nintendo "
-                                      "console update notifications seems to "
-                                      "be deleted. Please re-configure with "
-                                      f"`{ctx.prefix}nintendoupdatesfeed setup`.")
-            await ctx.send("Nintendo console updates are currently "
-                           f"configured to send to {webhook.channel.mention}.")
-
-    @nintendoupdatesfeed.command(name="setup")
-    @commands.bot_has_permissions(manage_webhooks=True)
-    @is_staff_or_has_perms("Admin", manage_webhooks=True)
-    async def nuf_configure(self, ctx, *, channel: discord.TextChannel = None):
-        """Sets up a webhook in the specified channel that will send Nintendo console updates."""
-        if channel is None:
-            channel = ctx.channel
-        try:
-            webhook = await channel.create_webhook(name="Nintendo Console Updates")
-        except discord.HTTPException as e:
-            return await ctx.safe_send(f"Failed to create webhook. {e}")
-        query = """INSERT INTO nin_updates
-                   VALUES ($1, $2, $3);
-                """
-        try:
-            await self.bot.db.execute(query, ctx.guild.id, webhook.id, webhook.token)
-        except asyncpg.UniqueViolationError:
-            return await ctx.send("This guild has already configured Nintendo console updates!")
-        await ctx.send(f"Successfully created webhook in {channel.mention}")
-
-    @nintendoupdatesfeed.command(name="delete")
-    @commands.bot_has_permissions(manage_webhooks=True)
-    @is_staff_or_has_perms("Admin", manage_webhooks=True)
-    async def nuf_delete(self, ctx):
-        """Deletes the configuration of Nintendo console updates."""
-        query = "SELECT * FROM nin_updates WHERE guild_id=$1"
-        ret = await self.bot.db.fetchrow(query, ctx.guild.id)
-        if ret is None:
-            return await ctx.send("Nintendo console updates are currently not configured!")
-        webhook = discord.utils.get(await ctx.guild.webhooks(), id=ret['id'])
-        if webhook is None:
-            query = 'DELETE FROM nin_updates WHERE guild_id=$1'
-            await self.bot.db.execute(query, ctx.guild.id)
-            return await ctx.send("The webhook that sent Nintendo "
-                                  "console update notifications seems to "
-                                  "be deleted already.")
-        await webhook.delete()
-        query = 'DELETE FROM nin_updates WHERE guild_id=$1'
-        await self.bot.db.execute(query, ctx.guild.id)
-        await ctx.send(f"Successfully deleted webhook and configuration!")
-
     @commands.command()
     async def poll(self, ctx, *, question: str):
         """Creates a simple poll with thumbs up, thumbs down, and shrug as reactions"""
@@ -480,7 +416,6 @@ class Utility(commands.Cog):
         embed.set_author(name=ctx.message.author, icon_url=ctx.message.author.avatar_url)
         embed.timestamp = msg.created_at
         await channel.send(embed=embed, content=None)
-        return
 
 
 def setup(bot):

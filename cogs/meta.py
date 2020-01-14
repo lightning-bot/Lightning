@@ -1,5 +1,5 @@
 # Lightning.py - A multi-purpose Discord bot
-# Copyright (C) 2019 - LightSage
+# Copyright (C) 2020 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -19,7 +19,6 @@ import inspect
 import itertools
 import json
 import os
-import platform
 import time
 import traceback
 from datetime import datetime
@@ -432,14 +431,7 @@ class Meta(commands.Cog):
             embed.description = self.bot.config['bot']['description']
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Members", value=all_members)
-        postgresversion = await self.bot.db.fetchval("SHOW server_version;")
-        backend_msg = f"{emoji.python} **Python Version:** {platform.python_version()}\n"\
-                      f"{emoji.dpy} **Discord.py Version:** {discord.__version__}\n"\
-                      f"{emoji.postgres} **PostgreSQL Version:** {postgresversion}"
-        embed.add_field(name="Backend", value=backend_msg, inline=False)
-        embed.add_field(name="Command Stats", value=f"{self.bot.successful_command} "
-                                                    "commands used since boot.\n"
-                                                    f"{amount} commands used all time.")
+        embed.add_field(name="Command Stats", value=f"{amount} commands used all time.")
         embed.add_field(name="Links", value="[Support Server]"
                                             "(https://discord.gg/cDPGuYd) | "
                                             "[Website](https://lightning-bot.gitlab.io) | "
@@ -836,7 +828,6 @@ class Meta(commands.Cog):
 
     async def command_insert(self, ctx):
         """Function to insert command info into self.data_todump"""
-        self.bot.successful_command += 1
         if ctx.guild is None:
             guild_id = None
         else:
