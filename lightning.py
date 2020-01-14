@@ -352,10 +352,7 @@ class LightningBot(commands.AutoShardedBot):
                                   "ratelimited. Try again in "
                                   f"{error.retry_after:.1f} seconds.")
         elif isinstance(error, commands.NotOwner):
-            try:
-                return await ctx.message.add_reaction(botemojis.x)
-            except discord.HTTPException:
-                return
+            return
         elif isinstance(error, commands.NSFWChannelRequired):
             return await ctx.send(f"{ctx.author.mention}: This command "
                                   "can only be run in a NSFW marked channel or DMs.")
@@ -363,8 +360,6 @@ class LightningBot(commands.AutoShardedBot):
             return await ctx.send(f"{ctx.author.mention}: Check failed. "
                                   "You do not have the right permissions "
                                   "to run this command.")
-        elif isinstance(error, discord.NotFound):
-            return await ctx.send("❌ I wasn't able to find that ID.")
         elif isinstance(error, commands.DisabledCommand):
             return await ctx.send(f"{ctx.author.mention}: This command is currently "
                                   "disabled!")
