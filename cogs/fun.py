@@ -1,5 +1,5 @@
 # Lightning.py - A multi-purpose Discord bot
-# Copyright (C) 2019 - LightSage
+# Copyright (C) 2020 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -26,8 +26,9 @@ from utils.http import getbytes, getjson
 from discord.ext import commands
 from jishaku.functools import executor_function
 from PIL import Image, ImageDraw, ImageFont
+from utils import flags
 
-from utils.errors import NoImageProvided
+from utils.errors import NoImageProvided, LightningError
 
 
 class Fun(commands.Cog):
@@ -195,9 +196,36 @@ class Fun(commands.Cog):
         fahrenheit = self.c_to_f(celsius)
         await ctx.safe_send(f"{user} cryofreezed. User is now {celsius}°C ({fahrenheit}°F).")
 
+    async def get_previous_messages(self, channel):
+        messages = await channel.history(limit=10).flatten()
+        return random.choice(messages)
+
     @commands.command()
+    @commands.cooldown(rate=1, per=5, type=commands.BucketType.channel)
     async def owoify(self, ctx, *, text: commands.clean_content()):
-        """An owo-ifier"""
+        """An owo-ifier.
+
+        Flag options (no arguments):
+        `--random`: Owoifies random text that sent in the channel.
+        `--lastmessage` or `--lm`: Owoifies the last message sent in the channel."""
+        fwags = flags.boolean_flags(['--random', '--lastmessage'], text, False,
+                                    {'--lm': '--lastmessage'})
+        if fwags['--random'] is True:
+            message = await self.get_previous_messages(ctx.channel)
+            if message.content:
+                text = message.content
+            else:
+                raise LightningError('Failed to find any message content.')
+        elif fwags['--lastmessage'] is True:
+            messages = await ctx.channel.history(limit=2).flatten()
+            message = messages[1]
+            if message.content:
+                text = message.content
+            else:
+                raise LightningError('Failed to find message content'
+                                     ' in the previous message.')
+        else:
+            text = fwags['text']
         url = f'https://nekos.life/api/v2/owoify?text={urllib.parse.quote(text)}'
         async with self.bot.aiosession.get(url) as resp:
             if resp.status == 200:
