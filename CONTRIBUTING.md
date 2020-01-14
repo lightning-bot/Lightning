@@ -14,7 +14,6 @@ There's an official Discord server and a site.
 
 There's a few ways you can help:
 - Adding the bot to your server and spreading the word about Lightning
-- Upvote the bot on [DiscordBotList](https://discordbots.org/bot/532220480577470464)
 - Let us know your opinion on our [Support Server](https://discord.gg/cDPGuYd)!
 
 ## Setting up a development environment
