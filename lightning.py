@@ -85,7 +85,8 @@ initial_extensions = ['cogs.config',
                       'cogs.toggle_roles',
                       'cogs.utility',
                       'stabilite.stabilite',
-                      'cogs.misc']
+                      'cogs.misc',
+                      'cogs.homebrew']
 
 # Create config folder if not found
 if not os.path.exists("config"):
@@ -182,7 +183,6 @@ class LightningBot(commands.AutoShardedBot):
         self.log = log
         self.launch_time = datetime.utcnow()
         self.script_name = "lightning"
-        self.successful_command = 0
         self.command_spammers = {}
         # Initialize as none then cache our prefixes on_ready
         self.prefixes = {}
@@ -263,7 +263,7 @@ class LightningBot(commands.AutoShardedBot):
                 await webhook.execute(embed=embed)
 
     async def process_command_usage(self, message):
-        if message.author.id in self.blacklisted_users:
+        if str(message.author.id) in self.blacklisted_users:
             return
         if message.guild:
             if str(message.guild.id) in self.blacklisted_guilds:
