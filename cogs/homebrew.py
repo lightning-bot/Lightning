@@ -351,7 +351,7 @@ class Homebrew(commands.Cog):
         """Gives information on Switch modding"""
         em = discord.Embed(title="Nintendo Switch Modding guide",
                            url="https://nh-server.github.io/switch-guide/",
-                           color=0x1179392)
+                           color=0x00FF11)
         em.description = ("This [guide](https://nh-server.github.io/switch-guide) "
                           "will install Atmosphère, the latest and safest CFW.")
         features = ["Customize your HOME Menu with user-created themes and "
