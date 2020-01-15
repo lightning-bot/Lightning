@@ -345,6 +345,27 @@ class Homebrew(commands.Cog):
         em.set_footer(text="Made by RocketRobz", icon_url="https://elixi.re/i/7lh1.png")
         await ctx.send(embed=em)
 
+    # Only one command, useless to make it a group
+    @mod.command(name='switch', aliases=['nx'])
+    async def mod_switch_guide(self, ctx):
+        """Gives information on Switch modding"""
+        em = discord.Embed(title="Nintendo Switch Modding guide",
+                           url="https://nh-server.github.io/switch-guide/",
+                           color=0x1179392)
+        em.description = ("This [guide](https://nh-server.github.io/switch-guide) "
+                          "will install Atmosphère, the latest and safest CFW.")
+        features = ["Customize your HOME Menu with user-created themes and "
+                    "splash screens",
+                    "Use “ROM hacks” for games that you own",
+                    "Backup, edit, and restore saves for applications",
+                    "Play games for older systems with various emulators"
+                    ", using RetroArch or other standalone emulators"]
+        featuresformat = f'\n\U00002022 '.join(features)
+        em.add_field(name="Advantages to modding a Nintendo Switch",
+                     value=f"\U00002022 {featuresformat}")
+        em.set_footer(text="Guide made by the Nintendo Homebrew Discord Server")
+        await ctx.send(embed=em)
+
 
 def setup(bot):
     bot.add_cog(Homebrew(bot))
