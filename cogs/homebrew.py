@@ -137,9 +137,9 @@ class Homebrew(commands.Cog):
                        "with NTR CFW (requires a New system)"]
 
         em = discord.Embed(title="Nintendo 3DS Modding guide",
-                           url="https://3ds.cfw.guide",
+                           url="https://3ds.hacks.guide",
                            color=0x49151)
-        em.description = ("This [guide](https://3ds.cfw.guide) will install "
+        em.description = ("This [guide](https://3ds.hacks.guide) will install "
                           "LumaCFW alongside boot9strap, the latest CFW")
         features = '\n- '.join(featurelist)
         em.add_field(name="Advantages to modding a 3DS", value=f"- {features}")
