@@ -182,27 +182,6 @@ class Homebrew(commands.Cog):
             # If failed to find a match, pull up the ds guide.
             else:
                 pass
-        features = ["Run Nintendo DS game backups without requiring "
-                    "a physical cartridge",
-                    "Load multiple backups of Nintendo DS games "
-                    "without having to carry around a bunch of cartridges",
-                    "Modify your Nintendo DS game using Cheat Codes",
-                    "Install Custom FirmWare on your 3DS using NTRBoot Hax"]
-        embed = discord.Embed(title="Nintendo DS Flashcard guide",
-                              url="https://ds-homebrew.github.io/flashcard",
-                              color=0xD6FEFF)
-        embed.description = ("This [guide](https://ds-homebrew.github.io/flashcard)"
-                             " links to most flashcard kernels that are made "
-                             "for the Nintendo DS. You can also view its "
-                             "compatibility status for the Nintendo DSi and the Nintendo 3DS")
-        feature = '\n- '.join(features)
-        embed.add_field(name="Advantages to using a Flashcard", value=f"- {feature}")
-        embed.set_footer(text="Guide by NightScript",
-                         icon_url="https://btw.i-use-ar.ch/i/pglx.png")
-        await ctx.send(embed=embed)
-
-    @mod_ds.command(name='cfw')
-    async def mod_dsi_cfw(self, ctx):
         features = ["Redirect your NAND to the SD card",
                     "Use normally uncompatible flashcards",
                     "Replace your home menu with TWiLightMenu++, an SD card file manager",
@@ -222,6 +201,28 @@ class Homebrew(commands.Cog):
         em.add_field(name="Advantages to modding a Nintendo DSi", value=f"- {feature}")
         em.set_footer(text="Guide by RocketRobz")
         await ctx.send(embed=em)
+
+    @mod_ds.command(name='flashcard')
+    async def mod_dsi_cfw(self, ctx):
+        """Gives the flashcard guide"""
+        features = ["Run Nintendo DS game backups without requiring "
+                    "a physical cartridge",
+                    "Load multiple backups of Nintendo DS games "
+                    "without having to carry around a bunch of cartridges",
+                    "Modify your Nintendo DS game using Cheat Codes",
+                    "Install Custom FirmWare on your 3DS using NTRBoot Hax"]
+        embed = discord.Embed(title="Nintendo DS Flashcard guide",
+                              url="https://ds-homebrew.github.io/flashcard",
+                              color=0xD6FEFF)
+        embed.description = ("This [guide](https://ds-homebrew.github.io/flashcard)"
+                             " links to most flashcard kernels that are made "
+                             "for the Nintendo DS. You can also view its "
+                             "compatibility status for the Nintendo DSi and the Nintendo 3DS")
+        feature = '\n- '.join(features)
+        embed.add_field(name="Advantages to using a Flashcard", value=f"- {feature}")
+        embed.set_footer(text="Guide by NightScript",
+                         icon_url="https://btw.i-use-ar.ch/i/pglx.png")
+        await ctx.send(embed=embed)
 
     @mod_ds.command(name='lolsnes')
     async def mod_ds_lolsnes(self, ctx):
