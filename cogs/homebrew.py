@@ -194,7 +194,8 @@ class Homebrew(commands.Cog):
         embed.description = ("This [guide](https://ds-homebrew.github.io/flashcard)"
                              " links to most flashcard kernels that are made "
                              "for the Nintendo DS. You can also view its "
-                             "compatibility status for the Nintendo DSi and the Nintendo 3DS")
+                             "compatibility status for the Nintendo DSi and the Nintendo 3DS"
+                             "\n(If looking for DSi Modding, use `mod ds cfw`)")
         feature = '\n- '.join(features)
         embed.add_field(name="Advantages to using a Flashcard", value=f"- {feature}")
         embed.set_footer(text="Guide by NightScript",
