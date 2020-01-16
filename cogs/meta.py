@@ -348,6 +348,14 @@ class Meta(commands.Cog):
             elif isinstance(member.activity, discord.Streaming):
                 embed.add_field(name="Activity", value=f"Streaming [{member.activity.name}]"
                                                        f"({member.activity.url})", inline=False)
+            elif isinstance(member.activity, discord.CustomActivity):
+                if member.activity.emoji.animated is False:
+                    ret = ".png"
+                else:
+                    ret = ".gif"
+                cdn = f'https://cdn.discordapp.com/emojis/{member.activity.emoji.id}{ret}'
+                activity = f"[{str(member.activity.emoji)}]({cdn}) {member.activity.name}"
+                embed.add_field(name="Activity", value=activity, inline=False)
             else:
                 embed.add_field(name="Activity", value=member.activity.name, inline=False)
         embed.add_field(name="Joined", value=f"{var2} UTC "
