@@ -338,7 +338,8 @@ class Meta(commands.Cog):
         status_text = str(member.status)
         status_text = statuses[status_text] if status_text in statuses else status_text
         embed.add_field(name='Status', value=status_text, inline=True)
-        if member.activity:
+        activity = getattr(member, 'activity', None)
+        if activity is not None:
             if isinstance(member.activity, discord.Spotify):
                 artists = ', '.join(member.activity.artists)
                 spotifyact = f"Listening to [{member.activity.title}]"\
