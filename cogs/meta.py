@@ -326,7 +326,6 @@ class Meta(commands.Cog):
         if member.bot:
             embed.description = "This user is a bot."
         var = member.created_at.strftime("%Y-%m-%d %H:%M")
-        var2 = member.joined_at.strftime("%Y-%m-%d %H:%M")
         embed.add_field(name="Account Created On", value=f"{var} UTC "
                         f"({natural_timedelta(member.created_at, accuracy=3)})\n"
                         f"Relative Date: {get_relative_timestamp(time_to=member.created_at)}",
@@ -359,14 +358,19 @@ class Meta(commands.Cog):
                 embed.add_field(name="Activity", value=activity, inline=False)
             else:
                 embed.add_field(name="Activity", value=member.activity.name, inline=False)
-        embed.add_field(name="Joined", value=f"{var2} UTC "
-                        f"({natural_timedelta(member.joined_at, accuracy=3)})\n"
-                        f"Relative Date: {get_relative_timestamp(time_to=member.joined_at)}",
-                        inline=False)
+        joined_at = getattr(member, 'joined_at', None)
+        if joined_at is not None:
+            joined = member.joined_at.strftime('%Y-%m-%d %H:%M UTC')
+            embed.add_field(name="Joined", value=f"{joined} "
+                            f"({natural_timedelta(member.joined_at, accuracy=3)})\n"
+                            f"Relative Date: {get_relative_timestamp(time_to=member.joined_at)}",
+                            inline=False)
+        else:
+            embed.add_field(name="Joined", value="N/A", inline=False)
         if hasattr(member, 'roles'):
             roles = [x.mention for x in member.roles]
-            if f"<@&{ctx.guild.id}>" in roles:
-                roles.remove(f"<@&{ctx.guild.id}>")
+            if ctx.guild.default_role.mention in roles:
+                roles.remove(ctx.guild.default_role.mention)
             if roles:
                 embed.add_field(name=f"Roles [{len(roles)}]",
                                 value=", ".join(roles) if len(roles) < 10 else "Cannot show all roles",
