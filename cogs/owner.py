@@ -1,5 +1,5 @@
 # Lightning.py - A multi-purpose Discord bot
-# Copyright (C) 2019 - LightSage
+# Copyright (C) 2020 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -407,6 +407,12 @@ class Owner(commands.Cog):
         text = await utils.http.get(self.bot.aiosession, url)
         pages = TextPages(ctx, f"{text}")
         await pages.paginate()
+
+    @commands.command()
+    @commands.is_owner()
+    async def migratewarns2(self, ctx):
+        query = """SELECT * FROM warns"""
+        
 
     @commands.command(aliases=['rgf'])
     @commands.is_owner()
