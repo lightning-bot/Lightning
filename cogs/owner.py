@@ -408,11 +408,10 @@ class Owner(commands.Cog):
         pages = TextPages(ctx, f"{text}")
         await pages.paginate()
 
-    @commands.command()
-    @commands.is_owner()
-    async def migratewarns2(self, ctx):
-        query = """SELECT * FROM warns"""
-        
+    # @commands.command()
+    # @commands.is_owner()
+    # async def migratewarns2(self, ctx):
+    #    query = """SELECT * FROM warns"""
 
     @commands.command(aliases=['rgf'])
     @commands.is_owner()
