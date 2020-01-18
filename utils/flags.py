@@ -22,8 +22,8 @@ from discord.ext import commands
 def boolean_flags(flags: list, text, *, raise_errors=True, flag_aliases: dict = None):
     """A flag parser that marks any matching flags as a boolean.
 
-    Arguments
-    ---------
+    Parameters
+    -----------
     flags: list
         A list of flags you want to find.
 
