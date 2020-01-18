@@ -16,9 +16,10 @@
 import re
 from utils.errors import LightningError
 from utils.time import plural
+from discord.ext import commands
 
 
-def boolean_flags(flags: list, text: str, raise_errors=True, flag_aliases: dict = None):
+def boolean_flags(flags: list, text, *, raise_errors=True, flag_aliases: dict = None):
     """A flag parser that marks any matching flags as a boolean.
 
     Arguments
@@ -65,3 +66,17 @@ def boolean_flags(flags: list, text: str, raise_errors=True, flag_aliases: dict 
     # Strip text
     info['text'] = info['text'].strip()
     return info
+
+
+class BoolFlags(commands.Converter):
+    """The boolean_flags parser except it's a converter"""
+    def __init__(self, flags, *, raise_errors=True, flag_aliases=None):
+        self.flags = flags
+        self.raise_errors = raise_errors
+        self.flag_aliases = flag_aliases
+
+    async def convert(self, ctx, argument):
+        flags = boolean_flags(self.flags, argument,
+                              raise_errors=self.raise_errors,
+                              flag_aliases=self.flag_aliases)
+        return flags
