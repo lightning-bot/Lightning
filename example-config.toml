@@ -34,7 +34,6 @@ startup = id
 description = ""
 # This is by IDs
 managers = []
-version = ""
 spam_count = 5
 # Startup game
 game = "rewrite is the future!"

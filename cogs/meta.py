@@ -420,7 +420,7 @@ class Meta(commands.Cog):
             return
         if flags['version']:
             return await ctx.send("I'm currently on "
-                                  f"{self.bot.config['bot']['version']}!")
+                                  f"{self.bot.version}!")
         await self.more_about(ctx)
 
     async def more_about(self, ctx):
@@ -456,7 +456,7 @@ class Meta(commands.Cog):
                                             "[Discord Bots Link]"
                                             "(https://discord.bots.gg/bots/532220480577470464)",
                                             inline=False)
-        embed.set_footer(text=f"Lightning {self.bot.config['bot']['version']} | Made with "
+        embed.set_footer(text=f"Lightning {self.bot.version} | Made with "
                               f"discord.py {discord.__version__}")
         await ctx.send(embed=embed)
 

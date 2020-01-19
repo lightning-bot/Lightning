@@ -187,6 +187,7 @@ class LightningBot(commands.AutoShardedBot):
         self.prefixes = {}
         self.config = toml.load('config.toml')
         self.socket_stats = Counter()
+        self.version = "v2.4B"
 
         for ext in initial_extensions:
             try:
@@ -216,13 +217,13 @@ class LightningBot(commands.AutoShardedBot):
 
         log.info(f'\nLogged in as: {self.user.name} - '
                  f'{self.user.id}\ndpy version: '
-                 f'{discord.__version__}\nVersion: {self.config["bot"]["version"]}\n')
+                 f'{discord.__version__}\nVersion: {self.version}\n')
         summary = f"{len(self.guilds)} guild(s) and {len(self.users)} user(s)"
         msg = f"{self.user.name} has started! "\
               f"I can see {summary}\n\nDiscord.py Version: "\
               f"{discord.__version__}"\
               f"\nRunning on Python {platform.python_version()}"\
-              f"\nI'm currently on **{self.config['bot']['version']}**"
+              f"\nI'm currently on **{self.version}**"
         await self.botlog_channel.send(msg, delete_after=250)
         if self.config['bot']['game']:
             init_game = discord.Game(self.config['bot']['game'])
