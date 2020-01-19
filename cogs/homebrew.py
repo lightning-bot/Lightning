@@ -169,6 +169,18 @@ class Homebrew(commands.Cog):
         em.set_footer(text="Made by Universal-Team (Mainly by VoltZ)")
         await ctx.send(embed=em)
 
+    @mod_3ds.command(name='fbi')
+    async def mod_3ds_fbi(self, ctx):
+        """Gives information about FBI"""
+        social_links = ["[GBAtemp thread](https://gbatemp.net/threads/release-fbi-open-source-cia-installer.386433/)",
+                        "[Github repository](https://github.com/Steveice10/FBI)"]
+        description = "an open source file and title manager"
+        em = self.mod_embed("FBI",
+                            description, social_links, discord.Color.green())
+        em.set_thumbnail(url="https://raw.githubusercontent.com/Steveice10/FBI/master/meta/icon_3ds.png")
+        em.set_footer(text="Made by Steveice10")
+        await ctx.send(embed=em)
+
     @mod.group(name="ds", aliases=['DS', 'dsi', 'DSi'],
                invoke_without_command=True)
     async def mod_ds(self, ctx, *, homebrew=None):
