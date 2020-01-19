@@ -69,7 +69,10 @@ def boolean_flags(flags: list, text, *, raise_errors=True, flag_aliases: dict = 
 
 
 class BoolFlags(commands.Converter):
-    """The boolean_flags parser except it's a converter"""
+    """The boolean_flags parser except it's a converter.
+
+    You should properly pair this with a CustomDefault if you want
+    to make flags optional"""
     def __init__(self, flags, *, raise_errors=True, flag_aliases=None):
         self.flags = flags
         self.raise_errors = raise_errors

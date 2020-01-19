@@ -58,6 +58,12 @@ class WarnPages(paginator.Pages):
             self.embed.set_footer(text=text)
 
 
+class NoReason(commands.CustomDefault):
+    """CustomDefault for BoolFlags that only use --no-dm"""
+    async def default(self, ctx, param):
+        return {'--no-dm': False, 'text': ''}
+
+
 class Mod(commands.Cog):
     """
     Moderation and server management commands.
@@ -168,7 +174,11 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(kick_members=True)
     @is_staff_or_has_perms("Moderator", kick_members=True)
     @commands.command()
-    async def kick(self, ctx, target: converters.TargetMember, *, reason: str = ""):
+    async def kick(self, ctx, target: converters.TargetMember,
+                   *, reason: flags.BoolFlags(['--no-dm'],
+                                              raise_errors=False,
+                                              flag_aliases={'--nodm': '--no-dm'})
+                   = NoReason):
         """Kicks a user.
 
         Flag options (no arguments):
@@ -177,7 +187,7 @@ class Mod(commands.Cog):
         In order to use this command, you must either have
         Kick Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        pflags = reason
         if pflags['--no-dm'] is False:
             dm_message = f"You were kicked from {ctx.guild.name}."
             if pflags['text']:
@@ -210,7 +220,11 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(ban_members=True)
     @is_staff_or_has_perms("Moderator", ban_members=True)
     @commands.command()
-    async def ban(self, ctx, target: converters.TargetNonGuildMember, *, reason: str = ""):
+    async def ban(self, ctx, target: converters.TargetNonGuildMember,
+                  *, reason: flags.BoolFlags(['--no-dm'],
+                                             raise_errors=False,
+                                             flag_aliases={'--nodm': '--no-dm'})
+                  = NoReason):
         """Bans a user.
 
         Flag options (no arguments):
@@ -219,7 +233,7 @@ class Mod(commands.Cog):
         In order to use this command, you must either have
         Ban Members permission or a role that
         is assigned as a Moderator or above in the bot."""
-        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        pflags = reason
         if pflags['--no-dm'] is False:
             dm_message = f"You were banned from {ctx.guild.name}."
             if reason:
@@ -325,7 +339,11 @@ class Mod(commands.Cog):
     @commands.guild_only()
     @is_staff_or_has_perms("Helper", manage_messages=True)
     @commands.group(invoke_without_command=True)
-    async def warn(self, ctx, target: converters.TargetMember, *, reason: str = ''):
+    async def warn(self, ctx, target: converters.TargetMember,
+                   *, reason: flags.BoolFlags(['--no-dm'],
+                                              raise_errors=False,
+                                              flag_aliases={'--nodm': '--no-dm'})
+                   = NoReason):
         """Warns a user.
 
         Flag options (no arguments):
@@ -334,10 +352,11 @@ class Mod(commands.Cog):
         In order to use this command, you must either have
         Manage Messages permission or a role
         that is assigned as a Helper or above in the bot."""
-        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
-        warns = await self.warn_user(ctx, target, pflags['text'])
+        warn_reason = reason['text']
+        no_dm = reason['--no-dm']
+        warns = await self.warn_user(ctx, target, warn_reason)
         warn_count = await self.warn_count_check(ctx, warns['count'] + 1, target,
-                                                 pflags['text'], pflags['--no-dm'])
+                                                 warn_reason, no_dm)
         await ctx.safe_send(f"{target} warned. (Warn ID: {warns['warn_id']}) "
                             f"User now has {plural(warn_count):warning}.")
         ch = await self.get_mod_config(ctx.guild.id)
@@ -349,12 +368,12 @@ class Mod(commands.Cog):
             if logstyle == "kurisu":
                 message = modlog_formatter.kurisu_format(log_action="warn", target=target,
                                                          moderator=ctx.author,
-                                                         reason=pflags['text'],
+                                                         reason=warn_reason,
                                                          warn_id=warns['warn_id'])
                 await self.channelid_send(ctx.guild.id, int(logch), "modlog_chan", message)
             if logstyle == "lightning":
                 message = modlog_formatter.lightning_format("warn", target, ctx.author,
-                                                            reason=pflags['text'],
+                                                            reason=warn_reason,
                                                             time=ctx.message.created_at,
                                                             warn_id=warns['warn_id'])
                 await self.channelid_send(ctx.guild.id, int(logch), "modlog_chan", message)
@@ -593,7 +612,11 @@ class Mod(commands.Cog):
     @commands.command(aliases=['muteuser'])
     @commands.bot_has_permissions(manage_roles=True)
     @is_staff_or_has_perms("Moderator", manage_roles=True)
-    async def mute(self, ctx, target: converters.TargetMember, *, reason: str = ""):
+    async def mute(self, ctx, target: converters.TargetMember,
+                   *, reason: flags.BoolFlags(['--no-dm'],
+                                              raise_errors=False,
+                                              flag_aliases={'--nodm': '--no-dm'})
+                   = NoReason):
         """Mutes a user.
 
         Flag options (no arguments):
@@ -603,7 +626,7 @@ class Mod(commands.Cog):
         Manage Roles permission or a role that
         is assigned as a Moderator or above in the bot."""
         role = await self.get_mute_role(ctx)
-        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        pflags = reason
         if pflags['--no-dm'] is False:
             dm_message = f"You were muted in {ctx.guild.name}!"
             if pflags['text']:
@@ -706,7 +729,11 @@ class Mod(commands.Cog):
     @is_staff_or_has_perms("Moderator", ban_members=True)
     @commands.command(aliases=['tempban'])
     async def timeban(self, ctx, target: converters.TargetNonGuildMember,
-                      duration: FutureTime, *, reason: str = ""):
+                      duration: FutureTime,
+                      *, reason: flags.BoolFlags(['--no-dm'],
+                                                 raise_errors=False,
+                                                 flag_aliases={'--nodm': '--no-dm'})
+                      = NoReason):
         """Bans a user for a specified amount of time.
 
         The duration can be a short time format such as "30d",
@@ -731,7 +758,7 @@ class Mod(commands.Cog):
                "mod_id": ctx.author.id}
         await timer.add_job("timeban", ctx.message.created_at,
                             duration.dt, ext)
-        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        pflags = reason
         if pflags['--no-dm'] is False:
             if isinstance(target, (discord.Member, discord.User)):
                 dm_message = f"You were banned from {ctx.guild.name}."
@@ -773,7 +800,11 @@ class Mod(commands.Cog):
     @commands.bot_has_permissions(manage_roles=True)
     @is_staff_or_has_perms("Moderator", manage_roles=True)
     async def timemute(self, ctx, target: converters.TargetMember,
-                       duration: FutureTime, *, reason: str = ""):
+                       duration: FutureTime,
+                       *, reason: flags.BoolFlags(['--no-dm'],
+                                                  raise_errors=False,
+                                                  flag_aliases={'--nodm': '--no-dm'})
+                       = NoReason):
         """Mutes a user for a specified amount of time.
 
         The duration can be a short time format such as "30d",
@@ -799,7 +830,7 @@ class Mod(commands.Cog):
                "role_id": role.id, "mod_id": ctx.author.id}
         await timer.add_job("timed_restriction", ctx.message.created_at,
                             duration.dt, ext)
-        pflags = flags.boolean_flags(['--no-dm'], reason, False, {'--nodm': '--no-dm'})
+        pflags = reason
         if pflags['--no-dm'] is False:
             dm_message = f"You were muted in {ctx.guild.name}!"
             if pflags['text']:
