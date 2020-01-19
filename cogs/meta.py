@@ -25,7 +25,7 @@ from datetime import datetime
 from typing import Union
 
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands, tasks, flags
 
 import resources.botemojis as emoji
 from utils.checks import is_bot_manager
@@ -195,8 +195,6 @@ class PaginatedHelpCommand(commands.HelpCommand):
         pages = HelpPaginator(self, self.context, entries)
         pages.title = f'{cog.qualified_name} Commands'
         pages.description = cog.description
-
-        # await self.context.release()
         await pages.paginate()
 
     def common_command_formatting(self, page_or_embed, command):
@@ -225,7 +223,6 @@ class PaginatedHelpCommand(commands.HelpCommand):
         pages = HelpPaginator(self, self.context, entries)
         self.common_command_formatting(pages, group)
 
-        # await self.context.release()
         await pages.paginate()
 
 
@@ -451,13 +448,17 @@ class Meta(commands.Cog):
                                             "[Discord Bots Link]"
                                             "(https://discord.bots.gg/bots/532220480577470464)",
                                             inline=False)
-        embed.set_footer(text=f"Lightning {self.bot.config['bot']['version']}")  # | Made with "
-        # f"discord.py {discord.__version__}")
+        embed.set_footer(text=f"Lightning {self.bot.config['bot']['version']} | Made with "
+                              f"discord.py {discord.__version__}")
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['invite', 'join'])
-    async def botinvite(self, ctx):
-        """Gives you a link to add Lightning to your server."""
+    @flags.add_flag("--guild", "--server", type=int)
+    @flags.command(aliases=['invite', 'join'], usage="[flags]")
+    async def botinvite(self, ctx, **flags):
+        """Gives you a link to add Lightning to your server.
+
+        Flag options:
+        `--guild` or `--server`: Server ID to specify the invite for."""
         perms = discord.Permissions.none()
         perms.kick_members = True
         perms.ban_members = True
@@ -475,9 +476,14 @@ class Meta(commands.Cog):
         perms.read_message_history = True
         perms.manage_webhooks = True
         perms.embed_links = True
+        if flags['guild']:
+            guild = discord.Object(id=flags['guild'])
+            invite_link = discord.utils.oauth_url('532220480577470464', perms, guild=guild)
+        else:
+            invite_link = discord.utils.oauth_url('532220480577470464', perms)
         await ctx.send("You can use this link to invite me to your server. "
                        "(Select permissions as needed) "
-                       f"{discord.utils.oauth_url('532220480577470464', perms)}")
+                       f"<{invite_link}>")
 
     @commands.command()
     async def support(self, ctx):

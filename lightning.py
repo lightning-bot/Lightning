@@ -27,7 +27,7 @@ import aiohttp
 import asyncpg
 import discord
 import toml
-from discord.ext import commands
+from discord.ext import commands, flags
 
 from utils import errors
 
@@ -362,6 +362,8 @@ class LightningBot(commands.AutoShardedBot):
         elif isinstance(error, commands.DisabledCommand):
             return await ctx.send(f"{ctx.author.mention}: This command is currently "
                                   "disabled!")
+        elif isinstance(error, flags.ArgumentParsingError):
+            return await ctx.safe_send(str(error))
         help_text = f"\n\nPlease see `{ctx.prefix}help "\
                     f"{ctx.command}` for more info about this command."
         if isinstance(error, commands.BadArgument):
