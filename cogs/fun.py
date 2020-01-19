@@ -136,14 +136,14 @@ class Fun(commands.Cog):
         await ctx.send(f"{ctx.author.mention} You asked: `{question}`. | 8ball says {random.choice(response)}")
 
     @commands.command(aliases=['roll'])
-    async def die(self, ctx, number: int):
+    async def dice(self, ctx, number: int):
         """Rolls a 1 to the specified number sided die"""
         if number <= 0:
             return await ctx.send("You can't roll that!")
         number_ran = random.randint(1, number)
         await ctx.send(f"🎲 You rolled a `{number}` sided die. | The die rolled on `{number_ran}`")
 
-    @die.error
+    @dice.error
     async def dice_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             return await ctx.send("You need to specify a number!")
@@ -208,8 +208,9 @@ class Fun(commands.Cog):
         Flag options (no arguments):
         `--random`: Owoifies random text that was sent in the channel.
         `--lastmessage` or `--lm`: Owoifies the last message sent in the channel."""
-        fwags = flags.boolean_flags(['--random', '--lastmessage'], text, False,
-                                    {'--lm': '--lastmessage'})
+        fwags = flags.boolean_flags(['--random', '--lastmessage'], text,
+                                    raise_errors=False,
+                                    flag_aliases={'--lm': '--lastmessage'})
         if fwags['--random'] is True:
             message = await self.get_previous_messages(ctx.channel)
             if message.content:
