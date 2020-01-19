@@ -402,19 +402,27 @@ class Meta(commands.Cog):
             em.description = ("This role is managed by an integration of some sort.")
         await ctx.send(embed=em)
 
-    @commands.command(name="about")
-    async def about_bot(self, ctx):
-        """Gives basic information about the bot.
+    @flags.add_flag("--simple", "-s", action="store_true")
+    @flags.add_flag("--version", "-v", action="store_true")
+    @flags.command(name="about", aliases=['info'], usage="[flags]")
+    async def about_bot(self, ctx, **flags):
+        """Gives information about the bot.
 
-        For more information about the bot, consider using the
-        info command"""
-        bot_owner = self.bot.get_user(self.bot.owner_id)
-        await ctx.send(f"Hi! I'm {str(self.bot.user)}. "
-                       "For information on how to invite me, use the "
-                       f"botinvite command. My owner is {str(bot_owner)}."
-                       " You can find them here: <https://discord.gg/cDPGuYd>.")
+        Flag options (No arguments):
+        `--simple`, `-s`: Gives a simple message about the bot.
+        `--version`, `-v`: Gives the version that the bot is currently on."""
+        if flags['simple']:
+            bot_owner = self.bot.get_user(self.bot.owner_id)
+            await ctx.send(f"Hi! I'm {str(self.bot.user)}. "
+                           "For information on how to invite me, use the "
+                           f"botinvite command. My owner is {str(bot_owner)}."
+                           " You can find them here: <https://discord.gg/cDPGuYd>.")
+            return
+        if flags['version']:
+            return await ctx.send("I'm currently on "
+                                  f"{self.bot.config['bot']['version']}!")
+        await self.more_about(ctx)
 
-    @commands.command(name='info')
     async def more_about(self, ctx):
         """Gives more information about the bot than the standard about command."""
         query = """SELECT COUNT(*)
