@@ -110,7 +110,8 @@ class Homebrew(commands.Cog):
         data = data['result']
         description = f"{data['newest_release']['description']}"
         embed = discord.Embed(title=data['name'],
-                              description=description)
+                              description=description,
+                              color=0x36393E)
         embed.add_field(name="**Download Link**",
                         value=f"[{data['newest_release']['download_url']}]"
                               f"({data['newest_release']['download_url']})")
