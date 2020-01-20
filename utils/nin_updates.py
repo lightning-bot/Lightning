@@ -15,8 +15,9 @@
 
 import feedparser
 import discord
-import time
+from datetime import datetime
 import json
+import dateutil.parser
 
 
 def json_dump(filename, content):
@@ -42,15 +43,26 @@ async def nintendo_updates_feed(bot):
         console = entry["title"].replace(version, " ").strip()
         link = entry["link"]
 
-        publish_time = time.mktime(entry["published_parsed"])
-        if publish_time <= data[console]["lastupdate"]:
+        if "published" in entry and entry.published:
+            timestamp = dateutil.parser.parse(entry.published)
+        elif "updated" in entry:
+            timestamp = dateutil.parser.parse(entry.updated)
+        else:
             continue
+        try:
+            # Migration things:tm:
+            if timestamp <= datetime.fromtimestamp(data[console]["lastupdate"],
+                                                   tz=timestamp.tzinfo):
+                continue
+        except TypeError:
+            if timestamp <= datetime.fromisoformat(data[console]['lastupdate']):
+                continue
 
         data[console] = {"version": version,
-                         "lastupdate": publish_time}
+                         "lastupdate": timestamp.isoformat()}
 
         hook_text = f"🚨 **System update detected for {console}: {version}**\n"\
-                    f"More information at <{link}>\n"
+                    f"More information at <{link}>"
         query = "SELECT * FROM nin_updates"  # WHERE console=$1"
         ret = await bot.db.fetch(query)
         adp = discord.AsyncWebhookAdapter(bot.aiosession)
