@@ -16,8 +16,10 @@ import asyncpg
 import discord
 from discord.ext import commands
 from fuzzywuzzy import fuzz, process
+import urllib.parse
 
 from utils.checks import is_staff_or_has_perms
+from utils.errors import LightningError
 
 
 class Homebrew(commands.Cog):
@@ -87,6 +89,34 @@ class Homebrew(commands.Cog):
         query = 'DELETE FROM nin_updates WHERE guild_id=$1'
         await self.bot.db.execute(query, ctx.guild.id)
         await ctx.send("Successfully deleted webhook and configuration!")
+
+    @commands.command()
+    @commands.cooldown(1, 5.0, commands.BucketType.member)
+    async def tinydb(self, ctx, *, search):
+        """Searches for 3DS homebrew on tinydb"""
+        if len(search) <= 3:
+            raise LightningError("Search term cannot be 3 characters or less!")
+        if len(search) >= 50:
+            raise LightningError("Search term cannot be 50 characters or more!")
+        url = f"https://tinydb.eiphax.tech/api/search/{urllib.parse.quote(search)}"
+        async with self.bot.aiosession.get(url) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+            else:
+                raise LightningError("Tinydb api not available. Try again later?")
+        # There's not really any docs but success will always exist.
+        if data['success'] is False:
+            raise LightningError("Failed to find that search term!")
+        data = data['result']
+        description = f"{data['newest_release']['description']}"
+        embed = discord.Embed(title=data['name'],
+                              description=description)
+        embed.add_field(name="**Download Link**",
+                        value=f"[{data['newest_release']['download_url']}]"
+                              f"({data['newest_release']['download_url']})")
+        embed.set_author(name=data['newest_release']['author'])
+        embed.set_image(url=data['newest_release']['qr_url'])
+        await ctx.send(embed=embed)
 
     @commands.group(invoke_without_command=True)
     async def mod(self, ctx):
