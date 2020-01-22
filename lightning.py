@@ -187,7 +187,7 @@ class LightningBot(commands.AutoShardedBot):
         self.prefixes = {}
         self.config = toml.load('config.toml')
         self.socket_stats = Counter()
-        self.version = "v2.4B"
+        self.version = "v2.3.1"
 
         for ext in initial_extensions:
             try:
