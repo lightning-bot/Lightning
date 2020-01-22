@@ -401,6 +401,7 @@ class Meta(commands.Cog):
         em.add_field(name="Role Members", value=len(role.members))
         if role.managed:
             em.description = ("This role is managed by an integration of some sort.")
+        em.set_footer(text=f"Role ID: {role.id}")
         await ctx.send(embed=em)
 
     @flags.add_flag("--simple", "-s", action="store_true")
