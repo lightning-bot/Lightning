@@ -258,7 +258,8 @@ class Meta(commands.Cog):
     async def create_error_ticket(self, ctx, title, information):
         if await ctx.bot.is_owner(ctx.author):
             error = information
-            exc = traceback.format_exception(type(error), error, error.__traceback__)
+            exc = traceback.format_exception(type(error), error, error.__traceback__,
+                                             chain=False)
             em = discord.Embed(title="Exception",
                                description=f"```py\n{''.join(exc)}```")
             em.set_footer(text=ctx.command.qualified_name)
