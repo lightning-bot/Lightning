@@ -19,15 +19,12 @@ import json
 import os
 import random
 import shutil
-import textwrap
+import time
 import traceback
-from contextlib import redirect_stdout
 
-import utils.http
-import utils.shell
 import discord
+import tabulate
 import toml
-from utils.paginator import TextPages
 from discord.ext import commands
 from jishaku.codeblocks import codeblock_converter
 from jishaku.cog import JishakuBase, jsk
@@ -38,7 +35,10 @@ from jishaku.metacog import GroupCogMeta
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
 from jishaku.repl import AsyncCodeExecutor, get_var_dict_from_ctx
 
+import utils.http
+import utils.shell
 from utils.checks import is_bot_manager
+from utils.paginator import TextPages
 
 
 class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
@@ -113,8 +113,6 @@ class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
 class Owner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.last_eval_result = None
-        self.previous_eval_code = None
         self.bot.get_blacklist = self.grab_blacklist
 
     def grab_blacklist(self):
@@ -243,67 +241,6 @@ class Owner(commands.Cog):
                                   f"Reason: {bl[str(id)]}")
         await ctx.send("No matches found!")
 
-    # RoboDanny's eval command. (even though Jishaku exists)
-    # MIT Licensed.
-    # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py
-    @commands.is_owner()
-    @commands.command(name='eval')
-    async def _eval(self, ctx, *, code: str):
-        """Evaluates some code, Owner only."""
-        code = code.strip('` ')
-
-        env = {'bot': self.bot,
-               'ctx': ctx,
-               'message': ctx.message,
-               'server': ctx.guild,
-               'guild': ctx.guild,
-               'channel': ctx.message.channel,
-               'author': ctx.message.author,
-
-               # modules
-               'discord': discord,
-               'commands': commands,
-
-               # utilities
-               '_get': discord.utils.get,
-               '_find': discord.utils.find,
-
-               # last result
-               '_': self.last_eval_result,
-               '_p': self.previous_eval_code}
-        env.update(globals())
-
-        self.bot.log.info(f"Evaling {repr(code)}:")
-        stdout = io.StringIO()
-
-        to_compile = f'async def func():\n{textwrap.indent(code, "  ")}'
-
-        try:
-            exec(to_compile, env)
-        except Exception as e:
-            return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
-
-        func = env['func']
-        try:
-            with redirect_stdout(stdout):
-                ret = await func()
-        except Exception:
-            value = stdout.getvalue()
-            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
-        else:
-            value = stdout.getvalue()
-            try:
-                await ctx.message.add_reaction('\u2705')
-            except Exception:
-                pass
-
-            if ret is None:
-                if value:
-                    await ctx.send(f'```py\n{value}\n```')
-            else:
-                self._last_result = ret
-                await ctx.send(f'```py\n{value}{ret}\n```')
-
     @commands.is_owner()
     @commands.command(name="pull-exit", aliases=['pe'])
     async def pull_exit(self, ctx):
@@ -408,10 +345,52 @@ class Owner(commands.Cog):
         pages = TextPages(ctx, f"{text}")
         await pages.paginate()
 
+    @commands.command()
+    @commands.is_owner()
+    async def sql(self, ctx, *, query: codeblock_converter):
+        """Run some SQL"""
+        if query.count(";") > 1:
+            db_ty = self.bot.db.execute
+            multi_statement = True
+        else:
+            db_ty = self.bot.db.fetch
+            multi_statement = False
+        try:
+            start = time.perf_counter()
+            output = await db_ty(query.content)
+            dt = (time.perf_counter() - start) * 1000.0
+        except Exception:
+            return await ctx.send(f'```py\n{traceback.format_exc()}\n```')
+        if len(output) == 0:
+            # stupid thing ayy lmao
+            multi_statement = True
+        if multi_statement is False:
+            table = tabulate.tabulate(output, headers=list(output[0].keys()), tablefmt="psql")
+            to_send = f"Took {round(dt)}s\n```sql\n{table}```"
+        else:
+            to_send = f"Took {round(dt)}s\n```sql\n{output}```"
+        if len(to_send) > 2000:
+            fp = io.BytesIO(to_send.encode('utf-8'))
+            # Send initial message
+            msg = await ctx.send('Message too large, see attached', file=discord.File(fp, 'results.txt'))
+            # then edit the message with our attachment link
+            aid = msg.attachments[0].id
+            url = f"https://txt.discord.website/?txt={msg.channel.id}/{aid}/results"
+            await msg.edit(content=f"{msg.content} or see it at <{url}>")
+        else:
+            await ctx.send(to_send)
+
     # @commands.command()
     # @commands.is_owner()
     # async def migratewarns2(self, ctx):
     #    query = """SELECT * FROM warns"""
+        # should be processed as select all warns
+        # delete all entries and reinsert into the db with the correct warn IDs.
+        # At this point in time, there was no pardoned warns so :dealwithit:.
+    #    query2 = """WITH warn_id AS (
+    #                    INSERT INTO warns
+    #    )
+    #    """
 
     @commands.command(aliases=['rgf'])
     @commands.is_owner()
