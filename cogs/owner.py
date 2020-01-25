@@ -366,9 +366,9 @@ class Owner(commands.Cog):
             multi_statement = True
         if multi_statement is False:
             table = tabulate.tabulate(output, headers=list(output[0].keys()), tablefmt="psql")
-            to_send = f"Took {round(dt)}s\n```sql\n{table}```"
+            to_send = f"Took {round(dt)}ms\n```sql\n{table}```"
         else:
-            to_send = f"Took {round(dt)}s\n```sql\n{output}```"
+            to_send = f"Took {round(dt)}ms\n```sql\n{output}```"
         if len(to_send) > 2000:
             fp = io.BytesIO(to_send.encode('utf-8'))
             # Send initial message
@@ -387,8 +387,17 @@ class Owner(commands.Cog):
         # should be processed as select all warns
         # delete all entries and reinsert into the db with the correct warn IDs.
         # At this point in time, there was no pardoned warns so :dealwithit:.
+    #    tablecreate = """CREATE TABLE IF NOT EXISTS warns
+    #                     (
+    #                         global_warn_id SERIAL PRIMARY KEY,
+    #                         guild_id BIGINT NOT NULL,
+    #                         warn_id BIGINT DEFAULT '0',
+    #                         user_id BIGINT,
+    #                         mod_id BIGINT
+    #                     )
+    #    """
     #    query2 = """WITH warn_id AS (
-    #                    INSERT INTO warns
+    #                    INSERT INTO warns ($1, $2, $3, $4, )
     #    )
     #    """
 
