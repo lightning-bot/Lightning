@@ -123,7 +123,7 @@ class Mod(commands.Cog):
 
     async def set_user_restrictions(self, guild_id: int, user_id: int, role_id: int):
         query = """INSERT INTO user_restrictions (guild_id, user_id, role_id)
-                   VALUES ($1, $2, $3)
+                   VALUES ($1, $2, $3) ON CONFLICT DO NOTHING;
                 """
         return await self.bot.db.execute(query, guild_id, user_id, role_id)
 
