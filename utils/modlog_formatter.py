@@ -268,14 +268,16 @@ def kurisu_role_change(added, removed, after, mod=None):
         msg += "\n👑 __Role change__: "
         roles = []
         for role in removed:
-            roles.append("_~~" + role.name + "~~_")
+            safe_role_name = discord.utils.escape_markdown(role.name)
+            roles.append("_~~" + safe_role_name + "~~_")
         for role in added:
-            roles.append("__**" + role.name + "**__")
+            safe_role_name = discord.utils.escape_markdown(role.name)
+            roles.append("__**" + safe_role_name + "**__")
         for index, role in enumerate(after.roles):
             if role.name == "@everyone":
                 continue
             if role not in added and role not in removed:
-                roles.append(role.name)
+                roles.append(discord.utils.escape_markdown(role.name))
     msg += ", ".join(roles)
     if msg:  # Ending
         escape_md = discord.utils.escape_markdown(str(after))
