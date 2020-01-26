@@ -347,9 +347,19 @@ class Configuration(commands.Cog):
         embed = discord.Embed(title="Mod Roles", description="")
         if len(result) == 0:
             embed.description = "No moderation roles are setup!"
+        roles_to_remove = []
         for perms, role_id in result:
             role = discord.utils.get(ctx.guild.roles, id=role_id)
-            embed.description += f"{perms}: {role.mention}\n"
+            if role:
+                embed.description += f"{perms}: {role.mention}\n"
+            else:
+                roles_to_remove.append(role_id)
+        if roles_to_remove:
+            query = """DELETE FROM staff_roles WHERE role_id=$1"""
+            async with self.bot.db.acquire() as con:
+                async with con.transaction():
+                    for i in roles_to_remove:
+                        await con.execute(query, i)
         await ctx.send(embed=embed)
 
     @commands.guild_only()
