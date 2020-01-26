@@ -78,7 +78,8 @@ class KurisuFormat:
             mention = f"<@!{self.target.id}>"
         if isinstance(self.target, discord.Object):
             return f"{mention}"
-        return f"{mention} | {discord.utils.escape_mentions(str(self.target))}"
+        escape = discord.utils.escape_markdown(str(self.target))
+        return f"{mention} | {discord.utils.escape_mentions(escape)}"
 
     def temp_action_target(self, expiry):
         if hasattr(self.target, 'mention'):
@@ -277,12 +278,17 @@ def kurisu_role_change(added, removed, after, mod=None):
                 roles.append(role.name)
     msg += ", ".join(roles)
     if msg:  # Ending
+        escape_md = discord.utils.escape_markdown(str(after))
+        # Also escape markdown cause haha funny markdown characters in my name
+        safe_user = discord.utils.escape_mentions(escape_md)
         msg = f"\N{INFORMATION SOURCE} "\
-              f"**Member update**: {discord.utils.escape_mentions(str(after))} | "\
+              f"**Member update**: {safe_user} | "\
               f"{after.id} {msg}"
         if mod:
+            safe_md = discord.utils.escape_markdown(str(mod))
+            safe_mod = discord.utils.escape_mentions(safe_md)
             msg += f"\n\N{BLUE BOOK} __Moderator__: "\
-                   f"{discord.utils.escape_mentions(str(mod))} ({mod.id})"
+                   f"{safe_mod} ({mod.id})"
         return msg
 
 
