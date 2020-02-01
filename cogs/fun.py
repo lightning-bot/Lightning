@@ -91,6 +91,8 @@ class Fun(commands.Cog):
                 raise NoImageProvided
             if url:
                 image_url = await getbytes(self.bot.aiosession, url)
+                if image_url is False:
+                    raise NoImageProvided
                 image_buffer = await ctx.bot.loop.run_in_executor(None,
                                                                   self.make_jpegify,
                                                                   image_url)
