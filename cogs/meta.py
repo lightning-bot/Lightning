@@ -353,7 +353,10 @@ class Meta(commands.Cog):
                     ret = ".gif"
                 cdn = f'https://cdn.discordapp.com/emojis/{member.activity.emoji.id}{ret}'
                 act_name = member.activity.name if member.activity.name is not None else ""
-                activity = f"[{str(member.activity.emoji)}]({cdn}) {act_name}"
+                if activity.emoji.id:
+                    activity = f"[{str(member.activity.emoji)}]({cdn}) {act_name}"
+                else:
+                    activity = f"{str(member.activity.emoji)} {act_name}"
                 embed.add_field(name="Activity", value=activity, inline=False)
             else:
                 embed.add_field(name="Activity", value=member.activity.name, inline=False)
