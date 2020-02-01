@@ -1714,23 +1714,32 @@ class Mod(commands.Cog):
                             await self.channelid_send(guild.id, logch, "modlog_chan", message)
                 break
 
+    async def suppress_after(self, message, seconds):
+        """Suppresses an embed from a message after a certain amount of seconds"""
+        await asyncio.sleep(seconds)
+        try:
+            await message.edit(embed=None)
+        except discord.HTTPException:
+            pass
+
     async def do_twl_hacking_message(self, guild, member):
         if guild.id != 283769550611152897:
             return
         user = discord.utils.escape_mentions(member.name)
         message = f"Welcome {user} to TWL Mode Hacking"\
-                  ", the server for DS Mode modifications.\n\n"\
-                  "- This applies to the DS Phat/Lite, DSi "\
-                  "and the DS mode of the 3DS family\n"\
-                  "- Need a guide? Need links to homebrew? Check out the "\
-                  "!mod commands\n"\
-                  "- More terminology used could be found in <#638041441079263283>\n\n"\
-                  "Enjoy your stay, and be sure to read the rules in"\
-                  " <#626620520330428436>"
-
+                  ", the server for DS Mode modifications."
+        embed = discord.Embed()
+        embed.description = ("- This applies to the DS Phat/Lite, DSi and the DS "
+                             "mode of the 3DS family\n"
+                             "- Need a guide? Need links to homebrew? Check out the "
+                             "!mod commands\n"
+                             "- More terminology used could be found in <#638041441079263283>\n\n"
+                             "Enjoy your stay, and be sure to read the rules in"
+                             " <#626620520330428436>")
         ch = self.bot.get_channel(286686210225864725)
         if ch is not None:
-            await ch.send(message)
+            msg = await ch.send(message, embed=embed)
+            self.bot.loop.create_task(self.suppress_after(msg, 180.0))
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
