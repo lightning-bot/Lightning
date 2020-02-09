@@ -256,10 +256,10 @@ class Homebrew(commands.Cog):
                     "Use FreeNAND to transfer configurations, sys, titles and "
                     "tickets to another Nintendo DSi from a SD NAND"]
         em = discord.Embed(title="Nintendo DSi Modding guide",
-                           url="https://ds-homebrew.github.io/flashcard",
+                           url="https://dsi.cfw.guide/",
                            color=0xD6FEFF)
         # Original embed color was "16776918", search got me "D6FEFF".
-        em.description = ("This [guide](https://ds-homebrew.github.io/flashcard) "
+        em.description = ("This [guide](https://dsi.cfw.guide/) "
                           "will take you from a regular Nintendo "
                           "DSi to a modified console by using the Memory Pit exploit.")
         feature = '\n- '.join(features)
