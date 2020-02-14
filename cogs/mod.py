@@ -1736,7 +1736,7 @@ class Mod(commands.Cog):
                              "- More terminology used could be found in <#638041441079263283>\n\n"
                              "Enjoy your stay, and be sure to read the rules in"
                              " <#626620520330428436>")
-        ch = self.bot.get_channel(286686210225864725)
+        ch = self.bot.get_channel(677714673663082529)
         if ch is not None:
             msg = await ch.send(message, embed=embed)
             self.bot.loop.create_task(self.suppress_after(msg, 180.0))
