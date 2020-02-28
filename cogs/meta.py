@@ -797,18 +797,14 @@ class Meta(commands.Cog):
             embed.add_field(name="Today", value=commands_used_des)
             await ctx.send(embed=embed)
 
-    async def message_info_embed(self, msg):
+    def message_info_embed(self, msg):
         embed = discord.Embed(timestamp=msg.created_at)
-        if msg.author.nick:
+        if hasattr(msg.author, 'nick'):
             author_name = f"{msg.author.display_name} ({msg.author})"
         else:
             author_name = msg.author
         embed.set_author(name=author_name, icon_url=msg.author.avatar_url)
         embed.set_footer(text=f"#{msg.channel}")
-        # if len(msg.content) >= 1500:
-        #    url = await self.bot.haste(msg.content)
-        #    description = f"Message too long. See the haste -> {url}"
-        # else:
         description = msg.content
         if msg.attachments:
             attach_urls = []
@@ -834,7 +830,7 @@ class Meta(commands.Cog):
                 raise MessageNotFoundInChannel(message_id, channel)
             except discord.Forbidden:
                 raise ChannelPermissionFailure(f"I don't have permission to view {channel.mention}.")
-        embed = await self.message_info_embed(msg)
+        embed = self.message_info_embed(msg)
         if msg.author.color.value != 0:
             embed.color = msg.author.color
         await ctx.send(embed=embed)
