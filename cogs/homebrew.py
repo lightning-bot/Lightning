@@ -315,8 +315,8 @@ class Homebrew(commands.Cog):
     async def mod_ds_pkmn_chest(self, ctx):
         """Gives information on pkmn-chest"""
         description = "A Pokémon Bank style app that lets you store and "\
-                      "edit Pokémon from the 4th and 5th generation games "\
-                      "on your DS(i)."
+                      "edit Pokémon from the 3rd through 5th generation "\
+                      "games on your DS(i)."
         links = ["[Github Repository](https://github.com/Universal-Team/pkmn-chest)",
                  "[Discord Server](https://discord.gg/KDJCfGF)",
                  "[GBAtemp Thread](https://gbatemp.net/threads/release-"
