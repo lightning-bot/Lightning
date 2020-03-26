@@ -83,7 +83,6 @@ initial_extensions = ['cogs.config',
                       'cogs.timers',
                       'cogs.toggle_roles',
                       'cogs.utility',
-                      'stabilite.stabilite',
                       'cogs.misc',
                       'cogs.homebrew']
 
