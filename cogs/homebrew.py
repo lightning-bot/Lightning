@@ -248,13 +248,13 @@ class Homebrew(commands.Cog):
     @mod_ds.command(name='cfw')
     async def mod_dsi_cfw(self, ctx):
         features = ["Redirect your NAND to the SD card",
-                    "Use normally uncompatible flashcards",
-                    "Replace your home menu with TWiLightMenu++, an SD card file manager",
-                    "Launch any DSiWare (out-of-region & 3DS exclusives) from "
-                    "your SD card (using unlaunch)",
-                    "Run homebrew applications and applications that aren't signed",
-                    "Use FreeNAND to transfer configurations, sys, titles and "
-                    "tickets to another Nintendo DSi from a SD NAND"]
+                    "Use normally incompatible flashcards",
+                    "Boot into different homebrew applications by holding different buttons when turning on your Nintendo DSi.",
+                    "Launch any DSiWare (out-of-region & 3DS exclusives) from your SD card",
+                    "Run Nintendo DS game backups natively on your DSi SD card without the need of a flashcard.",
+                    "Watch your favorite movies using MPEG4Player",
+                    "Run old-time favorites using a variety of emulators",
+                    "Use FreeNAND to transfer configurations, sys, titles and tickets to another Nintendo DSi from a SD NAND"]
         em = discord.Embed(title="Nintendo DSi Modding guide",
                            url="https://dsi.cfw.guide/",
                            color=0xD6FEFF)
@@ -264,7 +264,7 @@ class Homebrew(commands.Cog):
                           "DSi to a modified console by using the Memory Pit exploit.")
         feature = '\n- '.join(features)
         em.add_field(name="Advantages to modding a Nintendo DSi", value=f"- {feature}")
-        em.set_footer(text="Guide by RocketRobz")
+        em.set_footer(text="Guide by NightScript, RocketRobz & emiyl")
         await ctx.send(embed=em)
 
     @mod_ds.command(name='lolsnes')
@@ -309,6 +309,17 @@ class Homebrew(commands.Cog):
         em.set_footer(text="Made by loopy, FluBBa, Dwedit, tepples, "
                            "kuwanger, chishm, Mamiya, minitroopa, "
                            "huiminghao, CotoDev & ApacheThunder")
+        await ctx.send(embed=em)
+
+    @mod_ds.command(name="gba")
+    async def mod_ds_nesds(self, ctx):
+        """Gives information on GBARunner2"""
+        description = "An open-source Gameboy Advance hypervisor."
+        links = ["[Github Repository](https://github.com/RocketRobz/NesDS)",
+                 "[GBAtemp thread](https://gbatemp.net/threads/gbarunner2.451970/)",
+                 "[GBAtemp compatibility list](https://wiki.gbatemp.net/wiki/GBARunner2)"]
+        em = self.mod_embed("GBARunner2", description, links, discord.Color.blue())
+        em.set_footer(text="Made by Gericom")
         await ctx.send(embed=em)
 
     @mod_ds.command(name="pkmn-chest")
@@ -373,16 +384,17 @@ class Homebrew(commands.Cog):
                    "NES/Famicom titles",
                    "Super NES/Famicom titles",
                    "Sega Genesis titles",
-                   "(Super) Gameboy (Color) Titles",
-                   # "Gameboy Advanced Titles",
+                   "(Super) Gameboy (Color/Advance) Titles",
+                   "Atari 2600 Titles",
                    "DSTWO plugins (requires you to have a DSTWO)",
-                   "RocketVideoPlayer videos"]
+                   "RocketVideoPlayer & MPEG4 videos"]
         styles = ["Nintendo DSi",
                   "Nintendo 3DS",
                   "R4",
                   "Acekard/akMenu",
-                  "SEGA Saturn"]
-        em = self.mod_embed("TWiLightMenu++", description, links, 0xA701E9)
+                  "SEGA Saturn",
+                  "Homebrew Launcher"]
+        em = self.mod_embed("TWiLight Menu++", description, links, 0xA701E9)
         em.add_field(name="Supported Formats", value=', '.join(formats), inline=False)
         stylesformat = f'\n\U00002022 '.join(styles)
         em.add_field(name="Styles", value=f"\U00002022 {stylesformat}")
@@ -408,6 +420,32 @@ class Homebrew(commands.Cog):
         em.add_field(name="Advantages to modding a Nintendo Switch",
                      value=f"\U00002022 {featuresformat}")
         em.set_footer(text="Guide made by the Nintendo Homebrew Discord Server")
+        await ctx.send(embed=em)
+
+    # Only one command, useless to make it a group
+    @mod.command(name='wii', aliases=[])
+    async def mod_switch_guide(self, ctx):
+        """Gives information on Nintendo Wii modding"""
+        em = discord.Embed(title="Nintendo Wii Modding guide",
+                           url="https://wii.guide/",
+                           color=0x00FF11)
+        em.description = ("This [guide](https://wii.guide/) will install the Homebrew Channel, "
+                          "the one channel for all things homebrew.")
+        features = ["Patch game disc contents (allowing you to load game modifications) using Riivolution.",
+                    "Install themes to your Wii Menu using MyMenuify.",
+                    "Install a USB Loader like WiiFlow Lite or USB Loader GX "
+                    "to launch all your favorite titles from a USB storage device and more.",
+                    "Back up your discs with CleanRip and installed games and titles with YABDM.",
+                    "Back up and restore your save files with SaveGame Manager GX",
+                    "Download new homebrew apps with the Homebrew Browser",
+                    "Restore discontinued online services, such as WiiConnect24 & Nintendo WFC services.",
+                    "Backup and restore copies of your Wii system memory (NAND) using BootMii.",
+                    "Protect your Wii from bricks using Priiloader and BootMii.",
+                    "Turn your Wii into a media player with WiiMC."]
+        featuresformat = f'\n\U00002022 '.join(features)
+        em.add_field(name="Advantages to modding a Nintendo Wii",
+                     value=f"\U00002022 {featuresformat}")
+        em.set_footer(text="Guide made by the RiiConnect24 team and others")
         await ctx.send(embed=em)
 
 
