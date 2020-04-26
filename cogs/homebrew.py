@@ -249,12 +249,14 @@ class Homebrew(commands.Cog):
     async def mod_dsi_cfw(self, ctx):
         features = ["Redirect your NAND to the SD card",
                     "Use normally incompatible flashcards",
-                    "Boot into different homebrew applications by holding different buttons when turning on your Nintendo DSi.",
+                    "Boot into different homebrew applications by holding different buttons when turning on your "
+                    "Nintendo DSi.",
                     "Launch any DSiWare (out-of-region & 3DS exclusives) from your SD card",
                     "Run Nintendo DS game backups natively on your DSi SD card without the need of a flashcard.",
                     "Watch your favorite movies using MPEG4Player",
                     "Run old-time favorites using a variety of emulators",
-                    "Use FreeNAND to transfer configurations, sys, titles and tickets to another Nintendo DSi from a SD NAND"]
+                    "Use FreeNAND to transfer configurations, sys, titles and tickets to another Nintendo DSi from a SD"
+                    " NAND"]
         em = discord.Embed(title="Nintendo DSi Modding guide",
                            url="https://dsi.cfw.guide/",
                            color=0xD6FEFF)
@@ -312,7 +314,7 @@ class Homebrew(commands.Cog):
         await ctx.send(embed=em)
 
     @mod_ds.command(name="gba")
-    async def mod_ds_nesds(self, ctx):
+    async def mod_ds_gba(self, ctx):
         """Gives information on GBARunner2"""
         description = "An open-source Gameboy Advance hypervisor."
         links = ["[Github Repository](https://github.com/RocketRobz/NesDS)",
@@ -422,9 +424,8 @@ class Homebrew(commands.Cog):
         em.set_footer(text="Guide made by the Nintendo Homebrew Discord Server")
         await ctx.send(embed=em)
 
-    # Only one command, useless to make it a group
-    @mod.command(name='wii', aliases=[])
-    async def mod_switch_guide(self, ctx):
+    @mod.command(name='wii')
+    async def mod_wii(self, ctx):
         """Gives information on Nintendo Wii modding"""
         em = discord.Embed(title="Nintendo Wii Modding guide",
                            url="https://wii.guide/",
