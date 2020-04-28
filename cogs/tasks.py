@@ -253,7 +253,10 @@ class TasksManagement(commands.Cog):
 
     @tasks.loop(seconds=45)
     async def stability(self):
-        await nintendo_updates_feed(self.bot)
+        if self.bot.config['bot']['nuf']:
+            await nintendo_updates_feed(self.bot)
+        else:
+            self.stability.stop()
 
     @stability.before_loop
     async def stability_load(self):
