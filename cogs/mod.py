@@ -1726,7 +1726,7 @@ class Mod(commands.Cog):
         if guild.id != 283769550611152897:
             return
         user = discord.utils.escape_mentions(member.name)
-        message = f"Welcome {user} to TWL Mode Hacking"\
+        message = f"Welcome {user} to {discord.utils.escape_mentions(guild.name)}"\
                   ", the server for DS Mode modifications."
         embed = discord.Embed()
         embed.description = ("- This applies to the DS Phat/Lite, DSi and the DS "
