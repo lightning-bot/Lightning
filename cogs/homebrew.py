@@ -12,6 +12,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import asyncio
+
 import asyncpg
 import discord
 from discord.ext import commands
@@ -98,8 +100,9 @@ class Homebrew(commands.Cog):
             raise LightningError("Search term cannot be 3 characters or less!")
         if len(search) >= 50:
             raise LightningError("Search term cannot be 50 characters or more!")
+
         url = f"https://tinydb.eiphax.tech/api/search/{urllib.parse.quote(search)}"
-        async with self.bot.aiosession.get(url) as resp:
+        async with self.bot.aiosession.get(url, timeout=30.0) as resp:
             if resp.status == 200:
                 data = await resp.json()
             else:
@@ -107,6 +110,7 @@ class Homebrew(commands.Cog):
         # There's not really any docs but success will always exist.
         if data['success'] is False:
             raise LightningError("Failed to find that search term!")
+
         data = data['result']
         description = f"{data['newest_release']['description']}"
         embed = discord.Embed(title=data['name'],
@@ -118,6 +122,19 @@ class Homebrew(commands.Cog):
         embed.set_author(name=data['newest_release']['author'])
         embed.set_image(url=data['newest_release']['qr_url'])
         await ctx.send(embed=embed)
+
+    @tinydb.error
+    async def tiny_db_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(str(error))
+        elif isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(str(error))
+        elif isinstance(error, LightningError):
+            await ctx.send(str(error))
+
+        if isinstance(error, commands.CommandInvokeError):
+            if isinstance(error.original, asyncio.TimeoutError):
+                await ctx.send('Timed out.')
 
     @commands.group(invoke_without_command=True)
     async def mod(self, ctx):
