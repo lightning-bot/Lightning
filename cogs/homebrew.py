@@ -449,6 +449,18 @@ class Homebrew(commands.Cog):
         em.set_footer(text="Guide made by the RiiConnect24 team and others")
         await ctx.send(embed=em)
 
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        guild = member.guild
+        if guild.id != 283769550611152897:
+            return
+        user = discord.utils.escape_mentions(member.name)
+        message = f"**{user}** just left the server."
+
+        ch = self.bot.get_channel(677714673663082529)
+        if ch is not None:
+            await ch.send(message)
+
 
 def setup(bot):
     bot.add_cog(Homebrew(bot))
