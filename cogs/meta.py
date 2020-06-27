@@ -93,7 +93,7 @@ class HelpPaginator(Pages):
         messages = [f'{emoji} {func.__doc__}' for emoji, func in self.reaction_emojis]
         self.embed.clear_fields()
         self.embed.add_field(name='What are these reactions for?', value='\n'.join(messages), inline=False)
-        self.embed.add_field(name='Support Server', value="https://discord.gg/cDPGuYd", inline=False)
+        self.embed.add_field(name='Support Server', value="https://discord.gg/SpFjsy3", inline=False)
 
         self.embed.set_footer(text=f'We were on page {self.current_page} before this message.')
         await self.message.edit(embed=self.embed)
@@ -286,7 +286,7 @@ class Meta(commands.Cog):
             await con.execute(query, id[0], msg.guild.id, msg.channel.id, msg.id)
         msg = f"```py\n{str(information)}```\nCreated a ticket with ID {id[0]}. "\
               "You can see updates on your ticket by joining "\
-              "the [support server](https://discord.gg/cDPGuYd) and looking in the "\
+              "the [support server](https://discord.gg/SpFjsy3) and looking in the "\
               f"reports channel."
         embed = discord.Embed(title="Uh oh, my powers overloaded.", description=msg)
         embed.set_footer(text="My developers have been notified about this.")
@@ -423,7 +423,7 @@ class Meta(commands.Cog):
             await ctx.send(f"Hi! I'm {str(self.bot.user)}. "
                            "For information on how to invite me, use the "
                            f"botinvite command. My owner is {str(bot_owner)}."
-                           " You can find them here: <https://discord.gg/cDPGuYd>.")
+                           " You can find them here: <https://discord.gg/SpFjsy3>.")
             return
         if flags['version']:
             return await ctx.send("I'm currently on "
@@ -458,10 +458,8 @@ class Meta(commands.Cog):
         embed.add_field(name="Members", value=all_members)
         embed.add_field(name="Command Stats", value=f"{amount} commands used all time.")
         embed.add_field(name="Links", value="[Support Server]"
-                                            "(https://discord.gg/cDPGuYd) | "
-                                            "[Website](https://lightning-bot.gitlab.io) | "
-                                            "[Discord Bots Link]"
-                                            "(https://discord.bots.gg/bots/532220480577470464)",
+                                            "(https://discord.gg/SpFjsy3) | "
+                                            "[Website](https://lightning-bot.gitlab.io)",
                                             inline=False)
         embed.set_footer(text=f"Lightning {self.bot.version} | Made with "
                               f"discord.py {discord.__version__}")
@@ -504,10 +502,10 @@ class Meta(commands.Cog):
     async def support(self, ctx):
         """Sends an invite that goes to the support server"""
         try:
-            await ctx.author.send("Official Support Server Invite: https://discord.gg/cDPGuYd")
+            await ctx.author.send("Official Support Server Invite: https://discord.gg/SpFjsy3")
             await ctx.message.add_reaction("📬")
         except discord.Forbidden:
-            await ctx.send("Official Support Server Invite: https://discord.gg/cDPGuYd")
+            await ctx.send("Official Support Server Invite: https://discord.gg/SpFjsy3")
 
     @commands.command()
     async def source(self, ctx, *, command: str = None):
