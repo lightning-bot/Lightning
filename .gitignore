@@ -105,6 +105,12 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# vscode
+/.vscode
+
+# redis
+*.rdb
+
 # Ignore files
 /config.py
 cogs/checks.py
@@ -114,7 +120,7 @@ lightning.log
 db/jsonf.py
 /stabilite
 stabilite_config.py
-/resources/fonts
-/resources/templates
-/migration/output
+lightning/resources/fonts
+lightning/resources/templates
+lightning/migration/output
 /config.toml
