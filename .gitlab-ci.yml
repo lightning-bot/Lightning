@@ -18,3 +18,6 @@ schema-test:
   script:
   - export PGPASSWORD=$POSTGRES_PASSWORD
   - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v "ON_ERROR_STOP=1" -f scripts/schema.sql
+  only:
+    changes:
+      - scripts/*.{sql}
