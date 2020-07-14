@@ -92,7 +92,7 @@ class Homebrew(commands.Cog):
         await self.bot.db.execute(query, ctx.guild.id)
         await ctx.send("Successfully deleted webhook and configuration!")
 
-    @commands.command()
+    @commands.command(enabled=False)
     @commands.cooldown(1, 5.0, commands.BucketType.member)
     async def tinydb(self, ctx, *, search):
         """Searches for 3DS homebrew on tinydb"""

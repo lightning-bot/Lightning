@@ -35,7 +35,7 @@ class Emoji(commands.Cog):
         file_e.seek(0)
         return file_e.read()
 
-    @commands.command(aliases=['nemoji'])
+    @commands.command(aliases=['nemoji'], enabled=False)
     async def nitroemoji(self, ctx, emoji):
         """Posts either an animated emoji or non-animated emoji if found"""
         emojiname = emoji.strip(':')
