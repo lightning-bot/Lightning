@@ -1,5 +1,5 @@
 # Lightning.py
-[![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/cDPGuYd)
+[![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/SpFjsy3)
 [![Pipeline Status](https://img.shields.io/gitlab/pipeline/lightning-bot/Lightning?label=Pipeline&logo=GitLab)](https://gitlab.com/lightning-bot/Lightning/pipelines/latest)
 
 Lightning is a multi-purpose bot.
@@ -10,7 +10,7 @@ To find Lightning's commands, run the help command.
 
 ## Features & Changelogs
 
-A list of features can be found below or at https://lightning-bot.gitlab.io. Changelogs can be found at the support server (https://discord.gg/cDPGuYd) in the changelogs channel.
+A list of features can be found below or at https://lightning-bot.gitlab.io. Changelogs can be found at the support server (https://discord.gg/SpFjsy3) in the changelogs channel.
 
 ---
 **Moderation Tools**
@@ -53,10 +53,7 @@ A list of features can be found below or at https://lightning-bot.gitlab.io. Cha
 **Other Features Include**:
 
 - Emoji Management
-- Memes
 - Reminders
-- Image Manipulation
-- Message Snipes
 - Nintendo Console Update Alerts
 
 and more!
@@ -68,10 +65,10 @@ If you want to invite Lightning to your guild, use this link https://discordapp.
 
 ---
 ## License
-AGPL v3 with additional terms 7b and 7c in effect.
+AGPL v3
 ```
 # Lightning.py - A multi-purpose bot.
-# Copyright (C) 2019 - LightSage
+# Copyright (C) 2020 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -84,25 +81,13 @@ AGPL v3 with additional terms 7b and 7c in effect.
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# In addition, clauses 7b and 7c are in effect for this program.
-#
-# b) Requiring preservation of specified reasonable legal notices or
-# author attributions in that material or in the Appropriate Legal
-# Notices displayed by works containing it; or
-#
-# c) Prohibiting misrepresentation of the origin of that material, or
-# requiring that modified versions of such material be marked in
-# reasonable ways as different from the original version
 ```
 ## Credits 
 
 This bot uses parts and ideas from other Discord Bots:
 
-- [Kirigiri](https://git.catgirlsin.space/noirscape/kirigiri) by Noirscape. (For staff role database layout)
-- [Robocop-NG](https://github.com/reswitched/robocop-ng) by Ave and TomGER. (Some of the moderation Commands)
 - [Kurisu](https://github.com/nh-server/Kurisu) by ihaveahax/ihaveamac and 916253. (For the compact logging format)
-- [RoboDanny](https://github.com/Rapptz/RoboDanny) by Rapptz/Danny. (For Ideas, Unban Handler, Paginators, and other things)
+- [RoboDanny](https://github.com/Rapptz/RoboDanny) by Rapptz/Danny. (For utils, unban converter, and other things)
 
 
 Extended special thanks to:
