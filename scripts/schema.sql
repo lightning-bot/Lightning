@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS infractions
     moderator_id BIGINT,
     action INT,
     reason VARCHAR (2000),
-    created_at timestamp with time zone DEFAULT (now() at time zone 'utc'),
+    created_at timestamp without time zone DEFAULT (now() at time zone 'utc'),
     active BOOLEAN DEFAULT 't',
     extra JSONB
 );
