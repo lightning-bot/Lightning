@@ -13,48 +13,28 @@ To find Lightning's commands, run the help command.
 A list of features can be found below or at https://lightning-bot.gitlab.io. Changelogs can be found at the support server (https://discord.gg/SpFjsy3) in the changelogs channel.
 
 ---
-**Moderation Tools**
+**Moderation Features**
 
 - Warnings
-  - With optional punishments, such as kicking the user once the user has reached a certain amount of warns.
-  - The ability to remove warns from users.
-  - As a note, warnings are guild specific.
 - Ban
-  - You can also temporarily ban members for a specified time, just use the timeban command!
 - Mute
-  - You can also temporarily mute members too with the timemute command!
-  - The mute and tempmute commands only assign a role and make it sticky, it's not a channel permission modifier. You'll need to setup those perms yourself.
 - Kick
-- Purge messages from a channel.
-  - If you want to cleanup responses from Lightning, use the clean command.
+- Message Purging.
 - Channel Lockdown
-  - This sets the channel permissions as `@everyone` can't send messages. To undo the lock command, use the unlock command to allow `@everyone` to send messages in the channel.
-  - The hlock command does what the regular lock command does, but it also removes read message permission for `@everyone`. To undo a hard lockdown, use the hunlock command.
 - Mod Logging
 
 **Configuration**
 
 - Custom Prefixes
-    - Custom prefixes are guild specific and are limited to 5 different custom prefixes.
 - Mod Roles
-    - If you don't trust your moderators with certain permissions, this is for you!
   - Mod roles allow members with a configured role to have permissions in the bot without needing the actual role permission itself! For more information on mod roles, go to [https://lightning-bot.gitlab.io/config/settings/#moderation-roles](https://lightning-bot.gitlab.io/config/settings/#moderation-roles).
 - Logging
-  - You can specify what your guild wants to log in a channel.
-    - __Supported Logging__:
-      - Moderation logs
-      - Role change logs
-      - Member join and leave logs
-        - Bot Additions
-  - To disable logging, just run the setup command!
 - Auto Roles
-  - Have you wanted to have members get a certain role on joining your server? Well, now you can with auto roles! To add an automatic role, use the `config autorole set` command. For more information, use the `help config autorole` command.
 
 **Other Features Include**:
 
 - Emoji Management
 - Reminders
-- Nintendo Console Update Alerts
 
 and more!
 
