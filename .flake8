@@ -4,7 +4,6 @@ ignore = F402
 exclude = .git,
           .gitignore,
           __pycache__,
-          cogs/tags.py,
           .env,
           .venv,
           env,
@@ -17,7 +16,4 @@ exclude = .git,
           build,
           dist,
           .pyc,
-          utils/paginator.py,
-          utils/time.py,
-          /plugins,
-          utils/cache.py
+          /plugins
