@@ -37,7 +37,7 @@ class Fun(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
 
-    def c_to_f(self, c):
+    def c_to_f(self, c) -> int:
         """stolen from Robocop-ng. """
         return math.floor(9.0 / 5.0 * c + 32)
 
@@ -208,7 +208,7 @@ class Fun(LightningCog):
 
     @commands.command(aliases=['cool', 'cold'])  # Another meme again
     async def chill(self, ctx: LightningContext, user: discord.Member) -> None:
-        """Chills/cools a user"""
+        """Chills a user"""
         celsius = random.randint(-50, 15)
         fahrenheit = self.c_to_f(celsius)
         await ctx.send(f"{user} chilled. User is now {celsius}°C ({fahrenheit}°F).")
@@ -273,7 +273,7 @@ class Fun(LightningCog):
         await ctx.trigger_typing()
 
     @commands.command(aliases=['cade'])
-    async def cat(self, ctx: LightningContext):
+    async def cat(self, ctx: LightningContext) -> None:
         """Gives you a random cat picture"""
         capi = {"x-api-key": self.bot.config['tokens']['catapi']}
         async with self.bot.aiosession.get(url='https://api.thecatapi.com/v1/images/search', headers=capi) as resp:
@@ -281,7 +281,9 @@ class Fun(LightningCog):
                 data = await resp.json()
             else:
                 # lol
-                return await ctx.send(f"https://http.cat/{resp.status} Try again later(?)")
+                await ctx.send(f"https://http.cat/{resp.status} Try again later(?)")
+                return
+
         embed = discord.Embed(title="Meow <:meowawauu:604760862049304608>",
                               color=discord.Color(0x0c4189))
         embed.set_image(url=data[0]['url'])
@@ -298,7 +300,7 @@ class Fun(LightningCog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def xkcd(self, ctx, xkcd_number: int = None):
+    async def xkcd(self, ctx: LightningContext, xkcd_number: int = None) -> None:
         """Returns an embed with information about the specified xkcd comic.
 
         If no value is supplied or the value isn't found, it gives the latest xkcd instead."""
@@ -312,7 +314,8 @@ class Fun(LightningCog):
 
         xkcd = await http.getjson(self.bot.aiosession, f"https://xkcd.com/{entry}/info.0.json")
         if xkcd is False:
-            return await ctx.send("Something went wrong grabbing that XKCD!")
+            await ctx.send("Something went wrong grabbing that XKCD!")
+            return
 
         timestamp = datetime.strptime(f"{xkcd['year']}-{xkcd['month']}-{xkcd['day']}",
                                       "%Y-%m-%d")
