@@ -339,7 +339,8 @@ class Fun(LightningCog):
 
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
-    async def hug(self, ctx: LightningContext, *, member: converters.WeebActionConverter("hugged") = None):  # noqa: F821
+    async def hug(self, ctx: LightningContext, *,
+                  member: converters.WeebActionConverter("hugged") = None):  # noqa: F821
         """Hugs someone"""
         url = "https://nekos.life/api/v2/img/hug"
         data = await http.getjson(self.bot.aiosession, url)
@@ -350,7 +351,8 @@ class Fun(LightningCog):
 
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
-    async def slap(self, ctx: LightningContext, *, person: converters.WeebActionConverter("slapped") = None):  # noqa: F821
+    async def slap(self, ctx: LightningContext, *,
+                   person: converters.WeebActionConverter("slapped") = None):  # noqa: F821
         """Slap yourself or someone."""
         slap = await http.getjson(self.bot.aiosession, "https://nekos.life/api/v2/img/slap")
         url = slap["url"]
