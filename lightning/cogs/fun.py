@@ -26,7 +26,7 @@ from discord.ext import commands
 from jishaku.functools import executor_function
 from PIL import Image, ImageDraw, ImageFont
 
-from lightning import LightningBot, LightningCog
+from lightning import LightningBot, LightningCog, LightningContext
 from lightning.utils import converters, flags, http
 from lightning.utils.errors import LightningError
 
@@ -67,14 +67,14 @@ class Fun(LightningCog):
     @commands.command(aliases=['kurisudraw'])
     @commands.cooldown(2, 60.0, commands.BucketType.guild)
     @commands.has_permissions(attach_files=True)
-    async def kurisuwhiteboard(self, ctx, *, text: str):
+    async def kurisuwhiteboard(self, ctx: LightningContext, *, text: str) -> None:
         """Kurisu can solve this, can you?"""
         async with ctx.typing():
             img_buff = await self.make_kcdt(text)
             await ctx.send(file=discord.File(img_buff, filename="kurisudraw.png"))
 
     @executor_function
-    def make_jpegify(self, _bytes) -> io.BytesIO:
+    def make_jpegify(self, _bytes: bytes) -> io.BytesIO:
         img = Image.open(io.BytesIO(_bytes))
 
         buff = io.BytesIO()
@@ -86,7 +86,7 @@ class Fun(LightningCog):
     @commands.command(aliases=['needsmorejpeg'])
     @commands.cooldown(3, 30.0, commands.BucketType.guild)
     @commands.has_permissions(attach_files=True)
-    async def jpegify(self, ctx, image: str = converters.LastImage):
+    async def jpegify(self, ctx: LightningContext, image: str = converters.LastImage) -> None:
         """Jpegify an image"""
         async with ctx.typing():
             image = http.Whitelisted_URL(image)
@@ -119,7 +119,7 @@ class Fun(LightningCog):
     @commands.command()
     @commands.cooldown(2, 60.0, commands.BucketType.guild)
     @commands.has_permissions(attach_files=True)
-    async def lakitufyi(self, ctx, *, text: str):
+    async def lakitufyi(self, ctx: LightningContext, *, text: str) -> None:
         """Makes a Lakitu FYI meme with your own text"""
         async with ctx.typing():
             image_buffer = await self.make_lakitu(text)
@@ -131,7 +131,7 @@ class Fun(LightningCog):
         return avy_bytes
 
     @executor_function
-    def make_screwed_in_the_head(self, avatar_bytes) -> io.BytesIO:
+    def make_screwed_in_the_head(self, avatar_bytes: bytes) -> io.BytesIO:
         base_image = Image.open("resources/templates/inthehead.png")
         avatar = Image.open(io.BytesIO(avatar_bytes)).resize((64, 64)).convert("RGB")
 
@@ -150,7 +150,7 @@ class Fun(LightningCog):
 
     @commands.command()
     @commands.cooldown(2, 60.0, commands.BucketType.guild)
-    async def screwedup(self, ctx, member: discord.Member = commands.default.Author):
+    async def screwedup(self, ctx: LightningContext, member: discord.Member = commands.default.Author) -> None:
         """Miko Iino tells you that you are screwed up in the head"""
         async with ctx.typing():
             avy = await self.get_user_avatar(member)
@@ -158,7 +158,7 @@ class Fun(LightningCog):
             await ctx.send(file=discord.File(image_buffer, "screwedupinthehead.png"))
 
     @executor_function
-    def make_fuji_iq(self, avatar_bytes) -> io.BytesIO:
+    def make_fuji_iq(self, avatar_bytes: bytes) -> io.BytesIO:
         base_image = Image.open("resources/templates/fujiwara-iq.png")
         avatar = Image.open(io.BytesIO(avatar_bytes)).resize((165, 165)).convert("RGB")
 
@@ -177,23 +177,15 @@ class Fun(LightningCog):
 
     @commands.command()
     @commands.cooldown(2, 60.0, commands.BucketType.guild)
-    async def iq(self, ctx, member: discord.Member = commands.default.Author):
+    async def iq(self, ctx: LightningContext, member: discord.Member = commands.default.Author) -> None:
         """Your iq is 3"""
         async with ctx.typing():
             avy = await self.get_user_avatar(member)
             image_buffer = await self.make_fuji_iq(avy)
             await ctx.send(file=discord.File(image_buffer, "huh_my_iq_is.png"))
 
-    @commands.command(aliases=['roll'])
-    async def dice(self, ctx, number: int):
-        """Rolls a 1 to the specified number sided die"""
-        if number <= 0:
-            return await ctx.send("You can't roll that!")
-        number_ran = random.randint(1, number)
-        await ctx.send(f"🎲 You rolled a `{number}` sided die. | The die rolled on `{number_ran}`")
-
     @commands.command()  # Technically more of a meme, but shrug ascii
-    async def bam(self, ctx, target: discord.Member):
+    async def bam(self, ctx: LightningContext, target: discord.Member) -> None:
         """Bams a user"""
         # :idontfeelsogood:
         random_bams = ["n̟̤͙̠̤̖ǫ̺̻ͅw̴͍͎̱̟ ̷̭̖̫͙̱̪b͏͈͇̬̠̥ͅ&̻̬.̶̜͍̬͇̬ ҉̜̪̘̞👍̡̫͙͚͕ͅͅ", "n͢ow̢ ͜b&͢. ̷👍̷",
@@ -208,14 +200,14 @@ class Fun(LightningCog):
         await ctx.send(f"{target} is {random.choice(random_bams)}")
 
     @commands.command()  # Another meme
-    async def warm(self, ctx, user: discord.Member):
+    async def warm(self, ctx: LightningContext, user: discord.Member) -> None:
         """Warms a user"""
         celsius = random.randint(15, 100)
         fahrenheit = self.c_to_f(celsius)
         await ctx.send(f"{user} warmed. User is now {celsius}°C ({fahrenheit}°F).")
 
     @commands.command(aliases=['cool', 'cold'])  # Another meme again
-    async def chill(self, ctx, user: discord.Member):
+    async def chill(self, ctx: LightningContext, user: discord.Member) -> None:
         """Chills/cools a user"""
         celsius = random.randint(-50, 15)
         fahrenheit = self.c_to_f(celsius)
@@ -227,7 +219,7 @@ class Fun(LightningCog):
 
     @commands.command(aliases=['owo', 'uwuify'])
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.channel)
-    async def owoify(self, ctx, *, text: commands.clean_content()):
+    async def owoify(self, ctx: LightningContext, *, text: commands.clean_content) -> None:
         """An owo-ifier.
 
         Flag options (no arguments):
@@ -257,7 +249,7 @@ class Fun(LightningCog):
         await ctx.send(uwutalk)
 
     @commands.command()
-    async def lolice(self, ctx, *, user: discord.Member = commands.default.Author):
+    async def lolice(self, ctx: LightningContext, *, user: discord.Member = commands.default.Author) -> None:
         """Lolice chief"""
         url = f'https://nekobot.xyz/api/imagegen?type=lolice&url={user.avatar_url_as(format="png")}'
         data = await http.getjson(self.bot.aiosession, url)
@@ -266,7 +258,7 @@ class Fun(LightningCog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def awooify(self, ctx, *, user: discord.Member = commands.default.Author):
+    async def awooify(self, ctx: LightningContext, *, user: discord.Member = commands.default.Author) -> None:
         """Awooify a user"""
         url = f'https://nekobot.xyz/api/imagegen?type=awooify&url={user.avatar_url_as(format="png")}'
         data = await http.getjson(self.bot.aiosession, url)
@@ -277,11 +269,11 @@ class Fun(LightningCog):
     @lolice.before_invoke
     @owoify.before_invoke
     @awooify.before_invoke
-    async def do_typing_before(self, ctx):
+    async def do_typing_before(self, ctx: LightningContext) -> None:
         await ctx.trigger_typing()
 
     @commands.command(aliases=['cade'])
-    async def cat(self, ctx):
+    async def cat(self, ctx: LightningContext):
         """Gives you a random cat picture"""
         capi = {"x-api-key": self.bot.config['tokens']['catapi']}
         async with self.bot.aiosession.get(url='https://api.thecatapi.com/v1/images/search', headers=capi) as resp:
@@ -297,7 +289,7 @@ class Fun(LightningCog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def dog(self, ctx):
+    async def dog(self, ctx: LightningContext) -> None:
         """Random dog pics from dog.ceo"""
         data = await http.getjson(self.bot.aiosession, "https://dog.ceo/api/breeds/image/random")
         embed = discord.Embed(title="Bark 🐶", color=discord.Color.blurple())
@@ -333,7 +325,7 @@ class Fun(LightningCog):
 
     @commands.command(aliases=['pat'])
     @commands.bot_has_permissions(embed_links=True)
-    async def headpat(self, ctx):
+    async def headpat(self, ctx: LightningContext):
         """Random headpat gifs"""
         data = await http.getjson(self.bot.aiosession, "https://nekos.life/api/pat")
         url = data["url"]
@@ -344,7 +336,7 @@ class Fun(LightningCog):
 
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
-    async def hug(self, ctx, *, member: converters.WeebActionConverter("hugged") = None):  # noqa: F821
+    async def hug(self, ctx: LightningContext, *, member: converters.WeebActionConverter("hugged") = None):  # noqa: F821
         """Hugs someone"""
         url = "https://nekos.life/api/v2/img/hug"
         data = await http.getjson(self.bot.aiosession, url)
@@ -355,7 +347,7 @@ class Fun(LightningCog):
 
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
-    async def slap(self, ctx, *, person: converters.WeebActionConverter("slapped") = None):  # noqa: F821
+    async def slap(self, ctx: LightningContext, *, person: converters.WeebActionConverter("slapped") = None):  # noqa: F821
         """Slap yourself or someone."""
         slap = await http.getjson(self.bot.aiosession, "https://nekos.life/api/v2/img/slap")
         url = slap["url"]
