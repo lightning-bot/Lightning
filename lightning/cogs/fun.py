@@ -328,7 +328,7 @@ class Fun(LightningCog):
 
     @commands.command(aliases=['pat'])
     @commands.bot_has_permissions(embed_links=True)
-    async def headpat(self, ctx: LightningContext):
+    async def headpat(self, ctx: LightningContext) -> None:
         """Random headpat gifs"""
         data = await http.getjson(self.bot.aiosession, "https://nekos.life/api/pat")
         url = data["url"]
@@ -340,7 +340,7 @@ class Fun(LightningCog):
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
     async def hug(self, ctx: LightningContext, *,
-                  member: converters.WeebActionConverter("hugged") = None):  # noqa: F821
+                  member: converters.WeebActionConverter("hugged") = None) -> None:  # noqa: F821
         """Hugs someone"""
         url = "https://nekos.life/api/v2/img/hug"
         data = await http.getjson(self.bot.aiosession, url)
@@ -352,7 +352,7 @@ class Fun(LightningCog):
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
     async def slap(self, ctx: LightningContext, *,
-                   person: converters.WeebActionConverter("slapped") = None):  # noqa: F821
+                   person: converters.WeebActionConverter("slapped") = None) -> None:  # noqa: F821
         """Slap yourself or someone."""
         slap = await http.getjson(self.bot.aiosession, "https://nekos.life/api/v2/img/slap")
         url = slap["url"]
@@ -362,5 +362,5 @@ class Fun(LightningCog):
         await ctx.send(embed=embed)
 
 
-def setup(bot: LightningBot):
+def setup(bot: LightningBot) -> None:
     bot.add_cog(Fun(bot))
