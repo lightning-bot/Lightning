@@ -1,11 +1,30 @@
 [tokens]
 discord = ""
-# TheCatAPI Token (thecatapi.com)
+
+# TheCatAPI Token (Grab one at thecatapi.com)
 catapi = ""
-postgresql = ""
-disbin = ""
+
+# PostgreSQL Connection
+	[tokens.postgres]
+	host = ""
+	port = ""
+	user = ""
+	password = ""
+	database = ""
+    # Timeout for operations on a connection
+    command_timeout = 60
+# Redis Connection
+    [tokens.redis]
+    host = ""
+    port = ""
+    password = ""
+    db = 1
+
 
 [git]
+# Guild IDs that have access to use git commands.
+whitelisted_guilds = [527887739178188830,
+                      540978015811928075]
     [git.github]
     username = ""
     repository_name = ""
@@ -15,26 +34,45 @@ disbin = ""
     instance = "https://gitlab.com" # Gitlab instance url
     key = "" # Personal Access Token
     project_id = ""
-# Guild IDs that have access to use git commands.
-whitelisted_guilds = [527887739178188830,
-                      540978015811928075]
 
 [logging]
-# Any bot errors either command errors or internal errors
+# Any bot errors either command errors or internal errors. Should be a webhook url
 bot_errors = ""
+
+# Errors that pertain to the timer system. Expecting a webhook url
 timer_errors = ""
+
+# Webhook URL
 auto_blacklist = ""
+
 # Logging for guild additions and removals
 guild_alerts = ""
-bug_reports_channnel = 603389648211017738
-startup = id
 
-# Extra information bot wise
+# Startup channel (Lets you know when the bot is ready.)
+startup = 567109464184979502
+
+
 [bot]
+# Bot description
 description = ""
 # This is by IDs
 managers = []
 spam_count = 5
 # Startup game
 game = "rewrite is the future!"
-status_rotate = 1 # This should be a boolean value
+
+# Set to true if you want commands to be used on_message_edit
+edit_commands = true # bool
+
+# Toggle that can enable or disable the whitelist
+whitelist = false
+
+
+# Support server invite
+support_server_invite = "https://discord.gg/SpFjsy3"
+
+# User-Agent
+user_agent = ""
+
+# Guild IDs to use emojis from for the nitro emoji command
+nitro_emoji_guilds = []
