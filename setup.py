@@ -9,7 +9,7 @@ with open("lightning/meta.py") as f:
 
 
 setuptools.setup(
-    name="Lightning",
+    name="Lightning.py",
     description="Multi-purpose Discord bot.",
     license="GNU Affero General Public License - Version 3",
     author="LightSage",
