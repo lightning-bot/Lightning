@@ -30,9 +30,9 @@ import asyncpg
 import discord
 from discord.ext import commands, flags, menus
 
-from lightning import config
+from lightning import cache, config
 from lightning.meta import __version__ as version
-from lightning.utils import cache, errors, http
+from lightning.utils import errors, http
 from lightning.utils.helpers import Emoji
 from lightning.utils.menus import Confirmation
 

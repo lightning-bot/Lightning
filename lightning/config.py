@@ -45,7 +45,7 @@ class Storage:
         async with self.lock:
             await self.loop.run_in_executor(None, self._dump)
 
-    def get(self, key: str) -> typing.Optional[typing.Union[str, int]]:
+    def get(self, key: str) -> typing.Any:
         """Gets an entry in storage.
 
         Parameters
@@ -60,7 +60,7 @@ class Storage:
         """
         return self._storage.get(str(key))
 
-    async def add(self, key: str, value):
+    async def add(self, key: str, value) -> None:
         """Adds a new entry in the storage and saves.
 
         Parameters
@@ -73,7 +73,7 @@ class Storage:
         self._storage[str(key)] = value
         await self.save()
 
-    async def pop(self, key: str):
+    async def pop(self, key: str) -> typing.Any:
         """Pops a storage key and saves.
 
         Parameters
