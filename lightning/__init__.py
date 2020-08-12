@@ -13,5 +13,5 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .core import (LightningBot, LightningCog, LightningContext,  # noqa
-                   lightningcog_d)
+from .context import LightningContext  # noqa
+from .core import LightningBot, LightningCog, lightningcog_d  # noqa

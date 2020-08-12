@@ -15,7 +15,6 @@
 import asyncio
 import collections
 import contextlib
-import io
 import json
 import logging
 import pathlib
@@ -31,10 +30,8 @@ import discord
 from discord.ext import commands, flags, menus
 
 from lightning import cache, config
+from lightning.context import LightningContext
 from lightning.meta import __version__ as version
-from lightning.utils import errors, http
-from lightning.utils.helpers import Emoji
-from lightning.utils.menus import Confirmation
 
 log = logging.getLogger(__name__)
 ERROR_HANDLER_MESSAGES = {
@@ -83,45 +80,6 @@ class LightningCog(commands.Cog):
     def __str__(self):
         """Returns the cog’s specified name, not the class name."""
         return self.qualified_name
-
-
-class LightningContext(commands.Context):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    async def tick(self, boolean: bool):
-        if boolean:
-            tick = Emoji.greentick
-        else:
-            tick = Emoji.redtick
-        await self.send(tick)
-
-    async def safe_send(self, content=None, *, use_file=False, **kwargs):
-        return await self.send(content, **kwargs)
-
-    async def emoji_send(self, emoji):
-        """Attempts to send the specified emote. If failed, reacts."""
-        try:
-            await self.message.channel.send(emoji)
-        except discord.Forbidden:
-            await self.message.add_reaction(emoji)
-
-    async def prompt(self, message, *, delete_after=False, confirmation_message=True):
-        resp = await Confirmation(self, message, delete_message_after=delete_after,
-                                  confirmation_message=confirmation_message).prompt()
-        return resp
-
-    async def send(self, content=None, *args, **kwargs):
-        if content:
-            if len(content) > 2000:
-                try:
-                    mysturl = await http.haste(self.bot.aiosession, content)
-                    content = f"Content too long: {mysturl}"
-                except errors.LightningError:
-                    fp = io.StringIO(content)
-                    content = "Content too long..."
-                    return await super().send(content, file=discord.File(fp, filename='message_too_long.txt'))
-        return await super().send(content, *args, **kwargs)
 
 
 class LightningBot(commands.AutoShardedBot):
