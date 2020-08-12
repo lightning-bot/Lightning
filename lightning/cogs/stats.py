@@ -227,7 +227,7 @@ class Stats(LightningCog):
                 await self.command_status_member(ctx, member)
 
     @stats.command(name="auditlog", aliases=['table', 'log'])
-    @commands.has_guild_permissions(manage_server=True)
+    @commands.has_guild_permissions(manage_guild=True)
     @commands.cooldown(1, 60.0, commands.BucketType.member)
     async def stats_audit_log(self, ctx: LightningContext, limit: InbetweenNumber(1, 500) = 50):
         """Shows command status for the server through a table."""
