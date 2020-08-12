@@ -122,9 +122,8 @@ class Confirmation(menus.Menu):
         else:
             self.msg = message
 
-    async def send_initial_message(self, ctx, channel) -> None:
-        await channel.send(self.msg)
-        return
+    async def send_initial_message(self, ctx, channel) -> discord.Message:
+        return await channel.send(self.msg)
 
     @menus.button(Emoji.greentick)
     async def do_confirm(self, payload) -> None:
