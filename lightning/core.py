@@ -32,6 +32,7 @@ from discord.ext import commands, flags, menus
 from lightning import cache, config
 from lightning.context import LightningContext
 from lightning.meta import __version__ as version
+from lightning.utils import errors
 
 log = logging.getLogger(__name__)
 ERROR_HANDLER_MESSAGES = {
@@ -344,7 +345,7 @@ class LightningBot(commands.AutoShardedBot):
         webhook = discord.Webhook.from_url(self.config['logging']['bot_errors'], adapter=adp)
         await webhook.send(embed=embed)
 
-    async def close(self):
+    async def close(self) -> None:
         log.info("Shutting down...")
         log.info("Closing database...")
         await self.pool.close()
