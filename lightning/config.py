@@ -60,7 +60,7 @@ class Storage:
         """
         return self._storage.get(str(key))
 
-    async def add(self, key: str, value) -> None:
+    async def add(self, key: str, value: typing.Any) -> None:
         """Adds a new entry in the storage and saves.
 
         Parameters

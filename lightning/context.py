@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import io
+from typing import Union
+from contextlib import suppress
 
 import discord
 from discord.ext import commands
@@ -27,26 +29,31 @@ class LightningContext(commands.Context):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    async def tick(self, boolean: bool) -> None:
+    async def tick(self, boolean: bool, *, send=True) -> Union[bool, discord.Message]:
         if boolean:
             tick = Emoji.greentick
         else:
             tick = Emoji.redtick
-        await self.send(tick)
 
-    async def emoji_send(self, emoji):
+        if send:
+            return await self.send(tick)
+        else:
+            return tick
+
+    async def emoji_send(self, emoji: discord.Emoji) -> None:
         """Attempts to send the specified emote. If failed, reacts."""
-        try:
-            await self.message.channel.send(emoji)
-        except discord.Forbidden:
-            await self.message.add_reaction(emoji)
+        with suppress(discord.HTTPException):
+            try:
+                await self.message.channel.send(emoji)
+            except discord.Forbidden:
+                await self.message.add_reaction(emoji)
 
-    async def prompt(self, message, *, delete_after=False, confirmation_message=True) -> bool:
+    async def prompt(self, message: str, *, delete_after=False, confirmation_message=True) -> bool:
         resp = await Confirmation(self, message, delete_message_after=delete_after,
                                   confirmation_message=confirmation_message).prompt()
         return resp
 
-    async def send(self, content=None, *args, **kwargs):
+    async def send(self, content=None, *args, **kwargs) -> discord.Message:
         if content:
             if len(content) > 2000:
                 try:
