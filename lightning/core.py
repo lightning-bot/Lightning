@@ -63,13 +63,6 @@ async def _callable_prefix(bot, message):
 LightningCogDeps = collections.namedtuple("LightningCogDeps", "required")
 
 
-def lightningcog_d(required=None):
-    def decorator(cls):
-        setattr(cls, '__lightning_cog_deps__', LightningCogDeps(required=required or []))
-        return cls
-    return decorator
-
-
 class LightningCog(commands.Cog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -142,7 +135,7 @@ class LightningBot(commands.AutoShardedBot):
     def add_cog(self, cls):
         deps = getattr(cls, "__lightning_cog_deps__", None)
         if not deps:
-            log.warn(f"{cls.__module__} ({cls.__class__.__name__}) should use LightningCog.")
+            log.debug(f"Loaded cog {cls.__module__} ({cls})")
             return super().add_cog(cls)
 
         required_cogs = [self.get_cog(name) for name in deps.required]
