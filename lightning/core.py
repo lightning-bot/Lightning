@@ -28,6 +28,7 @@ import aredis
 import asyncpg
 import discord
 from discord.ext import commands, flags, menus
+import sentry_sdk
 
 from lightning import cache, config
 from lightning.context import LightningContext
@@ -310,7 +311,13 @@ class LightningBot(commands.AutoShardedBot):
                 return await ctx.send(f'{ctx.command.qualified_name} timed out.')
             elif isinstance(error.original, menus.MenuError):
                 return await ctx.send(str(error.original))
-        log.error(f"Uncaught error {type(error.original)}: {str(error.original)}")
+
+        error = getattr(error, "original", error)
+        if self.sentry_logging is True:
+            log.info(f"Uncaught error {type(error)}: {str(error)}")
+            sentry_sdk.capture_exception(error)
+        else:
+            log.error(f"Uncaught error {type(error)}: {str(error)}")
 
         # Errors that should give no output.
         if isinstance(error, (commands.NotOwner, commands.CommandNotFound,

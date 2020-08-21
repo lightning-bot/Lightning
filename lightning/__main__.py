@@ -20,7 +20,9 @@ import os
 import sys
 
 import discord
+import sentry_sdk
 import toml
+from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from lightning import LightningBot
 
@@ -34,7 +36,10 @@ else:
 
 
 @contextlib.contextmanager
-def init_logging():
+def init_logging(sentry_url=None):
+    if sentry_url is not None:
+        sentry_sdk.init(sentry_url, integrations=[AioHttpIntegration()])
+
     try:
         max_file_size = 1000 * 1000 * 8
         file_handler = logging.handlers.RotatingFileHandler(filename="lightning.log", maxBytes=max_file_size,
@@ -54,20 +59,24 @@ def init_logging():
         logging.shutdown()
 
 
-def launch_bot() -> None:
+def launch_bot(config) -> None:
     loop = asyncio.get_event_loop()
 
     # Create config folder if not found
     if not os.path.exists("config"):
         os.makedirs("config")
 
-    config = toml.load(open("config.toml", "r"))
     log = logging.getLogger("lightning")
 
     bot = LightningBot()
 
     if config['bot']['game']:
         bot.activity = discord.Game(config['bot']['game'])
+
+    if config['tokens']['sentry']:
+        bot.sentry_logging = True
+    else:
+        bot.sentry_logging = False
 
     try:
         loop.run_until_complete(bot.create_pool(config, command_timeout=60))
@@ -79,8 +88,9 @@ def launch_bot() -> None:
 
 
 def main() -> None:
-    with init_logging():
-        launch_bot()
+    config = toml.load(open("config.toml", "r"))
+    with init_logging(config['tokens']['sentry']):
+        launch_bot(config)
 
 
 main()
