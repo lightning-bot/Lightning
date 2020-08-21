@@ -1,11 +1,20 @@
 flake8:
-  image: python:latest
+  image: python:3.8-buster
   script:
   - pip install flake8
   - flake8 .
   only:
     changes:
       - lightning/**/*
+
+isort:
+  image: python:3.8-buster
+  script:
+    - pip install isort
+    - isort --check --diff .
+  only:
+    changes:
+      - "**/*.py"
 
 variables:
   POSTGRES_DB: lightningbot
