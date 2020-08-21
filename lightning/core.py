@@ -27,8 +27,8 @@ import aiohttp
 import aredis
 import asyncpg
 import discord
-from discord.ext import commands, flags, menus
 import sentry_sdk
+from discord.ext import commands, flags, menus
 
 from lightning import cache, config
 from lightning.context import LightningContext
