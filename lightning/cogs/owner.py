@@ -30,14 +30,12 @@ from jishaku.metacog import GroupCogMeta
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
 from jishaku.repl import AsyncCodeExecutor, get_var_dict_from_ctx
 
-from lightning import (LightningBot, LightningCog, LightningContext,
-                       lightningcog_d)
+from lightning import LightningBot, LightningCog, LightningContext
 from lightning.utils import helpers
 from lightning.utils import time as ltime
 from lightning.utils.checks import is_bot_manager
 
 
-@lightningcog_d()
 class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
 
     @commands.command(name="py", aliases=['python', 'eval'])

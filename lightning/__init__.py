@@ -14,4 +14,4 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .context import LightningContext  # noqa
-from .core import LightningBot, LightningCog, lightningcog_d  # noqa
+from .core import LightningBot, LightningCog  # noqa
