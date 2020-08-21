@@ -1,4 +1,8 @@
+stages:
+  - Static Code Analysis
+
 flake8:
+  stage: Static Code Analysis
   image: python:3.8-buster
   script:
   - pip install flake8
@@ -8,6 +12,7 @@ flake8:
       - lightning/**/*
 
 isort:
+  stage: Static Code Analysis
   image: python:3.8-buster
   script:
     - pip install isort
@@ -22,6 +27,7 @@ variables:
   POSTGRES_PASSWORD: "test"
 
 schema-test:
+  stage: Static Code Analysis
   image: postgres
   services:
   - postgres
