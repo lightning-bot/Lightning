@@ -4,6 +4,9 @@ discord = ""
 # TheCatAPI Token (Grab one at thecatapi.com)
 catapi = ""
 
+# Sentry Logging
+sentry = ""
+
 # PostgreSQL Connection
 	[tokens.postgres]
 	host = ""
