@@ -51,9 +51,6 @@ auto_blacklist = ""
 # Logging for guild additions and removals
 guild_alerts = ""
 
-# Startup channel (Lets you know when the bot is ready.)
-startup = 567109464184979502
-
 
 [bot]
 # Bot description

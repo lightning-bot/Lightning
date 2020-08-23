@@ -18,7 +18,6 @@ import contextlib
 import json
 import logging
 import pathlib
-import platform
 import secrets
 import traceback
 from datetime import datetime
