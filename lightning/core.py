@@ -158,19 +158,8 @@ class LightningBot(commands.AutoShardedBot):
             self.add_cog(cog)
 
     async def on_ready(self) -> None:
-        log.info(f'\nLogged in as: {self.user.name} - '
-                 f'{self.user.id}\ndpy version: '
-                 f'{discord.__version__}\nVersion: {self.version}\n')
-
         summary = f"{len(self.guilds)} guild(s) and {len(self.users)} user(s)"
-        msg = f"{self.user.name} has started! "\
-              f"I can see {summary}\n\ndiscord.py Version: "\
-              f"{discord.__version__}"\
-              f"\nRunning on Python {platform.python_version()}"\
-              f"\nI'm currently on **{self.version}**"
-        with contextlib.suppress(Exception):
-            channel = self.get_channel(self.config['logging']['startup'])
-            await channel.send(msg, delete_after=250)
+        log.info(f'READY: {str(self.user)} ({self.user.id}) and can see {summary}.')
 
     async def _notify_spam(self, member, channel, guild=None, blacklist=False) -> None:
         e = discord.Embed(color=discord.Color.red(), title="Member hit ratelimit")
