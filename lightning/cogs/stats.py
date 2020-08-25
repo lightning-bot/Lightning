@@ -113,11 +113,11 @@ class Stats(LightningCog):
         async with self._lock:
             await self.bulk_database_insert()
 
-    @commands.Cog.listener()
+    @LightningCog.listener()
     async def on_command_completion(self, ctx):
         await self.insert_command(ctx)
 
-    @commands.Cog.listener()
+    @LightningCog.listener()
     async def on_command_error(self, ctx, error):
         await self.insert_command(ctx)
 
@@ -126,7 +126,7 @@ class Stats(LightningCog):
         async with self._socket_lock:
             await self.bulk_socket_stats_insert()
 
-    @commands.Cog.listener()
+    @LightningCog.listener()
     async def on_socket_response(self, msg):
         v = msg.get('t')
         if v:
@@ -298,16 +298,19 @@ class Stats(LightningCog):
     # This aims to solve those issues by replacing the on_guild_join and on_guild_remove with
     # our own listeners.
 
-    @commands.Cog.listener()
+    @LightningCog.listener()
     async def on_ready(self) -> None:
-        records = await self.bot.pool.fetch("SELECT id FROM guilds WHERE left_at IS NULL;")
-        guild_ids = [record['id'] for record in records]
+        records = await self.bot.pool.fetch("SELECT id, whitelisted FROM guilds WHERE left_at IS NULL;")
 
-        for guild_id in guild_ids:
-            guild = self.bot.get_guild(guild_id)
-            if guild is not None:
+        for record in records:
+            guild = self.bot.get_guild(record['id'])
+            if guild is not None and record['whitelisted'] is False:
+                await guild.leave()
                 continue
-            await self.remove_guild(guild_id)
+            elif guild is not None:
+                continue
+
+            await self.remove_guild(record['id'])
 
     async def get_guild_record(self, guild_id: int) -> PartialGuild:
         record = await self.bot.pool.fetchrow("SELECT * FROM guilds WHERE id=$1", guild_id)
@@ -323,24 +326,32 @@ class Stats(LightningCog):
         self.bot.dispatch("lightning_guild_remove", guild)
 
     async def add_guild(self, guild: discord.Guild) -> None:
-        query = """INSERT INTO guilds (id, name, owner_id)
-                   VALUES ($1, $2, $3)
-                   ON CONFLICT (id) DO UPDATE
-                   SET name = EXCLUDED.name, owner_id = EXCLUDED.owner_id, left_at = NULL;
-                """
         async with self.bot.pool.acquire() as con:
-            unregistered = await con.fetchval("SELECT true FROM guilds WHERE id=$1 AND left_at IS NOT NULL;", guild.id)
+            queryc = """SELECT true FROM guilds WHERE id=$1 AND left_at IS NOT NULL;"""
+            queryb = """SELECT whitelisted FROM guilds WHERE id=$1;"""  # should probably do this in a subquery
+            unregistered = await con.fetchval(queryc, guild.id)
+            whitelisted = await con.fetchval(queryb, guild.id)
+            query = """INSERT INTO guilds (id, name, owner_id)
+                       VALUES ($1, $2, $3)
+                       ON CONFLICT (id) DO UPDATE
+                       SET name = EXCLUDED.name, owner_id = EXCLUDED.owner_id, left_at = NULL;
+                    """
             await con.execute(query, guild.id, guild.name, guild.owner_id)
+
+        if not whitelisted:
+            await guild.leave()
+            # will dispatch guild_remove
+            return
 
         if unregistered:
             self.bot.dispatch("lightning_guild_add", guild)
 
-    @commands.Cog.listener()
+    @LightningCog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
         await self.remove_guild(guild)
 
-    @commands.Cog.listener('on_guild_join')
-    @commands.Cog.listener('on_guild_available')
+    @LightningCog.listener('on_guild_join')
+    @LightningCog.listener('on_guild_available')
     async def on_guild_add(self, guild: discord.Guild) -> None:
         await self.add_guild(guild)
 

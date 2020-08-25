@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS guilds
     id BIGINT PRIMARY KEY,
     name TEXT NOT NULL,
     left_at timestamp without time zone,
-    owner_id BIGINT NOT NULL
+    owner_id BIGINT NOT NULL,
+    whitelisted BOOLEAN DEFAULT 't'
 );
 
 CREATE TABLE IF NOT EXISTS guild_config
@@ -50,7 +51,6 @@ CREATE TABLE IF NOT EXISTS guild_config
     guild_id BIGINT PRIMARY KEY,
     prefix TEXT [],
     autorole BIGINT,
-    whitelist BOOLEAN DEFAULT 't',
     extra_config JSONB
 );
 

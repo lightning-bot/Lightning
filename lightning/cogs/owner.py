@@ -174,18 +174,24 @@ class Owner(LightningCog):
     @commands.command()
     @commands.is_owner()
     async def approve(self, ctx: LightningContext, guild_id: int) -> None:
-        """Approves a server"""
-        await self.bot.guild_whitelist.add(guild_id, "Approval")
+        """Approves a server.
+
+        Server must have already existed in the database before."""
+        query = "UPDATE guilds SET whitelisted='t' WHERE id=$1"
+        await self.bot.pool.execute(query, guild_id)
         await ctx.tick(True)
 
     @commands.command()
     @commands.is_owner()
     async def unapprove(self, ctx: LightningContext, guild_id: int) -> None:
         """Unapproves a server"""
-        await self.bot.guild_whitelist.pop(guild_id)
+        query = "UPDATE guilds SET whitelisted='f' WHERE id=$1"
+        await self.bot.pool.execute(query, guild_id)
+
         guild = self.bot.get_guild(guild_id)
         if guild:
             await guild.leave()
+
         await ctx.tick(True)
 
     @commands.command(aliases=['status'])
@@ -291,22 +297,6 @@ class Owner(LightningCog):
             embed.description += f"`{bug.token}`: `{preview}` {ltime.natural_timedelta(bug.created_at, brief=True)}\n"
         embed.set_footer(text=f"{total} bugs")
         await ctx.send(embed=embed)
-
-    @commands.Cog.listener('on_guild_join')
-    async def guild_whitelist_check(self, guild: discord.Guild) -> None:
-        query = """SELECT whitelist FROM guild_config WHERE guild_id=$1;"""
-        val = await self.bot.pool.fetchval(query, guild.id)
-        if not val:
-            self.bot.log.info(f"Attempted to Join Guild | {guild.name} | ({guild.id})")
-            try:
-                await guild.owner.send("**Sorry, this guild is not whitelisted.** To get whitelisted, "
-                                       "join the support server. https://discord.gg/cDPGuYd")
-            except discord.Forbidden:
-                pass
-            await guild.leave()
-            return
-        else:
-            self.bot.log.info(f"Joined Guild | {guild.name} | ({guild.id})")
 
 
 def setup(bot: LightningBot) -> None:
