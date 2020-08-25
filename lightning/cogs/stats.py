@@ -16,6 +16,7 @@ import asyncio
 import collections
 import logging
 from datetime import datetime
+from typing import Union
 
 import discord
 import tabulate
@@ -26,6 +27,14 @@ from lightning.utils.checks import is_bot_manager
 from lightning.utils.converters import InbetweenNumber
 
 log = logging.getLogger(__name__)
+
+
+class PartialGuild:
+    def __init__(self, record):
+        self.id = record['id']
+        self.name = record['name']
+        self.owner_id = record['owner_id']
+        self.left_at = record['left_at']
 
 
 class Stats(LightningCog):
@@ -285,6 +294,56 @@ class Stats(LightningCog):
         total = sum(x['count'] for x in records)
         await ctx.send(f"{total} socket events recorded.```\n{table}```")
 
+    # There is no way to know when the bot has left or joined servers while being offline.
+    # This aims to solve those issues by replacing the on_guild_join and on_guild_remove with
+    # our own listeners.
 
-def setup(bot: LightningBot):
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        records = await self.bot.pool.fetch("SELECT id FROM guilds WHERE left_at IS NULL;")
+        guild_ids = [record['id'] for record in records]
+
+        for guild_id in guild_ids:
+            guild = self.bot.get_guild(guild_id)
+            if guild is not None:
+                continue
+            await self.remove_guild(guild_id)
+
+    async def get_guild_record(self, guild_id: int) -> PartialGuild:
+        record = await self.bot.pool.fetchrow("SELECT * FROM guilds WHERE id=$1", guild_id)
+        return PartialGuild(record)
+
+    async def remove_guild(self, guild: Union[int, discord.Guild, PartialGuild]) -> None:
+        guild_id = getattr(guild, 'id', guild)
+        await self.bot.pool.execute("UPDATE guilds SET left_at=(NOW() AT TIME ZONE 'utc') WHERE id=$1", guild_id)
+
+        if not hasattr(guild, 'member_count'):
+            guild = await self.get_guild_record(guild_id)
+
+        self.bot.dispatch("lightning_guild_remove", guild)
+
+    async def add_guild(self, guild: discord.Guild) -> None:
+        query = """INSERT INTO guilds (id, name, owner_id)
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (id) DO UPDATE
+                   SET name = EXCLUDED.name, owner_id = EXCLUDED.owner_id, left_at = NULL;
+                """
+        async with self.bot.pool.acquire() as con:
+            unregistered = await con.fetchval("SELECT true FROM guilds WHERE id=$1 AND left_at IS NOT NULL;", guild.id)
+            await con.execute(query, guild.id, guild.name, guild.owner_id)
+
+        if unregistered:
+            self.bot.dispatch("lightning_guild_add", guild)
+
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        await self.remove_guild(guild)
+
+    @commands.Cog.listener('on_guild_join')
+    @commands.Cog.listener('on_guild_available')
+    async def on_guild_add(self, guild: discord.Guild) -> None:
+        await self.add_guild(guild)
+
+
+def setup(bot: LightningBot) -> None:
     bot.add_cog(Stats(bot))
