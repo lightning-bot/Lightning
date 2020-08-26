@@ -27,7 +27,7 @@ from discord.ext import commands, tasks
 
 import lightning.utils.time
 from lightning import LightningBot, LightningCog, LightningContext
-from lightning.utils.errors import LightningError
+from lightning.errors import LightningError
 from lightning.utils.helpers import (BetterUserObject, dm_user,
                                      message_id_lookup)
 from lightning.utils.nin_updates import do_nintendo_updates_feed
@@ -240,6 +240,40 @@ class Reminders(LightningCog):
             self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
 
         await ctx.send(f"Successfully deleted reminder (ID: {reminder_id})")
+
+    @remind.command(name='clear')
+    async def clear_reminders(self, ctx: LightningContext) -> None:
+        """Clears all of your reminders"""
+        queryc = """SELECT COUNT(*)
+                    FROM timers
+                    WHERE event = 'reminder'
+                    AND extra ->> 'author' = $1
+                """
+        count = await self.bot.pool.fetchval(queryc, str(ctx.author.id))
+
+        if count == 0:
+            await ctx.send("You don't have any reminders that I can delete")
+            return
+
+        confirm = await ctx.prompt(f"Are you sure you want to remove {lightning.utils.time.plural(count):reminder}?")
+        if not confirm:
+            await ctx.send("Cancelled")
+            return
+
+        query = """DELETE FROM timers
+                   WHERE event = 'reminder'
+                   AND extra ->> 'author' = $1
+                   RETURNING id;
+                """
+        records = await self.bot.pool.fetch(query, str(ctx.author.id))
+        ids = [r['id'] for r in records]
+
+        if self._current_task.event == 'reminder' and self._current_task.id in ids:
+            # cancel task
+            self.dispatch_jobs.cancel()
+            self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
+
+        await ctx.send("Cleared all of your reminders.")
 
     @commands.Cog.listener()
     async def on_reminder_job_complete(self, timer: Timer) -> None:
