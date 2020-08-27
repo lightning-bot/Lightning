@@ -64,10 +64,6 @@ game = "rewrite is the future!"
 # Set to true if you want commands to be used on_message_edit
 edit_commands = true # bool
 
-# Toggle that can enable or disable the whitelist
-whitelist = false
-
-
 # Support server invite
 support_server_invite = "https://discord.gg/SpFjsy3"
 
