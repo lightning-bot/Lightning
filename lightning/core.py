@@ -40,7 +40,8 @@ log = logging.getLogger(__name__)
 ERROR_HANDLER_MESSAGES = {
     commands.NoPrivateMessage: "This command cannot be used in DMs!",
     commands.DisabledCommand: "Sorry, this command is currently disabled.",
-    commands.NSFWChannelRequired: "This command can only be run in a NSFW marked channel or DMs."
+    commands.NSFWChannelRequired: "This command can only be run in a NSFW marked channel or DMs.",
+    asyncio.TimeoutError: "Timed out while doing something..."
 }
 
 
@@ -230,12 +231,12 @@ class LightningBot(commands.AutoShardedBot):
             log_text += f"in DMs ({ctx.channel.id})"
         log.info(log_text)
 
-    async def on_error(self, event_method, *args, **kwargs):
+    async def on_error(self, event, *args, **kwargs):
         if self.sentry_logging is True:
-            log.info(f"Error on {event_method}: {traceback.format_exc()}")
+            log.info(f"Error on {event}: {traceback.format_exc()}")
             sentry_sdk.capture_exception()
         else:
-            log.error(f"Error on {event_method}: {traceback.format_exc()}")
+            log.error(f"Error on {event}: {traceback.format_exc()}")
 
         with contextlib.suppress(discord.HTTPException):
             webhook = discord.Webhook.from_url(self.config['logging']['bot_errors'],
@@ -243,7 +244,7 @@ class LightningBot(commands.AutoShardedBot):
             embed = discord.Embed(title="Event Error", description=f"```py\n{traceback.format_exc()}```",
                                   color=0xff0000,
                                   timestamp=datetime.utcnow())
-            embed.add_field(name="Event", value=event_method)
+            embed.add_field(name="Event", value=event)
             await webhook.execute(embed=embed, username="Event Error")
 
     async def log_command_error(self, ctx, error, *, send_error_message=True) -> str:
@@ -260,47 +261,53 @@ class LightningBot(commands.AutoShardedBot):
         return token
 
     async def on_command_error(self, ctx, error):
-        error_text = str(error)
         # If command or cog has it's own error handler, return
         handler = getattr(ctx.cog, 'cog_command_error')
         overridden = ctx.cog._get_overridden_method(handler)
         if hasattr(ctx.command, 'on_error') or overridden:
             return
 
+        error = getattr(error, "original", error)
+        error_text = str(error)
+
         handled = ERROR_HANDLER_MESSAGES.get(type(error), None)
         if handled:
-            return await ctx.send(handled)
+            await ctx.send(handled)
+            return
 
         if isinstance(error, commands.MissingPermissions):
             p = ', '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
-            return await ctx.send(f"{ctx.author.mention}: You don't have the right"
-                                  f" permissions to run this command. You need: {p}",
-                                  allowed_mentions=discord.AllowedMentions(users=[ctx.author]))
+            await ctx.send(f"{ctx.author.mention}: You don't have the right"
+                           f" permissions to run this command. You need: {p}",
+                           allowed_mentions=discord.AllowedMentions(users=[ctx.author]))
+            return
         elif isinstance(error, commands.BotMissingPermissions):
             p = ', '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
-            return await ctx.send("I don't have the right permissions to run this command. "
-                                  f"I need: {p}")
+            await ctx.send("I don't have the right permissions to run this command. "
+                           f"I need: {p}")
+            return
         elif isinstance(error, commands.CommandOnCooldown):
-            return await ctx.send("You are currently on cooldown. Try the command again in "
-                                  f"{error.retry_after:.1f} seconds.")
+            await ctx.send("You are currently on cooldown. Try the command again in "
+                           f"{error.retry_after:.1f} seconds.")
+            return
         help_text = f"\nPlease see `{ctx.prefix}help {ctx.command}` for more info about this command."
         if isinstance(error, commands.BadArgument):
-            return await ctx.send(f"You gave incorrect arguments. `{str(error)}` {help_text}")
+            await ctx.send(f"You gave incorrect arguments. `{str(error)}` {help_text}")
+            return
         elif isinstance(error, commands.MissingRequiredArgument):
             codeblock = f"**{ctx.prefix}{ctx.command.qualified_name} {ctx.command.signature}**\n\n{error_text}"
-            return await ctx.send(codeblock)
+            await ctx.send(codeblock)
+            return
         elif isinstance(error, commands.TooManyArguments):
-            return await ctx.send(f"You passed too many arguments.{help_text}")
+            await ctx.send(f"You passed too many arguments.{help_text}")
+            return
         elif isinstance(error, (errors.LightningError, flags.ArgumentParsingError)):
-            return await ctx.send(error_text)
+            await ctx.send(error_text)
+            return
+        elif isinstance(error, menus.MenuError):
+            await ctx.send(error_text)
+            return
 
-        if isinstance(error, commands.CommandInvokeError):
-            if isinstance(error.original, asyncio.TimeoutError):
-                return await ctx.send(f'{ctx.command.qualified_name} timed out.')
-            elif isinstance(error.original, menus.MenuError):
-                return await ctx.send(str(error.original))
-
-        error = getattr(error, "original", error)
         if self.sentry_logging is True:
             log.info(f"Uncaught error {type(error)}: {str(error)}")
             sentry_sdk.capture_exception(error)
