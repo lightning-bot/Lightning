@@ -1,17 +1,20 @@
-# Lightning.py - A multi-purpose Discord bot
-# Copyright (C) 2020 - LightSage
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation at version 3 of the License.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+Lightning.py - A multi-purpose Discord bot
+Copyright (C) 2020 - LightSage
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation at version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import asyncio
 import secrets
 import urllib.parse
@@ -23,9 +26,9 @@ from discord.ext import commands
 from fuzzywuzzy import fuzz, process
 
 from lightning import LightningBot, LightningCog, LightningContext
+from lightning.errors import LightningError
 from lightning.utils import http
 from lightning.utils.checks import is_staff_or_has_perms
-from lightning.utils.errors import LightningError
 
 
 class FindBMPAttachment(commands.CustomDefault):

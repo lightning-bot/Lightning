@@ -1,17 +1,20 @@
-# Lightning.py - A multi-purpose Discord bot
-# Copyright (C) 2020 - LightSage
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation at version 3 of the License.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+Lightning.py - A multi-purpose Discord bot
+Copyright (C) 2020 - LightSage
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation at version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import colorsys
 import io
 import math
@@ -27,8 +30,8 @@ from jishaku.functools import executor_function
 from PIL import Image, ImageDraw, ImageFont
 
 from lightning import LightningBot, LightningCog, LightningContext
+from lightning.errors import LightningError
 from lightning.utils import converters, flags, http
-from lightning.utils.errors import LightningError
 
 
 class Fun(LightningCog):
