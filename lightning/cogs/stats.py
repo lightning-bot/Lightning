@@ -323,7 +323,7 @@ class Stats(LightningCog):
         guild_id = getattr(guild, 'id', guild)
         await self.bot.pool.execute("UPDATE guilds SET left_at=(NOW() AT TIME ZONE 'utc') WHERE id=$1", guild_id)
 
-        if not hasattr(guild, 'member_count'):
+        if not isinstance(guild, discord.Guild):
             guild = await self.get_guild_record(guild_id)
 
         self.bot.dispatch("lightning_guild_remove", guild)
@@ -357,6 +357,14 @@ class Stats(LightningCog):
     @LightningCog.listener('on_guild_available')
     async def on_guild_add(self, guild: discord.Guild) -> None:
         await self.add_guild(guild)
+
+    @LightningCog.listener()
+    async def on_guild_update(self, before: discord.Guild, after: discord.Guild) -> None:
+        if before.name != after.name:
+            await self.add_guild(after)
+
+        if before.owner_id != after.owner_id:
+            await self.add_guild(after)
 
 
 def setup(bot: LightningBot) -> None:
