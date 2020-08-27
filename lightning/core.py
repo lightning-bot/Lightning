@@ -1,17 +1,20 @@
-# Lightning.py - A multi-purpose Discord bot
-# Copyright (C) 2020 - LightSage
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation at version 3 of the License.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+Lightning.py - A multi-purpose Discord bot
+Copyright (C) 2020 - LightSage
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation at version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import asyncio
 import collections
 import contextlib
@@ -29,10 +32,9 @@ import discord
 import sentry_sdk
 from discord.ext import commands, flags, menus
 
-from lightning import cache, config
+from lightning import cache, config, errors
 from lightning.context import LightningContext
 from lightning.meta import __version__ as version
-from lightning.utils import errors
 
 log = logging.getLogger(__name__)
 ERROR_HANDLER_MESSAGES = {
@@ -65,6 +67,7 @@ LightningCogDeps = collections.namedtuple("LightningCogDeps", "required")
 
 class LightningCog(commands.Cog):
     def __init__(self, *args, **kwargs):
+        self.session = self.bot.aiosession
         super().__init__(*args, **kwargs)
 
     def __init_subclass__(cls, *args, **kwargs):
@@ -117,9 +120,6 @@ class LightningBot(commands.AutoShardedBot):
                 traceback.print_exc()
 
         self.blacklisted_users = config.Storage("config/user_blacklist.json")
-        if self.config['bot']['whitelist']:
-            log.warning("Whitelist system is toggled on! Make sure to whitelist servers you want to use the bot!")
-            self.guild_whitelist = config.Storage("config/whitelist.json")
 
     async def create_pool(self, config: dict, **kwargs) -> None:
         """Creates a connection pool"""
@@ -132,11 +132,12 @@ class LightningBot(commands.AutoShardedBot):
         pool = await asyncpg.create_pool(init=init, **kwargs)
         self.pool = pool
 
-    def add_cog(self, cls):
+    def add_cog(self, cls) -> None:
         deps = getattr(cls, "__lightning_cog_deps__", None)
         if not deps:
             log.debug(f"Loaded cog {cls.__module__} ({cls})")
-            return super().add_cog(cls)
+            super().add_cog(cls)
+            return
 
         required_cogs = [self.get_cog(name) for name in deps.required]
         if not all(required_cogs):
@@ -200,12 +201,6 @@ class LightningBot(commands.AutoShardedBot):
         if str(message.author.id) in self.blacklisted_users:
             return
 
-        if message.guild:
-            if hasattr(self, 'guild_whitelist'):
-                if str(message.guild.id) not in self.guild_whitelist:
-                    await message.guild.leave()
-                    return
-
         ctx = await self.get_context(message, cls=LightningContext)
         if ctx.command is None:
             return
@@ -236,7 +231,12 @@ class LightningBot(commands.AutoShardedBot):
         log.info(log_text)
 
     async def on_error(self, event_method, *args, **kwargs):
-        log.error(f"Error on {event_method}: {traceback.format_exc()}")
+        if self.sentry_logging is True:
+            log.info(f"Error on {event_method}: {traceback.format_exc()}")
+            sentry_sdk.capture_exception()
+        else:
+            log.error(f"Error on {event_method}: {traceback.format_exc()}")
+
         with contextlib.suppress(discord.HTTPException):
             webhook = discord.Webhook.from_url(self.config['logging']['bot_errors'],
                                                adapter=discord.AsyncWebhookAdapter(self.aiosession))
