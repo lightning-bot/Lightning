@@ -15,5 +15,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from .context import LightningContext  # noqa
-from .core import LightningBot, LightningCog  # noqa
+from lightning.context import LightningContext  # noqa
+from lightning.core import LightningBot, LightningCog  # noqa
+from lightning.meta import *  # noqa
