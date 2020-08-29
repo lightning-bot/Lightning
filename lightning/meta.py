@@ -15,6 +15,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+__all__ = ('__title__',
+           '__version__',
+           '__license__',
+           '__author__')
+
 __title__ = "Lightning"
 __version__ = "3.0.0-alpha"
 __license__ = "GNU Affero General Public License Version 3"
