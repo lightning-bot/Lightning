@@ -26,7 +26,6 @@ import traceback
 from datetime import datetime
 
 import aiohttp
-import aredis
 import asyncpg
 import discord
 import sentry_sdk
@@ -90,21 +89,14 @@ class LightningBot(commands.AutoShardedBot):
         # This should be good enough
         self.command_spam_cooldown = commands.CooldownMapping.from_cooldown(6, 5.0, commands.BucketType.user)
 
-        self.prefixes = cache.Cache(cache.Strategy.lru)
+        self.prefixes = cache.LRUCache(max_size=32)
         self.config = config.TOMLStorage('config.toml')
         self.version = version
         self._pending_cogs = {}
 
         headers = {"User-Agent": self.config['bot'].pop("user_agent", f"Lightning Bot {self.version}")}
         self.aiosession = aiohttp.ClientSession(headers=headers)
-
-        try:
-            self.redis_pool = aredis.StrictRedis()
-            # Only way to ensure a redis server is setup
-            self.loop.run_until_complete(self.redis_pool.ping())
-        except Exception as e:
-            log.warning(f"Redis caching is disabled! {e}")
-            self.redis_pool = None
+        self.redis_pool = cache.redis_pool
 
         path = pathlib.Path("lightning/cogs/")
         files = path.glob('**/*.py')
