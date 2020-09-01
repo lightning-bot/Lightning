@@ -21,11 +21,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import enum
 import inspect
+import logging
 import time
 from functools import wraps
 from typing import Optional
 
-import aredis.cache
+import toml
+from aredis import StrictRedis
 from lru import LRU
 
 
@@ -67,7 +69,6 @@ class Strategy(enum.Enum):
     lru = 1
     raw = 2
     timed = 3
-    redis = 4
 
 
 def cache(maxsize=128, strategy=Strategy.lru, ignore_kwargs=False):
@@ -152,185 +153,128 @@ def cache(maxsize=128, strategy=Strategy.lru, ignore_kwargs=False):
     return decorator
 
 
-class KeyGen(aredis.cache.IdentityGenerator):
-    def generate(self, key, args):
-        key = [f"{self.app}:{key}"]
-        if args:
-            key.extend(repr(o) for o in args)
-        return ':'.join(key)
+class BaseCache:
+    """Base cache class"""
 
+    def __init__(self, name: str, *, key_builder=None):
+        self.name = name
+        self.key_builder = key_builder or self._make_key
 
-class Cache:
-    """A cache
+    def _make_key(self, key) -> str:
+        return str(key)
 
-    Parameters
-    ----------
-    strategy : Strategy
-        The cache strategy
-    max_size : int, Optional
-        Max size of the LRU cache (If the strategy is LRU).
-        Defaults to 120
-    **kwargs
-        Kwargs
+    async def _get(self, key):
+        raise NotImplementedError
 
-    Raises
-    ------
-    NotImplementedError
-        Raised when some kwarg is missing for redis caching
-    """
-    __slots__ = ('redis', 'strategy', '_cache')
+    async def get(self, key):
+        """Gets a key from cache"""
+        key = self.key_builder(key)
+        return await self._get(key)
 
-    def __init__(self, strategy=Strategy.lru, *, max_size=120, **kwargs):
-        if strategy is Strategy.lru:
-            _cache = LRU(max_size)
-            self.redis = False
-        elif strategy is Strategy.raw:
-            _cache = {}
-            self.redis = False
-        elif strategy is Strategy.redis:
-            name = kwargs.get("name", None)
-            client = kwargs.get("client", None)
+    async def get_or_default(self, key, *, default=None):
+        """Gets a key from cache.
 
-            if not client or not name:
-                raise NotImplementedError("Missing client and/or name kwarg")
-
-            key_generator = kwargs.pop("key_generator", KeyGen)
-            compressor = kwargs.pop("compressor", None)
-            serializer = kwargs.pop("serializer", None)
-            _cache = RedisCache(client, name, key_generator, compressor, serializer)
-            self.redis = True
-
-        self.strategy = strategy
-        self._cache = _cache
-
-    def __call__(self, func):
-        @wraps(func)
-        async def _inner(*args, **kwargs):
-            key = func.__name__
-            res = await self.get(key, param=(args, kwargs))
-            if res is None:
-                res = func(*args, **kwargs)
-                await self.set(key, res, param=(args, kwargs))
-            return res
-        _inner.cache = self
-        return _inner
-
-    async def set(self, key, value, *, expire_time: Optional[float] = None, param=None):
-        """Sets a key in the cache
-
-        Parameters
-        ----------
-        key :
-            a key
-        value :
-            The value for the key
-        expire_time : Optional[float]
-            The optional expiry time for the key (Redis only)
+        If the key is not cached, returns the default.
         """
-        if self.redis:
-            await self._cache.set(key, value, param, expire_time=expire_time)
-        else:
-            self._cache[key] = value
+        key = self.key_builder(key)
+        value = await self._get(key)
+        return value if value is not None else default
 
-    async def get(self, key, *, param=None):
-        """Gets a key from cache
+    async def _set(self, key, value):
+        raise NotImplementedError
 
-        Parameters
-        ----------
-        key
-            The key to get
-        param : None, Optional
-            Optional parameter passed to the key builder(Redis only)
+    async def set(self, key, value):
+        """Sets a key into cache"""
+        key = self.key_builder(key)
+        await self._set(key, value)
 
-        Raises
-        ------
-        KeyError
-            Raised when the key is not cached
-        """
-        if self.redis:
-            value = await self._cache.get(key, param)
-            # dumb hack
-            if value == b'None' or value == b'null':
-                return None
+    async def _invalidate(self, key):
+        raise NotImplementedError
 
-            if value is None:
-                raise KeyError
+    async def invalidate(self, key):
+        """Invalidates a key from cache"""
+        key = self.key_builder(key)
+        await self._invalidate(key)
 
-            return value
-        else:
-            return self._cache[key]
+    async def _clear(self):
+        raise NotImplementedError
 
-    async def get_or_default(self, key, *, param=None, default=None):
-        """Gets a key from cache. If the key is not cached, returns the default.
-
-        Parameters
-        ----------
-        key :
-            The key to get from the cache
-        param : None, Optional
-            Description
-        default : None, Optional
-            A default argument to return if the key is not in cache
-
-        Returns
-        -------
-        The value of the key or default.
-        """
-        if self.redis:
-            value = await self._cache.get(key, param)
-            if value is None:
-                return default
-        else:
-            return self._cache.get(key, default)
-
-    async def invalidate(self, key, *, param=None) -> bool:
-        """Removes a key from cache
-
-        Parameters
-        ----------
-        key :
-            The key to delete
-        param : None, Optional
-            Optional parameter passed to the key builder (Redis only)
-
-        Returns
-        -------
-        bool
-            A boolean indicator of whether the removal was successful or not
-        """
-        if not self.redis:
-            try:
-                del self._cache[key]
-            except KeyError:
-                return False
-            else:
-                return True
-
-        resp = await self._cache.delete(key, param)
-        if resp == 0:
-            # No key
-            return False
-        else:
-            return True
-
-    def __repr__(self):
-        return f"<Cache strategy={self.strategy.name}>"
+    async def clear(self):
+        """Clears the cache"""
+        await self._clear()
 
 
-class RedisCache(aredis.cache.Cache):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class RawCache(BaseCache):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._cache = {}
 
-    def _gen_identity(self, key, kwargs=None):
-        """generate identity according to key and param given"""
-        if self.identity_generator:
-            identity = self.identity_generator.generate(key, kwargs)
-        else:
-            identity = key
-        return identity
+    async def _get(self, key):
+        return self._cache[key]
+
+    async def _set(self, key, value) -> None:
+        self._cache[key] = value
+
+    async def get_or_default(self, key, *, default=None):
+        try:
+            value = await self._get(key)
+        except KeyError:
+            value = default
+
+        return value
+
+    async def _invalidate(self, key) -> None:
+        del self._cache[key]
+
+    async def _clear(self) -> None:
+        self._cache = {}
 
 
-class Compressor(aredis.cache.Compressor):
-    def __init__(self, encoding='utf-8', min_length=25):
-        self.encoding = encoding
-        self.min_length = min_length
+class LRUCache(RawCache):
+    def __init__(self, *, max_size=120, **kwargs):
+        super().__init__(**kwargs)
+        self._max_size = max_size
+        self._cache = LRU(max_size)
+
+        self.stats = self._cache.get_stats()
+
+    async def _clear(self):
+        self._cache = LRU(self._max_size)
+
+
+class RedisCache(BaseCache):
+    def __init__(self, **kwargs):
+        if redis_pool is None:
+            raise Exception("Redis is not initialized")
+        self.pool = redis_pool
+        super().__init__(**kwargs)
+
+    async def _get(self, key):
+        return await self.pool.get(key)
+
+    async def _set(self, key, value):
+        return await self.pool.set(key, value)
+
+    async def _clear(self):
+        """Clears all keys stored in the current redis database."""
+        return await self.pool.flushdb()
+
+
+def start_redis_client() -> Optional[StrictRedis]:
+    log = logging.getLogger("lightning.cache.start_redis_client")
+
+    loop = asyncio.get_event_loop()
+    config = toml.load(open('config.toml', 'r'))
+
+    try:
+        pool = StrictRedis(**config['tokens']['redis'])
+        # Only way to ensure the pool is connected to redis
+        loop.run_until_complete(pool.ping())
+    except Exception as e:
+        log.exception(e)
+        pool = None
+
+    return pool
+
+
+redis_pool = start_redis_client()
