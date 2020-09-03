@@ -136,7 +136,7 @@ class Stats(LightningCog):
             async with self._socket_lock:
                 self._socket_stats[v] += 1
 
-    async def commands_status_guild(self, ctx: LightningContext):
+    async def commands_stats_guild(self, ctx: LightningContext):
         em = discord.Embed(title="Command Stats", color=0xf74b06)
         query = """SELECT COUNT(*), MIN(used_at)
                    FROM commands_usage
@@ -183,7 +183,7 @@ class Stats(LightningCog):
             em.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=em)
 
-    async def command_status_member(self, ctx: LightningContext, member):
+    async def command_stats_member(self, ctx: LightningContext, member):
         em = discord.Embed(title=f"Command Stats for {member}", color=0xf74b06)
         query = "SELECT COUNT(*), MIN(used_at) FROM commands_usage WHERE guild_id=$1 AND user_id=$2;"
         res = await self.bot.pool.fetchrow(query, ctx.guild.id, member.id)
@@ -234,9 +234,9 @@ class Stats(LightningCog):
         """Sends stats about which commands are used often in the guild"""
         async with ctx.typing():
             if member is None:
-                await self.commands_status_guild(ctx)
+                await self.commands_stats_guild(ctx)
             else:
-                await self.command_status_member(ctx, member)
+                await self.command_stats_member(ctx, member)
 
     @stats.command(name="auditlog", aliases=['table', 'log'])
     @commands.has_guild_permissions(manage_guild=True)
