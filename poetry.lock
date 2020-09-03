@@ -135,7 +135,7 @@ description = "A Python wrapper for the Discord API"
 name = "discord.py"
 optional = false
 python-versions = ">=3.5.3"
-version = "1.5.0a2446+g839508c"
+version = "1.5.0a2451+g9f8b2af"
 
 [package.dependencies]
 aiohttp = ">=3.6.0,<3.7.0"
@@ -145,10 +145,9 @@ docs = ["sphinx (1.8.5)", "sphinxcontrib_trio (1.1.1)", "sphinxcontrib-websuppor
 voice = ["PyNaCl (1.3.0)"]
 
 [package.source]
-reference = "839508cad2ac2fb838a57a29fc73f4964f0ccae9"
+reference = "9f8b2aff0098ede25c7302d58078903723a1279f"
 type = "git"
 url = "https://github.com/LightSage/discord.py"
-
 [[package]]
 category = "main"
 description = "discord.py stubs"
