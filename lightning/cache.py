@@ -160,7 +160,7 @@ class BaseCache:
         self.name = name
         self.key_builder = key_builder or self._make_key
 
-    def _make_key(self, key) -> str:
+    def _make_key(self, key, *args, **kwargs) -> str:
         return str(key)
 
     async def _get(self, key):
@@ -205,8 +205,8 @@ class BaseCache:
 
 
 class RawCache(BaseCache):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._cache = {}
 
     async def _get(self, key):
@@ -227,19 +227,20 @@ class RawCache(BaseCache):
         del self._cache[key]
 
     async def _clear(self) -> None:
-        self._cache = {}
+        self._cache.clear()
 
 
 class LRUCache(RawCache):
-    def __init__(self, *, max_size=120, **kwargs):
-        super().__init__(**kwargs)
-        self._max_size = max_size
+    def __init__(self, *args, max_size=128, **kwargs):
+        super().__init__(*args, **kwargs)
         self._cache = LRU(max_size)
 
-        self.stats = self._cache.get_stats()
+    @property
+    def stats(self):
+        return self._cache.get_stats()
 
     async def _clear(self):
-        self._cache = LRU(self._max_size)
+        self._cache.clear()
 
 
 class RedisCache(BaseCache):
@@ -271,7 +272,7 @@ def start_redis_client() -> Optional[StrictRedis]:
         # Only way to ensure the pool is connected to redis
         loop.run_until_complete(pool.ping())
     except Exception as e:
-        log.exception(e)
+        log.warning(f"Unable to connect to redis {e}")
         pool = None
 
     return pool
