@@ -239,8 +239,11 @@ class LRUCache(RawCache):
     def stats(self):
         return self._cache.get_stats()
 
-    async def _clear(self):
-        self._cache.clear()
+
+class TimedCache(RawCache):
+    def __init__(self, *args, seconds, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cache = ExpiringCache(seconds)
 
 
 class RedisCache(BaseCache):
