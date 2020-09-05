@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-# _wrap_new_coroutine, _wrap_and_store_coroutine, ExpiringCache, cache code is provided by Rapptz under the MIT License
+# _wrap_new_coroutine, _wrap_and_store_coroutine, ExpiringCache is provided by Rapptz under the MIT License
 # Copyright ©︎ 2015 Rapptz
 # https://github.com/Rapptz/RoboDanny/blob/19e9dd927a18bdf021e4d1abb012ae2daf392bc2/cogs/utils/cache.py
 import asyncio
@@ -29,6 +29,10 @@ from typing import Optional
 import toml
 from aredis import StrictRedis
 from lru import LRU
+
+
+class CacheError(Exception):
+    pass
 
 
 def _wrap_and_store_coroutine(cache, key, coro):
@@ -65,100 +69,15 @@ class ExpiringCache(dict):
         super().__setitem__(key, (value, time.monotonic()))
 
 
-class Strategy(enum.Enum):
-    lru = 1
-    raw = 2
-    timed = 3
-
-
-def cache(maxsize=128, strategy=Strategy.lru, ignore_kwargs=False):
-    def decorator(func):
-        if strategy is Strategy.lru:
-            _internal_cache = LRU(maxsize)
-            _stats = _internal_cache.get_stats
-        elif strategy is Strategy.raw:
-            _internal_cache = {}
-            _stats = lambda: (0, 0)  # noqa
-        elif strategy is Strategy.timed:
-            _internal_cache = ExpiringCache(maxsize)
-            _stats = lambda: (0, 0)  # noqa
-
-        def _make_key(args, kwargs):
-            # this is a bit of a cluster fuck
-            # we do care what 'self' parameter is when we __repr__ it
-            def _true_repr(o):
-                if o.__class__.__repr__ is object.__repr__:
-                    return f'<{o.__class__.__module__}.{o.__class__.__name__}>'
-                return repr(o)
-
-            key = [f'{func.__module__}.{func.__name__}']
-            key.extend(_true_repr(o) for o in args)
-            if not ignore_kwargs:
-                for k, v in kwargs.items():
-                    # note: this only really works for this use case in particular
-                    # I want to pass asyncpg.Connection objects to the parameters
-                    # however, they use default __repr__ and I do not care what
-                    # connection is passed in, so I needed a bypass.
-                    if k == 'connection':
-                        continue
-
-                    key.append(_true_repr(k))
-                    key.append(_true_repr(v))
-
-            return ':'.join(key)
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            key = _make_key(args, kwargs)
-            try:
-                value = _internal_cache[key]
-            except KeyError:
-                value = func(*args, **kwargs)
-
-                if inspect.isawaitable(value):
-                    return _wrap_and_store_coroutine(_internal_cache, key, value)
-
-                _internal_cache[key] = value
-                return value
-            else:
-                if asyncio.iscoroutinefunction(func):
-                    return _wrap_new_coroutine(value)
-                return value
-
-        def _invalidate(*args, **kwargs):
-            try:
-                del _internal_cache[_make_key(args, kwargs)]
-            except KeyError:
-                return False
-            else:
-                return True
-
-        def _invalidate_containing(key):
-            to_remove = []
-            for k in _internal_cache.keys():
-                if key in k:
-                    to_remove.append(k)
-            for k in to_remove:
-                try:
-                    del _internal_cache[k]
-                except KeyError:
-                    continue
-
-        wrapper.cache = _internal_cache
-        wrapper.get_key = lambda *args, **kwargs: _make_key(args, kwargs)
-        wrapper.invalidate = _invalidate
-        wrapper.get_stats = _stats
-        wrapper.invalidate_containing = _invalidate_containing
-        return wrapper
-    return decorator
-
-
 class BaseCache:
     """Base cache class"""
 
-    def __init__(self, name: str, *, key_builder=None):
+    def __init__(self, name: str, *, key_builder=None, should_build_key=True):
         self.name = name
         self.key_builder = key_builder or self._make_key
+        self.should_build_key = should_build_key
+        # I kinda don't like this but whatever.
+        registry.register(name, self)
 
     def _make_key(self, key, *args, **kwargs) -> str:
         return str(key)
@@ -168,7 +87,8 @@ class BaseCache:
 
     async def get(self, key):
         """Gets a key from cache"""
-        key = self.key_builder(key)
+        if self.should_build_key:
+            key = self.key_builder(key)
         return await self._get(key)
 
     async def get_or_default(self, key, *, default=None):
@@ -176,7 +96,8 @@ class BaseCache:
 
         If the key is not cached, returns the default.
         """
-        key = self.key_builder(key)
+        if self.should_build_key:
+            key = self.key_builder(key)
         value = await self._get(key)
         return value if value is not None else default
 
@@ -185,7 +106,8 @@ class BaseCache:
 
     async def set(self, key, value):
         """Sets a key into cache"""
-        key = self.key_builder(key)
+        if self.should_build_key:
+            key = self.key_builder(key)
         await self._set(key, value)
 
     async def _invalidate(self, key):
@@ -193,7 +115,8 @@ class BaseCache:
 
     async def invalidate(self, key):
         """Invalidates a key from cache"""
-        key = self.key_builder(key)
+        if self.should_build_key:
+            key = self.key_builder(key)
         await self._invalidate(key)
 
     async def _clear(self):
@@ -204,10 +127,9 @@ class BaseCache:
         await self._clear()
 
 
-class RawCache(BaseCache):
+class DictBasedCache(BaseCache):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._cache = {}
 
     async def _get(self, key):
         return self._cache[key]
@@ -230,7 +152,11 @@ class RawCache(BaseCache):
         self._cache.clear()
 
 
-class LRUCache(RawCache):
+class RawCache(DictBasedCache):
+    _cache = {}
+
+
+class LRUCache(DictBasedCache):
     def __init__(self, *args, max_size=128, **kwargs):
         super().__init__(*args, **kwargs)
         self._cache = LRU(max_size)
@@ -240,7 +166,7 @@ class LRUCache(RawCache):
         return self._cache.get_stats()
 
 
-class TimedCache(RawCache):
+class TimedCache(DictBasedCache):
     def __init__(self, *args, seconds, **kwargs):
         super().__init__(*args, **kwargs)
         self._cache = ExpiringCache(seconds)
@@ -264,6 +190,105 @@ class RedisCache(BaseCache):
         return await self.pool.flushdb()
 
 
+class Strategy(enum.Enum):
+    raw = 1, RawCache
+    lru = 2, LRUCache
+    timed = 3, TimedCache
+    redis = 4, RedisCache
+
+
+class cached:
+    def __init__(self, name, strategy=Strategy.raw, *, rename_to_func=False, **kwargs):
+        self.key_builder = self.deco_key_builder
+        self.rename_to_func = rename_to_func
+
+        kwargs.update({"key_builder": self.key_builder, "should_build_key": False})
+
+        self.cache = strategy.value[1](name, **kwargs)
+
+    # deco_key_builder is provided by Rapptz under the function name of _make_key
+    # Copyright ©︎ 2015 Rapptz - MIT License
+    # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/utils/cache.py#L62
+    @staticmethod
+    def deco_key_builder(func, args, kwargs):
+        # this is a bit of a cluster fuck
+        # we do care what 'self' parameter is when we __repr__ it
+        def _true_repr(o):
+            if o.__class__.__repr__ is object.__repr__:
+                return f'<{o.__class__.__module__}.{o.__class__.__name__}>'
+            return repr(o)
+
+        key = [f'{func.__module__}.{func.__name__}']
+        key.extend(_true_repr(o) for o in args)
+
+        return ':'.join(key)
+
+    def __call__(self, func):
+        if self.rename_to_func is True:
+            registry.rename(self.cache.name, f'{func.__module__}.{func.__name__}')
+
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            return await self.decorator(func, *args, **kwargs)
+        wrapper._cache = self
+        return wrapper
+
+    async def decorator(self, func, *args, **kwargs):
+        key = self.key_builder(func, args, kwargs)
+        try:
+            value = await self.cache.get(key)
+        except Exception:
+            print("cache miss")
+            value = func(*args, **kwargs)
+
+            if inspect.isawaitable(value):
+                val = await value
+                await self.cache.set(key, val)
+                return val
+
+            await self.cache.set(key, value)
+            return value
+        else:
+            print("cache hit")
+            return value
+
+
+class CacheRegistry:
+    def __init__(self):
+        self.caches = {}
+
+    def register(self, name, cache):
+        """Registers a cache"""
+        if name in self.caches:
+            raise CacheError(f"A cache under the name of \"{name}\" is already registered!")
+
+        self.caches[name] = cache
+
+    def unregister(self, name):
+        """Removes a cache from the registry"""
+        if name not in self.caches:
+            raise CacheError(f"A cache under the name of \"{name}\" is not registered!")
+
+        del self.caches[name]
+
+    def get(self, name: str):
+        """Gets a registered cache.
+
+        Parameters
+        ----------
+        name : str
+            The name of the cache to get
+        """
+        return self.caches.get(name, None)
+
+    def rename(self, old_name, new_name):
+        """Renames a registered cache"""
+        if new_name in self.caches:
+            raise CacheError(f"A cache under the name of \"{new_name}\" is already registered!")
+
+        self.caches[new_name] = self.caches.pop(old_name)
+
+
 def start_redis_client() -> Optional[StrictRedis]:
     log = logging.getLogger("lightning.cache.start_redis_client")
 
@@ -282,3 +307,4 @@ def start_redis_client() -> Optional[StrictRedis]:
 
 
 redis_pool = start_redis_client()
+registry = CacheRegistry()
