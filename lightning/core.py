@@ -89,7 +89,7 @@ class LightningBot(commands.AutoShardedBot):
         # This should be good enough
         self.command_spam_cooldown = commands.CooldownMapping.from_cooldown(6, 5.0, commands.BucketType.user)
 
-        self.prefixes = cache.LRUCache(max_size=32)
+        self.prefixes = cache.LRUCache("prefixes", max_size=32)
         self.config = config.TOMLStorage('config.toml')
         self.version = version
         self._pending_cogs = {}
