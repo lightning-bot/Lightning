@@ -30,6 +30,7 @@ from discord.ext import commands, tasks
 import lightning.utils.time
 from lightning import LightningBot, LightningCog, LightningContext
 from lightning.errors import LightningError
+from lightning.utils.formatters import plural
 from lightning.utils.helpers import (BetterUserObject, dm_user,
                                      message_id_lookup)
 from lightning.utils.nin_updates import do_nintendo_updates_feed
@@ -257,7 +258,7 @@ class Reminders(LightningCog):
             await ctx.send("You don't have any reminders that I can delete")
             return
 
-        confirm = await ctx.prompt(f"Are you sure you want to remove {lightning.utils.time.plural(count):reminder}?")
+        confirm = await ctx.prompt(f"Are you sure you want to remove {plural(count):reminder}?")
         if not confirm:
             await ctx.send("Cancelled")
             return

@@ -27,6 +27,8 @@ import parsedatetime as pdt
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
 
+from lightning.utils.formatters import human_join, plural
+
 
 class ShortTime:
     compiled = re.compile("""(?:(?P<years>[0-9])(?:years?|y))?             # e.g. 2y
@@ -204,36 +206,6 @@ class UserFriendlyTime(commands.Converter):
             import traceback
             traceback.print_exc()
             raise
-
-# plural, natural_join, and natural_timedelta use code provided by Rapptz under the MIT License
-# © 2015 Rapptz
-# https://github.com/Rapptz/RoboDanny/blob/6fd16002e0cbd3ed68bf5a8db10d61658b0b9d51/cogs/utils/formats.py
-# https://github.com/Rapptz/RoboDanny/blob/b8c427ad97372cb47f16397ff04a6b80e2494757/cogs/utils/time.py
-class plural:  # noqa
-    def __init__(self, value):
-        self.value = value
-
-    def __format__(self, format_spec):
-        v = self.value
-        singular, sep, plural = format_spec.partition('|')
-        plural = plural or f'{singular}s'
-        if abs(v) != 1:
-            return f'{v} {plural}'
-        return f'{v} {singular}'
-
-
-def human_join(seq, delim=', ', conj='or') -> str:
-    size = len(seq)
-    if size == 0:
-        return ''
-
-    if size == 1:
-        return seq[0]
-
-    if size == 2:
-        return f'{seq[0]} {conj} {seq[1]}'
-
-    return delim.join(seq[:-1]) + f' {conj} {seq[-1]}'
 
 
 def natural_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True) -> str:
