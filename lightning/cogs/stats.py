@@ -145,7 +145,7 @@ class Stats(LightningCog):
         em.description = f"{res[0]} commands used so far."
         em.set_footer(text='Lightning has been tracking command usage since')
         em.timestamp = res[1] or datetime.utcnow()
-        query2 = """SELECT command_name,
+        query = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
                    FROM commands_usage
                    WHERE guild_id=$1
@@ -153,12 +153,26 @@ class Stats(LightningCog):
                    ORDER BY "cmd_uses" DESC
                    LIMIT 5;
                 """
-        records = await self.bot.pool.fetch(query2, ctx.guild.id)
+        records = await self.bot.pool.fetch(query, ctx.guild.id)
         commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} ({cmd_uses} times)'
                                       for (index, (command_name, cmd_uses)) in enumerate(records))
         if len(commands_used_des) == 0:
             commands_used_des = 'No commands used yet'
         em.add_field(name="Top Commands", value=commands_used_des)
+
+        query = """SELECT user_id,
+                        COUNT(*) as "uses"
+                   FROM commands_usage
+                   WHERE guild_id=$1
+                   GROUP BY user_id
+                   ORDER BY "uses" DESC
+                   LIMIT 5;
+                """
+        records = await self.bot.pool.fetch(query, ctx.guild.id)
+        usage = '\n'.join(f'{self.number_places[index]}: <@!{user}> ({uses} times)'
+                          for (index, (user, uses)) in enumerate(records))
+        if len(usage) != 0:
+            em.add_field(name="Top Command Users", value=usage)
 
         # Limit 5 commands as I don't want to hit the max on embed field
         # (and also makes it look ugly)
@@ -179,6 +193,7 @@ class Stats(LightningCog):
             commands_used_des = 'No commands used yet for today!'
 
         em.add_field(name="Top Commands Today", value=commands_used_des, inline=False)
+
         if ctx.guild.icon:
             em.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=em)
