@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS guild_config
 CREATE TABLE IF NOT EXISTS guild_mod_config
 (
     guild_id BIGINT PRIMARY KEY,
-    temp_mute_role BIGINT,
+    temp_mute_role_id BIGINT,
     warn_kick BIGINT,
     warn_ban BIGINT,
     mute_role_id BIGINT
