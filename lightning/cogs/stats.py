@@ -356,7 +356,7 @@ class Stats(LightningCog):
                     """
             await con.execute(query, guild.id, guild.name, guild.owner_id)
 
-        if not whitelisted:
+        if whitelisted is False:
             await guild.leave()
             # will dispatch guild_remove
             return
