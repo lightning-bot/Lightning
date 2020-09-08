@@ -254,12 +254,13 @@ class cached:
 
 
 class CacheRegistry:
-    def __init__(self):
+    def __init__(self, *, override=True):
         self.caches = {}
+        self.override = override
 
     def register(self, name, cache):
         """Registers a cache"""
-        if name in self.caches:
+        if self.override is False and name in self.caches:
             raise CacheError(f"A cache under the name of \"{name}\" is already registered!")
 
         self.caches[name] = cache
@@ -283,7 +284,7 @@ class CacheRegistry:
 
     def rename(self, old_name, new_name):
         """Renames a registered cache"""
-        if new_name in self.caches:
+        if self.override is False and new_name in self.caches:
             raise CacheError(f"A cache under the name of \"{new_name}\" is already registered!")
 
         self.caches[new_name] = self.caches.pop(old_name)
