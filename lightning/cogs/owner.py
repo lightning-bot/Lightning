@@ -33,7 +33,7 @@ from jishaku.paginators import PaginatorInterface, WrappedPaginator
 from jishaku.repl import AsyncCodeExecutor, get_var_dict_from_ctx
 
 from lightning import LightningBot, LightningCog, LightningContext
-from lightning.utils import helpers
+from lightning.utils import formatters, helpers
 from lightning.utils import time as ltime
 from lightning.utils.checks import is_bot_manager
 
@@ -82,8 +82,8 @@ class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
                                 if result.strip() == '':
                                     result = "\u200b"
 
-                                send(await ctx.send("```py\n"
-                                                    f"{result.replace(self.bot.http.token, '[token omitted]')}```"))
+                                send(await ctx.send(formatters.codeblock(result.replace(self.bot.http.token,
+                                                                                        '[token omitted]'))))
         finally:
             scope.clear_intersection(arg_dict)
 
@@ -240,9 +240,9 @@ class Owner(LightningCog):
 
         if multi_statement is False:
             table = tabulate.tabulate(output, headers=list(output[0].keys()), tablefmt="psql")
-            to_send = f"Took {round(dt)}ms\n{helpers.codeblock(table, language='')}"
+            to_send = f"Took {round(dt)}ms\n{formatters.codeblock(table, language='')}"
         else:
-            to_send = f"Took {round(dt)}ms\n{helpers.codeblock(output, language='')}"
+            to_send = f"Took {round(dt)}ms\n{formatters.codeblock(output, language='')}"
         await ctx.send(to_send)
 
     @commands.group(invoke_without_command=True)
