@@ -199,10 +199,10 @@ class Strategy(enum.Enum):
 
 class cached:
     def __init__(self, name, strategy=Strategy.raw, *, rename_to_func=False, **kwargs):
-        self.key_builder = self.deco_key_builder
+        key_builder = self.deco_key_builder
         self.rename_to_func = rename_to_func
 
-        kwargs.update({"key_builder": self.key_builder, "should_build_key": False})
+        kwargs.update({"key_builder": key_builder, "should_build_key": False})
 
         self.cache = strategy.value[1](name, **kwargs)
 
@@ -234,7 +234,7 @@ class cached:
         return wrapper
 
     async def decorator(self, func, *args, **kwargs):
-        key = self.key_builder(func, args, kwargs)
+        key = self.cache.key_builder(func, args, kwargs)
         try:
             value = await self.cache.get(key)
         except Exception:
