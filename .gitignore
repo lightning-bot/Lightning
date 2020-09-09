@@ -124,3 +124,4 @@ lightning/resources/fonts
 lightning/resources/templates
 lightning/migration/output
 /config.toml
+resources/nindy_data.json
