@@ -82,7 +82,8 @@ class LightningCog(commands.Cog):
 class LightningBot(commands.AutoShardedBot):
     def __init__(self):
         super().__init__(command_prefix=_callable_prefix, reconnect=True,
-                         allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False))
+                         allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False),
+                         intents=discord.Intents.all())
         self.launch_time = datetime.utcnow()
 
         self.command_spammers = collections.Counter()
