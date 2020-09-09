@@ -238,7 +238,6 @@ class cached:
         try:
             value = await self.cache.get(key)
         except Exception:
-            print("cache miss")
             value = func(*args, **kwargs)
 
             if inspect.isawaitable(value):
@@ -249,7 +248,6 @@ class cached:
             await self.cache.set(key, value)
             return value
         else:
-            print("cache hit")
             return value
 
 
