@@ -107,6 +107,8 @@ class LightningBot(commands.AutoShardedBot):
             cog_list.append(str(name).replace("/", "."))
 
         for cog in cog_list:
+            if cog in self.config['bot']['disabled_cogs']:
+                continue
             try:
                 self.load_extension(cog)
             except Exception:

@@ -72,3 +72,5 @@ user_agent = ""
 
 # Guild IDs to use emojis from for the nitro emoji command
 nitro_emoji_guilds = []
+
+disabled_cogs = []
