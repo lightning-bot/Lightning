@@ -101,6 +101,9 @@ class Storage:
     def __len__(self):
         return len(self._storage)
 
+    def __iter__(self):
+        return iter(self._storage)
+
 
 class TOMLStorage(Storage):
     def __init__(self, file_path: str):
