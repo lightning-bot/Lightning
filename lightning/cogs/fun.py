@@ -31,7 +31,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from lightning import LightningBot, LightningCog, LightningContext
 from lightning.errors import LightningError
-from lightning.utils import converters, flags, http
+from lightning.utils import converters, flags, helpers, http
 
 
 class Fun(LightningCog):
@@ -93,7 +93,7 @@ class Fun(LightningCog):
         """Jpegify an image"""
         async with ctx.typing():
             image = http.Whitelisted_URL(image)
-            byte_data = await http.getbytes(self.bot.aiosession, image.url)
+            byte_data = await helpers.request(image.url, self.bot.aiosession)
             image_buffer = await self.make_jpegify(byte_data)
             await ctx.send(file=discord.File(image_buffer, filename="jpegify.jpeg"))
 
@@ -134,16 +134,17 @@ class Fun(LightningCog):
         return avy_bytes
 
     @executor_function
-    def make_screwed_in_the_head(self, avatar_bytes: bytes) -> io.BytesIO:
-        base_image = Image.open("resources/templates/inthehead.png")
-        avatar = Image.open(io.BytesIO(avatar_bytes)).resize((64, 64)).convert("RGB")
+    def make_circle_related_meme(self, avatar_bytes: bytes, path: str, resize_amount: tuple,
+                                 paste: tuple) -> io.BytesIO:
+        base_image = Image.open(path)
+        avatar = Image.open(io.BytesIO(avatar_bytes)).resize(resize_amount).convert("RGB")
 
         mask = Image.new("L", avatar.size, 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.ellipse([(0, 0), avatar.size], fill=255)
-        mask = mask.resize((64, 64), Image.ANTIALIAS)
+        mask = mask.resize(resize_amount, Image.ANTIALIAS)
 
-        base_image.paste(avatar, (14, 43), mask=mask)
+        base_image.paste(avatar, paste, mask=mask)
 
         buffer = io.BytesIO()
         base_image.save(buffer, "png")
@@ -157,26 +158,9 @@ class Fun(LightningCog):
         """Miko Iino tells you that you are screwed up in the head"""
         async with ctx.typing():
             avy = await self.get_user_avatar(member)
-            image_buffer = await self.make_screwed_in_the_head(avy)
+            image_buffer = await self.make_circle_related_meme(avy, "resources/templates/inthehead.png", (64, 64),
+                                                               (14, 43))
             await ctx.send(file=discord.File(image_buffer, "screwedupinthehead.png"))
-
-    @executor_function
-    def make_fuji_iq(self, avatar_bytes: bytes) -> io.BytesIO:
-        base_image = Image.open("resources/templates/fujiwara-iq.png")
-        avatar = Image.open(io.BytesIO(avatar_bytes)).resize((165, 165)).convert("RGB")
-
-        mask = Image.new("L", avatar.size, 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.ellipse([(0, 0), avatar.size], fill=255)
-        mask = mask.resize((165, 165), Image.ANTIALIAS)
-
-        base_image.paste(avatar, (140, 26), mask=mask)
-
-        buffer = io.BytesIO()
-        base_image.save(buffer, "png")
-        buffer.seek(0)
-
-        return buffer
 
     @commands.command()
     @commands.cooldown(2, 60.0, commands.BucketType.guild)
@@ -184,7 +168,8 @@ class Fun(LightningCog):
         """Your iq is 3"""
         async with ctx.typing():
             avy = await self.get_user_avatar(member)
-            image_buffer = await self.make_fuji_iq(avy)
+            image_buffer = await self.make_circle_related_meme(avy, "resources/templates/fujiwara-iq.png", (165, 165),
+                                                               (140, 26))
             await ctx.send(file=discord.File(image_buffer, "huh_my_iq_is.png"))
 
     @commands.command()  # Technically more of a meme, but shrug ascii
@@ -255,7 +240,7 @@ class Fun(LightningCog):
     async def lolice(self, ctx: LightningContext, *, user: discord.Member = commands.default.Author) -> None:
         """Lolice chief"""
         url = f'https://nekobot.xyz/api/imagegen?type=lolice&url={user.avatar_url_as(format="png")}'
-        data = await http.getjson(self.bot.aiosession, url)
+        data = await helpers.request(url, self.bot.aiosession)
         embed = discord.Embed()
         embed.set_image(url=data['message'])
         await ctx.send(embed=embed)
@@ -264,7 +249,7 @@ class Fun(LightningCog):
     async def awooify(self, ctx: LightningContext, *, user: discord.Member = commands.default.Author) -> None:
         """Awooify a user"""
         url = f'https://nekobot.xyz/api/imagegen?type=awooify&url={user.avatar_url_as(format="png")}'
-        data = await http.getjson(self.bot.aiosession, url)
+        data = await helpers.request(url, self.bot.aiosession)
         embed = discord.Embed()
         embed.set_image(url=data['message'])
         await ctx.send(embed=embed)
@@ -287,8 +272,7 @@ class Fun(LightningCog):
                 await ctx.send(f"https://http.cat/{resp.status} Try again later(?)")
                 return
 
-        embed = discord.Embed(title="Meow <:meowawauu:604760862049304608>",
-                              color=discord.Color(0x0c4189))
+        embed = discord.Embed(color=discord.Color(0x0c4189))
         embed.set_image(url=data[0]['url'])
         embed.set_footer(text="Powered by TheCatApi")
         await ctx.send(embed=embed)
@@ -296,8 +280,8 @@ class Fun(LightningCog):
     @commands.command()
     async def dog(self, ctx: LightningContext) -> None:
         """Random dog pics from dog.ceo"""
-        data = await http.getjson(self.bot.aiosession, "https://dog.ceo/api/breeds/image/random")
-        embed = discord.Embed(title="Bark 🐶", color=discord.Color.blurple())
+        data = await helpers.request("https://dog.ceo/api/breeds/image/random", self.bot.aiosession)
+        embed = discord.Embed(color=discord.Color.blurple())
         embed.set_image(url=data['message'])
         embed.set_footer(text="Powered by dog.ceo", icon_url="https://dog.ceo/img/favicon.png")
         await ctx.send(embed=embed)
@@ -307,7 +291,7 @@ class Fun(LightningCog):
         """Returns an embed with information about the specified xkcd comic.
 
         If no value is supplied or the value isn't found, it gives the latest xkcd instead."""
-        xkcd_latest = await http.getjson(self.bot.aiosession, "https://xkcd.com/info.0.json")
+        xkcd_latest = await helpers.request("https://xkcd.com/info.0.json", self.bot.aiosession)
         xkcd_max = xkcd_latest.get("num")
 
         if xkcd_number is not None and int(xkcd_number) > 0 and int(xkcd_number) < xkcd_max:
@@ -315,7 +299,7 @@ class Fun(LightningCog):
         else:
             entry = xkcd_max
 
-        xkcd = await http.getjson(self.bot.aiosession, f"https://xkcd.com/{entry}/info.0.json")
+        xkcd = await helpers.request(f"https://xkcd.com/{entry}/info.0.json", self.bot.aiosession)
         if xkcd is False:
             await ctx.send("Something went wrong grabbing that XKCD!")
             return
@@ -332,11 +316,11 @@ class Fun(LightningCog):
     @commands.command(aliases=['pat'])
     @commands.bot_has_permissions(embed_links=True)
     async def headpat(self, ctx: LightningContext) -> None:
-        """Random headpat gifs"""
-        data = await http.getjson(self.bot.aiosession, "https://nekos.life/api/pat")
+        """Pat someone"""
+        data = await helpers.request("https://nekos.life/api/pat", self.bot.aiosession)
         url = data["url"]
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
-        embed = discord.Embed(title='Headpat, owo', colour=discord.Color.from_rgb(*color_random))
+        embed = discord.Embed(colour=discord.Color.from_rgb(*color_random))
         embed.set_image(url=url)
         await ctx.send(embed=embed)
 
@@ -346,7 +330,7 @@ class Fun(LightningCog):
                   member: converters.WeebActionConverter("hugged") = None) -> None:  # noqa: F821
         """Hugs someone"""
         url = "https://nekos.life/api/v2/img/hug"
-        data = await http.getjson(self.bot.aiosession, url)
+        data = await helpers.request(url, self.bot.aiosession)
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
         embed = discord.Embed(title=member, color=discord.Color.from_rgb(*color_random))
         embed.set_image(url=data['url'])
@@ -357,7 +341,7 @@ class Fun(LightningCog):
     async def slap(self, ctx: LightningContext, *,
                    person: converters.WeebActionConverter("slapped") = None) -> None:  # noqa: F821
         """Slap yourself or someone."""
-        slap = await http.getjson(self.bot.aiosession, "https://nekos.life/api/v2/img/slap")
+        slap = await helpers.request("https://nekos.life/api/v2/img/slap", self.bot.aiosession)
         url = slap["url"]
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
         embed = discord.Embed(title=person, colour=discord.Color.from_rgb(*color_random))
