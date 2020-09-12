@@ -74,3 +74,13 @@ user_agent = ""
 nitro_emoji_guilds = []
 
 disabled_cogs = []
+
+[memes]
+lmao = "Sorry, what were we laughing about again? 😂😂😂"
+police = "https://garfield-is-a.lasagna.cat/i/75k9.png"
+star = "https://i.imgur.com/vUrBPZr.png"
+git = "https://i.imgur.com/SyuscgW.png"
+cat = "https://i.imgur.com/dCXyOfK.png"
+
+[memes.non-grouped]
+# Commands that aren't registered under the meme group command.
