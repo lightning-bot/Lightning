@@ -277,7 +277,7 @@ class Fun(LightningCog):
 
     @commands.command()
     async def dog(self, ctx: LightningContext) -> None:
-        """Random dog pics from dog.ceo"""
+        """Gives you a random dog picture"""
         data = await helpers.request("https://dog.ceo/api/breeds/image/random", self.bot.aiosession)
         embed = discord.Embed(color=discord.Color.blurple())
         embed.set_image(url=data['message'])
@@ -285,15 +285,15 @@ class Fun(LightningCog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def xkcd(self, ctx: LightningContext, xkcd_number: int = None) -> None:
-        """Returns an embed with information about the specified xkcd comic.
+    async def xkcd(self, ctx: LightningContext, value: int = None) -> None:
+        """Shows an xkcd comic.
 
         If no value is supplied or the value isn't found, it gives the latest xkcd instead."""
         xkcd_latest = await helpers.request("https://xkcd.com/info.0.json", self.bot.aiosession)
         xkcd_max = xkcd_latest.get("num")
 
-        if xkcd_number is not None and int(xkcd_number) > 0 and int(xkcd_number) < xkcd_max:
-            entry = int(xkcd_number)
+        if value is not None and int(value) > 0 and int(value) < xkcd_max:
+            entry = int(value)
         else:
             entry = xkcd_max
 
