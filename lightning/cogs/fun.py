@@ -30,7 +30,7 @@ from jishaku.functools import executor_function
 from PIL import Image, ImageDraw, ImageFont
 
 from lightning import LightningBot, LightningCog, LightningContext
-from lightning.errors import LightningError
+from lightning.errors import HTTPException, LightningError
 from lightning.utils import converters, flags, helpers, http
 
 
@@ -263,14 +263,12 @@ class Fun(LightningCog):
     @commands.command(aliases=['cade'])
     async def cat(self, ctx: LightningContext) -> None:
         """Gives you a random cat picture"""
-        capi = {"x-api-key": self.bot.config['tokens']['catapi']}
-        async with self.bot.aiosession.get(url='https://api.thecatapi.com/v1/images/search', headers=capi) as resp:
-            if resp.status == 200:
-                data = await resp.json()
-            else:
-                # lol
-                await ctx.send(f"https://http.cat/{resp.status} Try again later(?)")
-                return
+        try:
+            data = await helpers.request("https://api.thecatapi.com/v1/images/search", self.bot.aiosession,
+                                         headers={"x-api-key": self.bot.config['tokens']['catapi']})
+        except HTTPException as e:
+            await ctx.send(f"https://http.cat/{e.status}")
+            return
 
         embed = discord.Embed(color=discord.Color(0x0c4189))
         embed.set_image(url=data[0]['url'])
@@ -318,10 +316,9 @@ class Fun(LightningCog):
     async def headpat(self, ctx: LightningContext) -> None:
         """Pat someone"""
         data = await helpers.request("https://nekos.life/api/pat", self.bot.aiosession)
-        url = data["url"]
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
         embed = discord.Embed(colour=discord.Color.from_rgb(*color_random))
-        embed.set_image(url=url)
+        embed.set_image(url=data['url'])
         await ctx.send(embed=embed)
 
     @commands.command()
@@ -341,11 +338,10 @@ class Fun(LightningCog):
     async def slap(self, ctx: LightningContext, *,
                    person: converters.WeebActionConverter("slapped") = None) -> None:  # noqa: F821
         """Slap yourself or someone."""
-        slap = await helpers.request("https://nekos.life/api/v2/img/slap", self.bot.aiosession)
-        url = slap["url"]
+        data = await helpers.request("https://nekos.life/api/v2/img/slap", self.bot.aiosession)
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
         embed = discord.Embed(title=person, colour=discord.Color.from_rgb(*color_random))
-        embed.set_image(url=url)
+        embed.set_image(url=data['url'])
         await ctx.send(embed=embed)
 
 
