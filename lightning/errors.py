@@ -90,7 +90,7 @@ class HTTPException(LightningError):
     def __init__(self, response: aiohttp.ClientResponse):
         self.status = response.status
         self.reason = response.reason
-        super().__init__(f"HTTP Error {self.staus}")
+        super().__init__(f"HTTP Error {self.status}")
 
 
 class HTTPRatelimited(HTTPException):
