@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 # Custom Error Handlers
-
+import aiohttp
 from discord.ext import commands
 
 
@@ -84,3 +84,14 @@ class EmojiError(LightningError):
 class CogNotAvailable(LightningError):
     def __init__(self, cog):
         super().__init__(f"{cog} is not available.")
+
+
+class HTTPException(LightningError):
+    def __init__(self, response: aiohttp.ClientResponse):
+        self.status = response.status
+        self.reason = response.reason
+        super().__init__(f"HTTP Error {self.staus}")
+
+
+class HTTPRatelimited(HTTPException):
+    pass
