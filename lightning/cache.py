@@ -198,9 +198,10 @@ class Strategy(enum.Enum):
 
 
 class cached:
-    def __init__(self, name, strategy=Strategy.raw, *, rename_to_func=False, **kwargs):
+    def __init__(self, name, strategy=Strategy.raw, *, rename_to_func=False, ignore_kwargs=False, **kwargs):
         key_builder = self.deco_key_builder
         self.rename_to_func = rename_to_func
+        self.ignore_kwargs = ignore_kwargs
 
         kwargs.update({"key_builder": key_builder, "should_build_key": False})
 
@@ -210,7 +211,7 @@ class cached:
     # Copyright ©︎ 2015 Rapptz - MIT License
     # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/utils/cache.py#L62
     @staticmethod
-    def deco_key_builder(func, args, kwargs):
+    def deco_key_builder(func, args, kwargs, *, ignore_kwargs=False):
         # this is a bit of a cluster fuck
         # we do care what 'self' parameter is when we __repr__ it
         def _true_repr(o):
@@ -220,6 +221,18 @@ class cached:
 
         key = [f'{func.__module__}.{func.__name__}']
         key.extend(_true_repr(o) for o in args)
+
+        if not ignore_kwargs:
+            for k, v in kwargs.items():
+                # note: this only really works for this use case in particular
+                # I want to pass asyncpg.Connection objects to the parameters
+                # however, they use default __repr__ and I do not care what
+                # connection is passed in, so I needed a bypass.
+                if k == 'connection':
+                    continue
+
+                key.append(_true_repr(k))
+                key.append(_true_repr(v))
 
         return ':'.join(key)
 
@@ -234,7 +247,7 @@ class cached:
         return wrapper
 
     async def decorator(self, func, *args, **kwargs):
-        key = self.cache.key_builder(func, args, kwargs)
+        key = self.cache.key_builder(func, args, kwargs, ignore_kwargs=self.ignore_kwargs)
         try:
             value = await self.cache.get(key)
         except Exception:
