@@ -17,6 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
 import json
+import os
+import secrets
 import typing
 
 import toml
@@ -40,8 +42,13 @@ class Storage:
             self._storage = dict()
 
     def _dump(self) -> None:
-        with open(self.file_name, 'w') as fp:
+        name = self.file_name.replace("/", "_")
+        tmp = f"{secrets.token_hex()}-{name}.tmp"
+        with open(tmp, 'w') as fp:
             json.dump(self._storage.copy(), fp, ensure_ascii=True, separators=(',', ':'))
+
+        # atomicity
+        os.replace(tmp, self.file_name)
 
     async def save(self) -> None:
         async with self.lock:
