@@ -67,7 +67,6 @@ LightningCogDeps = collections.namedtuple("LightningCogDeps", "required")
 
 class LightningCog(commands.Cog):
     def __init__(self, *args, **kwargs):
-        self.session = self.bot.aiosession
         super().__init__(*args, **kwargs)
 
     def __init_subclass__(cls, *args, **kwargs):
@@ -81,9 +80,14 @@ class LightningCog(commands.Cog):
 
 class LightningBot(commands.AutoShardedBot):
     def __init__(self):
+        # Intents stuff
+        intents = discord.Intents.all()
+        intents.invites = False
+        intents.voice_states = False
         super().__init__(command_prefix=_callable_prefix, reconnect=True,
                          allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False),
-                         intents=discord.Intents.all())
+                         member_cache_flags=discord.MemberCacheFlags(online=True, voice=False, joined=True),
+                         intents=intents)
         self.launch_time = datetime.utcnow()
 
         self.command_spammers = collections.Counter()
