@@ -22,7 +22,6 @@ import typing
 
 import aiohttp
 import discord
-from discord.ext import commands
 
 from lightning import errors
 
@@ -72,7 +71,7 @@ async def message_id_lookup(bot, channel_id: int, message_id: int):
 
     Parameters
     ----------
-    bot : Bot
+    bot : LightningBot
         The bot.
     channel_id : int
         The ID of channel that the message belongs to.
@@ -86,8 +85,6 @@ async def message_id_lookup(bot, channel_id: int, message_id: int):
 
     Raises
     ------
-    commands.BotMissingPermissions
-        Raised when bot is missing permissions to use the history endpoint.
     errors.ChannelNotFound
         Raised when the channel containing the message was deleted
     errors.LightningError
@@ -98,11 +95,9 @@ async def message_id_lookup(bot, channel_id: int, message_id: int):
         raise errors.ChannelNotFound("Channel was deleted.")
 
     try:
-        msg = await channel.fetch_message_fast(message_id)
+        msg = await channel.fetch_message(message_id)
     except discord.HTTPException:
         raise errors.LightningError("Somehow failed to find that message. Try again later?")
-    except discord.Forbidden:
-        raise commands.BotMissingPermissions(['read_message_history'])
 
     return msg
 
