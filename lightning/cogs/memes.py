@@ -40,7 +40,7 @@ BAIT = ["https://i.imgur.com/5VKDzO6.png",
 
 class TextMeme(commands.Command):
     def __init__(self, name, text, **kwargs):
-        kwargs.update({"name": name, "hidden": True})
+        kwargs.update({"name": name})
         super().__init__(self._callback, **kwargs)
         self.text = text
 
@@ -48,6 +48,11 @@ class TextMeme(commands.Command):
         if self.cog is None and cog is not None:
             self.cog = cog
 
+    async def _callback(self, cog, ctx: LightningContext) -> None:
+        await ctx.send(str(self.text))
+
+
+class TextMemeGroup(TextMeme):
     async def _callback(self, ctx: LightningContext) -> None:
         await ctx.send(str(self.text))
 
@@ -59,16 +64,22 @@ class Memes(LightningCog):
         self.bot = bot
         memes = self.bot.config._storage.pop("memes") or {}
         nongrouped = memes.get("non-grouped", {})
+        nongroupedhidden = nongrouped.get("hidden", {})
 
         for key, value in memes.items():
             # I hate this
             if isinstance(value, dict):
                 continue
+            self.memes.add_command(TextMemeGroup(key, value))
 
-            self.memes.add_command(TextMeme(key, value))
+        self.add_meme_commands(nongrouped, hidden=False)
+        self.add_meme_commands(nongroupedhidden)
 
-        for key, value in nongrouped.items():
-            self.bot.add_command(TextMeme(key, value, cog=self))
+    def add_meme_commands(self, memes: dict, *, hidden=True):
+        for key, value in memes.items():
+            if isinstance(value, dict):
+                continue
+            self.bot.add_command(TextMeme(key, value, cog=self, hidden=hidden))
 
     @commands.group(aliases=['meme'], invoke_without_command=True)
     async def memes(self, ctx: LightningContext) -> None:

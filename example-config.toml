@@ -84,3 +84,6 @@ cat = "https://i.imgur.com/dCXyOfK.png"
 
 [memes.non-grouped]
 # Commands that aren't registered under the meme group command.
+
+[memes.non-grouped.hidden]
+# Commands that are hidden.
