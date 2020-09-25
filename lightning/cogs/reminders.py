@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import asyncio
-import contextlib
 import logging
 import textwrap
 import traceback
@@ -29,10 +28,8 @@ from discord.ext import commands, tasks
 
 import lightning.utils.time
 from lightning import LightningBot, LightningCog, LightningContext
-from lightning.errors import LightningError
 from lightning.utils.formatters import plural
-from lightning.utils.helpers import (BetterUserObject, dm_user,
-                                     message_id_lookup)
+from lightning.utils.helpers import BetterUserObject, dm_user
 from lightning.utils.nin_updates import do_nintendo_updates_feed
 
 log = logging.getLogger(__name__)
