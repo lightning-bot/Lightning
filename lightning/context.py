@@ -24,9 +24,7 @@ from discord.ext import commands
 
 from lightning import errors
 from lightning.utils import http
-from lightning.utils.helpers import Emoji
-from lightning.utils.menus import Confirmation
-
+from lightning.utils.helpers import Emoji, ConfirmationMenu
 
 class LightningContext(commands.Context):
     def __init__(self, **kwargs):
@@ -52,8 +50,8 @@ class LightningContext(commands.Context):
                 await self.message.add_reaction(emoji)
 
     async def prompt(self, message: str, *, delete_after=False, confirmation_message=True) -> bool:
-        resp = await Confirmation(self, message, delete_message_after=delete_after,
-                                  confirmation_message=confirmation_message).prompt()
+        resp = await ConfirmationMenu(self, message, delete_message_after=delete_after,
+                                      confirmation_message=confirmation_message).prompt()
         return resp
 
     async def send(self, content=None, *args, **kwargs) -> discord.Message:

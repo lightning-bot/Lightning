@@ -20,8 +20,6 @@ import asyncio
 import discord
 from discord.ext import menus
 
-from lightning.utils.helpers import Emoji
-
 
 class BasicEmbedMenu(menus.ListPageSource):
     def __init__(self, data, *, per_page=4, embed=None):
@@ -48,8 +46,8 @@ class InfoMenuPages(menus.MenuPages):
         messages = ['Welcome to the interactive paginator!\n']
         messages.append('This interactively allows you to see pages of text by navigating with '
                         'reactions. They are as follows:\n')
-        for emoji in self.buttons:
-            messages.append(f'{str(emoji)} {self.buttons[emoji].action.__doc__}')
+        for emoji, button in self.buttons.items():
+            messages.append(f'{str(emoji)} {button.action.__doc__}')
 
         embed = discord.Embed(color=discord.Color.blurple())
         embed.clear_fields()
@@ -74,70 +72,3 @@ class FieldMenus(menus.ListPageSource):
             embed.add_field(name=entry[0], value=entry[1], inline=False)
         embed.set_footer(text=f"Page {menu.current_page + 1} of {self.get_max_pages()}")
         return embed
-
-
-class Confirmation(menus.Menu):
-    """A confirmation menu.
-
-    Parameters
-    ----------
-    ctx : Context
-        The context of the command.
-    message : str
-        The message to send with the menu.
-    timeout : float
-        How long to wait for a response before returning.
-    delete_message_after : bool
-        Whether to delete the message after an option has been selected.
-    confirmation_message : bool
-        Whether to use the default confirmation message or not.
-
-    Returns
-    -------
-    Optional[bool]
-        ``True`` if explicit confirm,
-        ``False`` if explicit deny,
-        ``None`` if deny due to timeout
-    """
-
-    def __init__(self, ctx, message, *, timeout=30.0, delete_message_after=False, confirmation_message=True):
-        super().__init__(timeout=timeout, delete_message_after=delete_message_after)
-        self.ctx = ctx
-        self.result = None
-
-        if ctx.guild is not None:
-            self.permissions = ctx.channel.permissions_for(ctx.guild.me)
-        else:
-            self.permissions = ctx.channel.permissions_for(ctx.bot.user)
-
-        if not self.permissions.external_emojis:
-            # Clear buttons and fallback to the Unicode emojis
-            self.clear_buttons()
-            confirm = menus.Button("\N{WHITE HEAVY CHECK MARK}", self.do_confirm)
-            deny = menus.Button("\N{CROSS MARK}", self.do_deny)
-            self.add_button(confirm)
-            self.add_button(deny)
-
-        if confirmation_message is True:
-            reactbuttons = list(self.buttons.keys())
-            self.msg = f"{message}\n\nReact with {reactbuttons[0]} to confirm or"\
-                       f" {reactbuttons[1]} to deny."
-        else:
-            self.msg = message
-
-    async def send_initial_message(self, ctx, channel) -> discord.Message:
-        return await channel.send(self.msg)
-
-    @menus.button(Emoji.greentick)
-    async def do_confirm(self, payload) -> None:
-        self.result = True
-        self.stop()
-
-    @menus.button(Emoji.redtick)
-    async def do_deny(self, payload) -> None:
-        self.result = False
-        self.stop()
-
-    async def prompt(self) -> bool:
-        await self.start(self.ctx, wait=True)
-        return self.result
