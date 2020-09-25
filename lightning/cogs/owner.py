@@ -265,7 +265,7 @@ class Owner(LightningCog):
 
         bug = CommandBug(record)
         embed = discord.Embed(title=f"Bug {token}", timestamp=bug.created_at,
-                              description=helpers.codeblock(bug.traceback))
+                              description=formatters.codeblock(bug.traceback))
         await ctx.send(embed=embed)
 
     @bug.command(name='delete', aliases=['remove', 'rm'])
@@ -295,7 +295,7 @@ class Owner(LightningCog):
         embed = discord.Embed(title='Recent Bugs', description='')
         for record in records:
             bug = CommandBug(record)
-            preview = helpers.truncate_text((bug.traceback.splitlines())[-1], 35)
+            preview = formatters.truncate_text((bug.traceback.splitlines())[-1], 35)
             embed.description += f"`{bug.token}`: `{preview}` {ltime.natural_timedelta(bug.created_at, brief=True)}\n"
         embed.set_footer(text=f"{total} bugs")
         await ctx.send(embed=embed)
