@@ -22,6 +22,7 @@ import typing
 
 import aiohttp
 import discord
+from discord.ext import menus
 
 from lightning import errors
 
@@ -190,6 +191,73 @@ class BetterUserObject(discord.Object):
 
     def __str__(self):
         return str(self.id)
+
+
+class ConfirmationMenu(menus.Menu):
+    """A confirmation menu.
+
+    Parameters
+    ----------
+    ctx : Context
+        The context of the command.
+    message : str
+        The message to send with the menu.
+    timeout : float
+        How long to wait for a response before returning.
+    delete_message_after : bool
+        Whether to delete the message after an option has been selected.
+    confirmation_message : bool
+        Whether to use the default confirmation message or not.
+
+    Returns
+    -------
+    Optional[bool]
+        ``True`` if explicit confirm,
+        ``False`` if explicit deny,
+        ``None`` if deny due to timeout
+    """
+
+    def __init__(self, ctx, message, *, timeout=30.0, delete_message_after=False, confirmation_message=True):
+        super().__init__(timeout=timeout, delete_message_after=delete_message_after)
+        self.ctx = ctx
+        self.result = None
+
+        if ctx.guild is not None:
+            self.permissions = ctx.channel.permissions_for(ctx.guild.me)
+        else:
+            self.permissions = ctx.channel.permissions_for(ctx.bot.user)
+
+        if not self.permissions.external_emojis:
+            # Clear buttons and fallback to the Unicode emojis
+            self.clear_buttons()
+            confirm = menus.Button("\N{WHITE HEAVY CHECK MARK}", self.do_confirm)
+            deny = menus.Button("\N{CROSS MARK}", self.do_deny)
+            self.add_button(confirm)
+            self.add_button(deny)
+
+        if confirmation_message is True:
+            reactbuttons = list(self.buttons.keys())
+            self.msg = f"{message}\n\nReact with {reactbuttons[0]} to confirm or"\
+                       f" {reactbuttons[1]} to deny."
+        else:
+            self.msg = message
+
+    async def send_initial_message(self, ctx, channel) -> discord.Message:
+        return await channel.send(self.msg)
+
+    @menus.button(Emoji.greentick)
+    async def do_confirm(self, payload) -> None:
+        self.result = True
+        self.stop()
+
+    @menus.button(Emoji.redtick)
+    async def do_deny(self, payload) -> None:
+        self.result = False
+        self.stop()
+
+    async def prompt(self) -> bool:
+        await self.start(self.ctx, wait=True)
+        return self.result
 
 
 async def request(url, session: aiohttp.ClientSession, *, timeout=180, method: str = "GET", return_text=False,
