@@ -24,7 +24,8 @@ from discord.ext import commands
 
 from lightning import errors
 from lightning.utils import http
-from lightning.utils.helpers import Emoji, ConfirmationMenu
+from lightning.utils.helpers import ConfirmationMenu, Emoji
+
 
 class LightningContext(commands.Context):
     def __init__(self, **kwargs):
