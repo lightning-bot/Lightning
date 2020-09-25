@@ -293,16 +293,17 @@ class Reminders(LightningCog):
         message = f"{user.mention}: You asked to be reminded {timed_txt} about "\
                   f"{timer.extra['reminder_text']}"
 
-        context_message = None
-        _cog = self.bot.get_cog("Meta")
-        if 'message_id' in timer.extra:
-            with contextlib.suppress(LightningError):
-                context_message = await message_id_lookup(self.bot, timer.extra['channel'], timer.extra['message_id'])
+        kwargs = {"allowed_mentions": discord.AllowedMentions(users=[user])}
 
-        kwargs = {'allowed_mentions': discord.AllowedMentions(users=[user])}
-        if context_message and _cog:
-            embed = _cog.message_info_embed(context_message)
-            kwargs.update({'embed': embed})
+        if "message_id" in timer.extra:
+            if not hasattr(channel, 'guild'):
+                _id = '@me'
+            else:
+                _id = channel.guild.id
+
+            jump_url = f"https://discord.com/channels/{_id}/{channel.id}/{timer.extra['message_id']}"
+            embed = discord.Embed(description=f"[Jump to message]({jump_url})", color=discord.Color.blurple())
+            kwargs.update({"embed": embed})
 
         try:
             await channel.send(message, **kwargs)
