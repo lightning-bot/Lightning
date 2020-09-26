@@ -72,23 +72,16 @@ class ExpiringCache(dict):
 class BaseCache:
     """Base cache class"""
 
-    def __init__(self, name: str, *, key_builder=None, should_build_key=True):
+    def __init__(self, name: str):
         self.name = name
-        self.key_builder = key_builder or self._make_key
-        self.should_build_key = should_build_key
         # I kinda don't like this but whatever.
         registry.register(name, self)
-
-    def _make_key(self, key, *args, **kwargs) -> str:
-        return str(key)
 
     async def _get(self, key):
         raise NotImplementedError
 
     async def get(self, key):
         """Gets a key from cache"""
-        if self.should_build_key:
-            key = self.key_builder(key)
         return await self._get(key)
 
     async def get_or_default(self, key, *, default=None):
@@ -96,8 +89,6 @@ class BaseCache:
 
         If the key is not cached, returns the default.
         """
-        if self.should_build_key:
-            key = self.key_builder(key)
         value = await self._get(key)
         return value if value is not None else default
 
@@ -106,8 +97,6 @@ class BaseCache:
 
     async def set(self, key, value):
         """Sets a key into cache"""
-        if self.should_build_key:
-            key = self.key_builder(key)
         await self._set(key, value)
 
     async def _invalidate(self, key):
@@ -115,8 +104,6 @@ class BaseCache:
 
     async def invalidate(self, key):
         """Invalidates a key from cache"""
-        if self.should_build_key:
-            key = self.key_builder(key)
         await self._invalidate(key)
 
     async def _clear(self):
@@ -202,8 +189,7 @@ class cached:
         key_builder = self.deco_key_builder
         self.rename_to_func = rename_to_func
         self.ignore_kwargs = ignore_kwargs
-
-        kwargs.update({"key_builder": key_builder, "should_build_key": False})
+        self.key_builder = key_builder
 
         self.cache = strategy.value[1](name, **kwargs)
 
@@ -243,11 +229,15 @@ class cached:
         @wraps(func)
         async def wrapper(*args, **kwargs):
             return await self.decorator(func, *args, **kwargs)
-        wrapper._cache = self
+
+        async def _invalidate(*args, **kwargs):
+            return await self.cache.invalidate(self.key_builder(func, args, kwargs, ignore_kwargs=self.ignore_kwargs))
+
+        wrapper.invalidate = _invalidate
         return wrapper
 
     async def decorator(self, func, *args, **kwargs):
-        key = self.cache.key_builder(func, args, kwargs, ignore_kwargs=self.ignore_kwargs)
+        key = self.key_builder(func, args, kwargs, ignore_kwargs=self.ignore_kwargs)
         try:
             value = await self.cache.get(key)
         except Exception:
