@@ -605,10 +605,10 @@ class Meta(LightningCog):
             member_by_status[str(m.status)] += 1
             if m.bot:
                 member_by_status["bots"] += 1
-        sta = f'<:online:572962188114001921> {member_by_status["online"]} ' \
-              f'<:idle:572962188201820200> {member_by_status["idle"]} ' \
-              f'<:dnd:572962188134842389> {member_by_status["dnd"]} ' \
-              f'<:offline:572962188008882178> {member_by_status["offline"]}\n' \
+        sta = f'{helpers.Emoji.online} {member_by_status["online"]} ' \
+              f'{helpers.Emoji.idle} {member_by_status["idle"]} ' \
+              f'{helpers.Emoji.do_not_disturb} {member_by_status["dnd"]} ' \
+              f'{helpers.Emoji.offline}{member_by_status["offline"]}\n' \
               f'<:bot_tag:596576775555776522> {member_by_status["bots"]}\n'\
               f'Total: {guild.member_count}'
         embed.add_field(name="Members", value=sta, inline=False)
