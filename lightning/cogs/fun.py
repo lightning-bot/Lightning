@@ -29,9 +29,9 @@ from discord.ext import commands
 from jishaku.functools import executor_function
 from PIL import Image, ImageDraw, ImageFont
 
-from lightning import LightningBot, LightningCog, LightningContext
+from lightning import LightningBot, LightningCog, LightningContext, converters
 from lightning.errors import HTTPException, LightningError
-from lightning.utils import converters, flags, helpers, http
+from lightning.utils import flags, helpers, http
 
 
 class Fun(LightningCog):

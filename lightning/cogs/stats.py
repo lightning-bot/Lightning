@@ -26,8 +26,8 @@ import tabulate
 from discord.ext import commands, tasks
 
 from lightning import LightningBot, LightningCog, LightningContext
+from lightning.converters import InbetweenNumber
 from lightning.utils.checks import is_bot_manager
-from lightning.utils.converters import InbetweenNumber
 
 log = logging.getLogger(__name__)
 
