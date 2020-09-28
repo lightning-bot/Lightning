@@ -35,7 +35,6 @@ from jishaku.repl import AsyncCodeExecutor, get_var_dict_from_ctx
 from lightning import LightningBot, LightningCog, LightningContext, formatters
 from lightning.utils import helpers
 from lightning.utils import time as ltime
-from lightning.utils.checks import is_bot_manager
 
 
 class Eval(JishakuBase, metaclass=GroupCogMeta, command_parent=jsk):
@@ -120,7 +119,9 @@ class Owner(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
 
-    @commands.is_owner()
+    async def cog_check(self, ctx: LightningContext) -> bool:
+        return await self.bot.is_owner(ctx.author)
+
     @commands.command()
     async def fetchlog(self, ctx: LightningContext) -> None:
         """Sends the log file into the invoking author's DMs"""
@@ -131,14 +132,12 @@ class Owner(LightningCog):
             await ctx.message.add_reaction("✅")
 
     @commands.group()
-    @commands.check(is_bot_manager)
     async def blacklist(self, ctx: LightningContext) -> None:
         """Blacklisting Management"""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
             return
 
-    @commands.check(is_bot_manager)
     @blacklist.command(name="adduser", aliases=["blacklist-user"])
     async def blacklist_user(self, ctx: LightningContext, user_id: int, *, reason: str = "No Reason Provided") -> None:
         """Blacklist an user from using the bot"""
@@ -152,7 +151,6 @@ class Owner(LightningCog):
         await blacklist.add(user_id, reason)
         await ctx.send(f"✅ Successfully blacklisted user `{user_id}`")
 
-    @commands.check(is_bot_manager)
     @blacklist.command(name="removeuser")
     async def unblacklist_user(self, ctx: LightningContext, user_id: int) -> None:
         """Unblacklist an user from using the bot"""
@@ -163,7 +161,6 @@ class Owner(LightningCog):
         await blacklist.pop(user_id)
         await ctx.send(f"✅ Successfully unblacklisted user `{user_id}`")
 
-    @commands.check(is_bot_manager)
     @blacklist.command(name="search")
     async def search_blacklist(self, ctx: LightningContext, user_id: int) -> None:
         """Search the blacklist to see if a user is blacklisted"""
@@ -174,7 +171,6 @@ class Owner(LightningCog):
             await ctx.send("No matches found!")
 
     @commands.command()
-    @commands.is_owner()
     async def approve(self, ctx: LightningContext, guild_id: int) -> None:
         """Approves a server.
 
@@ -184,7 +180,6 @@ class Owner(LightningCog):
         await ctx.tick(True)
 
     @commands.command()
-    @commands.is_owner()
     async def unapprove(self, ctx: LightningContext, guild_id: int) -> None:
         """Unapproves a server"""
         query = "UPDATE guilds SET whitelisted='f' WHERE id=$1"
@@ -197,7 +192,6 @@ class Owner(LightningCog):
         await ctx.tick(True)
 
     @commands.command(aliases=['status'])
-    @commands.is_owner()
     async def playing(self, ctx: LightningContext, *, gamename: str = None) -> None:
         """Sets the bot's playing message."""
         if not gamename:
@@ -209,7 +203,6 @@ class Owner(LightningCog):
         await ctx.send(f'Successfully changed status to `{gamename}`')
 
     @commands.command(aliases=['exit'])
-    @commands.is_owner()
     async def stop(self, ctx: LightningContext) -> None:
         """Stops the bot"""
         shutdown_messages = ['Shutting Down...', "See ya!", "RIP", "Turning off...."]
@@ -217,7 +210,6 @@ class Owner(LightningCog):
         await self.bot.logout()
 
     @commands.command()
-    @commands.is_owner()
     async def sql(self, ctx: LightningContext, *, query: codeblock_converter) -> None:
         """Run some SQL"""
         if query.count(";") > 1:
@@ -246,13 +238,11 @@ class Owner(LightningCog):
         await ctx.send(to_send)
 
     @commands.group(invoke_without_command=True)
-    @commands.is_owner()
     async def bug(self, ctx: LightningContext) -> None:
         """Commands to manage the bug system"""
         await ctx.send_help("bug")
 
     @bug.command(name='view', aliases=['show'])
-    @commands.is_owner()
     async def viewbug(self, ctx: LightningContext, token: str) -> None:
         """Views a bug's traceback"""
         query = """SELECT traceback, created_at, token FROM command_bugs
@@ -269,7 +259,6 @@ class Owner(LightningCog):
         await ctx.send(embed=embed)
 
     @bug.command(name='delete', aliases=['remove', 'rm'])
-    @commands.is_owner()
     async def deletebug(self, ctx: LightningContext, token: str) -> None:
         """Deletes a bug if it exists"""
         query = "DELETE FROM command_bugs WHERE token=$1;"
@@ -281,7 +270,6 @@ class Owner(LightningCog):
         await ctx.send(f"Deleted bug {token}")
 
     @bug.command(name='list', aliases=['recent'])
-    @commands.is_owner()
     async def listbugs(self, ctx: LightningContext, limit: int = 10) -> None:
         """Lists the most recent bugs"""
         query = """SELECT * FROM command_bugs
