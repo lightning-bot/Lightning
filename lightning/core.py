@@ -45,6 +45,10 @@ ERROR_HANDLER_MESSAGES = {
 
 
 async def _callable_prefix(bot, message):
+    beta_prefix = bot.config['bot'].get("beta_prefix", None)
+    if beta_prefix:
+        return beta_prefix
+
     prefixes = [f'<@!{bot.user.id}> ', f'<@{bot.user.id}> ']
     if message.guild is None:
         prefixes.append(".")
