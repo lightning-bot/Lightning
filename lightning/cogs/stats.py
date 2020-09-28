@@ -27,7 +27,6 @@ from discord.ext import commands, tasks
 
 from lightning import LightningBot, LightningCog, LightningContext
 from lightning.converters import InbetweenNumber
-from lightning.utils.checks import is_bot_manager
 
 log = logging.getLogger(__name__)
 
@@ -273,7 +272,7 @@ class Stats(LightningCog):
             await ctx.send(content)
 
     @stats.command(name="all")
-    @commands.check(is_bot_manager)
+    @commands.is_owner()
     async def stats_all(self, ctx: LightningContext):
         """Sends stats on the most popular commands used in the bot"""
         async with ctx.typing():
