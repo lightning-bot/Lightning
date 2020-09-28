@@ -28,7 +28,7 @@ from discord.ext import commands, tasks
 
 import lightning.utils.time
 from lightning import LightningBot, LightningCog, LightningContext
-from lightning.utils.formatters import plural
+from lightning.formatters import plural
 from lightning.utils.helpers import BetterUserObject, dm_user
 from lightning.utils.nin_updates import do_nintendo_updates_feed
 

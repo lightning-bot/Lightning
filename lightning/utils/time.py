@@ -27,7 +27,7 @@ import parsedatetime as pdt
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
 
-from lightning.utils.formatters import human_join, plural
+from lightning.formatters import human_join, plural
 
 
 class ShortTime:
