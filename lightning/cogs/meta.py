@@ -31,9 +31,9 @@ import psutil
 from discord.ext import commands, menus
 
 from lightning import LightningBot, LightningCog, LightningContext
+from lightning.converters import GuildID, Message
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from lightning.utils import helpers
-from lightning.utils.converters import GuildID, Message
 from lightning.utils.modlogformats import base_user_format
 from lightning.utils.paginator import InfoMenuPages
 from lightning.utils.time import format_timestamp, natural_timedelta
