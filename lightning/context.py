@@ -23,8 +23,7 @@ import discord
 from discord.ext import commands
 
 from lightning import errors
-from lightning.utils import http
-from lightning.utils.helpers import ConfirmationMenu, Emoji
+from lightning.utils.helpers import ConfirmationMenu, Emoji, haste
 
 
 class LightningContext(commands.Context):
@@ -59,7 +58,7 @@ class LightningContext(commands.Context):
         if content:
             if len(content) > 2000:
                 try:
-                    mysturl = await http.haste(self.bot.aiosession, content)
+                    mysturl = await haste(self.bot.aiosession, content)
                     content = f"Content too long: {mysturl}"
                 except errors.LightningError:
                     fp = io.StringIO(content)
