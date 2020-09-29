@@ -16,6 +16,7 @@ import logging
 import re
 
 import discord
+import yarl
 from discord.ext import commands
 
 from lightning.errors import ChannelPermissionFailure, LightningError
@@ -231,3 +232,21 @@ class GuildID(commands.Converter):
         if not guild:
             raise commands.BadArgument(f"Unable to convert \"{argument}\" to GuildID")
         return guild
+
+
+WHITELISTED_HOSTS = ["cdn.discordapp.com", "i.imgur.com", "images.discordapp.net"]
+
+
+class Whitelisted_URL:
+    def __init__(self, url):
+        url_regex = re.compile("https?:\\/\\/(?:www\\.)?.+")
+        if not url_regex.match(url):
+            raise LightningError("Invalid URL")
+        url = yarl.URL(url)
+        if url.host not in WHITELISTED_HOSTS:
+            raise LightningError(f"`\"{url}\"` is not supported.")
+        self.url = url
+
+    @classmethod
+    async def convert(cls, ctx, argument):
+        return cls(argument)

@@ -31,7 +31,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from lightning import LightningBot, LightningCog, LightningContext, converters
 from lightning.errors import HTTPException, LightningError
-from lightning.utils import flags, helpers, http
+from lightning.utils import flags, helpers
 
 
 class Fun(LightningCog):
@@ -92,7 +92,7 @@ class Fun(LightningCog):
     async def jpegify(self, ctx: LightningContext, image: str = converters.LastImage) -> None:
         """Jpegify an image"""
         async with ctx.typing():
-            image = http.Whitelisted_URL(image)
+            image = converters.Whitelisted_URL(image)
             byte_data = await helpers.request(image.url, self.bot.aiosession)
             image_buffer = await self.make_jpegify(byte_data)
             await ctx.send(file=discord.File(image_buffer, filename="jpegify.jpeg"))
