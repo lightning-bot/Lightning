@@ -53,6 +53,8 @@ class Logging:
 
 
 class CommandOverrides:
+    __slots__ = ('overrides')
+
     def __init__(self, records):
         self.overrides = {}
         for record in records:
