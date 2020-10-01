@@ -100,3 +100,11 @@ class CommandOverrides:
 
     def __getitem__(self, key):
         return self.overrides[key]
+
+
+class PartialGuild:
+    def __init__(self, record):
+        self.id = record['id']
+        self.name = record['name']
+        self.owner_id = record['owner_id']
+        self.left_at = record['left_at']
