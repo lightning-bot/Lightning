@@ -1,6 +1,6 @@
 # Lightning.py
 [![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/SpFjsy3)
-[![Pipeline Status](https://img.shields.io/gitlab/pipeline/lightning-bot/Lightning?label=Pipeline&logo=GitLab)](https://gitlab.com/lightning-bot/Lightning/pipelines/latest)
+[![Pipeline Status](https://img.shields.io/gitlab/pipeline/lightning-bot/Lightning/v3?label=Pipeline&logo=GitLab)](https://gitlab.com/lightning-bot/Lightning/pipelines/latest)
 
 Lightning is a multi-purpose bot.
 
