@@ -27,16 +27,9 @@ from discord.ext import commands, tasks
 
 from lightning import LightningBot, LightningCog, LightningContext
 from lightning.converters import InbetweenNumber
+from lightning.models import PartialGuild
 
 log = logging.getLogger(__name__)
-
-
-class PartialGuild:
-    def __init__(self, record):
-        self.id = record['id']
-        self.name = record['name']
-        self.owner_id = record['owner_id']
-        self.left_at = record['left_at']
 
 
 class Stats(LightningCog):
