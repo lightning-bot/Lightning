@@ -534,9 +534,9 @@ class Meta(LightningCog):
         if not module.startswith("discord"):
             location = os.path.relpath(filename).replace("\\", "/")
 
-        await ctx.send(f"<{source}/blob/master/{location}#L{firstlineno}-{firstlineno + len(lines) - 1}>")
+        await ctx.send(f"<{source}/blob/v3/{location}#L{firstlineno}-{firstlineno + len(lines) - 1}>")
 
-    async def channel_permissions_user(self, channel: discord.TextChannel, member, ctx: LightningContext) -> None:
+    async def show_channel_permissions(self, channel: discord.TextChannel, member, ctx: LightningContext) -> None:
         perms = channel.permissions_for(member)
         embed = discord.Embed(title="Channel Permissions", color=member.color)
         allowed = []
@@ -557,7 +557,7 @@ class Meta(LightningCog):
     async def permissions(self, ctx: LightningContext, member: discord.Member = commands.default.Author,
                           channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
         """Shows channel permissions for a member"""
-        await self.channel_permissions_user(channel, member, ctx)
+        await self.show_channel_permissions(channel, member, ctx)
 
     @commands.command()
     async def ping(self, ctx: LightningContext) -> None:
@@ -703,8 +703,7 @@ class Meta(LightningCog):
             for em in message['embeds']:
                 if "description" in em:
                     em['description'] = discord.utils.escape_markdown(em['description'])
-        raw = json.dumps(message, indent=2, sort_keys=True)
-        await ctx.send(f"```json\n{raw}```")
+        await ctx.send(f"```json\n{json.dumps(message, indent=2, sort_keys=True)}```")
 
     async def send_guild_info(self, embed: discord.Embed, guild) -> None:
         embed.add_field(name='Guild Name', value=guild.name)
