@@ -24,6 +24,7 @@ from discord.ext import commands
 
 from lightning import errors
 from lightning.utils.helpers import ConfirmationMenu, Emoji, haste
+from lightning.utils.helpers import request as make_request
 
 
 class LightningContext(commands.Context):
@@ -65,3 +66,6 @@ class LightningContext(commands.Context):
                     content = "Content too long..."
                     return await super().send(content, file=discord.File(fp, filename='message_too_long.txt'))
         return await super().send(content, *args, **kwargs)
+
+    async def request(self, url, **kwargs) -> Union[dict, str, bytes]:
+        return await make_request(url, self.bot.aiosession, **kwargs)
