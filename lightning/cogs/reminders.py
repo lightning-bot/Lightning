@@ -29,36 +29,11 @@ from discord.ext import commands, tasks
 import lightning.utils.time
 from lightning import LightningBot, LightningCog, LightningContext
 from lightning.formatters import plural
+from lightning.models import Timer
 from lightning.utils.helpers import BetterUserObject, dm_user
 from lightning.utils.nin_updates import do_nintendo_updates_feed
 
 log = logging.getLogger(__name__)
-
-
-class Timer:
-    __slots__ = ('extra', 'event', 'id', 'created_at', 'expiry')
-
-    def __init__(self, record):
-        self.id = record['id']
-        self.extra = record['extra']
-        self.event = record['event']
-        self.created_at = record['created']
-        self.expiry = record['expiry']
-
-    @property
-    def created(self):
-        return self.created_at
-
-    @property
-    def natural_timedelta(self):
-        return lightning.utils.time.natural_timedelta(self.created_at,
-                                                      source=self.expiry)
-
-    def __int__(self):
-        return self.id
-
-    def __repr__(self):
-        return f"<Timer id={self.id} event={self.event}>"
 
 
 class Reminders(LightningCog):

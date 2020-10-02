@@ -19,6 +19,7 @@ import discord
 
 from lightning import LightningContext, errors
 from lightning.enums import Levels
+from lightning.utils.time import natural_timedelta
 
 
 class GuildModConfig:
@@ -108,3 +109,28 @@ class PartialGuild:
         self.name = record['name']
         self.owner_id = record['owner_id']
         self.left_at = record['left_at']
+
+
+class Timer:
+    __slots__ = ('extra', 'event', 'id', 'created_at', 'expiry')
+
+    def __init__(self, record):
+        self.id = record['id']
+        self.extra = record['extra']
+        self.event = record['event']
+        self.created_at = record['created']
+        self.expiry = record['expiry']
+
+    @property
+    def created(self):
+        return self.created_at
+
+    @property
+    def natural_td(self):
+        return natural_timedelta(self.created_at, source=self.expiry)
+
+    def __int__(self):
+        return self.id
+
+    def __repr__(self):
+        return f"<Timer id={self.id} event={self.event} created_at={self.created_at}>"
