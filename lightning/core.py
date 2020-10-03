@@ -319,7 +319,7 @@ class LightningBot(commands.AutoShardedBot):
         with sentry_sdk.push_scope() as scope:
             scope.user = {"id": ctx.author.id, "username": str(ctx.author)}
             scope.set_tag("command", ctx.command.qualified_name)
-            scope.set_tag("message content", ctx.message.content)
+            scope.set_extra("message content", ctx.message.content)
             log.error(f"Uncaught error {type(error)}: {str(error)}")
 
         token = await self.log_command_error(ctx, error)
