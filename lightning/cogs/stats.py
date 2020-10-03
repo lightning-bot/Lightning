@@ -353,7 +353,7 @@ class Stats(LightningCog):
             # will dispatch guild_remove
             return
 
-        if unregistered:
+        if bool(unregistered) is True:
             self.bot.dispatch("lightning_guild_add", guild)
 
     @LightningCog.listener()
