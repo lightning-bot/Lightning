@@ -76,11 +76,6 @@ def launch_bot(config) -> None:
     if config['bot']['game']:
         bot.activity = discord.Game(config['bot']['game'])
 
-    if config['tokens']['sentry']:
-        bot.sentry_logging = True
-    else:
-        bot.sentry_logging = False
-
     try:
         loop.run_until_complete(bot.create_pool(config, command_timeout=60))
     except Exception as e:

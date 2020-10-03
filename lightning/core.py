@@ -235,11 +235,11 @@ class LightningBot(commands.AutoShardedBot):
         log.info(log_text)
 
     async def on_error(self, event, *args, **kwargs):
-        if self.sentry_logging is True:
-            log.info(f"Error on {event}: {traceback.format_exc()}")
-            sentry_sdk.capture_exception()
-        else:
-            log.error(f"Error on {event}: {traceback.format_exc()}")
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("event", event)
+            scope.set_extra("args", args)
+            scope.set_extra("kwargs", kwargs)
+            log.exception(f"Error on {event}: {traceback.format_exc()}")
 
         with contextlib.suppress(discord.HTTPException):
             webhook = discord.Webhook.from_url(self.config['logging']['bot_errors'],
@@ -311,16 +311,16 @@ class LightningBot(commands.AutoShardedBot):
             await ctx.send(error_text)
             return
 
-        if self.sentry_logging is True:
-            log.info(f"Uncaught error {type(error)}: {str(error)}")
-            sentry_sdk.capture_exception(error)
-        else:
-            log.error(f"Uncaught error {type(error)}: {str(error)}")
-
         # Errors that should give no output.
         if isinstance(error, (commands.NotOwner, commands.CommandNotFound,
                               commands.CheckFailure)):
             return
+
+        with sentry_sdk.push_scope() as scope:
+            scope.user = {"id": ctx.author.id, "username": str(ctx.author)}
+            scope.set_tag("command", ctx.command.qualified_name)
+            scope.set_tag("message content", ctx.message.content)
+            log.error(f"Uncaught error {type(error)}: {str(error)}")
 
         token = await self.log_command_error(ctx, error)
 

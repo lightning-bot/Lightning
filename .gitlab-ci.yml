@@ -1,5 +1,6 @@
 stages:
   - Static Code Analysis
+  - Publish
 
 flake8:
   stage: Static Code Analysis
@@ -26,7 +27,7 @@ variables:
   POSTGRES_USER: lightningbot
   POSTGRES_PASSWORD: "test"
 
-schema-test:
+Test Schema Creation:
   stage: Static Code Analysis
   image: postgres
   services:
@@ -37,3 +38,17 @@ schema-test:
   only:
     changes:
       - scripts/*.{sql}
+
+Publish release to Sentry:
+  stage: Publish
+  image: getsentry/sentry-cli
+  script:
+    - echo "Create a new release for $CI_COMMIT_SHA"
+    - export SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
+    - export SENTRY_ORG=$SENTRY_BASE_ORGANIZATION
+    - export SENTRY_PROJECT=$SENTRY_BASE_PROJECT
+    - sentry-cli releases new $CI_COMMIT_SHA
+    - sentry-cli releases set-commits "$CI_COMMIT_SHA" --auto
+    - sentry-cli releases finalize $CI_COMMIT_SHA
+    - echo "Finalized release for $CI_COMMIT_SHA"
+
