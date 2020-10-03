@@ -7,4 +7,3 @@ tasks:
       psql -c "CREATE DATABASE lightning OWNER lightning;"
       poetry export -f requirements.txt -o requirements.txt --without-hashes --dev
       pip3 install -r requirements.txt
-    command: python3 -m lightning
