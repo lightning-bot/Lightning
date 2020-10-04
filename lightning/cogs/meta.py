@@ -446,6 +446,8 @@ class Meta(LightningCog):
         memory = self.process.memory_full_info().uss / 1024**2
         embed.add_field(name="Process", value=f"{memory:.2f} MiB")
 
+        embed.add_field(name="Commit", value=f"[{self.bot.commit_hash[:8]}]({embed.url}/commit/{self.bot.commit_hash})")
+
         embed.add_field(name="Servers", value=f"{len(self.bot.guilds)}\nShards: {self.bot.shard_count}")
 
         query = """SELECT COUNT(*) AS total_commands, (SELECT sum(count) FROM socket_stats) AS total_socket_stats

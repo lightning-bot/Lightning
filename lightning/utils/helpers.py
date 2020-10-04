@@ -14,10 +14,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
+import asyncio
 import datetime
 import io
 import logging
+import subprocess
 import typing
 
 import aiohttp
@@ -268,6 +269,9 @@ async def request(url, session: aiohttp.ClientSession, *, timeout=180, method: s
             raise errors.HTTPRatelimited(resp)
 
         # TODO: Make it better
+        if resp.status == 404:
+            log.info(f"404 while requesting {url}")
+            raise errors.HTTPException(resp)
 
         if 300 > resp.status >= 200:
             if resp.headers['Content-Type'] == "application/json":
@@ -294,3 +298,18 @@ async def haste(session: aiohttp.ClientSession, text: str, instance: str = 'http
         Link to a haste instance. By default https://mystb.in/ is used."""
     resp = await request(f"{instance}documents", session, method="POST", data=text)
     return f"{instance}{resp['key']}"
+
+
+async def run_in_shell(command: str):
+    try:
+        pipe = asyncio.subprocess.PIPE
+        process = await asyncio.create_subprocess_shell(command,
+                                                        stdout=pipe,
+                                                        stderr=pipe)
+        stdout, stderr = await process.communicate()
+    except NotImplementedError:
+        process = subprocess.Popen(command, shell=True,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+    return stdout.decode('utf-8'), stderr.decode('utf-8')

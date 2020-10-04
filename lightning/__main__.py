@@ -28,6 +28,7 @@ import toml
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from lightning import LightningBot
+from lightning.utils.helpers import run_in_shell
 
 try:
     import uvloop
@@ -39,10 +40,7 @@ else:
 
 
 @contextlib.contextmanager
-def init_logging(sentry_url=None):
-    if sentry_url is not None:
-        sentry_sdk.init(sentry_url, integrations=[AioHttpIntegration()])
-
+def init_logging():
     try:
         max_file_size = 1000 * 1000 * 8
         file_handler = logging.handlers.RotatingFileHandler(filename="lightning.log", maxBytes=max_file_size,
@@ -71,8 +69,15 @@ def launch_bot(config) -> None:
 
     log = logging.getLogger("lightning")
 
-    bot = LightningBot()
+    sentry_dsn = config.get('tokens', {}).get("sentry", None)
+    env = "dev" if "beta_prefix" in config['bot'] else "prod"
+    commit_out = loop.run_until_complete(run_in_shell('git rev-parse HEAD'))
+    commit = commit_out[0].strip()
+    if sentry_dsn is not None:
+        sentry_sdk.init(sentry_dsn, integrations=[AioHttpIntegration()], environment=env, release=commit)
 
+    bot = LightningBot()
+    bot.commit_hash = commit
     if config['bot']['game']:
         bot.activity = discord.Game(config['bot']['game'])
 
@@ -87,7 +92,7 @@ def launch_bot(config) -> None:
 
 def main() -> None:
     config = toml.load(open("config.toml", "r"))
-    with init_logging(config['tokens']['sentry']):
+    with init_logging():
         launch_bot(config)
 
 
