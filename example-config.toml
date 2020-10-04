@@ -8,35 +8,34 @@ catapi = ""
 sentry = ""
 
 # PostgreSQL Connection
-	[tokens.postgres]
-	host = ""
-	port = ""
-	user = ""
-	password = ""
-	database = ""
-    # Timeout for operations on a connection
-    command_timeout = 60
+[tokens.postgres]
+host = ""
+port = ""
+user = ""
+password = ""
+database = ""
 # Redis Connection
-    [tokens.redis]
-    host = ""
-    port = ""
-    password = ""
-    db = 1
+[tokens.redis]
+host = ""
+port = ""
+password = ""
+db = 1
 
 
 [git]
 # Guild IDs that have access to use git commands.
 whitelisted_guilds = [527887739178188830,
                       540978015811928075]
-    [git.github]
-    username = ""
-    repository_name = ""
-    key = "" # Personal Access Token
 
-    [git.gitlab]
-    instance = "https://gitlab.com" # Gitlab instance url
-    key = "" # Personal Access Token
-    project_id = ""
+[git.github]
+username = ""
+repository_name = ""
+key = "" # Personal Access Token
+
+[git.gitlab]
+instance = "https://gitlab.com" # Gitlab instance url
+key = "" # Personal Access Token
+project_id = ""
 
 [logging]
 # Any bot errors either command errors or internal errors. Should be a webhook url
