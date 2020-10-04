@@ -737,3 +737,7 @@ class Meta(LightningCog):
 
 def setup(bot: LightningBot):
     bot.add_cog(Meta(bot))
+    # Remove support command if not in config
+    invite = bot.config['bot'].get("support_server_invite")
+    if not invite:
+        bot.remove_command("support")
