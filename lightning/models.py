@@ -14,11 +14,9 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 import discord
 
-from lightning import LightningContext, errors
-from lightning.enums import Levels
+from lightning import CommandLevel, LightningContext, errors
 from lightning.utils.time import natural_timedelta
 
 
@@ -69,7 +67,7 @@ class CommandOverrides:
         if override is None:
             return False
 
-        if override == Levels.Blocked.value:
+        if override == CommandLevel.Blocked.value:
             return True
 
         return False
@@ -101,6 +99,32 @@ class CommandOverrides:
 
     def __getitem__(self, key):
         return self.overrides[key]
+
+
+class GuildPermissions:
+    def __init__(self, record):
+        self.admin_ids = record['admin_ids'] or []
+        self.mod_ids = record['mod_ids'] or []
+        self.trusted_ids = record['trusted_ids'] or []
+        self.blocked_ids = record['blocked_ids'] or []
+        self.fallback_to_discord_perms = record['fallback_to_discord_perms'] or True
+
+    def get_user_level(self, user_id: int, role_ids: list) -> CommandLevel:
+        ids = [user_id]
+        ids.extend(role_ids)
+        if any(r for r in ids if r in self.blocked_ids):
+            return CommandLevel.Blocked
+
+        if any(r for r in ids if r in self.admin_ids):
+            return CommandLevel.Admin
+
+        if any(r for r in ids if r in self.mod_ids):
+            return CommandLevel.Mod
+
+        if any(r for r in ids if r in self.trusted_ids):
+            return CommandLevel.Trusted
+
+        return CommandLevel.User
 
 
 class PartialGuild:

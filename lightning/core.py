@@ -24,6 +24,7 @@ import pathlib
 import secrets
 import traceback
 from datetime import datetime
+from typing import Optional
 
 import aiohttp
 import asyncpg
@@ -34,6 +35,7 @@ from discord.ext import commands, flags, menus
 from lightning import cache, config, errors
 from lightning.context import LightningContext
 from lightning.meta import __version__ as version
+from lightning.models import CommandOverrides, GuildPermissions
 
 log = logging.getLogger(__name__)
 ERROR_HANDLER_MESSAGES = {
@@ -70,9 +72,6 @@ LightningCogDeps = collections.namedtuple("LightningCogDeps", "required")
 
 
 class LightningCog(commands.Cog):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def __init_subclass__(cls, *args, **kwargs):
         required_cogs = kwargs.get("required", [])
         cls.__lightning_cog_deps__ = LightningCogDeps(required=required_cogs)
@@ -135,6 +134,18 @@ class LightningBot(commands.AutoShardedBot):
 
         pool = await asyncpg.create_pool(init=init, **kwargs)
         self.pool = pool
+
+    @cache.cached('guild_permissions', cache.Strategy.lru, max_size=32)
+    async def get_permissions_config(self, guild_id):
+        query = """SELECT * FROM guild_permissions WHERE guild_id=$1;"""
+        record = await self.pool.fetchrow(query, guild_id)
+        return GuildPermissions(record) if record else None
+
+    @cache.cached("command_overrides", cache.Strategy.lru, max_size=32)
+    async def get_command_overrides(self, guild_id: int) -> Optional[CommandOverrides]:
+        query = """SELECT * FROM command_overrides WHERE guild_id=$1;"""
+        record = await self.pool.fetch(query, guild_id)
+        return CommandOverrides(record) if record else None
 
     def add_cog(self, cls) -> None:
         deps = getattr(cls, "__lightning_cog_deps__", None)
