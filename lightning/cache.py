@@ -132,11 +132,16 @@ class DictBasedCache(BaseCache):
 
         return value
 
-    async def _invalidate(self, key) -> None:
-        del self._cache[key]
+    async def _invalidate(self, key) -> bool:
+        try:
+            del self._cache[key]
+            return True
+        except KeyError:
+            return False
 
-    async def _clear(self) -> None:
+    async def _clear(self) -> bool:
         self._cache.clear()
+        return True
 
 
 class RawCache(DictBasedCache):
