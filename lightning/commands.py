@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A personal Discord bot
 Copyright (C) 2020 - LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -54,6 +54,12 @@ class LightningCommand(commands.Command):
     async def _check_level(self, ctx) -> bool:
         # We need to check custom overrides first...
         bot = ctx.bot
+
+        if not ctx.guild and self.level == CommandLevel.User:
+            return True
+        elif not ctx.guild:
+            return False
+
         overrides = await bot.get_command_overrides(ctx.guild.id)
         if overrides is not None:
             ids = [r.id for r in ctx.author.roles]
@@ -93,9 +99,47 @@ class LightningCommand(commands.Command):
 
         return await discord.utils.async_all(pred(ctx) for pred in predicates)
 
+    def _filter_out_permissions(self) -> list:
+        other_checks = []
+        for predicate in self.checks:
+            if hasattr(predicate, 'guild_permissions') or hasattr(predicate, 'channel_permissions'):
+                continue
+            else:
+                other_checks.append(predicate)
+        return other_checks
+
     async def can_run(self, ctx):
-        await super().can_run(ctx)
-        return await self._check_level(ctx)
+        if not self.enabled:
+            raise commands.DisabledCommand('{0.name} command is disabled'.format(self))
+
+        original = ctx.command
+        ctx.command = self
+
+        try:
+            if not await ctx.bot.can_run(ctx):
+                raise commands.CheckFailure(f'The global check functions for command {self.qualified_name} failed.')
+
+            cog = self.cog
+            # Other checks should have more priority first
+            if cog is not None:
+                local_check = commands.Cog._get_overridden_method(cog.cog_check)
+                if local_check is not None:
+                    ret = await discord.utils.maybe_coroutine(local_check, ctx)
+                    if not ret:
+                        return False
+
+            if not self.checks:
+                return await self._check_level(ctx)
+
+            checks = self._filter_out_permissions()
+            pred = await discord.utils.async_all(predicate(ctx) for predicate in checks)
+            if pred is False:
+                # An important check failed...
+                return False
+
+            return await self._check_level(ctx)
+        finally:
+            ctx.command = original
 
 
 class LightningGroupCommand(LightningCommand, commands.Group):
