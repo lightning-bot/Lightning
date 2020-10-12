@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A personal Discord bot
 Copyright (C) 2020 - LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -24,10 +24,11 @@ from typing import Optional, Union
 
 import asyncpg
 import discord
-from discord.ext import commands, tasks
+from discord.ext import tasks
+from discord.ext.commands import clean_content
 
 import lightning.utils.time
-from lightning import LightningBot, LightningCog, LightningContext
+from lightning import LightningBot, LightningCog, LightningContext, group
 from lightning.formatters import plural
 from lightning.models import Timer
 from lightning.utils.helpers import BetterUserObject, dm_user
@@ -144,9 +145,9 @@ class Reminders(LightningCog):
             webhook = discord.Webhook.from_url(self.bot.config['logging']['timer_errors'], adapter=adp)
             await webhook.execute(f"Timers has Errored!\n```{traceback.format_exc()}```")
 
-    @commands.group(usage="<when>", aliases=["reminder"], invoke_without_command=True)
+    @group(usage="<when>", aliases=["reminder"], invoke_without_command=True)
     async def remind(self, ctx: LightningContext, *,
-                     when: lightning.utils.time.UserFriendlyTime(commands.clean_content,
+                     when: lightning.utils.time.UserFriendlyTime(clean_content,
                                                                  default='something')) -> None:  # noqa: F821
         """Reminds you of something after a certain date.
 
@@ -250,7 +251,7 @@ class Reminders(LightningCog):
 
         await ctx.send("Cleared all of your reminders.")
 
-    @commands.Cog.listener()
+    @LightningCog.listener()
     async def on_reminder_job_complete(self, timer: Timer) -> None:
         channel = self.bot.get_channel(timer.extra['channel'])
         user = self.bot.get_user(timer.extra['author']) or BetterUserObject(id=timer.extra['author'])

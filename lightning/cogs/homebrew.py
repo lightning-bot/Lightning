@@ -25,10 +25,10 @@ import discord
 from discord.ext import commands
 from fuzzywuzzy import fuzz, process
 
-from lightning import LightningBot, LightningCog, LightningContext
+from lightning import (CommandLevel, LightningBot, LightningCog,
+                       LightningContext, command, group)
 from lightning.errors import LightningError
-from lightning.utils import http
-from lightning.utils.checks import is_staff_or_has_perms
+from lightning.utils.checks import has_channel_permissions
 
 
 class FindBMPAttachment(commands.CustomDefault):
@@ -46,20 +46,20 @@ class Homebrew(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
 
-    @commands.group(aliases=['nuf', 'stability'], invoke_without_command=True)
+    @group(aliases=['nuf', 'stability'], invoke_without_command=True, level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
-    @is_staff_or_has_perms("Admin", manage_webhooks=True)
+    @has_channel_permissions(manage_webhooks=True)
     async def nintendoupdatesfeed(self, ctx: LightningContext) -> None:
         """Manages the guild's configuration for Nintendo console update alerts.
 
         If invoked with no subcommands, this will show the current configuration."""
         query = "SELECT id FROM nin_updates WHERE guild_id=$1;"
-        val = await self.bot.pool.fetchval(query, ctx.guild.id)
-        if val is None:
+        record = await self.bot.pool.fetchval(query, ctx.guild.id)
+        if record is None:
             await ctx.send("Nintendo console updates are currently not configured!")
             return
 
-        webhook = discord.utils.get(await ctx.guild.webhooks(), id=val)
+        webhook = discord.utils.get(await ctx.guild.webhooks(), id=record)
         if webhook is None:
             query = 'DELETE FROM nin_updates WHERE guild_id=$1'
             await self.bot.pool.execute(query, ctx.guild.id)
@@ -71,9 +71,9 @@ class Homebrew(LightningCog):
         await ctx.send("Nintendo console updates are currently "
                        f"configured to send to {webhook.channel.mention}.")
 
-    @nintendoupdatesfeed.command(name="setup")
+    @nintendoupdatesfeed.command(name="setup", level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
-    @is_staff_or_has_perms("Admin", manage_webhooks=True)
+    @has_channel_permissions(manage_webhooks=True)
     async def nuf_configure(self, ctx: LightningContext, *,
                             channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
         """Sets up a webhook in the specified channel that will send Nintendo console updates."""
@@ -97,9 +97,9 @@ class Homebrew(LightningCog):
         else:
             await ctx.send(f"Successfully created webhook in {channel.mention}")
 
-    @nintendoupdatesfeed.command(name="delete")
+    @nintendoupdatesfeed.command(name="delete", level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
-    @is_staff_or_has_perms("Admin", manage_webhooks=True)
+    @has_channel_permissions(manage_webhooks=True)
     async def nuf_delete(self, ctx: LightningContext) -> None:
         """Deletes the configuration of Nintendo console updates."""
         record = await self.bot.pool.fetchrow("SELECT * FROM nin_updates WHERE guild_id=$1", ctx.guild.id)
@@ -119,15 +119,15 @@ class Homebrew(LightningCog):
         await self.bot.pool.execute(query, ctx.guild.id)
         await ctx.send("Successfully deleted webhook and configuration!")
 
-    @commands.command()
+    @command()
     @commands.cooldown(30.0, 1, commands.BucketType.user)
     async def bmp(self, ctx, link: str = FindBMPAttachment) -> None:
         """Converts a .bmp image to .png"""
-        image_bmp = await http.getbytes(self.bot.aiosession, link)
+        image_bmp = await ctx.request(link)
         img_final = await self.finalize_image(image_bmp)
         await ctx.send(file=discord.File(img_final, filename=f"{secrets.token_urlsafe()}.png"))
 
-    @commands.command(enabled=False)
+    @command(enabled=False)
     @commands.cooldown(1, 5.0, commands.BucketType.member)
     async def tinydb(self, ctx: LightningContext, *, search: str) -> None:
         """Searches for 3DS homebrew on tinydb"""
@@ -136,7 +136,7 @@ class Homebrew(LightningCog):
         if len(search) >= 50:
             raise LightningError("Search term cannot be 50 characters or more!")
 
-        url = f"https://tinydb.eiphax.tech/api/search/{urllib.parse.quote(search)}"
+        url = f"https://api.homebrew.space/search/{urllib.parse.quote(search)}"
         async with self.bot.aiosession.get(url, timeout=30.0) as resp:
             if resp.status == 200:
                 data = await resp.json()
@@ -172,7 +172,7 @@ class Homebrew(LightningCog):
                 return await ctx.send('Timed out while making the request.')
             await self.bot.log_command_error(ctx, error)
 
-    @commands.group(invoke_without_command=True)
+    @group(invoke_without_command=True)
     async def mod(self, ctx: LightningContext) -> None:
         """Gets console modding information
 
