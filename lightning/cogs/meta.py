@@ -252,7 +252,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             page_or_embed.description = f'{usage}{command.description}\n\n{command.help}'
         else:
             page_or_embed.description = f'{usage}{command.help}' if command.help else f'{usage}No help found...'
-        
+
         if hasattr(command, 'level'):
             page_or_embed.description += f"\n\n**Level Required**: {command.level.name}"
 
