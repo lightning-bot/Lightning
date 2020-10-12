@@ -18,9 +18,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import random
 
 import discord
-from discord.ext import commands
+from discord.ext.commands import default
 
-from lightning import LightningBot, LightningCog, LightningContext
+from lightning import (LightningBot, LightningCog, LightningCommand,
+                       LightningContext, group)
 
 BAIT = ["https://i.imgur.com/5VKDzO6.png",
         "https://i.imgur.com/28hcpAL.png",
@@ -38,7 +39,7 @@ BAIT = ["https://i.imgur.com/5VKDzO6.png",
         "https://garfield-is-a.lasagna.cat/i/5kx4.png"]
 
 
-class TextMeme(commands.Command):
+class TextMeme(LightningCommand):
     def __init__(self, name, text, **kwargs):
         kwargs.update({"name": name})
         super().__init__(self._callback, **kwargs)
@@ -62,7 +63,7 @@ class Memes(LightningCog):
 
     def __init__(self, bot: LightningBot):
         self.bot = bot
-        memes = self.bot.config._storage.pop("memes") or {}
+        memes = self.bot.config._storage.get("memes", {})
         nongrouped = memes.get("non-grouped", {})
         nongroupedhidden = nongrouped.get("hidden", {})
 
@@ -81,7 +82,7 @@ class Memes(LightningCog):
                 continue
             self.bot.add_command(TextMeme(key, value, cog=self, hidden=hidden))
 
-    @commands.group(aliases=['meme'], invoke_without_command=True)
+    @group(aliases=['meme'], invoke_without_command=True)
     async def memes(self, ctx: LightningContext) -> None:
         """Runs a meme command.
 
@@ -89,7 +90,7 @@ class Memes(LightningCog):
         await ctx.send(f"Available Memes:\n{', '.join(x.name for x in self.memes.commands)}")
 
     @memes.command(aliases=['discordcopypasta'], hidden=True)
-    async def discordcopypaste(self, ctx: LightningContext, member: discord.Member = commands.default.Author) -> None:
+    async def discordcopypaste(self, ctx: LightningContext, member: discord.Member = default.Author) -> None:
         """Generates a discord copypaste
 
         If no arguments are passed, it uses the author of the command.

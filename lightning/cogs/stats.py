@@ -25,7 +25,8 @@ import discord
 import tabulate
 from discord.ext import commands, tasks
 
-from lightning import LightningBot, LightningCog, LightningContext
+from lightning import (CommandLevel, LightningBot, LightningCog,
+                       LightningContext, command, group)
 from lightning.converters import InbetweenNumber
 from lightning.models import PartialGuild
 
@@ -234,7 +235,7 @@ class Stats(LightningCog):
         em.set_thumbnail(url=member.avatar_url)
         await ctx.send(embed=em)
 
-    @commands.group(invoke_without_command=True)
+    @group(invoke_without_command=True)
     @commands.guild_only()
     @commands.cooldown(1, 60.0, commands.BucketType.member)
     async def stats(self, ctx: LightningContext, member: discord.Member = None):
@@ -245,7 +246,7 @@ class Stats(LightningCog):
             else:
                 await self.command_stats_member(ctx, member)
 
-    @stats.command(name="auditlog", aliases=['table', 'log'])
+    @stats.command(name="auditlog", aliases=['table', 'log'], level=CommandLevel.Mod)
     @commands.has_guild_permissions(manage_guild=True)
     @commands.cooldown(1, 60.0, commands.BucketType.member)
     async def stats_audit_log(self, ctx: LightningContext, limit: InbetweenNumber(1, 500) = 50):
@@ -295,7 +296,7 @@ class Stats(LightningCog):
             embed.add_field(name="Today", value=commands_used_des)
             await ctx.send(embed=embed)
 
-    @commands.command()
+    @command()
     @commands.cooldown(1, 60.0, commands.BucketType.member)
     async def socketstats(self, ctx):
         """Shows a count of all tracked socket events"""
@@ -337,9 +338,9 @@ class Stats(LightningCog):
 
     async def add_guild(self, guild: discord.Guild) -> None:
         async with self.bot.pool.acquire() as con:
-            queryc = """SELECT true FROM guilds WHERE id=$1 AND left_at IS NOT NULL;"""
+            queryc = """SELECT true FROM guilds WHERE id=$1 AND left_at IS NULL;"""
             queryb = """SELECT whitelisted FROM guilds WHERE id=$1;"""  # should probably do this in a subquery
-            unregistered = await con.fetchval(queryc, guild.id)
+            registered = await con.fetchval(queryc, guild.id)
             whitelisted = await con.fetchval(queryb, guild.id)
             query = """INSERT INTO guilds (id, name, owner_id)
                        VALUES ($1, $2, $3)
@@ -353,7 +354,7 @@ class Stats(LightningCog):
             # will dispatch guild_remove
             return
 
-        if bool(unregistered) is True:
+        if not registered:
             self.bot.dispatch("lightning_guild_add", guild)
 
     @LightningCog.listener()
