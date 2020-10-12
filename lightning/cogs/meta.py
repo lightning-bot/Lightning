@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A personal Discord bot
 Copyright (C) 2020 - LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -31,6 +31,8 @@ import psutil
 from discord.ext import commands, menus
 
 from lightning import LightningBot, LightningCog, LightningContext
+from lightning import command as lcommand
+from lightning import group as lgroup
 from lightning.converters import GuildID, Message
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from lightning.utils import helpers
@@ -113,7 +115,7 @@ class HelpMenu(menus.ListPageSource):
         super().__init__(data, per_page=per_page)
 
     def format_category_embed(self, embed: discord.Embed, menu, entries: list) -> discord.Embed:
-        description = f"Use \"{menu.prefix}help [command]\" for help about a command.\nUse \""\
+        description = f"Use \"{menu.prefix}help [command]\" for help about a command.\nYou can also use \""\
                       f"{menu.prefix}help [category]\" for help about a category."
         if "support_server_invite" in menu.bot.config['bot']:
             description += "\nFor additional help, join the support server: "\
@@ -227,6 +229,18 @@ class PaginatedHelpCommand(commands.HelpCommand):
         else:
             return None
 
+    def permissions_required_format(self, command) -> tuple:
+        guild_permissions = []
+        channel_permissions = []
+
+        for pred in command.checks:
+            if hasattr(pred, 'guild_permissions'):
+                guild_permissions.extend(pred.guild_permissions)
+            elif hasattr(pred, 'channel_permissions'):
+                channel_permissions.extend(pred.channel_permissions)
+
+        return (channel_permissions, guild_permissions)
+
     def common_command_formatting(self, page_or_embed, command):
         page_or_embed.title = self.get_command_signature(command)
         if command.signature:
@@ -238,14 +252,24 @@ class PaginatedHelpCommand(commands.HelpCommand):
             page_or_embed.description = f'{usage}{command.description}\n\n{command.help}'
         else:
             page_or_embed.description = f'{usage}{command.help}' if command.help else f'{usage}No help found...'
+        
+        if hasattr(command, 'level'):
+            page_or_embed.description += f"\n\n**Level Required**: {command.level.name}"
+
+        cflags = self.flag_help_formatting(command)
+        if cflags:
+            page_or_embed.add_field(name="Flag options", value="\n".join(cflags))
+
+        channel, guild = self.permissions_required_format(command)
+        if channel:
+            page_or_embed.description += f"\n**Channel Permissions Required**: {', '.join(channel)}"
+        if guild:
+            page_or_embed.description += f"\n**Server Permissions Required**: {', '.join(guild)}"
 
     async def send_command_help(self, command):
         # No pagination necessary for a single command.
         embed = discord.Embed(colour=0xf74b06)
         self.common_command_formatting(embed, command)
-        cflags = self.flag_help_formatting(command)
-        if cflags:
-            embed.add_field(name="Flag options", value="\n".join(cflags))
         await self.context.send(embed=embed)
 
     async def send_group_help(self, group):
@@ -256,15 +280,12 @@ class PaginatedHelpCommand(commands.HelpCommand):
         entries = await self.filter_commands(subcommands, sort=True)
         embed = discord.Embed(colour=0xf74b06)
         self.common_command_formatting(embed, group)
-        cflags = self.flag_help_formatting(group)
-        if cflags:
-            embed.description += ("\n\n**Flag options**\n{}".format("\n".join(cflags)))
         pages = HelpPaginatorMenu(self, self.context, HelpMenu(entries, embed=embed, per_page=5))
         await pages.paginate()
 
 
 class ClientID(commands.MemberConverter):
-    async def convert(self, ctx, argument) -> int:
+    async def convert(self, ctx: LightningContext, argument) -> int:
         try:
             member = await super().convert(ctx, argument)
             return member.id
@@ -289,31 +310,32 @@ class Meta(LightningCog):
     def cog_unload(self):
         self.bot.help_command = self.original_help_command
 
-    @commands.command(aliases=['avy'])
+    @lcommand(aliases=['avy'])
     async def avatar(self, ctx: LightningContext, *, member: ResolveUser = commands.default.Author) -> None:
-        """Displays a user's avatar."""
+        """Displays a user's avatar"""
         embed = discord.Embed(color=discord.Color.blue(),
                               description=f"[Link to Avatar]({member.avatar_url_as(static_format='png')})")
         embed.set_author(name=f"{member.name}\'s Avatar")
         embed.set_image(url=member.avatar_url)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['ui'])
+    @lcommand(aliases=['ui'])
     async def userinfo(self, ctx: LightningContext, *, member: ResolveUser = commands.default.Author) -> None:
-        """Gives info for a user."""
-        embed = discord.Embed(title=str(member), color=member.colour)
+        """Displays information for a user"""
+        embed = discord.Embed(title=str(member), color=member.colour, description=f"**ID**: {member.id}")
         embed.set_thumbnail(url=member.avatar_url)
+
         if member.bot:
-            embed.description = "This user is a bot."
+            embed.description += "\nThis user is a bot."
+
         embed.add_field(name="Account Created On", value=f"{format_timestamp(member.created_at)} "
                         f"({natural_timedelta(member.created_at, accuracy=3)})",
                         inline=False)
+
         shared = sum(g.get_member(member.id) is not None for g in self.bot.guilds)
         embed.add_field(name="Shared Servers", value=shared)
         if not isinstance(member, discord.Member):
             embed.set_footer(text='This member is not in this server.')
-            await ctx.send(embed=embed)
-            return
 
         # TODO: Support multiple activities
         activity = getattr(member, 'activity', None)
@@ -352,10 +374,9 @@ class Meta(LightningCog):
                 embed.add_field(name=f"Roles [{len(roles)}]",
                                 value=" ".join(revrole) if len(roles) < 10 else "Cannot show all roles",
                                 inline=False)
-        embed.set_footer(text=f'User ID: {member.id}')
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @lcommand()
     @commands.guild_only()
     async def roleinfo(self, ctx: LightningContext, *, role: discord.Role) -> None:
         """Gives information for a role"""
@@ -378,7 +399,7 @@ class Meta(LightningCog):
         em.set_footer(text=f"Role ID: {role.id}")
         await ctx.send(embed=em)
 
-    @commands.command()
+    @lcommand()
     async def spotify(self, ctx: LightningContext, member: discord.Member = commands.default.Author) -> None:
         if member.status is discord.Status.offline:
             await ctx.send(f"{member} needs to be online in order for me to check their Spotify status.")
@@ -406,7 +427,7 @@ class Meta(LightningCog):
 
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @lcommand()
     async def about(self, ctx: LightningContext) -> None:
         """Gives information about the bot."""
         embed = discord.Embed(title="Lightning", color=0xf74b06)
@@ -465,12 +486,12 @@ class Meta(LightningCog):
                               f"discord.py {discord.__version__}")
         await ctx.send(embed=embed)
 
-    @commands.command(name='copyright', aliases=['license'])
+    @lcommand(name='copyright', aliases=['license'])
     async def _copyright(self, ctx: LightningContext) -> None:
         """Tells you about the copyright license for the bot"""
         await ctx.send("AGPLv3: https://gitlab.com/lightning-bot/Lightning/-/blob/master/LICENSE")
 
-    @commands.command(aliases=['invite'])
+    @lcommand(aliases=['invite'])
     async def join(self, ctx: LightningContext, *ids: ClientID) -> None:
         """Gives you a link to add the bot to your server or generates an invite link for a client id."""
         perms = discord.Permissions.none()
@@ -499,12 +520,12 @@ class Meta(LightningCog):
 
         await ctx.send(msg)
 
-    @commands.command()
+    @lcommand()
     async def support(self, ctx: LightningContext) -> None:
         """Sends an invite that goes to the support server"""
         await ctx.send(f"Official Support Server Invite: {self.bot.config['bot']['support_server_invite']}")
 
-    @commands.command()
+    @lcommand()
     async def source(self, ctx: LightningContext, *, command: str = None) -> None:
         """Gives a link to the source code for a command."""
         source = "https://gitlab.com/lightning-bot/Lightning"
@@ -555,13 +576,13 @@ class Meta(LightningCog):
             embed.add_field(name='Denied', value='\n'.join(denied))
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @lcommand()
     async def permissions(self, ctx: LightningContext, member: discord.Member = commands.default.Author,
                           channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
         """Shows channel permissions for a member"""
         await self.show_channel_permissions(channel, member, ctx)
 
-    @commands.command()
+    @lcommand()
     async def ping(self, ctx: LightningContext) -> None:
         """Tells you the ping."""
         shard_latency = round(self.bot.get_shard(ctx.guild.shard_id).latency * 1000)
@@ -573,13 +594,13 @@ class Meta(LightningCog):
 
         await tmpmsg.edit(content=f"Pong!\nshard {ctx.guild.shard_id}: `{shard_latency} ms`\nrtt: `{rtt_ms} ms`")
 
-    @commands.command()
+    @lcommand()
     async def uptime(self, ctx: LightningContext) -> None:
         """Displays my uptime"""
         await ctx.send(f"Uptime: **{natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}**")
 
     @commands.guild_only()
-    @commands.command(aliases=['server', 'guildinfo'], usage='')
+    @lcommand(aliases=['server', 'guildinfo'], usage='')
     async def serverinfo(self, ctx: LightningContext, guild_id: GuildID = commands.default.CurrentGuild) -> None:
         """Shows information about the server"""
         if await self.bot.is_owner(ctx.author):
@@ -674,7 +695,7 @@ class Meta(LightningCog):
 
         return embed
 
-    @commands.group(aliases=['messageinfo', 'msgtext'], invoke_without_command=True)
+    @lgroup(aliases=['messageinfo', 'msgtext'], invoke_without_command=True)
     async def quote(self, ctx: LightningContext, *message) -> None:
         """Quotes a message"""
         message_id, channel = await Message().convert(ctx, message)
