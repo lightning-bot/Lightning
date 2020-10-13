@@ -5,50 +5,18 @@
 
 A personal Discord bot.
 
-To find Lightning's commands, run the help command.
-
----
-
-## Features & Changelogs
-
-A list of features can be found below or at https://lightning-bot.gitlab.io. Changelogs can be found at the support server (https://discord.gg/SpFjsy3) in the changelogs channel.
-
----
-**Moderation Features**
-
-- Warnings
-- Ban
-- Mute
-- Kick
-- Message Purging.
-- Channel Lockdown
-- Mod Logging
-
-**Configuration**
-
-- Custom Prefixes
-- Mod Roles
-  - Mod roles allow members with a configured role to have permissions in the bot without needing the actual role permission itself! For more information on mod roles, go to [https://lightning-bot.gitlab.io/config/settings/#moderation-roles](https://lightning-bot.gitlab.io/config/settings/#moderation-roles).
-- Logging
-- Auto Roles
-
-**Other Features Include**:
-
-- Emoji Management
-- Reminders
-
-and more!
-
 ---
 ## Invite
 
-If you want to invite Lightning to your guild, use this link https://discordapp.com/oauth2/authorize?client_id=532220480577470464&scope=bot&permissions=2013637846. (Select permissions as needed.)
+The invite is no longer displayed here as Discord's verification requirements have forced the public instance to be semi-private.
+
+If you want to run your own instance, https://lightning-bot.gitlab.io/config/self-deploy/ contains some general instructions.
 
 ---
 ## License
 AGPL v3
 ```
-# Lightning.py - A multi-purpose bot.
+# Lightning.py - A personal Discord bot.
 # Copyright (C) 2020 - LightSage
 #
 # This program is free software: you can redistribute it and/or modify
