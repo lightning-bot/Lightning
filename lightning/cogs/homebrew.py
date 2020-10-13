@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A personal Discord bot
 Copyright (C) 2020 - LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -22,13 +22,30 @@ from typing import Optional
 
 import asyncpg
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
 from fuzzywuzzy import fuzz, process
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, group)
+from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
 from lightning.utils.checks import has_channel_permissions
+from lightning.utils.paginator import InfoMenuPages
+
+
+class TinyDBPageSource(menus.ListPageSource):
+    def __init__(self, entries):
+        super().__init__(entries, per_page=1)
+
+    async def format_page(self, menu, entry):
+        embed = discord.Embed(title=entry['name'], color=discord.Color.blurple(), description=entry['description'])
+        embed.add_field(name="Latest Release",
+                        value=f"**Name**: {entry['latestRelease']['name']}\n"
+                              f"**Link**: [{entry['latestRelease']['3ds_release_files'][0]['download_url']}]"
+                              f"({entry['latestRelease']['3ds_release_files'][0]['download_url']})")
+        embed.set_author(name=entry['github_owner'])
+        embed.set_image(url=f"https://api.homebrew.space/qr/{entry['id']}")
+        return embed
 
 
 class FindBMPAttachment(commands.CustomDefault):
@@ -38,7 +55,10 @@ class FindBMPAttachment(commands.CustomDefault):
             for attachment in message.attachments:
                 if attachment.url:
                     if attachment.url.endswith(".bmp"):
-                        return attachment.url
+                        try:
+                            return Whitelisted_URL(attachment.url)
+                        except LightningError:
+                            continue
         raise commands.BadArgument('Couldn\'t find an attachment that ends with ".bmp"')
 
 
@@ -121,13 +141,13 @@ class Homebrew(LightningCog):
 
     @command()
     @commands.cooldown(30.0, 1, commands.BucketType.user)
-    async def bmp(self, ctx, link: str = FindBMPAttachment) -> None:
+    async def bmp(self, ctx, link: Whitelisted_URL = FindBMPAttachment) -> None:
         """Converts a .bmp image to .png"""
-        image_bmp = await ctx.request(link)
+        image_bmp = await ctx.request(link.url)
         img_final = await self.finalize_image(image_bmp)
         await ctx.send(file=discord.File(img_final, filename=f"{secrets.token_urlsafe()}.png"))
 
-    @command(enabled=False)
+    @command()
     @commands.cooldown(1, 5.0, commands.BucketType.member)
     async def tinydb(self, ctx: LightningContext, *, search: str) -> None:
         """Searches for 3DS homebrew on tinydb"""
@@ -142,21 +162,12 @@ class Homebrew(LightningCog):
                 data = await resp.json()
             else:
                 raise LightningError("Tinydb api not available. Try again later?")
-        # There's not really any docs but success will always exist.
-        if data['success'] is False:
-            raise LightningError("Failed to find that search term!")
 
-        data = data['result']
-        description = f"{data['newest_release']['description']}"
-        embed = discord.Embed(title=data['name'],
-                              description=description,
-                              color=0x36393E)
-        embed.add_field(name="**Download Link**",
-                        value=f"[{data['newest_release']['download_url']}]"
-                              f"({data['newest_release']['download_url']})")
-        embed.set_author(name=data['newest_release']['author'])
-        embed.set_image(url=data['newest_release']['qr_url'])
-        await ctx.send(embed=embed)
+        if not data:
+            raise LightningError("Failed to find that search term!")
+        
+        menu = InfoMenuPages(source=TinyDBPageSource(data), clear_reactions_after=True)
+        await menu.start(ctx)
 
     @tinydb.error
     async def tiny_db_error(self, ctx, error) -> None:
