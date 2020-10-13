@@ -165,7 +165,7 @@ class Homebrew(LightningCog):
 
         if not data:
             raise LightningError("Failed to find that search term!")
-        
+
         menu = InfoMenuPages(source=TinyDBPageSource(data), clear_reactions_after=True)
         await menu.start(ctx)
 
