@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A personal Discord bot
 Copyright (C) 2020 - LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -84,7 +84,7 @@ def launch_bot(config) -> None:
     try:
         loop.run_until_complete(bot.create_pool(config, command_timeout=60))
     except Exception as e:
-        log.exception(f"Could not set up PostgreSQL. {e}\n----\nExiting...")
+        log.exception("Could not set up PostgreSQL. Exiting...", exc_info=e)
         return
 
     bot.run(config['tokens']['discord'])
