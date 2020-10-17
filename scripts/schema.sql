@@ -115,5 +115,6 @@ CREATE TABLE IF NOT EXISTS guild_permissions
     admin_ids BIGINT [],
     mod_ids BIGINT [],
     trusted_ids BIGINT [],
-    blocked_ids BIGINT []
+    blocked_ids BIGINT [],
+    fallback_to_dperms BOOLEAN -- Respect the regular discord required perms
 );
