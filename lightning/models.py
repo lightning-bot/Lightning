@@ -102,12 +102,14 @@ class CommandOverrides:
 
 
 class GuildPermissions:
+    __slots__ = ('admin_ids', 'mod_ids', 'trusted_ids', 'blocked_ids', 'fallback_to_discord_perms')
+
     def __init__(self, record):
         self.admin_ids = record['admin_ids'] or []
         self.mod_ids = record['mod_ids'] or []
         self.trusted_ids = record['trusted_ids'] or []
         self.blocked_ids = record['blocked_ids'] or []
-        self.fallback_to_discord_perms = record['fallback_to_discord_perms'] or True
+        self.fallback_to_discord_perms = record['fallback_to_dperms'] or True
 
     def get_user_level(self, user_id: int, role_ids: list) -> CommandLevel:
         ids = [user_id]
