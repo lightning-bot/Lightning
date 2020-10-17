@@ -254,7 +254,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             page_or_embed.description = f'{usage}{command.help}' if command.help else f'{usage}No help found...'
 
         if hasattr(command, 'level'):
-            page_or_embed.description += f"\n\n**Base Level Required**: {command.level.name}"
+            page_or_embed.description += f"\n\n**Default Level Required**: {command.level.name}"
 
         cflags = self.flag_help_formatting(command)
         if cflags:
