@@ -16,7 +16,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import discord
 
-from lightning import CommandLevel, LightningContext, errors
+from lightning import errors
+from lightning.commands import CommandLevel
+from lightning.context import LightningContext
 from lightning.utils.time import natural_timedelta
 
 

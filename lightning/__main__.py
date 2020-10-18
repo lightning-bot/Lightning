@@ -27,7 +27,7 @@ import sentry_sdk
 import toml
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
-from lightning import LightningBot
+from lightning.bot import LightningBot
 from lightning.utils.helpers import run_in_shell
 
 try:
