@@ -23,9 +23,8 @@ import logging
 import pathlib
 import secrets
 import traceback
-from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 import aiohttp
 import asyncpg
@@ -39,21 +38,6 @@ from lightning.meta import __version__ as version
 from lightning.models import CommandOverrides, GuildPermissions
 
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class LightningCogDeps:
-    required: List[str] = field(default_factory=list)
-
-
-class LightningCog(commands.Cog):
-    def __init_subclass__(cls, *args, **kwargs):
-        required_cogs = kwargs.get("required", [])
-        cls.__lightning_cog_deps__ = LightningCogDeps(required=required_cogs)
-
-    def __str__(self):
-        """Returns the cog’s specified name, not the class name."""
-        return self.qualified_name
 
 
 ERROR_HANDLER_MESSAGES = {
