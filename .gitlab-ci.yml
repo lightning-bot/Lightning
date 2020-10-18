@@ -46,9 +46,7 @@ Publish release to Sentry:
     GIT_STRATEGY: "clone"
     GIT_DEPTH: 0
   script:
-    - echo "Create a new release for $CI_COMMIT_SHA"
     - sentry-cli releases new $CI_COMMIT_SHA --project $SENTRY_PROJECT
     - sentry-cli releases set-commits --auto "$CI_COMMIT_SHA"
     - sentry-cli releases finalize $CI_COMMIT_SHA
-    - echo "Finalized release for $CI_COMMIT_SHA"
 
