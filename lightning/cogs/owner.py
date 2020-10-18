@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A personal Discord bot
 Copyright (C) 2020 - LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -202,8 +202,8 @@ class Owner(LightningCog):
         await self.bot.change_presence(activity=discord.Game(name=gamename))
         await ctx.send(f'Successfully changed status to `{gamename}`')
 
-    @commands.command(aliases=['exit'])
-    async def stop(self, ctx: LightningContext) -> None:
+    @commands.command()
+    async def exit(self, ctx: LightningContext) -> None:
         """Stops the bot"""
         shutdown_messages = ['Shutting Down...', "See ya!", "RIP", "Turning off...."]
         await ctx.send(f"{helpers.Emoji.greentick} {random.choice(shutdown_messages)}")
