@@ -192,7 +192,7 @@ class Reminders(LightningCog):
             embed.add_field(name=f"{record['id']}: In {timed_txt}", value=text, inline=False)
         await ctx.send(embed=embed)
 
-    @remind.command(name='delete', aliases=['cancel', 'stop'])
+    @remind.command(name='delete', aliases=['cancel'])
     async def deletereminder(self, ctx: LightningContext, *, reminder_id: int) -> None:
         """Deletes a reminder by ID.
 
