@@ -1,17 +1,19 @@
-# Lightning.py - A multi-purpose Discord bot
-# Copyright (C) 2020 - LightSage
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation at version 3 of the License.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+Lightning.py - A personal Discord bot
+Copyright (C) 2020 - LightSage
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation at version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
 import logging
 import re
 
@@ -19,7 +21,8 @@ import discord
 import yarl
 from discord.ext import commands
 
-from lightning.errors import ChannelPermissionFailure, LightningError
+from lightning.errors import (ChannelPermissionFailure, HierarchyException,
+                              LightningError)
 
 log = logging.getLogger(__name__)
 
@@ -250,3 +253,17 @@ class Whitelisted_URL:
     @classmethod
     async def convert(cls, ctx, argument):
         return cls(argument)
+
+
+class Role(commands.RoleConverter):
+    """Converts to :class:`discord.Role` but respects hierarchy"""
+    async def convert(self, ctx, argument):
+        role = await super().convert(ctx, argument)
+
+        if role > ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
+            raise HierarchyException("role")
+
+        if role > ctx.me.top_role:
+            raise HierarchyException("role")
+
+        return role

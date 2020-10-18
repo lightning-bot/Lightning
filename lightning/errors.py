@@ -22,7 +22,6 @@ from discord.ext import commands
 
 class LightningError(commands.CommandError):
     """Base class for custom errors"""
-    pass
 
 
 class TimersUnavailable(LightningError):
@@ -95,3 +94,8 @@ class HTTPException(LightningError):
 
 class HTTPRatelimited(HTTPException):
     pass
+
+
+class HierarchyException(LightningError):
+    def __init__(self, thing):
+        super().__init__(f"{thing} is higher than your highest {thing}")
