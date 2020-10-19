@@ -31,14 +31,14 @@ class CommandLevel(discord.Enum):
 
 def command(**kwargs):
     def inner(func):
-        cls = kwargs.get('cls', LightningCommand)
+        cls = kwargs.pop('cls', LightningCommand)
         return cls(func, **kwargs)
     return inner
 
 
 def group(**kwargs):
     def inner(func):
-        cls = kwargs.get('cls', LightningGroupCommand)
+        cls = kwargs.pop('cls', LightningGroupCommand)
         return cls(func, **kwargs)
     return inner
 
