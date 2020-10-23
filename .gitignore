@@ -111,15 +111,12 @@ venv.bak/
 # redis
 *.rdb
 
+# theia
+.theia/
+
 # Ignore files
-/config.py
-cogs/checks.py
 lightning.log
-/addons
 /config
-db/jsonf.py
-/stabilite
-stabilite_config.py
 lightning/resources/fonts
 lightning/resources/templates
 lightning/migration/output
