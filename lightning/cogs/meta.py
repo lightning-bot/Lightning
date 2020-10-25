@@ -213,18 +213,17 @@ class PaginatedHelpCommand(commands.HelpCommand):
         await pages.paginate()
 
     def flag_help_formatting(self, command):
-        if hasattr(command.callback, '_def_parser'):
+        if hasattr(command.callback, '__lightning_argparser__'):
             flagopts = []
-            for flag in command.callback._def_parser._actions:
-                if not flag.option_strings:
-                    continue
-                if isinstance(flag, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
+            all_flags = command.callback.__lightning_argparser__.get_all_unique_flags()
+            for flag in all_flags:
+                if flag.is_bool_flag is True:
                     arg = 'No argument'
                 else:
-                    name = flag.type.__name__
+                    name = flag.converter.__name__
                     arg = flag_name_lookup[name] if name in flag_name_lookup else name
                 fhelp = flag.help if flag.help else "No help found..."
-                flagopts.append(f'`{", ".join(flag.option_strings)}` ({arg}): {fhelp}')
+                flagopts.append(f'`{", ".join(flag.names)}` ({arg}): {fhelp}')
             return flagopts
         else:
             return None

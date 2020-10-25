@@ -121,17 +121,6 @@ reference = "master"
 resolved_reference = "c742658a393f432853b7b7b5b8f00a7aa544222c"
 
 [[package]]
-name = "discord-flags"
-version = "2.1.1"
-description = "A Discord.py extension allowing you to pass flags as arguments."
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-"discord.py" = ">=1.2.5"
-
-[[package]]
 name = "discord.py"
 version = "1.5.1"
 description = "A Python wrapper for the Discord API"
@@ -613,7 +602,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "ce03f1a11b98b79fb1778a4bb432f07b24eabd0b90950fb5a6f82beab183c932"
+content-hash = "1a789235fd2f1be2d694499bc9375bbcac51787d706528d2e3035c65ec908493"
 
 [metadata.files]
 aiohttp = [
@@ -690,10 +679,6 @@ click = [
     {file = "click-7.1.2.tar.gz", hash = "sha256:d2b5255c7c6349bc1bd1e59e08cd12acbbd63ce649f2588755783aa94dfb6b1a"},
 ]
 discord-ext-menus = []
-discord-flags = [
-    {file = "discord-flags-2.1.1.tar.gz", hash = "sha256:0fba0574fd21f29cb395f1bf66251d6f0b8415a50c160f1363589300e0174848"},
-    {file = "discord_flags-2.1.1-py3-none-any.whl", hash = "sha256:91075d38cfe2a2b7be6cff656645ebbcde7ee3afe402c69d5163f2021f6c1d04"},
-]
 "discord.py" = []
 "discord.py-stubs" = [
     {file = "discord.py-stubs-1.5.1.1.tar.gz", hash = "sha256:8b84099d203e68bc45136fb90e507c87c2e9b0b65ec2af4d069e801a8c9a77a5"},
