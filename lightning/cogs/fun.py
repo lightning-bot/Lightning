@@ -30,14 +30,12 @@ from jishaku.functools import executor_function
 from PIL import Image, ImageDraw, ImageFont
 
 from lightning import (LightningBot, LightningCog, LightningContext, command,
-                       converters)
+                       converters, flags)
 from lightning.errors import HTTPException, LightningError
-from lightning.utils import flags, helpers
+from lightning.utils import helpers
 
 
 class Fun(LightningCog):
-    def __init__(self, bot: LightningBot):
-        self.bot = bot
 
     def c_to_f(self, c) -> int:
         """stolen from Robocop-ng. """
@@ -204,25 +202,24 @@ class Fun(LightningCog):
         messages = await channel.history(limit=limit).flatten()
         return random.choice(messages)
 
-    @command(aliases=['owo', 'uwuify'])
+    @flags.add_flag("--random", "-R", is_bool_flag=True,
+                    help="Owoifies random text from the last 12 messages in this channel")
+    @flags.add_flag("--lastmessage", "--lm", is_bool_flag=True,
+                    help="Owoifies the last message sent in the channel")
+    @command(cls=flags.FlagCommand, aliases=['owo', 'uwuify'], raise_bad_flag=False)
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.channel)
-    async def owoify(self, ctx: LightningContext, *, text: commands.clean_content) -> None:
-        """An owo-ifier.
+    async def owoify(self, ctx: LightningContext, **args) -> None:
+        """An owo-ifier"""
+        if args['random'] is True and args['lastmessage'] is True:
+            raise commands.BadArgument("--lastmessage and --random cannot be mixed together.")
 
-        Flag options (no arguments):
-        `--random`: Owoifies random text that was sent in the channel.
-        `--lastmessage` or `--lm`: Owoifies the last message sent in the channel."""
-        _flags = flags.boolean_flags(['--random', '--lastmessage'], text,
-                                     raise_errors=True,
-                                     flag_aliases={'--lm': '--lastmessage'})
-
-        if _flags['--random'] is True:
+        if args['random'] is True:
             message = await self.get_previous_messages(ctx.channel, 12)
             if message.content:
                 text = message.content
             else:
                 raise LightningError('Failed to find any message content.')
-        elif _flags['--lastmessage'] is True:
+        elif args['lastmessage'] is True:
             messages = await ctx.channel.history(limit=2).flatten()
             message = messages[1]
             if message.content:
@@ -230,7 +227,7 @@ class Fun(LightningCog):
             else:
                 raise LightningError('Failed to find message content in the previous message.')
         else:
-            text = _flags['text']
+            text = args['rest']
 
         uwutalk = uwuify.uwu(text, flags=(uwuify.SMILEY | uwuify.YU))
         await ctx.send(uwutalk)
@@ -325,8 +322,7 @@ class Fun(LightningCog):
     async def hug(self, ctx: LightningContext, *,
                   member: converters.WeebActionConverter("hugged") = None) -> None:  # noqa: F821
         """Hugs someone"""
-        url = "https://nekos.life/api/v2/img/hug"
-        data = await helpers.request(url, self.bot.aiosession)
+        data = await ctx.request("https://nekos.life/api/v2/img/hug")
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
         embed = discord.Embed(title=member, color=discord.Color.from_rgb(*color_random))
         embed.set_image(url=data['url'])
@@ -337,7 +333,7 @@ class Fun(LightningCog):
     async def slap(self, ctx: LightningContext, *,
                    person: converters.WeebActionConverter("slapped") = None) -> None:  # noqa: F821
         """Slap yourself or someone."""
-        data = await helpers.request("https://nekos.life/api/v2/img/slap", self.bot.aiosession)
+        data = await ctx.request("https://nekos.life/api/v2/img/slap")
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
         embed = discord.Embed(title=person, colour=discord.Color.from_rgb(*color_random))
         embed.set_image(url=data['url'])
