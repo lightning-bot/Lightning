@@ -23,9 +23,9 @@ from discord.ext.commands import converter as converters
 from discord.ext.commands.core import _convert_to_bool
 from discord.ext.commands.view import StringView
 
+from lightning.commands import LightningCommand
 from lightning.errors import (FlagError, FlagInputError,
                               MissingRequiredFlagArgument)
-from lightning.commands import LightningCommand
 
 
 class Flag:
