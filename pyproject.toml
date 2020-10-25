@@ -5,6 +5,7 @@ description = ""
 authors = ["LightSage <lightsage01@gmail.com>"]
 license = "AGPL-3.0-or-later"
 readme = "README.md"
+repository = "https://gitlab.com/lightning-bot/Lightning"
 
 [tool.poetry.dependencies]
 python = "^3.7"
