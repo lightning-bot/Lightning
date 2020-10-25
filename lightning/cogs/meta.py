@@ -260,9 +260,11 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
         channel, guild = self.permissions_required_format(command)
         if channel:
-            page_or_embed.description += f"\n**Channel Permissions Required**: {', '.join(channel)}"
+            req = ", ".join(channel).replace('_', ' ').replace('guild', 'server').title()
+            page_or_embed.description += f"\n**Channel Permissions Required**: {req}"
         if guild:
-            page_or_embed.description += f"\n**Server Permissions Required**: {', '.join(guild)}"
+            req = ", ".join(guild).replace('_', ' ').replace('guild', 'server').title()
+            page_or_embed.description += f"\n**Server Permissions Required**: {req}"
 
     async def send_command_help(self, command):
         # No pagination necessary for a single command.
