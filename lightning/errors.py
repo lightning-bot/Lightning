@@ -99,3 +99,16 @@ class HTTPRatelimited(HTTPException):
 class HierarchyException(LightningError):
     def __init__(self, thing):
         super().__init__(f"{thing} is higher than your highest {thing}")
+
+
+class FlagError(Exception):
+    """Base error class for flag errors"""
+
+
+class FlagInputError(FlagError, commands.UserInputError):
+    """Base class for input errors relating to flags"""
+
+
+class MissingRequiredFlagArgument(FlagInputError):
+    def __init__(self, missing_flag):
+        super().__init__(f"Missing required argument for flag \"{missing_flag}\"")

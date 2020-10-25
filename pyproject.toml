@@ -24,7 +24,6 @@ asyncpg = "^0.21.0"
 uvloop = "^0.14.0"
 fuzzywuzzy = {extras = ["speedup"], version = "^0.18.0"}
 discord-ext-menus = {git = "https://github.com/LightSage/discord-ext-menus"}
-discord-flags = "^2.1.1"
 lru_dict = "^1.1.6"
 sentry-sdk = "0.16.5"
 migra = {extras = ["pg"], version = "^1.0.1597915807", optional = true}

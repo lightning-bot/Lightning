@@ -30,7 +30,7 @@ import aiohttp
 import asyncpg
 import discord
 import sentry_sdk
-from discord.ext import commands, flags, menus
+from discord.ext import commands, menus
 
 from lightning import cache, config, errors
 from lightning.context import LightningContext
@@ -238,7 +238,7 @@ class LightningBot(commands.AutoShardedBot):
             scope.set_tag("event", event)
             scope.set_extra("args", args)
             scope.set_extra("kwargs", kwargs)
-            log.exception(f"Error on {event}: {traceback.format_exc()}")
+            log.exception(f"Error on {event}", exc_info=traceback.format_exc())
 
         with contextlib.suppress(discord.HTTPException):
             webhook = discord.Webhook.from_url(self.config['logging']['bot_errors'],
@@ -280,13 +280,7 @@ class LightningBot(commands.AutoShardedBot):
             await ctx.send(handled)
             return
 
-        if isinstance(error, commands.MissingPermissions):
-            p = ', '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
-            await ctx.send(f"{ctx.author.mention}: You don't have the right"
-                           f" permissions to run this command. You need: {p}",
-                           allowed_mentions=discord.AllowedMentions(users=[ctx.author]))
-            return
-        elif isinstance(error, commands.BotMissingPermissions):
+        if isinstance(error, commands.BotMissingPermissions):
             p = ', '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
             await ctx.send("I don't have the right permissions to run this command. "
                            f"I need: {p}")
@@ -299,14 +293,14 @@ class LightningBot(commands.AutoShardedBot):
         if isinstance(error, commands.BadArgument):
             await ctx.send(f"You gave incorrect arguments. `{str(error)}` {help_text}")
             return
-        elif isinstance(error, commands.MissingRequiredArgument):
+        elif isinstance(error, (commands.MissingRequiredArgument, errors.MissingRequiredFlagArgument)):
             codeblock = f"**{ctx.prefix}{ctx.command.qualified_name} {ctx.command.signature}**\n\n{error_text}"
             await ctx.send(codeblock)
             return
         elif isinstance(error, commands.TooManyArguments):
             await ctx.send(f"You passed too many arguments.{help_text}")
             return
-        elif isinstance(error, (errors.LightningError, flags.ArgumentParsingError, menus.MenuError)):
+        elif isinstance(error, (errors.LightningError, errors.FlagError, menus.MenuError)):
             await ctx.send(error_text)
             return
 
