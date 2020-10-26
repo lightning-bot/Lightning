@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A personal Discord bot
 Copyright (C) 2020 - LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -274,11 +274,12 @@ async def request(url, session: aiohttp.ClientSession, *, timeout=180, method: s
             raise errors.HTTPException(resp)
 
         if 300 > resp.status >= 200:
-            if resp.headers['Content-Type'] == "application/json":
-                return await resp.json()
-            elif return_text is True:
+            if return_text is True:
                 return await resp.text()
-            else:
+
+            try:
+                return await resp.json()
+            except aiohttp.ContentTypeError:
                 return await resp.read()
         else:
             raise errors.HTTPException(resp)
