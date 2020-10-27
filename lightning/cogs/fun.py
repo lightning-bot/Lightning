@@ -198,12 +198,16 @@ class Fun(LightningCog):
         fahrenheit = self.c_to_f(celsius)
         await ctx.send(f"{user} chilled. User is now {celsius}°C ({fahrenheit}°F).")
 
-    async def get_previous_messages(self, channel, limit: int = 10) -> discord.Message:
-        messages = await channel.history(limit=limit).flatten()
-        return random.choice(messages)
+    async def get_previous_messages(self, ctx, channel, limit: int = 10,
+                                    randomize=True) -> typing.Union[typing.List[discord.Message], discord.Message]:
+        messages = await channel.history(limit=limit, before=ctx.message).flatten()
+        if randomize:
+            return random.choice(messages)
+        else:
+            return messages
 
     @flags.add_flag("--random", "-R", is_bool_flag=True,
-                    help="Owoifies random text from the last 12 messages in this channel")
+                    help="Owoifies random text from the last 20 messages in this channel")
     @flags.add_flag("--lastmessage", "--lm", is_bool_flag=True,
                     help="Owoifies the last message sent in the channel")
     @command(cls=flags.FlagCommand, aliases=['owo', 'uwuify'], raise_bad_flag=False)
@@ -214,14 +218,14 @@ class Fun(LightningCog):
             raise commands.BadArgument("--lastmessage and --random cannot be mixed together.")
 
         if args['random'] is True:
-            message = await self.get_previous_messages(ctx.channel, 12)
+            message = await self.get_previous_messages(ctx, ctx.channel, 20)
             if message.content:
                 text = message.content
             else:
                 raise LightningError('Failed to find any message content.')
         elif args['lastmessage'] is True:
-            messages = await ctx.channel.history(limit=2).flatten()
-            message = messages[1]
+            messages = await self.get_previous_messages(ctx, ctx.channel, 1, False)
+            message = messages[0]
             if message.content:
                 text = message.content
             else:
