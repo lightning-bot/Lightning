@@ -254,6 +254,9 @@ class Whitelisted_URL:
     async def convert(cls, ctx, argument):
         return cls(argument)
 
+    def __str__(self):
+        return str(self.url)
+
 
 class Role(commands.RoleConverter):
     """Converts to :class:`discord.Role` but respects hierarchy"""
