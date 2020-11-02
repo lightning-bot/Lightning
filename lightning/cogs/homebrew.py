@@ -18,12 +18,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import secrets
 import urllib.parse
+from io import BytesIO
 from typing import Optional
 
 import asyncpg
 import discord
 from discord.ext import commands, menus
 from fuzzywuzzy import fuzz, process
+from jishaku.functools import executor_function
+from PIL import Image
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, group)
@@ -139,12 +142,20 @@ class Homebrew(LightningCog):
         await self.bot.pool.execute(query, ctx.guild.id)
         await ctx.send("Successfully deleted webhook and configuration!")
 
+    @executor_function
+    def convert_to_png(self, _bytes) -> BytesIO:
+        image_b = Image.open(BytesIO(_bytes))
+        image_file = BytesIO()
+        image_b.save(image_file, format="png")
+        image_file.seek(0)
+        return image_file
+
     @command()
     @commands.cooldown(30.0, 1, commands.BucketType.user)
     async def bmp(self, ctx, link: Whitelisted_URL = FindBMPAttachment) -> None:
         """Converts a .bmp image to .png"""
-        image_bmp = await ctx.request(link.url)
-        img_final = await self.finalize_image(image_bmp)
+        img_bytes = await ctx.request(link.url)
+        img_final = await self.convert_to_png(img_bytes)
         await ctx.send(file=discord.File(img_final, filename=f"{secrets.token_urlsafe()}.png"))
 
     @command()
@@ -286,7 +297,7 @@ class Homebrew(LightningCog):
             commands = list(self.mod_ds.all_commands.keys())
             match = self.get_match(commands, homebrew, 75)
             if match is not None:
-                self.bot.log.info(f"Command match found {match}")
+                # self.bot.log.info(f"Command match found {match}")
                 await ctx.invoke(self.mod_ds.get_command(match[0]))
                 return
 
