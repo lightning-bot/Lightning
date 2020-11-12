@@ -28,6 +28,26 @@ from lightning.errors import (FlagError, FlagInputError,
                               MissingRequiredFlagArgument)
 
 
+class FlagView(StringView):
+    def get_word(self):
+        current = self.current
+        if current is None:
+            return None
+
+        result = [current]
+
+        while not self.eof:
+            current = self.get()
+            if not current:
+                return ''.join(result)
+
+            if current.isspace():
+                # word is over.
+                return ''.join(result)
+
+            result.append(current)
+
+
 class Flag:
     """Represents a flag
 
@@ -200,12 +220,12 @@ class Parser:
         return ns
 
     async def parse_args(self, ctx):
-        view = StringView(ctx.view.read_rest())
+        view = FlagView(ctx.view.read_rest())
         view.skip_ws()
         ns = self._prepare_namespace()
         rest = []
-        while True:
-            word = view.get_quoted_word()
+        while not view.eof:
+            word = view.get_word()
             if word is None:
                 break
 
@@ -227,7 +247,7 @@ class Parser:
                 if flag.is_bool_flag is True:
                     ns[flag.attr_name] = True
                     continue
-
+                view.skip_ws()
                 next_arg = view.get_quoted_word()
                 ns[flag.attr_name] = await self.convert_flag_type(flag, ctx, next_arg, stripped)
             else:
