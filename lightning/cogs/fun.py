@@ -343,6 +343,23 @@ class Fun(LightningCog):
         embed.set_image(url=data['url'])
         await ctx.send(embed=embed)
 
+    @flags.add_flag("--message", converter=discord.Message)
+    @command(cls=flags.FlagCommand)
+    async def mock(self, ctx: LightningContext, **args) -> None:
+        """Mocks text"""
+        if args['message']:
+            text = args['message'].content
+            if not text:
+                raise commands.BadArgument("No message content was found in that message.")
+        else:
+            text = args['rest']
+
+        if not text:
+            raise commands.BadArgument("Missing text to mock")
+
+        m = [random.choice([char.upper(), char.lower()]) for char in text]
+        await ctx.send("".join(m))
+
 
 def setup(bot: LightningBot) -> None:
     bot.add_cog(Fun(bot))
