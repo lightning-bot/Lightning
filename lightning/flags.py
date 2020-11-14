@@ -267,9 +267,15 @@ class FlagCommand(LightningCommand):
     """Subclass of :class:LightningCommand that implements flag parsing"""
     def __init__(self, func, **kwargs):
         super().__init__(func, **kwargs)
+
         if hasattr(self.callback, '__lightning_argparser__'):
             raise_bad_flag = kwargs.pop('raise_bad_flag', True)
             self.callback.__lightning_argparser__.raise_on_bad_flag = raise_bad_flag
+
+        parser = kwargs.pop('parser', None)
+        if parser:
+            # Ability to add a flag parser with predefined flags.
+            self.callback.__lightning_argparser__ = parser
 
     async def _parse_flag_args(self, ctx):
         args = await self.callback.__lightning_argparser__.parse_args(ctx)
