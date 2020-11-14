@@ -24,7 +24,7 @@ import discord
 from discord.ext import commands
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, converters, errors, group)
+                       LightningContext, command, converters, errors, group)
 from lightning.utils.checks import has_guild_permissions, is_one_of_guilds
 from lightning.utils.modlogformats import action_format
 from lightning.utils.paginator import BasicEmbedMenu, InfoMenuPages
@@ -42,7 +42,7 @@ class Emoji(LightningCog):
     def approved_ne(self):
         return self.nitroemoji_approved
 
-    @commands.command(aliases=['nemoji', 'nitro'])
+    @command(aliases=['nemoji', 'nitro'])
     @commands.cooldown(3, 15.0, commands.BucketType.channel)
     async def nitroemoji(self, ctx: LightningContext, emoji: str) -> None:
         """Posts either an animated emoji or non-animated emoji if found
@@ -186,7 +186,7 @@ class Emoji(LightningCog):
         """Gives some info on an emote.
 
         Unicode emoji are not supported."""
-        embed = discord.Embed(title=f"Emoji Info for {emote.name}", color=0xFFFF00)
+        embed = discord.Embed(title=emote.name, color=0xFFFF00)
         embed.description = f"[Emoji Link]({emote.url})"
         embed.add_field(name="ID", value=emote.id)
         embed.set_thumbnail(url=emote.url)
