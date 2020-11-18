@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS guild_config
 (
     guild_id BIGINT PRIMARY KEY,
     prefix TEXT [],
-    autorole BIGINT
+    autorole BIGINT,
+    invoke_delete BOOLEAN DEFAULT 'f';
 );
 
 CREATE TABLE IF NOT EXISTS guild_mod_config

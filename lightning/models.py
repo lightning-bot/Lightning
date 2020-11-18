@@ -162,3 +162,12 @@ class Timer:
 
     def __repr__(self):
         return f"<Timer id={self.id} event={self.event} created_at={self.created_at}>"
+
+
+class GuildBotConfig:
+    __slots__ = ("autorole", "invoke_delete")
+
+    def __init__(self, record):
+        # Do I need prefix?
+        self.autorole = record['autorole']
+        self.invoke_delete = record['invoke_delete'] or False
