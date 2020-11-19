@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 import colorsys
 import io
 import math
@@ -43,8 +42,8 @@ class Fun(LightningCog):
 
     @executor_function
     def make_kcdt(self, text: str) -> io.BytesIO:
-        img = Image.open("resources/templates/kurisudrawtemp.png")
-        dafont = ImageFont.truetype(font="resources/fonts/arialrounded.ttf",
+        img = Image.open("resources/templates/kurisudraw.png")
+        dafont = ImageFont.truetype(font="resources/fonts/Montserrat-Regular.ttf",
                                     size=42, encoding="unic")
         draw = ImageDraw.Draw(img)
         # Shoutouts to that person on stackoverflow that I don't remember
@@ -96,9 +95,9 @@ class Fun(LightningCog):
 
     @executor_function
     def make_lakitu(self, text: str) -> io.BytesIO:
-        img = Image.open("resources/templates/lakitutemp.png")
-        verdana = ImageFont.truetype(font="resources/fonts/verdana.ttf",
-                                     size=86, encoding="unic")
+        img = Image.open("resources/templates/fyi.png")
+        font = ImageFont.truetype(font="resources/fonts/Heebo-Regular.ttf",
+                                  size=86, encoding="unic")
         draw = ImageDraw.Draw(img)
         text = textwrap.wrap(text, width=19)
         y_text = 200
@@ -106,9 +105,9 @@ class Fun(LightningCog):
         for line in text:
             if y_text >= 706:
                 break
-            line_width, line_height = draw.textsize(line, font=verdana)
+            line_width, line_height = draw.textsize(line, font=font)
             draw.multiline_text(((wdmax - line_width) / 2, y_text),
-                                line, font=verdana,
+                                line, font=font,
                                 fill="black")  # align="center")
             y_text += line_height
         finalbuffer = io.BytesIO()
