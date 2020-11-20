@@ -189,43 +189,29 @@ class Strategy(enum.Enum):
     redis = 4, RedisCache
 
 
+def key_builder(args, kwargs, *, ignore_kwargs=False) -> str:
+    key = []
+    # I don't care about self and need an easy way to invalidate
+    key.extend(repr(o) for o in args if o.__class__.__repr__ is not object.__repr__)
+
+    if not ignore_kwargs:
+        for k, v in kwargs.items():
+            if k == 'connection' or k == 'conn':
+                continue
+
+            key.append(repr(k))
+            key.append(repr(v))
+
+    return ':'.join(key)
+
+
 class cached:
     def __init__(self, name, strategy=Strategy.raw, *, rename_to_func=False, ignore_kwargs=False, **kwargs):
-        key_builder = self.deco_key_builder
         self.rename_to_func = rename_to_func
         self.ignore_kwargs = ignore_kwargs
         self.key_builder = key_builder
 
         self.cache = strategy.value[1](name, **kwargs)
-
-    # deco_key_builder is provided by Rapptz under the function name of _make_key
-    # Copyright ©︎ 2015 Rapptz - MIT License
-    # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/utils/cache.py#L62
-    @staticmethod
-    def deco_key_builder(func, args, kwargs, *, ignore_kwargs=False):
-        # this is a bit of a cluster fuck
-        # we do care what 'self' parameter is when we __repr__ it
-        def _true_repr(o):
-            if o.__class__.__repr__ is object.__repr__:
-                return f'<{o.__class__.__module__}.{o.__class__.__name__}>'
-            return repr(o)
-
-        key = [f'{func.__module__}.{func.__name__}']
-        key.extend(_true_repr(o) for o in args)
-
-        if not ignore_kwargs:
-            for k, v in kwargs.items():
-                # note: this only really works for this use case in particular
-                # I want to pass asyncpg.Connection objects to the parameters
-                # however, they use default __repr__ and I do not care what
-                # connection is passed in, so I needed a bypass.
-                if k == 'connection':
-                    continue
-
-                key.append(_true_repr(k))
-                key.append(_true_repr(v))
-
-        return ':'.join(key)
 
     def __call__(self, func):
         if self.rename_to_func is True:
@@ -236,13 +222,13 @@ class cached:
             return await self.decorator(func, *args, **kwargs)
 
         async def _invalidate(*args, **kwargs):
-            return await self.cache.invalidate(self.key_builder(func, args, kwargs, ignore_kwargs=self.ignore_kwargs))
+            return await self.cache.invalidate(key_builder(args, kwargs, ignore_kwargs=self.ignore_kwargs))
 
         wrapper.invalidate = _invalidate
         return wrapper
 
     async def decorator(self, func, *args, **kwargs):
-        key = self.key_builder(func, args, kwargs, ignore_kwargs=self.ignore_kwargs)
+        key = key_builder(args, kwargs, ignore_kwargs=self.ignore_kwargs)
         try:
             value = await self.cache.get(key)
         except Exception:
