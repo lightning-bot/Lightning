@@ -36,11 +36,10 @@ log = logging.getLogger(__name__)
 class Emoji(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
-        self.nitroemoji_approved = bot.config['bot']['nitro_emoji_guilds']
 
     @property
-    def approved_ne(self):
-        return self.nitroemoji_approved
+    def apne(self):
+        return self.bot.config['bot']['nitro_emoji_guilds'] or []
 
     @command(aliases=['nemoji', 'nitro'])
     @commands.cooldown(3, 15.0, commands.BucketType.channel)
@@ -51,13 +50,14 @@ class Emoji(LightningCog):
         emojiname: str = emoji.strip(':;')
         emoji: str = discord.utils.get(self.bot.emojis, name=emojiname)
 
-        if emoji and emoji.guild_id in self.nitroemoji_approved:
-            await ctx.send(emoji)
+        if emoji and emoji.guild_id in self.apne:
+            await ctx.send(str(emoji))
             return
 
         emojiname = emojiname.lower()
-        rand = list(filter(lambda m: emojiname in m.name.lower() and m.is_usable() and m.guild_id in self.approved_ne,
+        rand = list(filter(lambda m: emojiname in m.name.lower() and m.is_usable() and m.guild_id in self.apne,
                            self.bot.emojis))
+
         if rand:
             em = random.choice(rand)
             await ctx.emoji_send(em)
@@ -71,10 +71,10 @@ class Emoji(LightningCog):
 
     @emoji.command()
     @commands.is_owner()
-    async def approvenitro(self, ctx: LightningContext, guild_id: converters.GuildID) -> None:
+    async def approvenitro(self, ctx: LightningContext, guild: converters.GuildID) -> None:
         """Approves a guild for the nitro emoji command"""
         table = self.bot.config['bot']['nitro_emoji_guilds']
-        await self.bot.config.append(table, guild_id)
+        await self.bot.config.append(table, guild.id)
         await ctx.tick(True)
 
     @emoji.command(aliases=['copy'], level=CommandLevel.Admin)
