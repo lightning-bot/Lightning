@@ -15,12 +15,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import typing
+from io import StringIO
 
 import discord
 from discord.ext import commands
+import tabulate
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, group)
+                       LightningContext, group, command)
 from lightning.converters import Role, RoleSearch
 from lightning.utils import paginator
 from lightning.utils.checks import has_guild_permissions
@@ -28,6 +30,16 @@ from lightning.utils.checks import has_guild_permissions
 
 class Roles(LightningCog):
     """Role based commands"""
+
+    @command()
+    async def rolemembers(self, ctx: LightningContext, *, role: discord.Role):
+        """Lists role members"""
+        if len(role.members) == 0:
+            await ctx.send(f"{str(role)} has no members.")
+            return
+
+        fp = StringIO(tabulate.tabulate([(str(r), r.id) for r in role.members], ("Name", "ID")))
+        await ctx.send(file=discord.File(fp, "members.txt"))
 
     @group(aliases=['selfrole'], invoke_without_command=True, require_var_positional=True)
     @commands.guild_only()
