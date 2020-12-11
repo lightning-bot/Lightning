@@ -130,7 +130,7 @@ resolved_reference = "c742658a393f432853b7b7b5b8f00a7aa544222c"
 
 [[package]]
 name = "discord.py"
-version = "1.6.0a2601+g4c53204"
+version = "1.6.0a2612+g2a31b6f"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -148,11 +148,11 @@ voice = ["PyNaCl (>=1.3.0,<1.5)"]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
 reference = "master"
-resolved_reference = "4c53204edbb381af326e79a16fcbe1684246fb35"
+resolved_reference = "2a31b6f81aeaa1508949e21dc64bdf0eb27d72c8"
 
 [[package]]
 name = "discord.py-stubs"
-version = "1.5.1.1"
+version = "1.5.1.2"
 description = "discord.py stubs"
 category = "main"
 optional = true
@@ -269,23 +269,30 @@ colors = ["colorama (>=0.4.3,<0.5.0)"]
 
 [[package]]
 name = "jishaku"
-version = "1.19.2.202"
+version = "2.0.0"
 description = "A discord.py extension including useful tools for bot development and debugging."
 category = "main"
 optional = false
-python-versions = ">=3.6.0"
+python-versions = ">=3.7.0"
+develop = false
 
 [package.dependencies]
 braceexpand = ">=0.1.5"
-"discord.py" = ">=1.3.4"
+"discord.py" = ">=1.5.0"
 humanize = "*"
 import-expression = ">=1.0.0,<2.0.0"
 
 [package.extras]
 docs = ["sphinx (>=3.1.2)", "sphinxcontrib-asyncio"]
 procinfo = ["psutil"]
-test = ["coverage", "flake8", "isort (<4.3.5)", "pylint", "pytest", "pytest-cov", "pytest-mock"]
-voice = ["PyNaCl (>=1.3.0)", "youtube-dl"]
+test = ["coverage", "flake8", "isort", "pylint", "pytest", "pytest-cov", "pytest-mock"]
+voice = ["discord.py[voice] (>=1.5.0)", "youtube-dl"]
+
+[package.source]
+type = "git"
+url = "https://gitlab.com/Gorialis/jishaku.git"
+reference = "master"
+resolved_reference = "98a4e0f2f186d961231db20b61cee80450f69fb9"
 
 [[package]]
 name = "lru-dict"
@@ -621,7 +628,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "1d3c4670b4da184278fe4469f8b020166b9751f0377a9c516e957f133fcc4a1b"
+content-hash = "528193c5ef8f93bd5a2c8c16f664a34cc25ecfaa26fc7a597a70adceaf01225d"
 
 [metadata.files]
 aiohttp = [
@@ -704,8 +711,8 @@ dictionaries = [
 discord-ext-menus = []
 "discord.py" = []
 "discord.py-stubs" = [
-    {file = "discord.py-stubs-1.5.1.1.tar.gz", hash = "sha256:8b84099d203e68bc45136fb90e507c87c2e9b0b65ec2af4d069e801a8c9a77a5"},
-    {file = "discord.py_stubs-1.5.1.1-py3-none-any.whl", hash = "sha256:ace2767db0468a56343d41da2cb7ec64ccdea844ce0d1d88fdbe09ac03ee88ed"},
+    {file = "discord.py-stubs-1.5.1.2.tar.gz", hash = "sha256:62f979204ad268b1ba2e390e01ac9fa1ce056a84d06678a1ed3c9fdc80e66077"},
+    {file = "discord.py_stubs-1.5.1.2-py3-none-any.whl", hash = "sha256:c013abb2db8e4029cdbec3f31da97e961cd535976015dc093190726f82e1d97c"},
 ]
 feedparser = [
     {file = "feedparser-5.2.1.tar.bz2", hash = "sha256:ce875495c90ebd74b179855449040003a1beb40cd13d5f037a0654251e260b02"},
@@ -788,14 +795,7 @@ isort = [
     {file = "isort-5.6.4-py3-none-any.whl", hash = "sha256:dcab1d98b469a12a1a624ead220584391648790275560e1a43e54c5dceae65e7"},
     {file = "isort-5.6.4.tar.gz", hash = "sha256:dcaeec1b5f0eca77faea2a35ab790b4f3680ff75590bfcb7145986905aab2f58"},
 ]
-jishaku = [
-    {file = "jishaku-1.19.2.202-py3-none-any.whl", hash = "sha256:4a6bf3e43249c1ddd09424feeb27f6d6b4fcda72abf87aad75df326beb999ba8"},
-    {file = "jishaku-1.19.2.202-py3.6.egg", hash = "sha256:8861db8ce43017bf071d6b564be1e16ee31a814fddd7a2bd9ba85fde37d3e701"},
-    {file = "jishaku-1.19.2.202-py3.7.egg", hash = "sha256:be94901205a023e61071e45151eb369d83ca2ee5829c8a54e38f44e35bebd2dc"},
-    {file = "jishaku-1.19.2.202-py3.8.egg", hash = "sha256:976e79752c0ad92d13d29c366e3a6eb32825a69b3067b10a5de7d518dc454a14"},
-    {file = "jishaku-1.19.2.202-py3.9.egg", hash = "sha256:baa6b50bb00f4641002fd8794eca60e3292ec726c9aeef30ef2c30dd3034fbfe"},
-    {file = "jishaku-1.19.2.202.tar.gz", hash = "sha256:6abb2cb5e26cd453f9ada4e6fc99b7f26c79f55cc2677db267cc69143bb04eac"},
-]
+jishaku = []
 lru-dict = [
     {file = "lru-dict-1.1.6.tar.gz", hash = "sha256:365457660e3d05b76f1aba3e0f7fedbfcd6528e97c5115a351ddd0db488354cc"},
 ]
