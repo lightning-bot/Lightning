@@ -1,9 +1,11 @@
-# Lightning.py
 [![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/SpFjsy3)
 [![Pipeline Status](https://img.shields.io/gitlab/pipeline/lightning-bot/Lightning/v3?label=Pipeline&logo=GitLab)](https://gitlab.com/lightning-bot/Lightning/pipelines/latest)
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://gitlab.com/lightning-bot/Lightning)
 
-A personal Discord bot.
+---
+<h1 align='center'>Lightning.py</h1>
+<center>A personal Discord bot</center>
+<br></br>
 
 ---
 ## Invite
