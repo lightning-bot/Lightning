@@ -60,7 +60,7 @@ class Reminders(LightningCog):
                    WHERE "expiry" < (CURRENT_DATE + $1::interval)
                    ORDER BY "expiry" LIMIT 1;"""
         record = await self.bot.pool.fetchrow(query, timedelta(days=24))
-        return Timer(record) if record else None
+        return Timer.from_record(record) if record else None
 
     async def short_timers(self, seconds: float, record: Timer) -> None:
         """A short loop for the bot to process small timers."""
@@ -99,10 +99,8 @@ class Reminders(LightningCog):
         """
         delta = (expiry - created).total_seconds()
         if delta <= 60:
-            psuedo = {'id': None, 'event': event, 'created': created,
-                      'expiry': expiry, 'extra': kwargs}
             # A loop for small timers
-            return self.bot.loop.create_task(self.short_timers(delta, Timer(psuedo)))
+            return self.bot.loop.create_task(self.short_timers(delta, Timer(None, event, created, expiry, kwargs)))
 
         if kwargs:
             query = """INSERT INTO timers (event, created, expiry, extra)
@@ -267,25 +265,36 @@ class Reminders(LightningCog):
         timed_txt = lightning.utils.time.natural_timedelta(timer.created,
                                                            source=timer.expiry,
                                                            suffix=True)
-        message = f"{user.mention}: You asked to be reminded {timed_txt} about "\
+        message = f"You asked to be reminded {timed_txt} about "\
                   f"{timer.extra['reminder_text']}"
+
+        if not channel:
+            # We'll just dm them the reminder...
+            await dm_user(user, message)
+            return
 
         kwargs = {"allowed_mentions": discord.AllowedMentions(users=[user])}
 
         if "message_id" in timer.extra:
             if not hasattr(channel, 'guild'):
-                _id = '@me'
+                _id = None
             else:
                 _id = channel.guild.id
 
-            jump_url = f"https://discord.com/channels/{_id}/{channel.id}/{timer.extra['message_id']}"
-            embed = discord.Embed(description=f"[Jump to message]({jump_url})", color=discord.Color.blurple())
-            kwargs.update({"embed": embed})
+            ref = discord.MessageReference(message_id=timer.extra['message_id'], channel_id=channel.id, guild_id=_id)
+            kwargs.update({"reference": ref})
 
-        try:
-            await channel.send(message, **kwargs)
-        except (discord.Forbidden, discord.HTTPException, AttributeError):
-            await dm_user(user, message, **kwargs)
+        async def try_to_send(thing, msg):
+            try:
+                await thing.send(msg, **kwargs)
+            except (discord.Forbidden, discord.HTTPException, AttributeError) as e:
+                return e
+
+        e = await try_to_send(channel, message)
+        if hasattr(e, 'code'):
+            if e.code == 50035:
+                kwargs.pop("reference")
+                await try_to_send(channel, f"{user.mention}: {message}")
 
     async def check_ninupdate_feed(self):
         if not hasattr(self.bot, 'nintendo_updates'):
