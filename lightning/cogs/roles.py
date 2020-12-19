@@ -18,11 +18,11 @@ import typing
 from io import StringIO
 
 import discord
-from discord.ext import commands
 import tabulate
+from discord.ext import commands
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, group, command)
+                       LightningContext, command, group)
 from lightning.converters import Role, RoleSearch
 from lightning.utils import paginator
 from lightning.utils.checks import has_guild_permissions
@@ -32,7 +32,7 @@ class Roles(LightningCog):
     """Role based commands"""
 
     @command()
-    async def rolemembers(self, ctx: LightningContext, *, role: discord.Role):
+    async def rolemembers(self, ctx: LightningContext, *, role: discord.Role) -> None:
         """Lists role members"""
         if len(role.members) == 0:
             await ctx.send(f"{str(role)} has no members.")
