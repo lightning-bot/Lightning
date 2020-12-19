@@ -22,7 +22,7 @@ import yarl
 from discord.ext import commands
 
 from lightning.errors import (ChannelPermissionFailure, HierarchyException,
-                              LightningError)
+                              InvalidLevelArgument, LightningError)
 
 log = logging.getLogger(__name__)
 
@@ -270,3 +270,20 @@ class Role(commands.RoleConverter):
             raise HierarchyException("role")
 
         return role
+
+
+class Prefix(commands.Converter):
+    async def convert(self, ctx, argument) -> str:
+        user_id = ctx.bot.user.id
+        if argument.startswith((f'<@{user_id}>', f'<@!{user_id}>')):
+            raise commands.BadArgument('That is a reserved prefix already in use.')
+        if len(argument) > 50:
+            raise commands.BadArgument('You can\'t have a prefix longer than 50 characters!')
+        return argument
+
+
+def convert_to_level(argument):
+    if argument.lower() in ('trusted', 'mod', 'admin', 'owner', 'blocked'):
+        return argument
+    else:
+        raise InvalidLevelArgument(argument)
