@@ -14,10 +14,13 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import logging
+
 import discord
 from discord.ext import commands
 
 __all__ = ('CommandLevel', 'command', 'group', 'LightningCommand', 'LightningGroupCommand')
+log = logging.getLogger(__name__)
 
 
 class CommandLevel(discord.Enum):
@@ -51,6 +54,26 @@ class LightningCommand(commands.Command):
             raise TypeError("level kwarg must be an instance of CommandLevel")
         self.level = level
 
+    async def _resolve_permissions(self, ctx, user_level, *, fallback=True):
+        if user_level == CommandLevel.Blocked and self.level == CommandLevel.Blocked:
+            return True
+
+        if user_level == CommandLevel.Blocked and self.level != user_level:
+            return False
+
+        if user_level.value >= self.level.value:
+            return True
+
+        if not fallback:
+            return False
+
+        predicates = [pred for pred in self.checks if hasattr(pred, 'guild_permissions') or hasattr(pred, 'channel_permissions')]  # noqa
+        if not predicates:
+            # No permissions to fallback to...
+            return False
+
+        return await discord.utils.async_all(pred(ctx) for pred in predicates)
+
     async def _check_level(self, ctx) -> bool:
         # We need to check custom overrides first...
         bot = ctx.bot
@@ -60,7 +83,12 @@ class LightningCommand(commands.Command):
         elif not ctx.guild:
             return False
 
-        overrides = await bot.get_command_overrides(ctx.guild.id)
+        record = await bot.get_guild_bot_config(ctx.guild.id)
+        if not record or record.permissions is None:
+            log.debug("Resolving permissions without config")
+            return await self._resolve_permissions(ctx, CommandLevel.User)
+
+        overrides = record.permissions.command_overrides
         if overrides is not None:
             ids = [r.id for r in ctx.author.roles]
             ids.append(ctx.author.id)
@@ -71,7 +99,7 @@ class LightningCommand(commands.Command):
                 return False
 
         # Now the regular permissions
-        perm = await bot.get_permissions_config(ctx.guild.id)
+        perm = record.permissions.levels
 
         if perm is None:
             # We're gonna assume they are a user unless otherwise
@@ -79,25 +107,7 @@ class LightningCommand(commands.Command):
         else:
             user_level = perm.get_user_level(ctx.author.id, [r.id for r in ctx.author.roles])
 
-        if user_level == CommandLevel.Blocked and self.level == CommandLevel.Blocked:
-            return True
-
-        if user_level == CommandLevel.Blocked and self.level != user_level:
-            return False
-
-        if user_level.value >= self.level.value:
-            return True
-
-        should_fallback = getattr(perm, 'fallback_to_discord_perms', True)
-        if not should_fallback:
-            return False
-
-        predicates = [pred for pred in self.checks if hasattr(pred, 'guild_permissions') or hasattr(pred, 'channel_permissions')]  # noqa
-        if not predicates:
-            # No permissions to fallback to...
-            return False
-
-        return await discord.utils.async_all(pred(ctx) for pred in predicates)
+        return await self._resolve_permissions(ctx, user_level, fallback=record.permissions.fallback)
 
     def _filter_out_permissions(self) -> list:
         other_checks = []
