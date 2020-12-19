@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A personal Discord bot
 Copyright (C) 2020 - LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -14,9 +14,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import discord
+from datetime import datetime
+from typing import Union
 
-from lightning import errors
+import attr
+import discord
+from flags import Flags
+
+from lightning import errors, modlogformats
 from lightning.commands import CommandLevel
 from lightning.context import LightningContext
 from lightning.utils.time import natural_timedelta
@@ -31,6 +36,8 @@ class GuildModConfig:
         self.warn_kick = record['warn_kick']
         self.warn_ban = record['warn_ban']
         self.temp_mute_role_id = record['temp_mute_role_id']
+        self.automod = AutoModConfig.from_record(record)
+        self.raid_mode = record['raid_mode']
 
     def mute_role(self, ctx: LightningContext):
         if self.mute_role_id:
@@ -44,13 +51,25 @@ class GuildModConfig:
             return None
 
 
+@attr.s(slots=True)
 class Logging:
-    __slots__ = ('channel_id', 'types', 'format')
+    channel_id: int
+    types: list
+    format: str
 
-    def __init__(self, record):
-        self.channel_id = record['channel_id']
-        self.types = record['types']
-        self.format = record['format']
+    @classmethod
+    def from_record(cls, record):
+        return cls(record['channel_id'], record['types'], record['format'])
+
+
+@attr.s(slots=True)
+class AutoModConfig:
+    join_threshold_seconds: int
+    join_threshold_users: int
+
+    @classmethod
+    def from_record(cls, record):
+        return cls(record['automod_join_threshold_seconds'], record['automod_join_threshold_users'])
 
 
 class CommandOverrides:
@@ -58,11 +77,10 @@ class CommandOverrides:
 
     def __init__(self, records):
         self.overrides = {}
-        for record in records:
-            level = record['level']
-            overrides = record.get('id_overrides', None)
-            self.overrides[record['command']] = {"LEVEL": level,
-                                                 "OVERRIDES": overrides}
+        for command, record in list(records.items()):
+            level = record.get("LEVEL", None)
+            overrides = record.get("ID_OVERRIDES", None)
+            self.overrides[command] = {"LEVEL": level, "ID_OVERRIDES": overrides}
 
     def is_command_level_blocked(self, command: str):
         override = self.overrides.get(command, {}).get("LEVEL", None)
@@ -75,7 +93,7 @@ class CommandOverrides:
         return False
 
     def is_command_id_overriden(self, command: str, ids: list):
-        override_ids = self.overrides.get(command, {}).get("OVERRIDES", None)
+        override_ids = self.overrides.get(command, {}).get("ID_OVERRIDES", None)
         if override_ids is None:
             return False
 
@@ -99,36 +117,62 @@ class CommandOverrides:
 
         return True
 
+    def to_dict(self):
+        return self.overrides
+
     def __getitem__(self, key):
         return self.overrides[key]
 
 
-class GuildPermissions:
-    __slots__ = ('admin_ids', 'mod_ids', 'trusted_ids', 'blocked_ids', 'fallback_to_discord_perms')
-
+class LevelConfig:
     def __init__(self, record):
-        self.admin_ids = record['admin_ids'] or []
-        self.mod_ids = record['mod_ids'] or []
-        self.trusted_ids = record['trusted_ids'] or []
-        self.blocked_ids = record['blocked_ids'] or []
-        self.fallback_to_discord_perms = record['fallback_to_dperms'] or True
+        self.ADMIN = record.get("ADMIN", []) or []
+        self.MOD = record.get("MOD", []) or []
+        self.TRUSTED = record.get("TRUSTED", []) or []
+        self.BLOCKED = record.get("BLOCKED", []) or []
 
     def get_user_level(self, user_id: int, role_ids: list) -> CommandLevel:
         ids = [user_id]
         ids.extend(role_ids)
-        if any(r for r in ids if r in self.blocked_ids):
+        if any(r for r in ids if r in self.BLOCKED):
             return CommandLevel.Blocked
 
-        if any(r for r in ids if r in self.admin_ids):
+        if any(r for r in ids if r in self.ADMIN):
             return CommandLevel.Admin
 
-        if any(r for r in ids if r in self.mod_ids):
+        if any(r for r in ids if r in self.MOD):
             return CommandLevel.Mod
 
-        if any(r for r in ids if r in self.trusted_ids):
+        if any(r for r in ids if r in self.TRUSTED):
             return CommandLevel.Trusted
 
         return CommandLevel.User
+
+    def to_dict(self):
+        return {"ADMIN": self.ADMIN, "MOD": self.MOD, "TRUSTED": self.TRUSTED, "BLOCKED": self.BLOCKED}
+
+
+class GuildPermissionsConfig:
+    def __init__(self, record):
+        self.fallback = record.get('fallback', True)
+        self.command_overrides = CommandOverrides(record['COMMAND_OVERRIDES']) if "COMMAND_OVERRIDES" in record else \
+            None
+        self.levels = LevelConfig(record['LEVELS']) if "LEVELS" in record else None
+
+    def raw(self):
+        y = {}
+
+        if self.command_overrides:
+            y['COMMAND_OVERRIDES'] = self.command_overrides.to_dict()
+        else:
+            y["COMMAND_OVERRIDES"] = {}
+
+        if self.levels:
+            y.update({"LEVELS": self.levels.to_dict()})
+        else:
+            y['LEVELS'] = {}
+
+        return y
 
 
 class PartialGuild:
@@ -142,12 +186,16 @@ class PartialGuild:
 class Timer:
     __slots__ = ('extra', 'event', 'id', 'created_at', 'expiry')
 
-    def __init__(self, record):
-        self.id = record['id']
-        self.extra = record['extra']
-        self.event = record['event']
-        self.created_at = record['created']
-        self.expiry = record['expiry']
+    def __init__(self, id, event, created_at, expiry, extra):
+        self.id = id
+        self.event = event
+        self.created_at = created_at
+        self.expiry = expiry
+        self.extra = extra
+
+    @classmethod
+    def from_record(cls, record):
+        return cls(record['id'], record['event'], record['created'], record['expiry'], record['extra'])
 
     @property
     def created(self):
@@ -160,14 +208,56 @@ class Timer:
     def __int__(self):
         return self.id
 
-    def __repr__(self):
-        return f"<Timer id={self.id} event={self.event} created_at={self.created_at}>"
+
+class ConfigFlags(Flags):
+    invoke_delete = ()
+    role_reapply = ()
+    role_reapply_punishments_only = ()
 
 
 class GuildBotConfig:
-    __slots__ = ("autorole", "invoke_delete")
-
     def __init__(self, record):
-        # Do I need prefix?
+        self.guild_id = record['guild_id']
+        self.prefix = record['prefix']
         self.autorole = record['autorole']
-        self.invoke_delete = record['invoke_delete'] or False
+        self.flags = ConfigFlags(record['flags'] or 0)
+        self.permissions = GuildPermissionsConfig(record['permissions']) if record['permissions'] is not None else None
+
+    @property
+    def prefixes(self):
+        return self.prefix
+
+
+def to_action(value):
+    if isinstance(value, modlogformats.ActionType):
+        return value
+
+    a = getattr(modlogformats.ActionType, value)
+    if not a:
+        raise ValueError
+
+    return a
+
+
+class Action:
+    def __init__(self, guild_id: int, action: Union[modlogformats.ActionType, str],
+                 target: Union[discord.Member, discord.User, int],
+                 moderator: Union[discord.Member, discord.User, int], reason: str = None, **kwargs):
+        self.guild_id = guild_id
+        self.action = to_action(action)
+        self.target = target
+        self.moderator = moderator
+        self.reason = reason
+        self.kwargs = kwargs
+        self.timestamp = self.kwargs.pop("timestamp", datetime.utcnow())
+
+    async def log_infraction(self, connection) -> int:
+        query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at)
+                   VALUES ($1, $2, $3, $4, $5, $6)
+                   RETURNING id;"""
+        return await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
+                                         self.reason, self.timestamp)
+
+    @property
+    def event(self):
+        return self.action.upper()
