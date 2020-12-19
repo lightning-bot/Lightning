@@ -1,6 +1,10 @@
 image:
   file: .gitpod.Dockerfile
 
+vscode:
+  extensions:
+    - ms-python.python
+
 tasks:
   - init: |
       psql -c "CREATE USER lightning WITH PASSWORD 'test';"
