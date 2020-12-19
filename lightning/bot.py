@@ -35,7 +35,7 @@ from discord.ext import commands, menus
 from lightning import cache, config, errors
 from lightning.context import LightningContext
 from lightning.meta import __version__ as version
-from lightning.models import CommandOverrides, GuildPermissions
+from lightning.models import GuildBotConfig
 
 log = logging.getLogger(__name__)
 
@@ -58,16 +58,13 @@ async def _callable_prefix(bot, message):
         prefixes.append(".")
         return prefixes
 
-    cached = await bot.prefixes.get_or_default(message.guild.id)
-    if cached:
-        prefixes.extend(cached)
-        return prefixes
-    else:
-        ret = await bot.pool.fetchval("SELECT prefix FROM guild_config WHERE guild_id=$1", message.guild.id) or None
-        await bot.prefixes.set(message.guild.id, ret)
-        if ret:
-            prefixes.extend(ret)
-        return prefixes
+    record = await bot.get_guild_bot_config(message.guild.id)
+    prefix = getattr(record, "prefix", None)
+
+    if prefix:
+        prefixes.extend(prefix)
+
+    return prefixes
 
 
 class LightningBot(commands.AutoShardedBot):
@@ -86,7 +83,6 @@ class LightningBot(commands.AutoShardedBot):
         # This should be good enough
         self.command_spam_cooldown = commands.CooldownMapping.from_cooldown(6, 5.0, commands.BucketType.user)
 
-        self.prefixes = cache.LRUCache("prefixes", max_size=32)
         self.config = config.TOMLStorage('config.toml')
         self.version = version
         self._pending_cogs = {}
@@ -120,20 +116,13 @@ class LightningBot(commands.AutoShardedBot):
             await connection.set_type_codec('json', encoder=json.dumps, decoder=json.loads, schema='pg_catalog')
             await connection.set_type_codec('jsonb', encoder=json.dumps, decoder=json.loads, schema='pg_catalog')
 
-        pool = await asyncpg.create_pool(init=init, **kwargs)
-        self.pool = pool
+        self.pool = await asyncpg.create_pool(init=init, **kwargs)
 
-    @cache.cached('guild_permissions', cache.Strategy.lru, max_size=32)
-    async def get_permissions_config(self, guild_id):
-        query = """SELECT * FROM guild_permissions WHERE guild_id=$1;"""
+    @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=32)
+    async def get_guild_bot_config(self, guild_id: int) -> Optional[GuildBotConfig]:
+        query = """SELECT * FROM guild_config WHERE guild_id=$1;"""
         record = await self.pool.fetchrow(query, guild_id)
-        return GuildPermissions(record) if record else None
-
-    @cache.cached("command_overrides", cache.Strategy.lru, max_size=32)
-    async def get_command_overrides(self, guild_id: int) -> Optional[CommandOverrides]:
-        query = """SELECT * FROM command_overrides WHERE guild_id=$1;"""
-        record = await self.pool.fetch(query, guild_id)
-        return CommandOverrides(record) if record else None
+        return GuildBotConfig(record) if record else None
 
     def add_cog(self, cls) -> None:
         deps = getattr(cls, "__lightning_cog_deps__", None)
