@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS guild_config
     prefix TEXT [],
     autorole BIGINT,
     toggleroles BIGINT [],
-    invoke_delete BOOLEAN DEFAULT 'f',
-    "permissions" JSONB
+    flags INT,
+    "permissions" JSONB,
 );
 
 CREATE TABLE IF NOT EXISTS guild_mod_config
@@ -63,10 +63,11 @@ CREATE TABLE IF NOT EXISTS guild_mod_config
 
 CREATE TABLE IF NOT EXISTS roles
 (
-    guild_id BIGINT NOT NULL,
-    user_id BIGINT NOT NULL,
+    guild_id BIGINT,
+    user_id BIGINT,
     roles BIGINT [],
-    punishment_roles BIGINT []
+    punishment_roles BIGINT [],
+    UNIQUE (guild_id, user_id)
 );
 
 CREATE TYPE log_format_enum AS ENUM ('minimal with timestamp', 'minimal without timestamp', 'emoji', 'embed');
