@@ -112,3 +112,9 @@ class FlagInputError(FlagError, commands.UserInputError):
 class MissingRequiredFlagArgument(FlagInputError):
     def __init__(self, missing_flag):
         super().__init__(f"Missing required argument for flag \"{missing_flag}\"")
+
+
+class InvalidLevelArgument(LightningError, commands.UserInputError):
+    def __init__(self, arg):
+        super().__init__(f"{arg} is not a recognized level. Valid levels are \"Trusted\", \"Mod\", \"Admin\","
+                         "\"Owner\", \"Blocked\"")
