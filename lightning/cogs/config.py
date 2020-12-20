@@ -672,7 +672,7 @@ class Configuration(LightningCog):
         """Manages user permissions for the bot"""
         await ctx.send_help("config permissions")
 
-    async def add_id_to_level(self, guild_id, level, _id) -> None:
+    async def adjust_level(self, guild_id, level, _id, *, adjuster) -> bool:
         if level.lower() not in ('user', 'trusted', 'mod', 'admin', 'owner', 'blocked'):
             raise
 
@@ -685,39 +685,39 @@ class Configuration(LightningCog):
         level = level.upper()
 
         v: list = perms["LEVELS"].get(level, [])
-        if _id in v:
-            return
 
-        v.append(_id)
+        def append():
+            if _id in v:
+                return False
+            else:
+                v.append(_id)
+                return True
+
+        def remove():
+            if _id not in v:
+                return False
+            else:
+                v.remove(_id)
+                return True
+
+        adj = {"append": append,
+               "remove": remove}
+
+        res = adj[adjuster]()
+
+        if res is False:  # Nothing changed
+            return res
+
         perms["LEVELS"][level] = v
         await self.add_config_key(guild_id, "permissions", perms)
         await self.bot.get_guild_bot_config.invalidate(guild_id)
-
-    async def remove_id_from_level(self, guild_id: int, _id: int, level: str) -> bool:
-        if level.lower() not in ('user', 'trusted', 'mod', 'admin', 'owner', 'blocked'):
-            raise
-
-        record = await self.bot.get_guild_bot_config(guild_id)
-        if record.permissions is None or record.permissions.levels is None:
-            perms = {"LEVELS": {}}
-        else:
-            perms = record.permissions.raw()
-
-        v: list = perms["LEVELS"].get(level.upper(), [])
-        if _id not in v:
-            return False
-
-        v.remove(_id)
-        perms["LEVELS"][level.upper()] = v
-        await self.add_config_key(guild_id, "permissions", perms)
-        await self.bot.get_guild_bot_config.invalidate(guild_id)
-        return True
+        return res
 
     @permissions.command(name='add', level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
     async def permissions_add(self, ctx: LightningContext, level: convert_to_level, _id: discord.Member) -> None:
         """Adds a user to a level"""
-        await self.add_id_to_level(ctx.guild.id, level, _id.id)
+        await self.adjust_level(ctx.guild.id, level, _id.id, adjuster="append")
         await ctx.tick(True)
 
     @permissions.command(name='remove', level=CommandLevel.Admin)
@@ -725,7 +725,7 @@ class Configuration(LightningCog):
     async def permissions_remove(self, ctx: LightningContext, level: convert_to_level,
                                  _id: Union[discord.Member, int]) -> None:
         """Removes a user from a level"""
-        added = await self.remove_id_from_level(ctx.guild.id, _id.id, level, ctx=ctx)
+        added = await self.adjust_level(ctx.guild.id, _id.id, level, adjuster="remove")
         if not added:
             await ctx.send(f"{_id} was never added to that level.")
             return
@@ -819,7 +819,7 @@ class Configuration(LightningCog):
 
         if command in perms["COMMAND_OVERRIDES"]:
             overrides = perms['COMMAND_OVERRIDES'][command].get("ID_OVERRIDES", [])
-            overrides.append([r for r in uids if r not in overrides])
+            overrides.extend([r for r in uids if r not in overrides])
         else:
             perms['COMMAND_OVERRIDES'].update({command: {"ID_OVERRIDES": list(uids)}})
 
@@ -847,7 +847,7 @@ class Configuration(LightningCog):
         await ctx.tick(True)
 
     @has_guild_permissions(manage_guild=True)
-    @commandoverrides.command(level=CommandLevel.Admin)
+    @commandoverrides.command(name="reset", level=CommandLevel.Admin)
     async def reset_overrides(self, ctx: LightningContext) -> None:
         """Removes all command overrides for this server"""
         query = "UPDATE guild_config SET permissions = permissions - 'COMMAND_OVERRIDES' WHERE guild_id=$1;"
