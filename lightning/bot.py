@@ -254,11 +254,15 @@ class LightningBot(commands.AutoShardedBot):
 
         return token
 
-    async def on_command_error(self, ctx, error):
+    async def on_command_error(self, ctx: LightningContext, error):
         # If command or cog has it's own error handler, return
-        handler = getattr(ctx.cog, 'cog_command_error')
-        overridden = ctx.cog._get_overridden_method(handler)
-        if hasattr(ctx.command, 'on_error') or overridden:
+        if hasattr(ctx, 'cog'):
+            handler = getattr(ctx.cog, 'cog_command_error')
+            overridden = ctx.cog._get_overridden_method(handler)
+            if overridden:
+                return
+
+        if hasattr(ctx.command, 'on_error'):
             return
 
         error = getattr(error, "original", error)
