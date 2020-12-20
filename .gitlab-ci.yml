@@ -8,8 +8,8 @@ flake8:
   script:
   - pip install flake8
   - flake8 .
-  only:
-    changes:
+  rules:
+    - changes:
       - lightning/**/*
 
 isort:
@@ -18,8 +18,8 @@ isort:
   script:
     - pip install isort
     - isort --check --diff .
-  only:
-    changes:
+  rules:
+    - changes:
       - "**/*.py"
 
 variables:
@@ -35,8 +35,8 @@ Test Schema Creation:
   script:
   - export PGPASSWORD=$POSTGRES_PASSWORD
   - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v "ON_ERROR_STOP=1" -f scripts/schema.sql
-  only:
-    changes:
+  rules:
+    - changes:
       - scripts/*.{sql}
 
 Publish release to Sentry:
@@ -49,4 +49,5 @@ Publish release to Sentry:
     - sentry-cli releases new $CI_COMMIT_SHA --project $SENTRY_PROJECT
     - sentry-cli releases set-commits --auto "$CI_COMMIT_SHA"
     - sentry-cli releases finalize $CI_COMMIT_SHA
-
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "v3"'
