@@ -29,7 +29,9 @@ class CommandLevel(discord.Enum):
     Mod = 3
     Admin = 4
     Owner = 5
-    Blocked = 6
+    Blocked = 6  # should never be used
+    # Allows us to disable a command by default
+    Disabled = 7
 
 
 def command(**kwargs):
@@ -52,11 +54,20 @@ class LightningCommand(commands.Command):
         level = kwargs.pop('level', CommandLevel.User)
         if not isinstance(level, CommandLevel):
             raise TypeError("level kwarg must be an instance of CommandLevel")
+
+        if level == CommandLevel.Blocked:
+            raise ValueError("level cannot be set to Blocked")
+
         self.level = level
 
     async def _resolve_permissions(self, ctx, user_level, *, fallback=True):
-        if user_level == CommandLevel.Blocked and self.level == CommandLevel.Blocked:
-            return True
+        # This shouldn't even happen...
+        # if user_level == CommandLevel.Blocked and self.level == CommandLevel.Blocked:
+        #    return True
+
+        if self.level == CommandLevel.Disabled:
+            # Disabled...
+            return False
 
         if user_level == CommandLevel.Blocked and self.level != user_level:
             return False
