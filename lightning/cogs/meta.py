@@ -646,7 +646,8 @@ class Meta(LightningCog):
                     "ANIMATED_ICON": "Animated Server Icon",
                     "BANNER": "Banner",
                     "VANITY_URL": "Vanity Invite URL",
-                    "NEWS": "News Channels"}
+                    "NEWS": "News Channels",
+                    "MEMBER_VERIFICATION_GATE_ENABLED": "Membership Screening"}
         guild_features = []
         for key, value in features.items():
             if key in guild.features:
