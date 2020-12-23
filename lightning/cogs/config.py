@@ -743,9 +743,9 @@ class Configuration(LightningCog):
             perms = record.permissions.raw()
 
         if command in perms["COMMAND_OVERRIDES"]:
-            perms['COMMAND_OVERRIDES'][command]["LEVEL"] = CommandLevel.Blocked
+            perms['COMMAND_OVERRIDES'][command]["LEVEL"] = CommandLevel.Disabled.value
         else:
-            perms['COMMAND_OVERRIDES'].update({command: {"LEVEL": CommandLevel.Blocked}})
+            perms['COMMAND_OVERRIDES'].update({command: {"LEVEL": CommandLevel.Disabled.value}})
 
         await self.add_config_key(ctx.guild.id, "permissions", perms)
         await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
@@ -772,7 +772,7 @@ class Configuration(LightningCog):
         await ctx.tick(True)
 
     @permissions.command(level=CommandLevel.Owner)
-    @has_guild_permissions(administrator=True)  # TODO: Replace with an owner check
+    @has_guild_permissions(manage_guild=True)  # TODO: Replace with an owner check
     async def fallback(self, ctx, boolean: bool) -> None:
         """Toggles the fallback permissions feature"""
         await self.add_config_key(ctx.guild.id, "fallback", boolean, column="guild_permissions")
@@ -780,7 +780,7 @@ class Configuration(LightningCog):
         await ctx.tick(True)
 
     @permissions.command(level=CommandLevel.Admin, name="show")
-    @has_guild_permissions(administrator=True)
+    @has_guild_permissions(manage_guild=True)
     async def show_perms(self, ctx: LightningContext) -> None:
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         await ctx.send(f"```json\n{record.permissions.raw()}```")

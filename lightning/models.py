@@ -87,7 +87,7 @@ class CommandOverrides:
         if override is None:
             return False
 
-        if override == CommandLevel.Blocked.value:
+        if override == CommandLevel.Disabled.value:
             return True
 
         return False
