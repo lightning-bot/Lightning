@@ -399,23 +399,40 @@ class Configuration(LightningCog):
         _session = SetupMenu(channel, timeout=60, clear_reactions_after=True)
         await _session.start(ctx, wait=True)
 
+    async def toggle_feature_flag(self, guild_id: int, flag: ConfigFlags) -> ConfigFlags:
+        """Toggles a feature flag for a guild
+
+        Parameters
+        ----------
+        guild_id : int
+            The ID of the server
+        flag : ConfigFlags
+            The flag that is being toggled.
+
+        Returns
+        -------
+        ConfigFlags
+            Returns the newly created flags.
+        """
+        record = await self.bot.get_guild_bot_config(guild_id)
+        toggle = record.flags - flag if record.flags.invoke_delete is True else \
+            record.flags | flag
+        await self.add_config_key(guild_id, "flags", int(toggle))
+        await self.bot.get_guild_bot_config.invalidate(guild_id)
+        return toggle
+
     @config.command(level=CommandLevel.Admin)
     @commands.bot_has_guild_permissions(manage_messages=True)
     @has_guild_permissions(manage_guild=True)
     async def invokedelete(self, ctx: LightningContext) -> None:
         """Toggles the option to remove command invocation messages"""
-        record = await self.bot.get_guild_bot_config(ctx.guild.id)
-        # TODO: User prompt...
-        toggle = record.flags - ConfigFlags.invoke_delete if record.flags.invoke_delete is True else \
-            record.flags | ConfigFlags.invoke_delete
-        await self.add_config_key(ctx.guild.id, "flags", int(toggle))
+        toggle = await self.toggle_feature_flag(ctx.guild.id, ConfigFlags.invoke_delete)
 
         if toggle.invoke_delete:
             piece = "Now deleting"
         else:
             piece = "No longer deleting"
 
-        await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.send(f"{piece} successful command invocation messages")
 
     @LightningCog.listener()
@@ -499,18 +516,12 @@ class Configuration(LightningCog):
     @config.command()
     @has_guild_permissions(manage_guild=True)
     async def rolereapply(self, ctx: LightningContext) -> None:
-        record = await self.bot.get_guild_bot_config(ctx.guild.id)
+        toggle = await self.toggle_feature_flag(ctx.guild.id, ConfigFlags.role_reapply)
 
-        flags = record.flags - ConfigFlags.role_reapply if record.flags.role_reapply is True else \
-            record.flags | ConfigFlags.role_reapply
-
-        if flags.role_reapply:
+        if toggle.role_reapply:
             piece = "Now"
         else:
             piece = "No longer"
-
-        await self.add_config_key(ctx.guild.id, "flags", int(flags))
-        await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
 
         await ctx.send(f"{piece} saving member roles.")
 
