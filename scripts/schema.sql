@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS guild_config
     autorole BIGINT,
     toggleroles BIGINT [],
     flags INT,
-    "permissions" JSONB,
+    "permissions" JSONB
 );
 
 CREATE TABLE IF NOT EXISTS guild_mod_config
