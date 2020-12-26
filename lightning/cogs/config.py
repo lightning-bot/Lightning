@@ -783,7 +783,7 @@ class Configuration(LightningCog):
         await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.tick(True)
 
-    @permissions.command(level=CommandLevel.Owner)
+    @permissions.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)  # TODO: Replace with an owner check
     async def fallback(self, ctx, boolean: bool) -> None:
         """Toggles the fallback permissions feature"""
