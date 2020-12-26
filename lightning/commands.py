@@ -58,6 +58,9 @@ class LightningCommand(commands.Command):
         if level == CommandLevel.Blocked:
             raise ValueError("level cannot be set to Blocked")
 
+        if level == CommandLevel.Owner:
+            raise NotImplementedError
+
         self.level = level
 
     async def _resolve_permissions(self, ctx, user_level, *, fallback=True):
@@ -99,6 +102,12 @@ class LightningCommand(commands.Command):
             log.debug("Resolving permissions without config")
             return await self._resolve_permissions(ctx, CommandLevel.User)
 
+        if record.permissions.levels is None:
+            # We're gonna assume they are a user unless otherwise
+            user_level = CommandLevel.User
+        else:
+            user_level = record.permissions.levels.get_user_level(ctx.author.id, [r.id for r in ctx.author.roles])
+
         overrides = record.permissions.command_overrides
         if overrides is not None:
             ids = [r.id for r in ctx.author.roles]
@@ -109,14 +118,14 @@ class LightningCommand(commands.Command):
             if overrides.is_command_level_blocked(self.qualified_name) is True:
                 return False
 
-        # Now the regular permissions
-        perm = record.permissions.levels
+            # Level Overrides
+            raw = overrides.get_overrides(self.qualified_name)
 
-        if perm is None:
-            # We're gonna assume they are a user unless otherwise
-            user_level = CommandLevel.User
-        else:
-            user_level = perm.get_user_level(ctx.author.id, [r.id for r in ctx.author.roles])
+            if raw is not None and "LEVEL" in raw:
+                if user_level.value >= raw["LEVEL"]:
+                    return True
+                # Command overrides won't fallback
+                return False
 
         return await self._resolve_permissions(ctx, user_level, fallback=record.permissions.fallback)
 

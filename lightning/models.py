@@ -82,6 +82,9 @@ class CommandOverrides:
             overrides = record.get("ID_OVERRIDES", None)
             self.overrides[command] = {"LEVEL": level, "ID_OVERRIDES": overrides}
 
+    def get_overrides(self, command: str):
+        return self.overrides.get(command, None)
+
     def is_command_level_blocked(self, command: str):
         override = self.overrides.get(command, {}).get("LEVEL", None)
         if override is None:
