@@ -26,7 +26,7 @@ from lightning import (CommandLevel, LightningBot, LightningCog,
 from lightning import command as lcommand
 from lightning import group as lgroup
 from lightning.converters import (Prefix, Role, ValidCommandName,
-                                  convert_to_level)
+                                  convert_to_level, convert_to_level_value)
 from lightning.formatters import plural
 from lightning.models import ConfigFlags, GuildModConfig
 from lightning.utils.checks import has_guild_permissions
@@ -251,6 +251,18 @@ class ConfigViewerMenu(menus.Menu):
         await self.message.edit(embed=self.give_help())
 
 
+Features = {"role saver": (ConfigFlags.role_reapply, "Now saving member roles.", "No longer saving member roles."),
+            "invoke delete": (ConfigFlags.invoke_delete, "Now deleting successful command invocation messages",
+                              "No longer deleting successful command invocation messages")}
+
+
+def convert_to_feature(argument):
+    if argument.lower() in Features.keys():
+        return Features[argument.lower()]
+    else:
+        raise commands.BadArgument(f"\"{argument}\" is not a valid feature flag.")
+
+
 class Configuration(LightningCog):
     """Server configuration commands"""
 
@@ -292,7 +304,7 @@ class Configuration(LightningCog):
           - Logging
           - Prefixes
           - Command Overrides
-          - InvokeDelete
+          - Feature Flags
           - Levels"""
         await ctx.send_help('config')
 
@@ -424,16 +436,17 @@ class Configuration(LightningCog):
     @config.command(level=CommandLevel.Admin)
     @commands.bot_has_guild_permissions(manage_messages=True)
     @has_guild_permissions(manage_guild=True)
-    async def invokedelete(self, ctx: LightningContext) -> None:
-        """Toggles the option to remove command invocation messages"""
-        toggle = await self.toggle_feature_flag(ctx.guild.id, ConfigFlags.invoke_delete)
+    async def toggle(self, ctx: LightningContext, *, feature: convert_to_feature) -> None:
+        """Toggles a feature flag"""
+        flag, piece_yes, piece_no = feature
+        toggle = await self.toggle_feature_flag(ctx.guild.id, flag)
 
-        if toggle.invoke_delete:
-            piece = "Now deleting"
+        if flag in toggle:
+            piece = piece_yes
         else:
-            piece = "No longer deleting"
+            piece = piece_no
 
-        await ctx.send(f"{piece} successful command invocation messages")
+        await ctx.send(piece)
 
     @LightningCog.listener()
     async def on_command_completion(self, ctx: LightningContext) -> None:
@@ -512,18 +525,6 @@ class Configuration(LightningCog):
             for role in record['roles']:
                 get_and_append(role)
             await member.add_roles(*roles, reason="Applying old roles back.")
-
-    @config.command()
-    @has_guild_permissions(manage_guild=True)
-    async def rolereapply(self, ctx: LightningContext) -> None:
-        toggle = await self.toggle_feature_flag(ctx.guild.id, ConfigFlags.role_reapply)
-
-        if toggle.role_reapply:
-            piece = "Now"
-        else:
-            piece = "No longer"
-
-        await ctx.send(f"{piece} saving member roles.")
 
     @LightningCog.listener()
     async def on_member_remove(self, member):
@@ -833,6 +834,25 @@ class Configuration(LightningCog):
             overrides.extend([r for r in uids if r not in overrides])
         else:
             perms['COMMAND_OVERRIDES'].update({command: {"ID_OVERRIDES": list(uids)}})
+
+        await self.add_config_key(ctx.guild.id, "permissions", perms)
+        await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
+        await ctx.tick(True)
+
+    @has_guild_permissions(manage_guild=True)
+    @commandoverrides.command(name='changelevel', level=CommandLevel.Admin)
+    async def change_command_level(self, ctx: LightningContext, command: ValidCommandName,
+                                   level: convert_to_level_value):
+        record = await self.bot.get_guild_bot_config(ctx.guild.id)
+        if record.permissions is None:
+            perms = {"COMMAND_OVERRIDES": {}}
+        else:
+            perms = record.permissions.raw()
+
+        if command in perms['COMMAND_OVERRIDES']:
+            perms['COMMAND_OVERRIDES'][command]["LEVEL"] = level.value
+        else:
+            perms['COMMAND_OVERRIDES'].update({command: {"LEVEL": level.value}})
 
         await self.add_config_key(ctx.guild.id, "permissions", perms)
         await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)

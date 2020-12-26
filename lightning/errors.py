@@ -115,6 +115,6 @@ class MissingRequiredFlagArgument(FlagInputError):
 
 
 class InvalidLevelArgument(LightningError, commands.UserInputError):
-    def __init__(self, arg):
-        super().__init__(f"{arg} is not a recognized level. Valid levels are \"Trusted\", \"Mod\", \"Admin\","
-                         "\"Owner\", \"Blocked\"")
+    def __init__(self, levels, arg):
+        joined = ", ".join([f"\"{level}\"" for level in levels])
+        super().__init__(f"{arg} is not a recognized level. Valid levels are {joined}")

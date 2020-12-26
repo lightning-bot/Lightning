@@ -21,6 +21,7 @@ import discord
 import yarl
 from discord.ext import commands
 
+from lightning.commands import CommandLevel
 from lightning.errors import (ChannelPermissionFailure, HierarchyException,
                               InvalidLevelArgument, LightningError)
 
@@ -283,7 +284,20 @@ class Prefix(commands.Converter):
 
 
 def convert_to_level(argument):
-    if argument.lower() in ('trusted', 'mod', 'admin', 'owner', 'blocked'):
+    levels = ('trusted', 'mod', 'admin')
+    if argument.lower() in levels:
         return argument
     else:
-        raise InvalidLevelArgument(argument)
+        raise InvalidLevelArgument(levels, argument)
+
+
+def convert_to_level_value(argument):
+    d = {"user": CommandLevel.User,
+         "trusted": CommandLevel.Trusted,
+         "mod": CommandLevel.Mod,
+         "admin": CommandLevel.Admin}
+
+    if argument.lower() in d:
+        return d[argument.lower()]
+    else:
+        raise InvalidLevelArgument(d.keys(), argument)
