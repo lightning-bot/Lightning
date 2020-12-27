@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A personal Discord bot
 Copyright (C) 2020 - LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -222,13 +222,13 @@ class cached:
             return await self.decorator(func, *args, **kwargs)
 
         async def _invalidate(*args, **kwargs):
-            return await self.cache.invalidate(key_builder(args, kwargs, ignore_kwargs=self.ignore_kwargs))
+            return await self.cache.invalidate(self.key_builder(args, kwargs, ignore_kwargs=self.ignore_kwargs))
 
         wrapper.invalidate = _invalidate
         return wrapper
 
     async def decorator(self, func, *args, **kwargs):
-        key = key_builder(args, kwargs, ignore_kwargs=self.ignore_kwargs)
+        key = self.key_builder(args, kwargs, ignore_kwargs=self.ignore_kwargs)
         try:
             value = await self.cache.get(key)
         except Exception:
