@@ -497,6 +497,10 @@ class Configuration(LightningCog):
     async def apply_users_roles(self, member: discord.Member, *, reapply=False, punishments_only=True, all=False):
         query = "SELECT roles, punishment_roles FROM roles WHERE guild_id=$1 AND user_id=$2;"
         record = await self.bot.pool.fetchrow(query, member.guild.id, member.id)
+
+        if not record:
+            return
+
         roles = []
 
         def get_and_append(r):
