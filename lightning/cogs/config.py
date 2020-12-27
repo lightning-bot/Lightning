@@ -543,7 +543,10 @@ class Configuration(LightningCog):
         record = await self.bot.get_guild_bot_config(member.guild.id)
 
         if not record or not record.autorole:
-            await self.apply_users_roles(member, reapply=bool(record.flags.role_reapply))
+            if hasattr(record, 'flags'):
+                await self.apply_users_roles(member, reapply=bool(record.flags.role_reapply))
+            else:
+                await self.apply_users_roles(member)
             return
 
         role = member.guild.get_role(record.autorole)
