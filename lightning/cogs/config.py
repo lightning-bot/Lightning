@@ -207,7 +207,7 @@ class ConfigViewerMenu(menus.Menu):
         if record.flags:
             embed.add_field(name="InvokeDelete", value="Enabled" if record.flags.invoke_delete else "Disabled",
                             inline=False)
-            embed.add_field(name="Role Reapply", value="Enabled" if record.flags.role_reapply else "Disabled",
+            embed.add_field(name="RoleSaver", value="Enabled" if record.flags.role_reapply else "Disabled",
                             inline=False)
 
         if record.autorole:
@@ -408,8 +408,7 @@ class Configuration(LightningCog):
 
         This handles changing the log format for the server, removing logging from a channel, and setting up \
         logging for a channel."""
-        _session = SetupMenu(channel, timeout=60, clear_reactions_after=True)
-        await _session.start(ctx, wait=True)
+        await SetupMenu(channel, timeout=60, clear_reactions_after=True).start(ctx, wait=True)
 
     async def toggle_feature_flag(self, guild_id: int, flag: ConfigFlags) -> ConfigFlags:
         """Toggles a feature flag for a guild
@@ -427,14 +426,13 @@ class Configuration(LightningCog):
             Returns the newly created flags.
         """
         record = await self.bot.get_guild_bot_config(guild_id)
-        toggle = record.flags - flag if record.flags.invoke_delete is True else \
+        toggle = record.flags - flag if flag in record.flags else \
             record.flags | flag
         await self.add_config_key(guild_id, "flags", int(toggle))
         await self.bot.get_guild_bot_config.invalidate(guild_id)
         return toggle
 
     @config.command(level=CommandLevel.Admin)
-    @commands.bot_has_guild_permissions(manage_messages=True)
     @has_guild_permissions(manage_guild=True)
     async def toggle(self, ctx: LightningContext, *, feature: convert_to_feature) -> None:
         """Toggles a feature flag"""
@@ -454,7 +452,7 @@ class Configuration(LightningCog):
             return
 
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
-        if not record.flags.invoke_delete:
+        if not record or not record.flags.invoke_delete:
             return
 
         try:
@@ -530,7 +528,7 @@ class Configuration(LightningCog):
     async def on_member_remove(self, member):
         record = await self.bot.get_guild_bot_config(member.guild.id)
 
-        if not record.flags.role_reapply or len(member.roles) == 0:
+        if not record or not record.flags.role_reapply or len(member.roles) == 0:
             return
 
         query = """INSERT INTO roles (guild_id, user_id, roles)
@@ -794,6 +792,7 @@ class Configuration(LightningCog):
     @permissions.command(level=CommandLevel.Admin, name="show")
     @has_guild_permissions(manage_guild=True)
     async def show_perms(self, ctx: LightningContext) -> None:
+        """Shows raw permissions"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         await ctx.send(f"```json\n{record.permissions.raw()}```")
 
@@ -843,6 +842,7 @@ class Configuration(LightningCog):
     @commandoverrides.command(name='changelevel', level=CommandLevel.Admin)
     async def change_command_level(self, ctx: LightningContext, command: ValidCommandName,
                                    level: convert_to_level_value):
+        """Overrides a command's level"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if record.permissions is None:
             perms = {"COMMAND_OVERRIDES": {}}
