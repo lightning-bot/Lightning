@@ -542,7 +542,7 @@ class Configuration(LightningCog):
     async def on_member_join(self, member: discord.Member) -> None:
         record = await self.bot.get_guild_bot_config(member.guild.id)
 
-        if not record.autorole:
+        if not record or not record.autorole:
             await self.apply_users_roles(member, reapply=bool(record.flags.role_reapply))
             return
 
