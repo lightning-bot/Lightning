@@ -36,7 +36,8 @@ BAIT = ["https://i.imgur.com/5VKDzO6.png",
         "https://i.imgur.com/3jIgvE6.png",
         "https://i.imgur.com/sYxJqfg.png",
         "https://i.imgur.com/oz4rlRj.png",
-        "https://garfield-is-a.lasagna.cat/i/5kx4.png"]
+        "https://garfield-is-a.lasagna.cat/i/5kx4.png",
+        "https://i.imgur.com/QsL2mQM.png"]
 
 
 class TextMeme(LightningCommand):
