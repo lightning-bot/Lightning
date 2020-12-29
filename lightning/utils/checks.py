@@ -30,11 +30,18 @@ def is_guild(guild_id):
     return commands.check(predicate)
 
 
-def is_git_whitelisted(ctx):
+async def is_git_whitelisted(ctx):
     if not ctx.guild:
         return False
-    guild = (ctx.guild.id in ctx.bot.config['git']['whitelisted_guilds'])
-    return (guild)
+
+    if await ctx.bot.is_owner(ctx.author):
+        return True
+
+    if ctx.author.id in ctx.bot.config['git']['whitelisted_users'] and \
+            ctx.guild.id in ctx.bot.config['git']['whitelisted_guilds']:
+        return True
+
+    return False
 
 
 def is_one_of_guilds(*guilds):
