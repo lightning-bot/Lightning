@@ -26,6 +26,7 @@ db = 1
 # Guild IDs that have access to use git commands.
 whitelisted_guilds = [527887739178188830,
                       540978015811928075]
+whitelisted_users = []
 
 [git.github]
 username = ""
@@ -72,7 +73,7 @@ user_agent = ""
 # Guild IDs to use emojis from for the nitro emoji command
 nitro_emoji_guilds = []
 
-disabled_cogs = []
+disabled_cogs = ["lightning.cogs.git"]
 
 [memes]
 lmao = "Sorry, what were we laughing about again? 😂😂😂"
