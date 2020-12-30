@@ -32,7 +32,7 @@ from discord.ext import commands, menus
 from lightning import LightningBot, LightningCog, LightningContext
 from lightning import command as lcommand
 from lightning import group as lgroup
-from lightning.converters import GuildID, Message
+from lightning.converters import GuildID, Message, ReadableChannel
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from lightning.utils import helpers
 from lightning.utils.modlogformats import base_user_format
@@ -708,6 +708,8 @@ class Meta(LightningCog):
                 raise MessageNotFoundInChannel(message_id, channel)
             except discord.Forbidden:
                 raise ChannelPermissionFailure(f"I don't have permission to view {channel.mention}.")
+        else:
+            await ReadableChannel().convert(ctx, str(channel.id))
 
         embed = self.message_info_embed(msg)
         await ctx.send(embed=embed)
