@@ -709,7 +709,7 @@ class Meta(LightningCog):
             except discord.Forbidden:
                 raise ChannelPermissionFailure(f"I don't have permission to view {channel.mention}.")
         else:
-            await ReadableChannel().convert(ctx, str(channel.id))
+            await ReadableChannel().convert(ctx, str(msg.channel.id))
 
         embed = self.message_info_embed(msg)
         await ctx.send(embed=embed)
