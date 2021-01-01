@@ -24,7 +24,7 @@ from typing import Optional
 import asyncpg
 import discord
 from discord.ext import commands, menus
-from fuzzywuzzy import fuzz, process
+from rapidfuzz import fuzz, process
 from jishaku.functools import executor_function
 from PIL import Image
 
