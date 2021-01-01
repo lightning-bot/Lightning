@@ -130,7 +130,7 @@ resolved_reference = "c742658a393f432853b7b7b5b8f00a7aa544222c"
 
 [[package]]
 name = "discord.py"
-version = "1.6.0a2719+g315f654"
+version = "1.6.0a2721+g68aefa8"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -148,7 +148,7 @@ voice = ["PyNaCl (>=1.3.0,<1.5)"]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
 reference = "master"
-resolved_reference = "315f654e5a2f643c1e4064f9c8176d8c2f9195c3"
+resolved_reference = "68aefa8a551e88b98a8daa3c5d9a1477240de2c5"
 
 [[package]]
 name = "discord.py-stubs"

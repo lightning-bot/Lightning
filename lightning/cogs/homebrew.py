@@ -24,9 +24,9 @@ from typing import Optional
 import asyncpg
 import discord
 from discord.ext import commands, menus
-from rapidfuzz import fuzz, process
 from jishaku.functools import executor_function
 from PIL import Image
+from rapidfuzz import fuzz, process
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, group)
