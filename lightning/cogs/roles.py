@@ -81,7 +81,7 @@ class Roles(LightningCog):
     @commands.guild_only()
     @has_guild_permissions(manage_roles=True)
     @commands.bot_has_permissions(manage_roles=True)
-    async def set_toggleable_roles(self, ctx, *, role: Role):
+    async def set_toggleable_roles(self, ctx, *, role: Role) -> None:
         """Adds a role to the list of toggleable roles for members"""
         query = """INSERT INTO guild_config (guild_id, toggleroles)
                    VALUES ($1, $2::bigint[])
@@ -124,27 +124,28 @@ class Roles(LightningCog):
     @togglerole.command(name="list")
     async def list_toggleable_roles(self, ctx: LightningContext) -> None:
         """Lists all the toggleable roles this server has"""
-        role_list = []
         query = """SELECT toggleroles FROM guild_config WHERE guild_id=$1;"""
         record = await self.bot.pool.fetchval(query, ctx.guild.id)
         if not record:
             await ctx.send("This server does not have any toggleable roles setup.")
             return
 
-        for role in record:
-            role = discord.utils.get(ctx.guild.roles, id=role)
+        role_list = []
+
+        for role_id in record:
+            role = discord.utils.get(ctx.guild.roles, id=role_id)
             if role:
                 role_list.append(f"{role.mention} (ID: {role.id})")
-                record.remove(role.id)
+                record.remove(role_id)
             else:
-                record.append(role)
+                record.append(role_id)
 
-        if record:
+        if len(record) != 0:
             # We have some roles that need to be removed...
             query = """UPDATE guild_config
                        SET toggleroles = $1
                        WHERE guild_id=$2;"""
-            await self.bot.pool.execute(query, record)
+            await self.bot.pool.execute(query, record, ctx.guild.id)
 
         embed = discord.Embed(title="Toggleable Roles", color=discord.Color.greyple())
         menu = paginator.InfoMenuPages(paginator.BasicEmbedMenu(role_list, per_page=12, embed=embed),
