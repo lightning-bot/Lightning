@@ -23,9 +23,10 @@ from discord.ext import commands
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, group)
-from lightning.converters import Role, RoleSearch
+from lightning.converters import Role
 from lightning.utils import paginator
 from lightning.utils.checks import has_guild_permissions
+from rapidfuzz import process
 
 
 class Roles(LightningCog):
@@ -41,38 +42,71 @@ class Roles(LightningCog):
         fp = StringIO(tabulate.tabulate([(str(r), r.id) for r in role.members], ("Name", "ID")))
         await ctx.send(file=discord.File(fp, "members.txt"))
 
+    async def resolve_roles(self, record, ctx, args):
+        roles = []
+        for x in record:
+            role = ctx.guild.get_role(x)
+            if role:
+                roles.append(role)
+            continue
+        role_names = [r.name for r in roles]
+
+        resolved = []
+        unresolved = []
+        for argument in args:
+            try:
+                role = await commands.RoleConverter().convert(ctx, argument)
+            except commands.BadArgument:
+                name = process.extractOne(argument, role_names, score_cutoff=75)
+                if name is None:
+                    unresolved.append(argument)
+                    continue
+
+                role = discord.utils.get(roles, name=name[0])
+
+                if not role:
+                    unresolved.append(argument)
+                    continue
+            resolved.append(role)
+        return resolved, unresolved
+
     @group(aliases=['selfrole'], invoke_without_command=True, require_var_positional=True)
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
-    async def togglerole(self, ctx: LightningContext, *roles: RoleSearch) -> None:
+    async def togglerole(self, ctx: LightningContext, *roles) -> None:
         """Toggles a role that this server has setup.
 
         Use 'togglerole list' for a list of roles that you can toggle."""
-        query = """SELECT toggleroles FROM guild_config WHERE guild_id=$1"""
-        config = await self.bot.pool.fetchval(query, ctx.guild.id)
+        query = """SELECT toggleroles FROM guild_config WHERE guild_id=$1;"""
+        record = await self.bot.pool.fetchval(query, ctx.guild.id)
+        resolved, unresolved = await self.resolve_roles(record, ctx, roles)
+
         member = ctx.author
         diff_roles = ([], [])
 
         paginator = commands.Paginator(prefix='', suffix='')
-        for role in roles:
+        for role in resolved:
             if role > ctx.me.top_role:
                 await ctx.send('That role is higher than my highest role.')
                 return
 
-            if role in member.roles and role.id in config:
+            if role in member.roles and role.id in record:
                 diff_roles[0].append(role)
                 paginator.add_line(f"Removed role **{role.name}**")
-            elif role.id in config:
+            elif role not in member.roles and role.id in record:
                 diff_roles[1].append(role)
                 paginator.add_line(f"Added role **{role.name}**")
             else:
-                paginator.add_line(f"{role} is not toggleable.")
+                paginator.add_line(f"**{role.name}** is not toggleable!")
 
         if diff_roles[0]:
             await member.remove_roles(*diff_roles[0], reason="User untoggled role")
 
         if diff_roles[1]:
             await member.add_roles(*diff_roles[1], reason="User toggled role")
+
+        for r in unresolved:
+            paginator.add_line(f"Unable to resolve \"{r}\"")
 
         for page in paginator.pages:
             await ctx.send(page)
@@ -130,22 +164,23 @@ class Roles(LightningCog):
             await ctx.send("This server does not have any toggleable roles setup.")
             return
 
+        unresolved = []
         role_list = []
 
         for role_id in record:
             role = discord.utils.get(ctx.guild.roles, id=role_id)
             if role:
                 role_list.append(f"{role.mention} (ID: {role.id})")
-                record.remove(role_id)
             else:
-                record.append(role_id)
+                unresolved.append(role_id)
 
-        if len(record) != 0:
+        if len(unresolved) != 0:
             # We have some roles that need to be removed...
             query = """UPDATE guild_config
-                       SET toggleroles = $1
+                       SET toggleroles = ARRAY(SELECT x FROM unnest(toggleroles) AS x
+                             WHERE NOT(x = ANY($1::bigint[])))
                        WHERE guild_id=$2;"""
-            await self.bot.pool.execute(query, record, ctx.guild.id)
+            await self.bot.pool.execute(query, unresolved, ctx.guild.id)
 
         embed = discord.Embed(title="Toggleable Roles", color=discord.Color.greyple())
         menu = paginator.InfoMenuPages(paginator.BasicEmbedMenu(role_list, per_page=12, embed=embed),
