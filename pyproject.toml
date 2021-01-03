@@ -31,6 +31,7 @@ attrs = "20.3.0"
 py-flags = "^1.1.4"
 jishaku = {git = "https://gitlab.com/Gorialis/jishaku.git"}
 rapidfuzz = "^0.14.2"
+typer = "^0.3.2"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
