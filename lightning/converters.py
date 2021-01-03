@@ -39,13 +39,13 @@ async def non_guild_user(ctx, user_id: str):
 
     user = ctx.bot.get_user(user_id)
     if not user:
-        log.debug("Switching to API lookup")
+        log.debug(f"User is not cached, switching to API lookup for {user_id}")
         try:
             user = await ctx.bot.fetch_user(user_id)
         except discord.NotFound:
             raise commands.BadArgument(f"\"{user_id}\" could not be found")
         except discord.HTTPException:
-            raise commands.BadArgument("An exception occurred while finding this user!")
+            raise commands.BadArgument("An exception occurred while finding this user.")
         else:
             return user
     else:
@@ -58,6 +58,33 @@ class GuildorNonGuildUser(commands.Converter):
             target = await commands.MemberConverter().convert(ctx, argument)
         except commands.BadArgument:
             target = await non_guild_user(ctx, argument)
+        return target
+
+
+class TargetMember(commands.Converter):
+    def __init__(self, *, fetch_user=True):
+        if fetch_user:
+            self.user_converter = GuildorNonGuildUser()
+        else:
+            self.user_converter = commands.MemberConverter()
+
+    async def check_member(self, ctx, member):
+        if member.id == ctx.me.id:
+            raise commands.BadArgument("Bots can't do actions on themselves.")
+
+        if member.id == ctx.author.id:
+            raise commands.BadArgument("You can't do actions on yourself.")
+
+        if isinstance(member, discord.Member):
+            if member.id == ctx.guild.owner_id:
+                raise commands.BadArgument("You can't do actions on the server owner.")
+
+            if member.top_role >= ctx.author.top_role:
+                raise commands.BadArgument("You can't do actions on this member due to hierarchy.")
+
+    async def convert(self, ctx, argument):
+        target = await self.user_converter.convert(ctx, argument)
+        await self.check_member(ctx, target)
         return target
 
 
@@ -128,25 +155,6 @@ class ValidCommandName(commands.Converter):
             raise LightningError(f'Command {lowered!r} is not valid.')
 
         return lowered
-
-
-class RoleSearch(commands.Converter):
-    async def convert(self, ctx, argument):
-        original_argument = argument
-        if argument.isdigit():
-            return await commands.RoleConverter().convert(ctx, argument)
-
-        try:
-            role = await commands.RoleConverter().convert(ctx, argument)
-        except commands.BadArgument:
-            try:
-                role = await commands.RoleConverter().convert(ctx, argument.lower())
-            except commands.BadArgument:
-                try:
-                    role = await commands.RoleConverter().convert(ctx, argument.title())
-                except commands.BadArgument:
-                    raise commands.BadArgument(f"Role \"{original_argument}\" not found.")
-        return role
 
 
 class EmojiRE(commands.Converter):

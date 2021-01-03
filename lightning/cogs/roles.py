@@ -20,13 +20,13 @@ from io import StringIO
 import discord
 import tabulate
 from discord.ext import commands
+from rapidfuzz import process
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, group)
 from lightning.converters import Role
 from lightning.utils import paginator
 from lightning.utils.checks import has_guild_permissions
-from rapidfuzz import process
 
 
 class Roles(LightningCog):
