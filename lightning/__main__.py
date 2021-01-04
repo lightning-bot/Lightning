@@ -25,10 +25,11 @@ import sys
 import discord
 import sentry_sdk
 import toml
+import typer
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from lightning.bot import LightningBot
-from lightning.utils.helpers import run_in_shell
+from lightning.utils.helpers import run_in_shell, create_pool
 
 try:
     import uvloop
@@ -37,6 +38,9 @@ except ImportError:
     pass
 else:
     uvloop.install()
+
+
+parser = typer.Typer()
 
 
 @contextlib.contextmanager
@@ -82,7 +86,7 @@ def launch_bot(config) -> None:
         bot.activity = discord.Game(config['bot']['game'])
 
     try:
-        loop.run_until_complete(bot.create_pool(config, command_timeout=60))
+        bot.pool = loop.run_until_complete(create_pool(config['tokens']['postgres']['uri'], command_timeout=60))
     except Exception as e:
         log.exception("Could not set up PostgreSQL. Exiting...", exc_info=e)
         return
@@ -90,10 +94,25 @@ def launch_bot(config) -> None:
     bot.run(config['tokens']['discord'])
 
 
-def main() -> None:
+@parser.callback(invoke_without_command=True)
+def main(ctx: typer.Context):
+    if ctx.invoked_subcommand is None:
+        config = toml.load(open("config.toml", "r"))
+        with init_logging():
+            launch_bot(config)
+
+
+@parser.command(help="Initializes the database")
+def init_db():
+    typer.echo("Running initial schema script")
+    loop = asyncio.get_event_loop()
+
     config = toml.load(open("config.toml", "r"))
-    with init_logging():
-        launch_bot(config)
+    pool = loop.run_until_complete(create_pool(config['tokens']['postgres']['uri'], command_timeout=60))
+    with open("scripts/schema.sql", "r") as fp:
+        loop.run_until_complete(pool.execute(fp.read()))
+
+    typer.echo("Done!")
 
 
-main()
+parser(prog_name="lightning")

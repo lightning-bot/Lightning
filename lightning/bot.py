@@ -18,7 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import collections
 import contextlib
-import json
 import logging
 import pathlib
 import secrets
@@ -27,7 +26,6 @@ from datetime import datetime
 from typing import Optional
 
 import aiohttp
-import asyncpg
 import discord
 import sentry_sdk
 from discord.ext import commands, menus
@@ -107,16 +105,6 @@ class LightningBot(commands.AutoShardedBot):
                 log.error(f"Failed to load {cog}", exc_info=e)
 
         self.blacklisted_users = config.Storage("config/user_blacklist.json")
-
-    async def create_pool(self, config: dict, **kwargs) -> None:
-        """Creates a connection pool"""
-        kwargs.update(config['tokens']['postgres'])
-
-        async def init(connection: asyncpg.Connection):
-            await connection.set_type_codec('json', encoder=json.dumps, decoder=json.loads, schema='pg_catalog')
-            await connection.set_type_codec('jsonb', encoder=json.dumps, decoder=json.loads, schema='pg_catalog')
-
-        self.pool = await asyncpg.create_pool(init=init, **kwargs)
 
     @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=32)
     async def get_guild_bot_config(self, guild_id: int) -> Optional[GuildBotConfig]:
