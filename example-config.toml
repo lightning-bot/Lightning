@@ -9,11 +9,7 @@ sentry = ""
 
 # PostgreSQL Connection
 [tokens.postgres]
-host = ""
-port = ""
-user = ""
-password = ""
-database = ""
+uri = "postgres://user:password@host:port/database"
 # Redis Connection
 [tokens.redis]
 host = ""

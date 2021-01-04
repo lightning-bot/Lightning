@@ -17,11 +17,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import datetime
 import io
+import json
 import logging
 import subprocess
 import typing
 
 import aiohttp
+import asyncpg
 import discord
 from discord.ext import menus
 
@@ -314,3 +316,13 @@ async def run_in_shell(command: str):
                                    stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
     return stdout.decode('utf-8'), stderr.decode('utf-8')
+
+
+async def create_pool(dsn: str, **kwargs) -> asyncpg.Pool:
+    """Creates a connection pool"""
+
+    async def init(connection: asyncpg.Connection):
+        await connection.set_type_codec('json', encoder=json.dumps, decoder=json.loads, schema='pg_catalog')
+        await connection.set_type_codec('jsonb', encoder=json.dumps, decoder=json.loads, schema='pg_catalog')
+
+    return await asyncpg.create_pool(dsn, init=init, **kwargs)
