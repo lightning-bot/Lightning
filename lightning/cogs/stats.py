@@ -29,6 +29,7 @@ from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, group)
 from lightning.converters import InbetweenNumber
 from lightning.models import PartialGuild
+from lightning.utils.checks import has_guild_permissions
 
 log = logging.getLogger(__name__)
 
@@ -247,7 +248,7 @@ class Stats(LightningCog):
                 await self.command_stats_member(ctx, member)
 
     @stats.command(name="auditlog", aliases=['table', 'log'], level=CommandLevel.Mod)
-    @commands.has_guild_permissions(manage_guild=True)
+    @has_guild_permissions(manage_guild=True)
     @commands.cooldown(1, 60.0, commands.BucketType.member)
     async def stats_audit_log(self, ctx: LightningContext, limit: InbetweenNumber(1, 500) = 50):
         """Shows command status for the server through a table."""
@@ -277,20 +278,25 @@ class Stats(LightningCog):
                        ORDER BY "cmd_uses" DESC
                        LIMIT 10;
                     """
-            records = await self.bot.pool.fetch(query)
-            commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (used {cmd_uses} times)'
-                                          for (index, (command_name, cmd_uses)) in enumerate(records))
-            embed = discord.Embed(title="Popular Commands", color=0x841d6e)
-            embed.add_field(name="All Time", value=commands_used_des)
-            query = """SELECT command_name,
-                        COUNT (*) as "cmd_uses"
-                       FROM commands_usage
-                       WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 day')
-                       GROUP BY command_name
-                       ORDER BY "cmd_uses" DESC
-                       LIMIT 10;
-                    """
-            records = await self.bot.pool.fetch(query)
+            async with self.bot.pool.acquire() as conn:
+                records = await conn.fetch(query)
+                total = await conn.fetchval("SELECT COUNT(*) FROM commands_usage;")
+                today_total = await conn.fetchval("SELECT COUNT(*) FROM commands_usage WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 day');")
+                embed = discord.Embed(title="Popular Commands", color=0x841d6e,
+                                      description=f"Total commands used: {total}\nTotal commands used today: "
+                                                  f"{today_total}")
+                commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (used {cmd_uses} times)'
+                                              for (index, (command_name, cmd_uses)) in enumerate(records))
+                embed.add_field(name="All Time", value=commands_used_des)
+                query = """SELECT command_name,
+                            COUNT (*) as "cmd_uses"
+                           FROM commands_usage
+                           WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 day')
+                           GROUP BY command_name
+                           ORDER BY "cmd_uses" DESC
+                           LIMIT 10;
+                        """
+                records = await conn.fetch(query)
             commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (used {cmd_uses} times)'
                                           for (index, (command_name, cmd_uses)) in enumerate(records))
             embed.add_field(name="Today", value=commands_used_des)
