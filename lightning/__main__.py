@@ -29,7 +29,7 @@ import typer
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from lightning.bot import LightningBot
-from lightning.utils.helpers import run_in_shell, create_pool
+from lightning.utils.helpers import create_pool, run_in_shell
 
 try:
     import uvloop
