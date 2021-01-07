@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2021 - LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -103,14 +103,27 @@ def main(ctx: typer.Context):
 
 
 @parser.command(help="Initializes the database")
-def init_db():
-    typer.echo("Running initial schema script")
+def init_db(init_yoyo: bool = typer.Option(False, "--setup-migrations",
+                                           help="Initializes the yoyo.ini file for migrations")):
+    typer.echo("Running initial schema script...")
     loop = asyncio.get_event_loop()
 
     config = toml.load(open("config.toml", "r"))
     pool = loop.run_until_complete(create_pool(config['tokens']['postgres']['uri'], command_timeout=60))
     with open("scripts/schema.sql", "r") as fp:
         loop.run_until_complete(pool.execute(fp.read()))
+
+    if init_yoyo is True:
+        typer.echo("Setting up migrations config file...")
+        import configparser
+        cfg = configparser.ConfigParser()
+        cfg['DEFAULT'] = {"sources": "migrations/",
+                          "migration_table": "_yoyo_migration",
+                          "batch_mode": "off",
+                          "verbosity": 0,
+                          "database": config['tokens']['postgres']['uri']}
+        cfg.write(open('yoyo.ini', 'w'))
+        typer.echo("Created migrations config file")
 
     typer.echo("Done!")
 
