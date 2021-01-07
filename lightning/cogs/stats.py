@@ -281,7 +281,8 @@ class Stats(LightningCog):
             async with self.bot.pool.acquire() as conn:
                 records = await conn.fetch(query)
                 total = await conn.fetchval("SELECT COUNT(*) FROM commands_usage;")
-                query = "SELECT COUNT(*) FROM commands_usage WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 day');"
+                query = """SELECT COUNT(*) FROM commands_usage
+                           WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 day');"""
                 today_total = await conn.fetchval(query)
                 embed = discord.Embed(title="Popular Commands", color=0x841d6e,
                                       description=f"Total commands used: {total}\nTotal commands used today: "
