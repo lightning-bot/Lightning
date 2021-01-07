@@ -716,19 +716,13 @@ class Meta(LightningCog):
 
     @quote.command(name="raw", aliases=['json'])
     async def msg_raw(self, ctx: LightningContext, *message) -> None:
-        """Shows raw JSON for a message.
-
-        This escapes markdown formatted text if in the text."""
+        """Shows raw JSON for a message."""
         message_id, channel = await Message().convert(ctx, message)
         try:
             message = await ctx.bot.http.get_message(channel.id, message_id)
         except discord.NotFound:
             raise MessageNotFoundInChannel(message_id, channel)
-        message['content'] = discord.utils.escape_markdown(message['content'])
-        if message['embeds']:
-            for em in message['embeds']:
-                if "description" in em:
-                    em['description'] = discord.utils.escape_markdown(em['description'])
+
         await ctx.send(f"```json\n{json.dumps(message, indent=2, sort_keys=True)}```")
 
     async def send_guild_info(self, embed: discord.Embed, guild) -> None:
