@@ -217,7 +217,7 @@ class API(LightningCog):
     @command(cls=flags.FlagCommand)
     async def gelbooru(self, ctx: LightningContext, **flags) -> None:
         """Searches images on gelbooru"""
-        tags = urllib.parse.quote(" ".join(flags['rest']), safe="")
+        tags = urllib.parse.quote(flags['rest'], safe="")
         limit = 20 if not flags['limit'] else flags['limit']
         url = f"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit={limit}&tags={tags}"
         data = await ctx.request(url)
