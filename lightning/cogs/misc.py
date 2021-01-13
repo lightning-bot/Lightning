@@ -97,7 +97,8 @@ class Misc(LightningCog):
     async def poll(self, ctx: LightningContext, *, question: str) -> None:
         """Creates a simple poll with thumbs up, thumbs down, and shrug as reactions"""
         msg = await ctx.send(f"{ctx.author.mention} asks:\n{question}")
-        await asyncio.gather(msg.add_reaction("\N{THUMBS UP SIGN}"), msg.add_reaction("\N{THUMBS DOWN SIGN}"), msg.add_reaction("\N{SHRUG}"))
+        await asyncio.gather(msg.add_reaction("\N{THUMBS UP SIGN}"), msg.add_reaction("\N{THUMBS DOWN SIGN}"),
+                             msg.add_reaction("\N{SHRUG}"))
 
     @command()
     @commands.cooldown(rate=1, per=250.0, type=commands.BucketType.channel)
