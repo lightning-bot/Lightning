@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2021 - LightSage
+Copyright (C) 2019-2021 - LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -101,6 +101,7 @@ class Misc(LightningCog):
                              msg.add_reaction("\N{SHRUG}"))
 
     @command()
+    @commands.bot_has_permissions(read_message_history=True)
     @commands.cooldown(rate=1, per=250.0, type=commands.BucketType.channel)
     async def archive(self, ctx: LightningContext, limit: int) -> None:
         """Archives the current channel's contents to a txt file."""
