@@ -130,7 +130,7 @@ resolved_reference = "c742658a393f432853b7b7b5b8f00a7aa544222c"
 
 [[package]]
 name = "discord.py"
-version = "1.6.0a2721+g68aefa8"
+version = "1.7.0a2746+g63b6c4f"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -148,7 +148,7 @@ voice = ["PyNaCl (>=1.3.0,<1.5)"]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
 reference = "master"
-resolved_reference = "68aefa8a551e88b98a8daa3c5d9a1477240de2c5"
+resolved_reference = "63b6c4fe9d1f4696ff21946747159dd84af49327"
 
 [[package]]
 name = "discord.py-stubs"
@@ -298,7 +298,7 @@ python-versions = "*"
 
 [[package]]
 name = "migra"
-version = "1.0.1605230943"
+version = "1.0.1610499506"
 description = "Like `diff` but for PostgreSQL schemas"
 category = "main"
 optional = true
@@ -306,7 +306,7 @@ python-versions = "*"
 
 [package.dependencies]
 psycopg2-binary = {version = "*", optional = true, markers = "extra == \"pg\""}
-schemainspect = ">=0.1.1603009162"
+schemainspect = ">=0.1.1610498640"
 six = "*"
 sqlbag = "*"
 
@@ -385,7 +385,7 @@ name = "psycopg2-binary"
 version = "2.8.6"
 description = "psycopg2 - Python-PostgreSQL Database Adapter"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
 
 [[package]]
@@ -436,7 +436,7 @@ python-versions = ">=2.7"
 
 [[package]]
 name = "schemainspect"
-version = "0.1.1603448192"
+version = "0.1.1610933302"
 description = "Schema inspection for PostgreSQL (and possibly others)"
 category = "main"
 optional = true
@@ -518,6 +518,14 @@ sqlalchemy = "*"
 maria = ["pymysql"]
 pendulum = ["pendulum", "relativedelta"]
 pg = ["psycopg2"]
+
+[[package]]
+name = "sqlparse"
+version = "0.4.1"
+description = "A non-validating SQL parser."
+category = "main"
+optional = false
+python-versions = ">=3.5"
 
 [[package]]
 name = "tabulate"
@@ -617,6 +625,23 @@ multidict = ">=4.0"
 typing-extensions = {version = ">=3.7.4", markers = "python_version < \"3.8\""}
 
 [[package]]
+name = "yoyo-migrations"
+version = "7.2.1"
+description = "Database migrations with SQL"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+sqlparse = "*"
+tabulate = "*"
+
+[package.extras]
+mysql = ["pymysql"]
+postgres = ["psycopg2"]
+pyodbc = ["pyodbc"]
+
+[[package]]
 name = "zipp"
 version = "3.3.2"
 description = "Backport of pathlib-compatible object wrapper for zip files"
@@ -631,7 +656,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "3058f5b1761125fe3c1793f04fb370c5bba5854153548004b71dca6ca090bd51"
+content-hash = "9a512bd0b69e1e5baa0714f0ae13704cd80d820f37ee6f20b4ecd2481af0597c"
 
 [metadata.files]
 aiohttp = [
@@ -803,8 +828,8 @@ mccabe = [
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
 ]
 migra = [
-    {file = "migra-1.0.1605230943-py2.py3-none-any.whl", hash = "sha256:46b8c18f27c535995adcaadeec2393aff73ab7fd639a55847b9cfd55aecfd1d9"},
-    {file = "migra-1.0.1605230943.tar.gz", hash = "sha256:77a8bcda39550df789d60e9428f63ed0d5b09f4a8f324f073a520eeffe9bf868"},
+    {file = "migra-1.0.1610499506-py2.py3-none-any.whl", hash = "sha256:36a5a84f52384f1f1c709703f59226d3fd586031c6379a8969163ae8c5caee7e"},
+    {file = "migra-1.0.1610499506.tar.gz", hash = "sha256:47a98afb33b3d243dbf953112502117fd3f2dd72117536a8148b79831fd31cc4"},
 ]
 multidict = [
     {file = "multidict-4.7.6-cp35-cp35m-macosx_10_14_x86_64.whl", hash = "sha256:275ca32383bc5d1894b6975bb4ca6a7ff16ab76fa622967625baeebcf8079000"},
@@ -1007,8 +1032,8 @@ rapidfuzz = [
     {file = "rapidfuzz-0.14.2.tar.gz", hash = "sha256:e2a8404a847352c1fd80ca0443ef75e3b76801f85f5c022d8ebc47d9f2290557"},
 ]
 schemainspect = [
-    {file = "schemainspect-0.1.1603448192-py2.py3-none-any.whl", hash = "sha256:209f511481cff5c0b1f0f874f833faba345c0fa87032ceedda9a704662d579f9"},
-    {file = "schemainspect-0.1.1603448192.tar.gz", hash = "sha256:fa8ff44f62c20601b62be610d968908a119ccdcf4bf56bb627de6c0edb5d1627"},
+    {file = "schemainspect-0.1.1610933302-py2.py3-none-any.whl", hash = "sha256:e473724b6a76b8f21a55b76bc4613cef249b0d71c01150228c3ffae12d37b4f8"},
+    {file = "schemainspect-0.1.1610933302.tar.gz", hash = "sha256:6a5653f953826f4f1d72ead3300069537e58c0a96a388f52787ef11532805505"},
 ]
 sentry-sdk = [
     {file = "sentry-sdk-0.16.5.tar.gz", hash = "sha256:e12eb1c2c01cd9e9cfe70608dbda4ef451f37ef0b7cbb92e5d43f87c341d6334"},
@@ -1061,6 +1086,10 @@ sqlalchemy = [
 sqlbag = [
     {file = "sqlbag-0.1.1579049654-py2.py3-none-any.whl", hash = "sha256:4beaffcd9335cb2f71c2f82a0e783da888f1a54c932b6e59d54f300cb062bc39"},
     {file = "sqlbag-0.1.1579049654.tar.gz", hash = "sha256:bf1aba13a062b0ef61d37ab6f4aa8808bc4bd830e0c14178238ac8185d298f42"},
+]
+sqlparse = [
+    {file = "sqlparse-0.4.1-py3-none-any.whl", hash = "sha256:017cde379adbd6a1f15a61873f43e8274179378e95ef3fede90b5aa64d304ed0"},
+    {file = "sqlparse-0.4.1.tar.gz", hash = "sha256:0f91fd2e829c44362cbcfab3e9ae12e22badaa8a29ad5ff599f9ec109f0454e8"},
 ]
 tabulate = [
     {file = "tabulate-0.8.7-py3-none-any.whl", hash = "sha256:ac64cb76d53b1231d364babcd72abbb16855adac7de6665122f97b593f1eb2ba"},
@@ -1148,6 +1177,10 @@ yarl = [
     {file = "yarl-1.5.1-cp38-cp38-win32.whl", hash = "sha256:f379b7f83f23fe12823085cd6b906edc49df969eb99757f58ff382349a3303c6"},
     {file = "yarl-1.5.1-cp38-cp38-win_amd64.whl", hash = "sha256:9102b59e8337f9874638fcfc9ac3734a0cfadb100e47d55c20d0dc6087fb4692"},
     {file = "yarl-1.5.1.tar.gz", hash = "sha256:c22c75b5f394f3d47105045ea551e08a3e804dc7e01b37800ca35b58f856c3d6"},
+]
+yoyo-migrations = [
+    {file = "yoyo-migrations-7.2.1.tar.gz", hash = "sha256:89b6d51e9fcc8f7b413ebfa99576d19a71c0a04a0917898e45ad02c711e5f0da"},
+    {file = "yoyo_migrations-7.2.1-py3-none-any.whl", hash = "sha256:0d8202a2ca3a337dfa8b617d22ed497a6827f47987eaab8b833cc4b60b66ad5c"},
 ]
 zipp = [
     {file = "zipp-3.3.2-py3-none-any.whl", hash = "sha256:50a4ef266c31c9409627b46012e206382eb8d23f46fbd358065a8335cfbf7d8f"},
