@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
 import collections
-import difflib
 import inspect
 import json
 import logging
@@ -28,6 +27,7 @@ from datetime import datetime
 import discord
 import psutil
 from discord.ext import commands, menus
+from rapidfuzz.process import extractOne
 
 from lightning import LightningBot, LightningCog, LightningContext
 from lightning import command as lcommand
@@ -175,7 +175,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
     async def command_not_found(self, string):
         output = f"No command called \"{string}\" found."
         commands = [c.qualified_name for c in await self.filter_commands(self.context.bot.commands)]
-        fuzzymatches = difflib.get_close_matches(string, commands, 1)
+        fuzzymatches = extractOne(string, commands, score_cutoff=70)
         if fuzzymatches:
             output += f" Did you mean \"{fuzzymatches[0]}\"?"
         return output
