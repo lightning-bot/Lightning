@@ -600,7 +600,7 @@ class Meta(LightningCog):
         await ctx.send(f"Uptime: **{natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}**")
 
     @commands.guild_only()
-    @lcommand(aliases=['server', 'guildinfo'], usage='')
+    @lcommand(aliases=['guildinfo'], usage='')
     async def serverinfo(self, ctx: LightningContext, guild_id: GuildID = commands.default.CurrentGuild) -> None:
         """Shows information about the server"""
         if await self.bot.is_owner(ctx.author):
