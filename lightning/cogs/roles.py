@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -33,6 +33,7 @@ class Roles(LightningCog):
     """Role based commands"""
 
     @command()
+    @commands.guild_only()
     async def rolemembers(self, ctx: LightningContext, *, role: discord.Role) -> None:
         """Lists role members"""
         if len(role.members) == 0:
@@ -79,6 +80,10 @@ class Roles(LightningCog):
         Use 'togglerole list' for a list of roles that you can toggle."""
         query = """SELECT toggleroles FROM guild_config WHERE guild_id=$1;"""
         record = await self.bot.pool.fetchval(query, ctx.guild.id)
+        if not record:
+            await ctx.send("This feature is not setup in this server.")
+            return
+
         resolved, unresolved = await self.resolve_roles(record, ctx, roles)
 
         member = ctx.author
