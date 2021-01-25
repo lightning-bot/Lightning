@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS infractions
     action INT,
     reason VARCHAR (2000),
     created_at timestamp without time zone DEFAULT (now() at time zone 'utc'),
+    expiry timestamp without time zone,
     active BOOLEAN DEFAULT 't',
     extra JSONB
 );
