@@ -147,7 +147,7 @@ class Mod(LightningCog, required=["Configuration"]):
         if not cog:
             raise TimersUnavailable
         job_id = await cog.add_job("timeban", ctx.message.created_at, duration.dt, guild_id=ctx.guild.id,
-                                   user_id=target.id, mod_id=moderator.id)
+                                   user_id=target.id, mod_id=moderator.id, force_insert=True)
 
         if dm_user and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason,
@@ -464,7 +464,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
         job_id = await timer.add_job("timemute", ctx.message.created_at,
                                      duration.dt, guild_id=ctx.guild.id, user_id=target.id, role_id=role.id,
-                                     mod_id=ctx.author.id)
+                                     mod_id=ctx.author.id, force_insert=True)
 
         if dm_user:
             dm_message = f"You were muted in {ctx.guild.name}!"

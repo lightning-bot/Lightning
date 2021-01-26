@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -83,7 +83,8 @@ class Reminders(LightningCog):
         self.task_available.set()
         return record
 
-    async def add_job(self, event: str, created, expiry, **kwargs) -> Union[asyncpg.Record, asyncio.Task]:
+    async def add_job(self, event: str, created, expiry, *, force_insert=False,
+                      **kwargs) -> Union[asyncpg.Record, asyncio.Task]:
         """Adds a job/pending timer to the timer system
 
         Parameters
@@ -94,11 +95,13 @@ class Reminders(LightningCog):
             The creation of the timer.
         expiry : datetime.datetime
             When the job should be done.
+        force_insert : bool, optional
+            Whether to insert into the database regardless of how long the expiry is. Defaults to False
         **kwargs
             Keyword arguments about the event
         """
         delta = (expiry - created).total_seconds()
-        if delta <= 60:
+        if delta <= 60 and force_insert is False:
             # A loop for small timers
             return self.bot.loop.create_task(self.short_timers(delta, Timer(None, event, created, expiry, kwargs)))
 
