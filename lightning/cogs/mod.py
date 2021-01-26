@@ -442,19 +442,19 @@ class Mod(LightningCog, required=["Configuration"]):
         else:
             await self.do_message_purge(ctx, 100, lambda e: string in e.content)
 
-    async def get_mute_role(self, ctx: LightningContext) -> discord.Role:
+    async def get_mute_role(self, ctx: LightningContext, *, temporary_role=False) -> discord.Role:
         """Gets the guild's mute role if it exists"""
         config = await self.get_mod_config(ctx.guild.id)
-        if config and config.mute_role_id:
-            if config.mute_role(ctx):
-                return config.mute_role(ctx)
-            else:
-                raise MuteRoleError("You do not have a mute role setup.")
+        if not config:
+            raise MuteRoleError("You do not have a mute role set.")
+
+        if temporary_role is False:
+            return config.get_mute_role(ctx)
         else:
-            raise MuteRoleError("You do not have a mute role setup.")
+            return config.get_temp_mute_role(ctx)
 
     async def time_mute_user(self, ctx, target, reason, duration, *, dm_user=False):
-        role = await self.get_mute_role(ctx)
+        role = await self.get_mute_role(ctx, temporary_role=True)
         duration_text = get_utc_timestamp(duration.dt)
         timed_txt = natural_timedelta(duration.dt, source=ctx.message.created_at)
         duration_text = f"{timed_txt} ({duration_text})"
