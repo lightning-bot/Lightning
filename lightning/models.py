@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -28,7 +28,7 @@ from lightning.utils.time import natural_timedelta
 
 
 class GuildModConfig:
-    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "temp_mute_role_id", "logging", "logged_features")
+    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "temp_mute_role_id")
 
     def __init__(self, record):
         self.guild_id = record['guild_id']
@@ -36,8 +36,10 @@ class GuildModConfig:
         self.warn_kick = record['warn_kick']
         self.warn_ban = record['warn_ban']
         self.temp_mute_role_id = record['temp_mute_role_id']
-        self.automod = AutoModConfig.from_record(record)
-        self.raid_mode = record['raid_mode']
+
+        # These aren't ready...
+        # self.automod = AutoModConfig.from_record(record)
+        # self.raid_mode = record['raid_mode']
 
     def mute_role(self, ctx: LightningContext):
         if self.mute_role_id:
@@ -51,15 +53,23 @@ class GuildModConfig:
             return None
 
 
-@attr.s(slots=True)
-class Logging:
-    channel_id: int
-    types: list
-    format: str
+class LoggingConfig:
+    __slots__ = ('logging')
 
-    @classmethod
-    def from_record(cls, record):
-        return cls(record['channel_id'], record['types'], record['format'])
+    def __init__(self, records):
+        self.logging = {}
+        for record in records:
+            self.logging[record['channel_id']] = {"types": record['types'], "format": record['format']}
+
+    def get_channels_with_feature(self, feature) -> list:
+        channels = []
+        for key, value in list(self.logging.items()):
+            if feature in value['types']:
+                channels.append((key, value))
+        return channels
+
+    def get(self, key):
+        return self.logging.get(key, None)
 
 
 @attr.s(slots=True)
@@ -69,7 +79,10 @@ class AutoModConfig:
 
     @classmethod
     def from_record(cls, record):
-        return cls(record['automod_join_threshold_seconds'], record['automod_join_threshold_users'])
+        self = cls()
+        self.join_threshold_seconds = record.get('automod_join_threshold_seconds')
+        self.join_threshold_users = record.get('automod_join_threshold_users')
+        return self
 
 
 class CommandOverrides:
@@ -245,21 +258,29 @@ def to_action(value):
 class Action:
     def __init__(self, guild_id: int, action: Union[modlogformats.ActionType, str],
                  target: Union[discord.Member, discord.User, int],
-                 moderator: Union[discord.Member, discord.User, int], reason: str = None, **kwargs):
+                 moderator: Union[discord.Member, discord.User, int], reason: str = None, *, expiry=None, **kwargs):
         self.guild_id = guild_id
         self.action = to_action(action)
         self.target = target
         self.moderator = moderator
         self.reason = reason
+        self.expiry = expiry
         self.kwargs = kwargs
         self.timestamp = self.kwargs.pop("timestamp", datetime.utcnow())
 
-    async def log_infraction(self, connection) -> int:
-        query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at)
-                   VALUES ($1, $2, $3, $4, $5, $6)
-                   RETURNING id;"""
-        return await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
-                                         self.reason, self.timestamp)
+    async def add_infraction(self, connection) -> int:
+        if len(self.kwargs) == 0:
+            query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7)
+                       RETURNING id;"""
+            return await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
+                                             self.reason, self.timestamp, self.expiry)
+        else:
+            query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry, extra)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                       RETURNING id;"""
+            return await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
+                                             self.reason, self.timestamp, self.expiry, self.kwargs)
 
     @property
     def event(self):
