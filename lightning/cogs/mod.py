@@ -80,7 +80,7 @@ class Mod(LightningCog, required=["Configuration"]):
                    ARRAY(SELECT DISTINCT * FROM unnest(COALESCE(roles.punishment_roles, '{}') || $3::bigint[]));"""
         return await self.bot.pool.execute(query, guild_id, user_id, [role_id])
 
-    async def remove_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection) -> None:
+    async def remove_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection=None) -> None:
         query = """UPDATE roles SET punishment_roles = array_remove(punishment_roles, $1)
                    WHERE guild_id=$2 AND user_id=$3;"""
         connection = connection or self.bot.pool
