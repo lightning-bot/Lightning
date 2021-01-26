@@ -507,7 +507,7 @@ class Mod(LightningCog, required=["Configuration"]):
         await ctx.send(f"{target} can no longer speak.")
         await self.log_action(ctx, target, "MUTE")
 
-    async def punishment_role_check(self, guild_id, target_id, role_id, *, connection):
+    async def punishment_role_check(self, guild_id, target_id, role_id, *, connection=None):
         query = """SELECT $3 = ANY(punishment_roles) FROM roles WHERE guild_id=$1 AND user_id=$2"""
         connection = connection or self.bot.pool
         return await connection.fetchval(query, guild_id, target_id, role_id)
