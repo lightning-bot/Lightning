@@ -730,6 +730,33 @@ class Mod(LightningCog, required=["Configuration"]):
     async def raidmode(self, ctx: LightningContext) -> None:
         ...
 
+    async def log_timed_action_complete(self, timer, action, feature, guild, user, moderator) -> None:
+        record = await self.get_logging_record(guild.id)
+        if not record:
+            return
+
+        records = record.get_channels_with_feature(feature)
+        if not records:
+            return
+
+        for channel_id, record in records:
+            channel = guild.get_channel(channel_id)
+            if not channel:
+                continue
+
+            if record['format'] == "minimal with timestamp":
+                message = modlogformats.MinimalisticFormat.timed_action_expired(action.lower(), user, moderator,
+                                                                                timer.created_at, timer.expiry)
+                await channel.send(message)
+            elif record['format'] == "emoji":
+                message = modlogformats.EmojiFormat.timed_action_expired(action.lower(), user, moderator,
+                                                                         timer.created_at)
+                await channel.send(message, allowed_mentions=discord.AllowedMentions(users=[user, moderator]))
+            elif record['format'] == "embed":
+                embed = modlogformats.EmbedFormat.timed_action_expired(action.lower(), moderator, user,
+                                                                       timer.created_at)
+                await channel.send(embed=embed)
+
     @LightningCog.listener()
     async def on_timeban_job_complete(self, timer):
         # Update timeban status
@@ -760,29 +787,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
         reason = f"Timed ban made by {mod} at {timer.created_at} expired"
         await guild.unban(uid, reason=reason)
-        record = await self.get_logging_record(guild.id)
-        if not record:
-            return
-
-        records = record.get_channels_with_feature("UNBAN")
-        if not records:
-            return
-
-        for channel_id, record in records:
-            channel = guild.get_channel(channel_id)
-            if not channel:
-                continue
-
-            if record['format'] == "minimal with timestamp":
-                message = modlogformats.MinimalisticFormat.timed_action_expired("ban", uid, moderator, timer.created_at,
-                                                                                timer.expiry)
-                await channel.send(message)
-            elif record['format'] == "emoji":
-                message = modlogformats.EmojiFormat.timed_action_expired("ban", uid, moderator, timer.created_at)
-                await channel.send(message, allowed_mentions=discord.AllowedMentions(users=[uid, moderator]))
-            elif record['format'] == "embed":
-                embed = modlogformats.EmbedFormat.timed_action_expired("ban", moderator, uid, timer.created_at)
-                await channel.send(embed=embed)
+        await self.log_timed_action_complete(timer, "ban", "UNBAN", guild, uid, moderator)
 
     @LightningCog.listener()
     async def on_timemute_job_complete(self, timer):
@@ -828,29 +833,7 @@ class Mod(LightningCog, required=["Configuration"]):
             # I think I'll intentionally let it raise an error if bot missing perms or w/e...
             await user.remove_roles(role, reason=reason)
 
-        record = await self.get_logging_record(guild.id)
-        if not record:
-            return
-
-        records = record.get_channels_with_feature("UNMUTE")
-        if not records:
-            return
-
-        for channel_id, record in records:
-            channel = guild.get_channel(channel_id)
-            if not channel:
-                continue
-
-            if record['format'] == "minimal with timestamp":
-                message = modlogformats.MinimalisticFormat.timed_action_expired("mute", user, moderator,
-                                                                                timer.created_at, timer.expiry)
-                await channel.send(message)
-            elif record['format'] == "emoji":
-                message = modlogformats.EmojiFormat.timed_action_expired("mute", user, moderator, timer.created_at)
-                await channel.send(message, allowed_mentions=discord.AllowedMentions(users=[user, moderator]))
-            elif record['format'] == "embed":
-                embed = modlogformats.EmbedFormat.timed_action_expired("mute", moderator, user, timer.created_at)
-                await channel.send(embed=embed)
+        await self.log_timed_action_complete(timer, "mute", "UNMUTE", guild, user, moderator)
 
 
 def setup(bot) -> None:
