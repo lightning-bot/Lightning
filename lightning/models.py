@@ -41,16 +41,29 @@ class GuildModConfig:
         # self.automod = AutoModConfig.from_record(record)
         # self.raid_mode = record['raid_mode']
 
-    def mute_role(self, ctx: LightningContext):
-        if self.mute_role_id:
-            role = discord.utils.get(ctx.guild.roles, id=self.mute_role_id)
-            if role:
-                return role
-            else:
-                raise errors.LightningError('The mute role that was set seems to be deleted.'
-                                            ' Please set a new mute role.')
-        else:
-            return None
+    def get_mute_role(self, ctx: LightningContext) -> discord.Role:
+        if not self.mute_role_id:
+            raise errors.MuteRoleError("This server has not setup a mute role")
+
+        role = discord.utils.get(ctx.guild.roles, id=self.mute_role_id)
+        if not role:
+            raise errors.MuteRoleError('The mute role that was set seems to be deleted.'
+                                       ' Please set a new mute role.')
+        return role
+
+    def get_temp_mute_role(self, ctx: LightningContext) -> discord.Role:
+        if not self.temp_mute_role_id and not self.mute_role_id:
+            raise errors.MuteRoleError("This server has not setup a mute role.")
+
+        if not self.temp_mute_role_id:
+            return self.get_mute_role(ctx)
+
+        role = discord.utils.get(ctx.guild.roles, id=self.temp_mute_role_id)
+        if not role:
+            raise errors.MuteRoleError("The temporary mute role that was set seems to be deleted. Please set a new "
+                                       "temporary mute role.")
+
+        return role
 
 
 class LoggingConfig:
@@ -226,9 +239,9 @@ class Timer:
 
 
 class ConfigFlags(Flags):
-    invoke_delete = ()
-    role_reapply = ()
-    role_reapply_punishments_only = ()
+    invoke_delete = 1 << 0
+    role_reapply = 1 << 1
+    role_reapply_punishments_only = 1 << 2
 
 
 class GuildBotConfig:
