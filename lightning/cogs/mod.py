@@ -905,6 +905,8 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @LightningCog.listener()
     async def on_member_join(self, member):
+        await self.bot.wait_until_ready()
+
         guild = member.guild
         async for channel, record in self.get_records(guild, "MEMBER_JOIN"):
             if record['format'] == "minimal with timestamp":
@@ -919,6 +921,8 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @LightningCog.listener()
     async def on_member_remove(self, member):
+        await self.bot.wait_until_ready()
+
         guild = member.guild
         async for channel, record in self.get_records(guild, "MEMBER_LEAVE"):
             if record['format'] == "minimal with timestamp":
@@ -932,6 +936,9 @@ class Mod(LightningCog, required=["Configuration"]):
                 await channel.send(embed=embed)
 
         # Kick stuff
+        if not guild.me.guild_permissions.view_audit_log:
+            return
+
         entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.kick, target=member)
         if member.joined_at is None or member.joined_at > entry.created_at:
             return
