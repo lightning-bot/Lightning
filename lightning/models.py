@@ -21,9 +21,10 @@ import attr
 import discord
 from flags import Flags
 
-from lightning import errors, modlogformats
+from lightning import errors
 from lightning.commands import CommandLevel
 from lightning.context import LightningContext
+from lightning.utils import modlogformats
 from lightning.utils.time import natural_timedelta
 
 
