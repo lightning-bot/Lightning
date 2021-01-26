@@ -14,6 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import asyncio
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import Union
@@ -200,7 +201,7 @@ class Mod(LightningCog, required=["Configuration"]):
                                             dm_user=not flags['nodm'],
                                             delete_message_days=min(flags['delete_messages'], 7))
 
-        if not flags['nodm']:
+        if not flags['nodm'] and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason,
                                                             ending="\n\nThis ban does not expire.")
             await helpers.dm_user(target, dm_message)
@@ -540,7 +541,7 @@ class Mod(LightningCog, required=["Configuration"]):
         combination of the member. The member's ID is easier to use."""
         await ctx.guild.unban(member.user, reason=self.format_reason(ctx.author, reason))
         await ctx.send(f"\N{OK HAND SIGN} {member.user} is now unbanned.")
-        await self.log_action(ctx, member, "UNBAN")
+        await self.log_action(ctx, member.user, "UNBAN")
 
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(ban_members=True)
@@ -834,6 +835,114 @@ class Mod(LightningCog, required=["Configuration"]):
             await user.remove_roles(role, reason=reason)
 
         await self.log_timed_action_complete(timer, "mute", "UNMUTE", guild, user, moderator)
+
+    # Logging
+    # -------
+    async def fetch_audit_log_entry(self, guild, action, *, target=None, limit: int = 50):
+        async for entry in guild.audit_logs(limit=limit, action=action):
+            td = datetime.utcnow() - entry.created_at
+            if td < timedelta(seconds=10):
+                if target is not None and entry.target == target:
+                    return entry
+                else:
+                    continue
+            else:
+                continue
+
+        return None
+
+    @LightningCog.listener()
+    async def on_member_ban(self, guild, user):
+        await self.bot.wait_until_ready()
+        # Wait for Audit Log to update
+        await asyncio.sleep(0.5)
+
+        if not guild.me.guild_permissions.view_audit_log:
+            return
+
+        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.ban, target=user)
+        if entry.user == self.bot.user:
+            # Assuming it's already logged
+            return
+
+        obj = Action(guild.id, "BAN", user, entry.user, entry.reason or None)
+        inf_id = await obj.add_infraction(self.bot.pool)
+        await self.do_log_message(obj.guild_id, obj.event, obj, inf_id)
+
+    @LightningCog.listener()
+    async def on_member_unban(self, guild, user):
+        await self.bot.wait_until_ready()
+        # Wait for Audit Log to update
+        await asyncio.sleep(0.5)
+
+        if not guild.me.guild_permissions.view_audit_log:
+            return
+
+        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.unban, target=user)
+        if entry.user == self.bot.user:
+            # Assuming it's already logged
+            return
+
+        obj = Action(guild.id, "UNBAN", user, entry.user, entry.reason or None)
+        inf_id = await obj.add_infraction(self.bot.pool)
+        await self.do_log_message(obj.guild_id, obj.event, obj, inf_id)
+
+    async def get_records(self, guild, feature):
+        record = await self.get_logging_record(guild.id)
+        if not record:
+            return
+
+        records = record.get_channels_with_feature(feature)
+        if not records:
+            return
+
+        for channel_id, record in records:
+            channel = guild.get_channel(channel_id)
+            if not channel:
+                continue
+
+            yield channel, record
+
+    @LightningCog.listener()
+    async def on_member_join(self, member):
+        guild = member.guild
+        async for channel, record in self.get_records(guild, "MEMBER_JOIN"):
+            if record['format'] == "minimal with timestamp":
+                message = modlogformats.MinimalisticFormat.join_leave("MEMBER_JOIN", member)
+                await channel.send(message)
+            elif record['format'] == "emoji":
+                message = modlogformats.EmojiFormat.join_leave("MEMBER_JOIN", member)
+                await channel.send(message, allowed_mentions=discord.AllowedMentions(users=[member]))
+            elif record['format'] == "embed":
+                embed = modlogformats.EmbedFormat.join_leave("MEMBER_JOIN", member)
+                await channel.send(embed=embed)
+
+    @LightningCog.listener()
+    async def on_member_remove(self, member):
+        guild = member.guild
+        async for channel, record in self.get_records(guild, "MEMBER_LEAVE"):
+            if record['format'] == "minimal with timestamp":
+                message = modlogformats.MinimalisticFormat.join_leave("MEMBER_LEAVE", member)
+                await channel.send(message)
+            elif record['format'] == "emoji":
+                message = modlogformats.EmojiFormat.join_leave("MEMBER_LEAVE", member)
+                await channel.send(message, allowed_mentions=discord.AllowedMentions(users=[member]))
+            elif record['format'] == "embed":
+                embed = modlogformats.EmbedFormat.join_leave("MEMBER_LEAVE", member)
+                await channel.send(embed=embed)
+
+        # Kick stuff
+        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.kick, target=member)
+        if member.joined_at is None or member.joined_at > entry.created_at:
+            return
+
+        if entry.user == self.bot.user:
+            # Assuming it's already logged
+            return
+
+        obj = Action(guild.id, "KICK", member, entry.user, entry.reason or None)
+        inf_id = await obj.add_infraction(self.bot.pool)
+        await self.do_log_message(obj.guild_id, obj.event, obj, inf_id)
 
 
 def setup(bot) -> None:
