@@ -140,7 +140,13 @@ class EmojiFormat(BaseFormat):
                f"{escape_markdown_and_mentions(str(bot))}"
 
     @staticmethod
-    def role_change(added, removed, after, mod=None):
+    def role_change(added, removed, after, *, entry=None):
+        mod = None
+        if entry:
+            mod = entry.user
+            removed = entry.changes.before.roles
+            added = entry.changes.after.roles
+
         msg = ""
         if len(added) != 0 or len(removed) != 0:
             msg += "\n👑 __Role change__: "
@@ -153,12 +159,13 @@ class EmojiFormat(BaseFormat):
                 safe_role_name = escape_markdown_and_mentions(role.name)
                 roles.append("__**" + safe_role_name + "**__")
 
-            for index, role in enumerate(after.roles):
+            for role in after.roles:
                 if role.name == "@everyone":
                     continue
 
                 if role not in added and role not in removed:
                     roles.append(escape_markdown_and_mentions(role.name))
+
         msg += ", ".join(roles)
         if msg:  # Ending
             safe_user = escape_markdown_and_mentions(str(after))
@@ -244,7 +251,18 @@ class MinimalisticFormat(BaseFormat):
             return f"ID: {user.id}"
 
     @staticmethod
-    def role_change(user, added, removed, mod, time, reason: str = "", *, with_timestamp=True):
+    def role_change(user, added, removed, *, entry=None, with_timestamp=True):
+        time = datetime.utcnow()
+        mod = None
+        reason = None
+
+        if entry:
+            mod = entry.user
+            time = entry.created_at
+            removed = entry.changes.before.roles
+            added = entry.changes.after.roles
+            reason = entry.reason
+
         if with_timestamp:
             base = f"`[{time.strftime('%H:%M:%S UTC')}]` **Role Change**\n"\
                    f"**User**: {escape_markdown_and_mentions(str(user))} ({user.id})\n"
@@ -261,8 +279,10 @@ class MinimalisticFormat(BaseFormat):
 
         if mod is not None:
             base += f"**Moderator**: {escape_markdown_and_mentions(str(mod))} ({mod.id})"
+
         if reason:
             base += f"\n**Reason**: {escape_markdown_and_mentions(reason)}"
+
         return base
 
     @staticmethod
@@ -358,4 +378,28 @@ class EmbedFormat(BaseFormat):
         embed.add_field(name="Moderator", value=base_user_format(moderator))
         embed.timestamp = created_at
         embed.set_footer(text=f"Time {action} was made at")
+        return embed
+
+    @staticmethod
+    def role_change(user, added, removed, *, entry=None):
+        embed = discord.Embed(title="Role Change", color=discord.Color.dark_gold(),
+                              description=f"User: {user.mention} ({user.id})")
+
+        time = datetime.utcnow()
+        if entry:
+            removed = entry.changes.before.roles
+            added = entry.changes.after.roles
+            time = entry.created_at
+
+            embed.add_field(name="Moderator", value=base_user_format(entry.user))
+
+        if added:
+            added = "".join(r.mention for r in added)
+            embed.description += f"\nAdded: {added}"
+
+        if removed:
+            removed = "".join(r.mention for r in removed)
+            embed.description += f"\nRemoved: {removed}"
+
+        embed.timestamp = time
         return embed
