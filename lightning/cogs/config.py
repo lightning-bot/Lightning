@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -36,7 +36,7 @@ from lightning.utils.paginator import SessionMenu
 LOG_FORMAT_D = {Emoji.numbers[0]: 'emoji', Emoji.numbers[1]: 'minimal with timestamp',
                 Emoji.numbers[2]: 'minimal without timestamp', Emoji.numbers[3]: 'embed'}
 LOGGING_TYPES = {"1": "WARN", "2": "KICK", "3": "BAN", "4": "MUTE",
-                 "5": "UNMUTE", "6": "MEMBER_JOIN", "7": "MEMBER_LEAVE"}
+                 "5": "UNMUTE", "6": "UNBAN", "7": "MEMBER_JOIN", "8": "MEMBER_LEAVE", "9": "MEMBER_ROLE_CHANGE"}
 
 
 class SetupMenu(SessionMenu):
@@ -75,7 +75,9 @@ class SetupMenu(SessionMenu):
         connection = connection or self.bot.pool
         allevents = list(LOGGING_TYPES.values())
         query = """INSERT INTO logging (guild_id, channel_id, types)
-                   VALUES ($1, $2, $3)"""
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (channel_id)
+                   DO UPDATE SET types=EXCLUDED.types;"""
         # TODO: Tell the user we are already logging x events
         await connection.execute(query, guild_id, channel_id, allevents)
 
@@ -139,7 +141,7 @@ class SetupMenu(SessionMenu):
         await self.ctx.send(f"Removed logging from {self.log_channel.mention}!")
         if resp != 0:
             # Invalidate cache if channel was a logging channel
-            c = cache.registry.get("mod_config")
+            c = cache.registry.get("logging")
             await c.invalidate(str(self.ctx.guild.id))
         self.stop()
 
@@ -148,7 +150,9 @@ class SetupMenu(SessionMenu):
         await self.clear_buttons(react=True)
 
         logformats = [f'{Emoji.numbers[0]} for Emoji format',
-                      f'{Emoji.numbers[1]} for Minimalistic with Timestamp format']
+                      f'{Emoji.numbers[1]} for Minimalistic with Timestamp format',
+                      f'{Emoji.numbers[2]} for Minimalistic without Timestamp format',
+                      f'{Emoji.numbers[3]} for Embed format']
         content = f"React with {' or '.join(logformats)}.\n\nIf you want to cancel setup, react with " \
                   "\N{BLACK SQUARE FOR STOP} to cancel."
         await self.message.edit(content=content)
@@ -172,7 +176,7 @@ class SetupMenu(SessionMenu):
             await self.ctx.send(f"{self.log_channel.mention} is not setup as a logging channel!")
             return self.stop()
 
-        c = cache.registry.get("mod_config")
+        c = cache.registry.get("logging")
         await c.invalidate(str(self.ctx.guild.id))
         await self.ctx.send("Successfully changed log format")
         self.stop()
@@ -502,13 +506,14 @@ class Configuration(LightningCog):
             return
 
         roles = []
+        unresolved = []
 
         def get_and_append(r):
             role = member.guild.get_role(r)
             if role:
                 roles.append(role)
             else:
-                record['punishment_roles'].remove(role)
+                unresolved.append(role)
 
         if record['punishment_roles']:
             for role in record['punishment_roles']:
@@ -516,7 +521,7 @@ class Configuration(LightningCog):
 
             if len(record['punishment_roles']) != 0:
                 query = "UPDATE roles SET punishment_roles=$1 WHERE guild_id=$2 AND user_id=$3;"
-                await self.bot.pool.execute(query, member.guild.id, member.id)
+                await self.bot.pool.execute(query, unresolved, member.guild.id, member.id)
 
             await member.add_roles(*roles, reason="Applying previous punishment roles")
 
@@ -652,21 +657,22 @@ class Configuration(LightningCog):
     async def muterole_unbind(self, ctx: LightningContext) -> None:
         """Unbinds the mute role from all users"""
         config = await self.get_mod_config(ctx)
-        if config is None or config.mute_role_id(ctx) is None:
+        if config is None:
             await ctx.send("No mute role is currently set. You can set one with"
                            f"`{ctx.prefix}config muterole <role>`.")
             return
 
-        query = "SELECT user_id FROM roles WHERE guild_id=$1 AND $2=ANY(punishment_roles);"
+        query = "SELECT COUNT(*) FROM roles WHERE guild_id=$1 AND $2 = ANY(punishment_roles);"
         users = await self.bot.pool.fetchval(query, ctx.guild.id, config.mute_role_id)
+        print(users)
 
-        confirm = await ctx.prompt(f"Are you sure you want to unbind the mute role from {plural(len(users)):user}?")
+        confirm = await ctx.prompt(f"Are you sure you want to unbind the mute role from {plural(users):user}?")
         if not confirm:
             return
 
         query = "UPDATE roles SET punishment_roles = array_remove(punishment_roles, $1) WHERE guild_id=$2;"
         await self.bot.pool.execute(query, config.mute_role_id, ctx.guild.id)
-        await ctx.send(f"Unbound {plural(len(users)):user} from the mute role.")
+        await ctx.send(f"Unbound {plural(users):user} from the mute role.")
 
     # AutoMod
 
