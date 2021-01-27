@@ -24,8 +24,8 @@ from discord.ext import commands, menus
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, cache)
 from lightning import command as lcommand
-from lightning import group as lgroup
 from lightning import flags as lflags
+from lightning import group as lgroup
 from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
 from lightning.formatters import plural
