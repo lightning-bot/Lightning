@@ -564,7 +564,7 @@ class Mod(LightningCog, required=["Configuration"]):
                      help="Bot does not DM the user the reason for the action.")
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    @command(cls=dflags.FlagCommand, aliases=['tempban'])
+    @command(cls=dflags.FlagCommand, aliases=['tempban'], level=CommandLevel.Mod)
     async def timeban(self, ctx: LightningContext, target: converters.TargetMember,
                       duration: FutureTime, **flags) -> None:
         """Bans a user for a specified amount of time.
@@ -636,7 +636,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
-    @group(invoke_without_command=True)
+    @group(invoke_without_command=True, level=CommandLevel.Mod)
     async def unlock(self, ctx: LightningContext,
                      channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
         """Unlocks the channel mentioned.
@@ -652,7 +652,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
-    @unlock.command(name='hard')
+    @unlock.command(name='hard', level=CommandLevel.Admin)
     async def hunlock(self, ctx: LightningContext,
                       channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
         """Hard unlocks the channel mentioned.
