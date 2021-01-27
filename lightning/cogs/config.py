@@ -25,6 +25,7 @@ from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, cache)
 from lightning import command as lcommand
 from lightning import group as lgroup
+from lightning import flags as lflags
 from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
 from lightning.formatters import plural
@@ -584,10 +585,11 @@ class Configuration(LightningCog):
         This command allows you to set the mute role for the server or view the configured mute role."""
         if not role:
             ret = await self.get_mod_config(ctx)
-            if not ret or ret.mute_role(ctx) is None:
-                return await ctx.send("There is no mute role setup!")
+            if not ret:
+                await ctx.send("There is no mute role setup!")
+                return
 
-            mute = ret.mute_role(ctx)
+            mute = ret.get_mute_role(ctx)
             await ctx.send(f"The current mute role is set to {mute.name} ({mute.id})")
             return
 
@@ -599,13 +601,40 @@ class Configuration(LightningCog):
         await self.invalidate_config(ctx)
         await ctx.send(f"Successfully set the mute role to {role.name}")
 
-    @muterole.command(name="reset", aliases=['delete', 'remove'], level=CommandLevel.Admin)
+    @muterole.command(name="temp", level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True, manage_roles=True)
-    async def delete_mute_role(self, ctx: LightningContext) -> None:
+    async def set_temp_mute_role(self, ctx: LightningContext, *, role: Role = None) -> None:
+        if not role:
+            ret = await self.get_mod_config(ctx)
+            if not ret:
+                await ctx.send("There is no mute role setup!")
+                return
+
+            mute = ret.get_temp_mute_role(ctx, fallback=False)
+            await ctx.send(f"The current temporary mute role is set to {mute.name} ({mute.id})")
+            return
+
+        if role.is_default():
+            await ctx.send('You cannot use the @\u200beveryone role.')
+            return
+
+        await self.add_config_key(ctx.guild.id, "temp_mute_role_id", role.id, column="guild_mod_config")
+        await self.invalidate_config(ctx)
+        await ctx.send(f"Successfully set the temporary mute role to {role.name}")
+
+    @lflags.add_flag("--temp", "-T", is_bool_flag=True, help="Whether to remove the temp mute role")
+    @muterole.command(name="reset", aliases=['delete', 'remove'], level=CommandLevel.Admin, cls=lflags.FlagCommand)
+    @has_guild_permissions(manage_guild=True, manage_roles=True)
+    async def delete_mute_role(self, ctx: LightningContext, **flags) -> None:
         """Deletes the configured mute role."""
-        query = """UPDATE guild_mod_config SET mute_role_id=NULL
-                   WHERE guild_id=$1;
-                """
+        if flags['temp'] is False:
+            query = """UPDATE guild_mod_config SET mute_role_id=NULL
+                       WHERE guild_id=$1;
+                    """
+        else:
+            query = """UPDATE guild_mod_config SET temp_mute_role_id=NULL
+                       WHERE guild_id=$1;
+                    """
         await self.bot.pool.execute(query, ctx.guild.id)
         await self.invalidate_config(ctx)
         await ctx.send("Successfully removed the configured mute role.")
@@ -633,20 +662,23 @@ class Configuration(LightningCog):
                 skipped += 1
         return success, failure, skipped
 
-    @muterole.command(name="update", level=CommandLevel.Admin)
+    @lflags.add_flag("--temp", "-T", is_bool_flag=True, help="Whether to use the temp mute role")
+    @muterole.command(name="update", level=CommandLevel.Admin, cls=lflags.FlagCommand)
     @has_guild_permissions(manage_guild=True, manage_roles=True)
-    async def mute_role_perm_update(self, ctx: LightningContext) -> None:
+    async def mute_role_perm_update(self, ctx: LightningContext, **flags) -> None:
         """Updates the permission overwrites of the mute role.
 
         This sets the permissions to Send Messages and Add Reactions as False
         on every text channel that the bot can set permissions for."""
         config = await self.get_mod_config(ctx)
-        if config is None or config.mute_role(ctx) is None:
+        if config is None:
             await ctx.send("No mute role is currently set. You can set one with"
                            f"`{ctx.prefix}config muterole <role>`.")
             return
 
-        success, failed, skipped = await self.update_mute_role_permissions(config.mute_role(ctx),
+        role = config.get_mute_role(ctx) if flags['temp'] is False else config.get_temp_mute_role(ctx, fallback=False)
+
+        success, failed, skipped = await self.update_mute_role_permissions(role,
                                                                            ctx.guild, ctx.author)
 
         await ctx.send(f"Updated {success} channel overrides successfully, {failed} channels failed, and "
@@ -664,7 +696,6 @@ class Configuration(LightningCog):
 
         query = "SELECT COUNT(*) FROM roles WHERE guild_id=$1 AND $2 = ANY(punishment_roles);"
         users = await self.bot.pool.fetchval(query, ctx.guild.id, config.mute_role_id)
-        print(users)
 
         confirm = await ctx.prompt(f"Are you sure you want to unbind the mute role from {plural(users):user}?")
         if not confirm:
