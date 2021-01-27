@@ -951,6 +951,57 @@ class Mod(LightningCog, required=["Configuration"]):
         inf_id = await obj.add_infraction(self.bot.pool)
         await self.do_log_message(obj.guild_id, obj.event, obj, inf_id)
 
+    async def find_occurance(self, guild, action, match, limit=50, retry=True):
+        if not guild.me.guild_permissions.view_audit_log:
+            return
+
+        entry = None
+        async for e in guild.audit_logs(action=action, limit=limit):
+            if match(e):
+                if entry is None or e.id > entry.id:
+                    entry = e
+                    break
+
+        if entry is None and retry:
+            await asyncio.sleep(2)
+            return await self.find_occurance(guild, action, match, limit, False)
+        # if entry is not None and isinstance(entry.target, discord.Object):
+        #    entry.target = await self.bot.get_user(entry.target.id)
+        return entry
+
+    @LightningCog.listener()
+    async def on_member_update(self, before, after):
+        await self.bot.wait_until_ready()
+        guild = before.guild
+
+        if before.roles != after.roles:
+            added = [role for role in after.roles if role not in before.roles]
+            removed = [role for role in before.roles if role not in after.roles]
+            if (len(added) + len(removed)) == 0:
+                return
+
+            def check(e):
+                return e.target.id == before.id and hasattr(e.changes.before, "roles") \
+                    and hasattr(e.changes.after, "roles") and \
+                    all(r in e.changes.before.roles for r in removed) and \
+                    all(r in e.changes.after.roles for r in added)
+
+            entry = await self.find_occurance(guild, discord.AuditLogAction.member_role_update,
+                                              check)
+
+            async for channel, record in self.get_records(guild, "MEMBER_ROLE_CHANGE"):
+                if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
+                    arg = False if record['format'] == "minimal without timestamp" else True
+                    message = modlogformats.MinimalisticFormat.role_change(after, added, removed, entry=entry,
+                                                                           with_timestamp=arg)
+                    await channel.send(message)
+                elif record['format'] == "emoji":
+                    message = modlogformats.EmojiFormat.role_change(added, removed, after, entry=entry)
+                    await channel.send(message)
+                elif record['format'] == "embed":
+                    embed = modlogformats.EmbedFormat.role_change(after, added, removed, entry=entry)
+                    await channel.send(embed=embed)
+
 
 def setup(bot) -> None:
     bot.add_cog(Mod(bot))
