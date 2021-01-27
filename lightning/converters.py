@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -81,6 +81,21 @@ class TargetMember(commands.Converter):
 
             if member.top_role >= ctx.author.top_role:
                 raise commands.BadArgument("You can't do actions on this member due to hierarchy.")
+
+            record = await ctx.bot.get_guild_bot_config(ctx.guild.id)
+            if not record:
+                return
+
+            if hasattr(record, 'permissions') and record.permissions.levels is not None:
+                mod_level = record.permissions.levels.get_user_level(ctx.author.id, list(ctx.author._roles))
+
+                if mod_level == CommandLevel.User:
+                    mod_level = ctx.command.level
+
+                target_level = record.permissions.levels.get_user_level(member.id, list(member._roles))
+
+                if mod_level.value <= target_level.value:
+                    raise commands.BadArgument("Member has the same level or a higher level than you.")
 
     async def convert(self, ctx, argument):
         target = await self.user_converter.convert(ctx, argument)
