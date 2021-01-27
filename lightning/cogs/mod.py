@@ -745,9 +745,11 @@ class Mod(LightningCog, required=["Configuration"]):
             if not channel:
                 continue
 
-            if record['format'] == "minimal with timestamp":
+            if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
+                arg = False if record['format'] == "minimal without timestamp" else True
                 message = modlogformats.MinimalisticFormat.timed_action_expired(action.lower(), user, moderator,
-                                                                                timer.created_at, timer.expiry)
+                                                                                timer.created_at, timer.expiry,
+                                                                                with_timestamp=arg)
                 await channel.send(message)
             elif record['format'] == "emoji":
                 message = modlogformats.EmojiFormat.timed_action_expired(action.lower(), user, moderator,
