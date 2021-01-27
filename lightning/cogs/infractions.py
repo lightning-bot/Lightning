@@ -179,6 +179,21 @@ class Infractions(LightningCog, required=['Mod']):
 
         await ctx.send(f"Claimed {infraction_id}")
 
+    @infraction.command(level=CommandLevel.Mod)
+    @has_guild_permissions(manage_guild=True)
+    async def edit(self, ctx: LightningContext, infraction_id: int, *, reason: str) -> None:
+        """Edits the reason for an infraction"""
+        query = """UPDATE infractions
+                   SET moderator_id=$1, reason=$2
+                   WHERE guild_id=$3 AND id=$4;"""
+        resp = await self.bot.pool.execute(query, ctx.author.id, reason, ctx.guild.id, infraction_id)
+
+        if resp == "UPDATE 0":
+            await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
+            return
+
+        await ctx.send(f"Edited {infraction_id}")
+
     # TODO: Infraction transfer
 
     @infraction.command(aliases=['remove'], level=CommandLevel.Admin)
