@@ -52,9 +52,12 @@ class GuildModConfig:
                                        ' Please set a new mute role.')
         return role
 
-    def get_temp_mute_role(self, ctx: LightningContext) -> discord.Role:
+    def get_temp_mute_role(self, ctx: LightningContext, *, fallback=True) -> discord.Role:
         if not self.temp_mute_role_id and not self.mute_role_id:
             raise errors.MuteRoleError("This server has not setup a mute role.")
+
+        if not self.temp_mute_role_id and fallback is False:
+            raise errors.MuteRoleError("This server has not setup a temporary mute role.")
 
         if not self.temp_mute_role_id:
             return self.get_mute_role(ctx)
