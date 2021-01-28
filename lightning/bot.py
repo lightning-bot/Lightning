@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -94,7 +94,7 @@ class LightningBot(commands.AutoShardedBot):
         cog_list = []
         for name in files:
             name = name.with_suffix("")
-            cog_list.append(str(name).replace("/", "."))
+            cog_list.append(str(name).replace("/", ".").replace("\\", "."))
 
         for cog in cog_list:
             if cog in self.config['bot']['disabled_cogs']:
