@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2021 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -40,9 +40,6 @@ class GelbooruPost:
     def __str__(self):
         return self.file_url
 
-    def __int__(self):
-        return self.id
-
     def __repr__(self):
         return f"<GelbooruPost id={self.id} rating={self.rating} file_url={self.file_url}>"
 
@@ -72,7 +69,7 @@ class GelbooruMenu(dmenus.ListPageSource):
         tags = entries.tags[0:5]
         description = "**Rating**: {}\n**Tags**: {} (Only showing 5 tags)".format(entries.rating.capitalize(),
                                                                                   ", ".join(tags))
-        embed = discord.Embed(title=int(entries), description=description)
+        embed = discord.Embed(title=entries.id, description=description)
         embed.set_image(url=entries.file_url)
         embed.set_footer(text=f"Page {offset + 1}/{len(self.entries)}")
         return embed
