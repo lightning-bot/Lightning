@@ -342,7 +342,7 @@ class Configuration(LightningCog):
 
         return await self.bot.pool.execute(query, *args)
 
-    @config.group(aliases=['prefixes'], invoke_without_command=True)
+    @config.group(aliases=['prefixes'], invoke_without_command=True, level=CommandLevel.Admin)
     async def prefix(self, ctx: LightningContext) -> None:
         """Manages the server's custom prefixes.
 

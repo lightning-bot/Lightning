@@ -491,6 +491,17 @@ class Meta(LightningCog):
         """Tells you about the copyright license for the bot"""
         await ctx.send("AGPLv3: https://gitlab.com/lightning-bot/Lightning/-/blob/master/LICENSE")
 
+    @lcommand(aliases=['prefixes'])
+    async def prefix(self, ctx: LightningContext) -> None:                
+        """Shows prefixes the bot is listening for"""
+        pfxs = await self.bot.get_prefix(ctx.message)
+        pfxs = list(pfxs)
+        del pfxs[0]
+        embed = discord.Embed(title="Prefixes I am listening for",
+                              description="\n".join(f"\"{p}\"" for p in pfxs),
+                              color=discord.Color(0xf74b06))
+        await ctx.send(embed=embed)
+
     @lcommand(aliases=['invite'])
     async def join(self, ctx: LightningContext, *ids: ClientID) -> None:
         """Gives you a link to add the bot to your server or generates an invite link for a client id."""
