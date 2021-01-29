@@ -492,7 +492,7 @@ class Meta(LightningCog):
         await ctx.send("AGPLv3: https://gitlab.com/lightning-bot/Lightning/-/blob/master/LICENSE")
 
     @lcommand(aliases=['prefixes'])
-    async def prefix(self, ctx: LightningContext) -> None:                
+    async def prefix(self, ctx: LightningContext) -> None:
         """Shows prefixes the bot is listening for"""
         pfxs = await self.bot.get_prefix(ctx.message)
         pfxs = list(pfxs)
