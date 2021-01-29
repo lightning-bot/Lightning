@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -45,6 +45,7 @@ class CommandBug:
 
 
 class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
+    """Commands that manage the bot"""
     @Feature.Command(parent="jsk", name="leaveguild")
     async def jsk_leaveguild(self, ctx: LightningContext, guild_id: int) -> None:
         """Leaves a guild that the bot is in via ID"""
