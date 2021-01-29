@@ -78,9 +78,8 @@ class Roles(LightningCog):
         """Toggles a role that this server has setup.
 
         Use 'togglerole list' for a list of roles that you can toggle."""
-        query = """SELECT toggleroles FROM guild_config WHERE guild_id=$1;"""
-        record = await self.bot.pool.fetchval(query, ctx.guild.id)
-        if not record:
+        record = await self.bot.get_guild_bot_config(ctx.guild.id)
+        if not record or not record.toggleroles:
             await ctx.send("This feature is not setup in this server.")
             return
 
@@ -129,6 +128,7 @@ class Roles(LightningCog):
                    ARRAY(SELECT DISTINCT * FROM unnest(COALESCE(guild_config.toggleroles, '{}') || $2::bigint[]))
                 """
         await self.bot.pool.execute(query, ctx.guild.id, [role.id])
+        await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.send(f"Added {role.name} as a toggleable role!")
 
     @togglerole.command(name="purge", level=CommandLevel.Admin)
@@ -144,6 +144,7 @@ class Roles(LightningCog):
         if resp == "UPDATE 0":
             await ctx.send("This server had no toggleable roles")
         else:
+            await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
             await ctx.send("All toggleable roles have been deleted.")
 
     @togglerole.command(name="delete", aliases=['remove'], level=CommandLevel.Admin)
@@ -157,16 +158,16 @@ class Roles(LightningCog):
                  """
         role_repr = (role.id if hasattr(role, 'id') else role, role.name if hasattr(role, 'name') else role)
         await self.bot.pool.execute(query, role_repr[0], ctx.guild.id)
+        await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.send(f"Successfully removed {role_repr[1]} from the list of toggleable roles")
 
     @commands.guild_only()
     @togglerole.command(name="list")
     async def list_toggleable_roles(self, ctx: LightningContext) -> None:
         """Lists all the toggleable roles this server has"""
-        query = """SELECT toggleroles FROM guild_config WHERE guild_id=$1;"""
-        record = await self.bot.pool.fetchval(query, ctx.guild.id)
-        if not record:
-            await ctx.send("This server does not have any toggleable roles setup.")
+        record = await self.bot.get_guild_bot_config(ctx.guild.id)
+        if not record or not record.toggleroles:
+            await ctx.send("This feature is not setup in this server.")
             return
 
         unresolved = []

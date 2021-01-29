@@ -251,6 +251,7 @@ class ConfigFlags(Flags):
 class GuildBotConfig:
     def __init__(self, record):
         self.guild_id = record['guild_id']
+        self.toggleroles = record['toggleroles']
         self.prefix = record['prefix']
         self.autorole = record['autorole']
         self.flags = ConfigFlags(record['flags'] or 0)
