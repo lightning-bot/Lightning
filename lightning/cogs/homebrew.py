@@ -312,9 +312,9 @@ class Homebrew(LightningCog):
                     "Modify your Nintendo DS game using Cheat Codes",
                     "Install Custom FirmWare on your 3DS using NTRBoot Hax"]
         embed = discord.Embed(title="Nintendo DS Flashcard guide",
-                              url="https://ds-homebrew.github.io/flashcard",
+                              url="https://nightyoshi370.github.io/mm-github-pages-starter/",
                               color=0xD6FEFF)
-        embed.description = ("This [guide](https://ds-homebrew.github.io/flashcard)"
+        embed.description = ("This [guide](https://nightyoshi370.github.io/mm-github-pages-starter/)"
                              " links to most flashcard kernels that are made "
                              "for the Nintendo DS. You can also view its "
                              "compatibility status for the Nintendo DSi and the Nintendo 3DS"
