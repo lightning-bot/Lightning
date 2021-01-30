@@ -782,13 +782,9 @@ class Mod(LightningCog, required=["Configuration"]):
                 moderator = await self.bot.fetch_user(timer.extra['mod_id'])
             except Exception:
                 # Discord Broke/Failed/etc.
-                mod = f"Moderator ID {timer.extra['mod_id']}"
-            else:
-                mod = f'{moderator} (ID: {moderator.id})'
-        else:
-            mod = f'{moderator} (ID: {moderator.id})'
+                moderator = helpers.BetterUserObject(id=timer.extra['mod_id'])
 
-        reason = f"Timed ban made by {mod} at {timer.created_at} expired"
+        reason = f"Timed ban made by {modlogformats.base_user_format(moderator)} at {timer.created_at} expired"
         await guild.unban(uid, reason=reason)
         await self.log_timed_action_complete(timer, "ban", "UNBAN", guild, uid, moderator)
 
