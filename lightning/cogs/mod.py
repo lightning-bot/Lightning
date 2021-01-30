@@ -942,6 +942,10 @@ class Mod(LightningCog, required=["Configuration"]):
             return
 
         entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.kick, target=member)
+
+        if not entry:
+            return
+
         if member.joined_at is None or member.joined_at > entry.created_at:
             return
 
