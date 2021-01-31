@@ -32,7 +32,8 @@ from rapidfuzz.process import extractOne
 from lightning import LightningBot, LightningCog, LightningContext
 from lightning import command as lcommand
 from lightning import group as lgroup
-from lightning.converters import GuildID, Message, ReadableChannel
+from lightning.converters import (GuildID, GuildorNonGuildUser, Message,
+                                  ReadableChannel)
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from lightning.utils import helpers
 from lightning.utils.modlogformats import base_user_format
@@ -40,23 +41,6 @@ from lightning.utils.paginator import InfoMenuPages
 from lightning.utils.time import format_timestamp, natural_timedelta
 
 log = logging.getLogger(__name__)
-
-
-class ResolveUser(commands.Converter):
-    async def convert(self, ctx, argument):
-        try:
-            return await commands.MemberConverter().convert(ctx, argument)
-        except commands.BadArgument:
-            if argument.isdigit() is False:
-                raise commands.BadArgument("Not a valid user ID!")
-            try:
-                return await ctx.bot.fetch_user(argument)
-            except discord.NotFound:
-                raise commands.BadArgument("Not a valid user ID!")
-            except discord.HTTPException:
-                raise commands.BadArgument('An error occurred while finding the user!')
-
-
 flag_name_lookup = {"HumanTime": "Time", "FutureTime": "Time"}
 
 
@@ -311,7 +295,7 @@ class Meta(LightningCog):
         self.bot.help_command = self.original_help_command
 
     @lcommand(aliases=['avy'])
-    async def avatar(self, ctx: LightningContext, *, member: ResolveUser = commands.default.Author) -> None:
+    async def avatar(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
         """Displays a user's avatar"""
         embed = discord.Embed(color=discord.Color.blue(),
                               description=f"[Link to Avatar]({member.avatar_url_as(static_format='png')})")
@@ -320,7 +304,7 @@ class Meta(LightningCog):
         await ctx.send(embed=embed)
 
     @lcommand(aliases=['ui'])
-    async def userinfo(self, ctx: LightningContext, *, member: ResolveUser = commands.default.Author) -> None:
+    async def userinfo(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
         """Displays information for a user"""
         embed = discord.Embed(title=str(member), color=member.colour, description=f"**ID**: {member.id}")
         embed.set_thumbnail(url=member.avatar_url)
