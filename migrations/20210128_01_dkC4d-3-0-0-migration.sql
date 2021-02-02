@@ -103,7 +103,7 @@ alter table "public"."user_restrictions" drop constraint if exists "user_restric
 
 alter table "public"."userlogs" drop constraint if exists "userlogs_pkey";
 
-alter table "public"."warns" drop constraint if exists "warns_pkey";
+alter table "public"."warns" drop constraint if exists "warns_pkey" CASCADE;
 
 drop index if exists "public"."bug_tickets_pkey";
 
