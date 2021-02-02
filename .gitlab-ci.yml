@@ -1,5 +1,6 @@
 stages:
   - Static Code Analysis
+  - Tests
   - Publish
 
 flake8:
@@ -38,6 +39,23 @@ Test Schema Creation:
   rules:
     - changes:
       - scripts/*.{sql}
+
+Test Migrations:
+  stage: Tests
+  image: postgres:12-alpine
+  services:
+  - postgres:12-alpine
+  script:
+    - apk add --update python3 py3-pip openssl-dev python3-dev g++ libffi-dev
+    - pip3 install wheel
+    - pip3 install yoyo-migrations psycopg2
+    - export PGPASSWORD=$POSTGRES_PASSWORD
+    - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v "ON_ERROR_STOP=1" -c "CREATE DATABASE tests;"
+    - psql -h "postgres" -U "$POSTGRES_USER" -d "tests" -v "ON_ERROR_STOP=1" -f tests/original_schema.sql
+    - yoyo apply --batch --database postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/tests ./migrations
+  rules:
+    - changes:
+      - migrations/*
 
 Publish release to Sentry:
   stage: Publish
