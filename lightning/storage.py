@@ -21,8 +21,8 @@ import os
 import secrets
 import typing
 
-from tomlkit import parse as toml_parse
 from tomlkit import dumps as toml_dumps
+from tomlkit import parse as toml_parse
 
 
 # Storage.py (MIT Licensed) from https://gitlab.com/LightSage/python-bin/-/blob/master/storage.py
