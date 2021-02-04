@@ -1,6 +1,6 @@
 """
-Lightning.py - A multi-purpose Discord bot
-Copyright (C) 2020 - LightSage
+Lightning.py - A personal Discord bot
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -21,6 +21,6 @@ __all__ = ('__title__',
            '__author__')
 
 __title__ = "Lightning"
-__version__ = "3.0.0-alpha"
+__version__ = "3.0.0-beta"
 __license__ = "GNU Affero General Public License Version 3"
 __author__ = "LightSage"
