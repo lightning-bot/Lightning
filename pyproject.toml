@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Lightning.py"
-version = "3.0.0-alpha"
+version = "3.0.0-beta"
 description = ""
 authors = ["LightSage <lightsage01@gmail.com>"]
 license = "AGPL-3.0-or-later"
