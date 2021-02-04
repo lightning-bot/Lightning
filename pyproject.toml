@@ -13,7 +13,6 @@ python = "^3.7"
 Pillow = "^7.2.0"
 python-dateutil = "^2.8.1"
 parsedatetime = "^2.6"
-toml = "^0.10.1"
 psutil = "^5.7.2"
 tabulate = "^0.8.7"
 uwuify = "^1.0.1"
@@ -32,8 +31,9 @@ py-flags = "^1.1.4"
 jishaku = {git = "https://gitlab.com/Gorialis/jishaku.git"}
 rapidfuzz = "^0.14.2"
 typer = "^0.3.2"
-psycopg2-binary = "^2.8.6"
 yoyo-migrations = "^7.2.1"
+psycopg2 = "^2.8.6"
+tomlkit = "^0.7.0"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
