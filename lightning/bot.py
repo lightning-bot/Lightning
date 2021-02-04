@@ -34,6 +34,7 @@ from lightning import cache, config, errors
 from lightning.context import LightningContext
 from lightning.meta import __version__ as version
 from lightning.models import GuildBotConfig
+from lightning.storage import Storage
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class LightningBot(commands.AutoShardedBot):
         # This should be good enough
         self.command_spam_cooldown = commands.CooldownMapping.from_cooldown(6, 5.0, commands.BucketType.user)
 
-        self.config = config.TOMLStorage('config.toml')
+        self.config = config.Base('config.toml')
         self.version = version
         self._pending_cogs = {}
 
@@ -104,7 +105,7 @@ class LightningBot(commands.AutoShardedBot):
             except Exception as e:
                 log.error(f"Failed to load {cog}", exc_info=e)
 
-        self.blacklisted_users = config.Storage("config/user_blacklist.json")
+        self.blacklisted_users = Storage("config/user_blacklist.json")
 
     @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=32)
     async def get_guild_bot_config(self, guild_id: int) -> Optional[GuildBotConfig]:

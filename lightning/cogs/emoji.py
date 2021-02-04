@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -73,8 +73,8 @@ class Emoji(LightningCog):
     @commands.is_owner()
     async def approvenitro(self, ctx: LightningContext, guild: converters.GuildID) -> None:
         """Approves a guild for the nitro emoji command"""
-        table = self.bot.config['bot']['nitro_emoji_guilds']
-        await self.bot.config.append(table, guild.id)
+        self.bot.config['bot']['nitro_emoji_guilds'].append(guild.id)
+        await self.bot.config.save()
         await ctx.tick(True)
 
     @emoji.command(aliases=['copy'], level=CommandLevel.Admin)
