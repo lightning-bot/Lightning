@@ -68,4 +68,4 @@ Publish release to Sentry:
     - sentry-cli releases set-commits --auto "$CI_COMMIT_SHA"
     - sentry-cli releases finalize $CI_COMMIT_SHA
   rules:
-    - if: '$CI_COMMIT_BRANCH == "v3"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
