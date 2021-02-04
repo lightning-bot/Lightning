@@ -32,9 +32,9 @@ from discord.ext.commands import clean_content
 
 import lightning.utils.time
 from lightning import LightningBot, LightningCog, LightningContext, group
-from lightning.storage import Storage
 from lightning.formatters import plural
 from lightning.models import Timer
+from lightning.storage import Storage
 from lightning.utils.helpers import BetterUserObject, dm_user
 
 log = logging.getLogger(__name__)
