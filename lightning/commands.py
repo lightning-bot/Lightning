@@ -121,8 +121,10 @@ class LightningCommand(commands.Command):
             # Level Overrides
             raw = overrides.get_overrides(self.qualified_name)
 
-            if raw is not None and "LEVEL" in raw:
-                if user_level.value >= raw["LEVEL"]:
+            level_overriden = raw.get("LEVEL", None) if raw else None
+
+            if level_overriden is not None:
+                if user_level.value >= level_overriden:
                     return True
                 # Command overrides won't fallback
                 return False
