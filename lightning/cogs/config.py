@@ -86,7 +86,12 @@ class SetupMenu(SessionMenu):
     async def log_everything(self, payload) -> None:
         await self.log_all_in_one(self.ctx.guild.id, self.log_channel.id)
         await self.ctx.send(f"Successfully setup logging for {self.log_channel.mention}")
+        await self.invalidate_cache()
         self.stop()
+
+    async def invalidate_cache(self):
+        c = cache.registry.get("logging")
+        await c.invalidate(str(self.ctx.guild.id))
 
     async def _setup_logging(self, payload: discord.Message):
         match = re.fullmatch(r'^[\s\d]+$', payload.content)
@@ -111,6 +116,7 @@ class SetupMenu(SessionMenu):
                        ON CONFLICT (channel_id)
                        DO UPDATE SET types = EXCLUDED.types;"""
             await self.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, set(types))
+            await self.invalidate_cache()
             await self.ctx.send(f"Successfully set up logging for {self.log_channel.mention}! ({', '.join(toggled)})")
             self.stop()
         else:
@@ -142,8 +148,7 @@ class SetupMenu(SessionMenu):
         await self.ctx.send(f"Removed logging from {self.log_channel.mention}!")
         if resp != 0:
             # Invalidate cache if channel was a logging channel
-            c = cache.registry.get("logging")
-            await c.invalidate(str(self.ctx.guild.id))
+            await self.invalidate_cache()
         self.stop()
 
     @menus.button("\N{NOTEBOOK}")
@@ -177,8 +182,7 @@ class SetupMenu(SessionMenu):
             await self.ctx.send(f"{self.log_channel.mention} is not setup as a logging channel!")
             return self.stop()
 
-        c = cache.registry.get("logging")
-        await c.invalidate(str(self.ctx.guild.id))
+        await self.invalidate_cache()
         await self.ctx.send("Successfully changed log format")
         self.stop()
 
