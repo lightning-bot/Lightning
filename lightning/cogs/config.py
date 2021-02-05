@@ -15,6 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import contextlib
+import logging
 import re
 from typing import Optional, Union
 
@@ -34,6 +35,7 @@ from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import Emoji
 from lightning.utils.paginator import SessionMenu
 
+log = logging.getLogger(__name__)
 LOG_FORMAT_D = {Emoji.numbers[0]: 'emoji', Emoji.numbers[1]: 'minimal with timestamp',
                 Emoji.numbers[2]: 'minimal without timestamp', Emoji.numbers[3]: 'embed'}
 LOGGING_TYPES = {"1": "WARN", "2": "KICK", "3": "BAN", "4": "MUTE",
@@ -524,9 +526,10 @@ class Configuration(LightningCog):
             for role in record['punishment_roles']:
                 get_and_append(role)
 
-            if len(record['punishment_roles']) != 0:
+            if len(unresolved) != 0:
                 query = "UPDATE roles SET punishment_roles=$1 WHERE guild_id=$2 AND user_id=$3;"
-                await self.bot.pool.execute(query, unresolved, member.guild.id, member.id)
+                log.debug(f"Unable to resolve roles: {unresolved}")
+                await self.bot.pool.execute(query, [r.id for r in roles], member.guild.id, member.id)
 
             await member.add_roles(*roles, reason="Applying previous punishment roles")
 
