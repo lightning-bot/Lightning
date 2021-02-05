@@ -606,7 +606,7 @@ name = "uvloop"
 version = "0.14.0"
 description = "Fast implementation of asyncio event loop on top of libuv"
 category = "main"
-optional = false
+optional = true
 python-versions = "*"
 
 [[package]]
@@ -665,7 +665,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "ba0d7e0df3cf1b060e645908b0353c723891fa991cdff149641261c6cd14fe97"
+content-hash = "b30363d53b8211e5d5d410dd40522374e9482e9c2a1d3a2442ab09354f22ece8"
 
 [metadata.files]
 aiohttp = [

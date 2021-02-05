@@ -20,7 +20,6 @@ hiredis = "^1.1.0"
 aredis = "^1.1.8"
 feedparser = "^5.2.1"
 asyncpg = "^0.21.0"
-uvloop = "^0.14.0"
 discord-ext-menus = {git = "https://github.com/LightSage/discord-ext-menus"}
 lru_dict = "^1.1.6"
 sentry-sdk = "0.19.5"
@@ -34,6 +33,7 @@ typer = "^0.3.2"
 yoyo-migrations = "^7.2.1"
 psycopg2 = "^2.8.6"
 tomlkit = "^0.7.0"
+uvloop = {version = "^0.14.0", optional = true}
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
