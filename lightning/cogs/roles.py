@@ -83,7 +83,7 @@ class Roles(LightningCog):
             await ctx.send("This feature is not setup in this server.")
             return
 
-        resolved, unresolved = await self.resolve_roles(record, ctx, roles)
+        resolved, unresolved = await self.resolve_roles(record.toggleroles, ctx, roles)
 
         member = ctx.author
         diff_roles = ([], [])
@@ -173,7 +173,7 @@ class Roles(LightningCog):
         unresolved = []
         role_list = []
 
-        for role_id in record:
+        for role_id in record.toggleroles:
             role = discord.utils.get(ctx.guild.roles, id=role_id)
             if role:
                 role_list.append(f"{role.mention} (ID: {role.id})")
