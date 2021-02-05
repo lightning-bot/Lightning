@@ -552,7 +552,7 @@ class Meta(LightningCog):
         if not module.startswith("discord"):
             location = os.path.relpath(filename).replace("\\", "/")
 
-        await ctx.send(f"<{source}/blob/v3/{location}#L{firstlineno}-{firstlineno + len(lines) - 1}>")
+        await ctx.send(f"<{source}/blob/master/{location}#L{firstlineno}-{firstlineno + len(lines) - 1}>")
 
     async def show_channel_permissions(self, channel: discord.TextChannel, member, ctx: LightningContext) -> None:
         perms = channel.permissions_for(member)
@@ -611,7 +611,7 @@ class Meta(LightningCog):
 
         if guild.icon:
             if guild.is_icon_animated():
-                icon_url = guild.icon_url_as(static_format="gif")
+                icon_url = guild.icon_url_as(format="gif")
             else:
                 icon_url = guild.icon_url_as(static_format="png")
             embed.description += f"\n**Icon**: [Link]({icon_url})"
