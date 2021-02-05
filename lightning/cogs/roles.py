@@ -94,10 +94,10 @@ class Roles(LightningCog):
                 await ctx.send('That role is higher than my highest role.')
                 return
 
-            if role in member.roles and role.id in record:
+            if role in member.roles and role.id in record.toggleroles:
                 diff_roles[0].append(role)
                 paginator.add_line(f"Removed role **{role.name}**")
-            elif role not in member.roles and role.id in record:
+            elif role not in member.roles and role.id in record.toggleroles:
                 diff_roles[1].append(role)
                 paginator.add_line(f"Added role **{role.name}**")
             else:
