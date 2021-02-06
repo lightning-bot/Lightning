@@ -100,20 +100,20 @@ class InfractionSource(menus.KeysetPageSource):
     def format_embed_description(self, embed: discord.Embed, entries: list) -> discord.Embed:
         if self.member:
             for entry in entries:
-                moderator = self.bot.get_user(entry['moderator_id'])
+                moderator = self.bot.get_user(entry['moderator_id']) or entry['moderator_id']
                 embed.add_field(name=f"{entry['id']}: {natural_timedelta(entry['created_at'])}",
                                 value=f"**Moderator**: {base_user_format(moderator)}\n"
                                       f"**Reason**: {truncate_text(entry['reason'], 45)}", inline=False)
         elif self.moderator:
             for entry in entries:
-                user = self.bot.get_user(entry['user_id'])
+                user = self.bot.get_user(entry['user_id']) or entry['user_id']
                 embed.add_field(name=f"{entry['id']}: {natural_timedelta(entry['created_at'])}",
                                 value=f"**User**: {base_user_format(user)}\n"
                                       f"**Reason**: {truncate_text(entry['reason'], 45)}", inline=False)
         else:
             for entry in entries:
-                user = self.bot.get_user(entry['user_id'])
-                mod = self.bot.get_user(entry['moderator_id'])
+                user = self.bot.get_user(entry['user_id']) or entry['user_id']
+                mod = self.bot.get_user(entry['moderator_id']) or entry['moderator_id']
                 reason = entry['reason'] or 'No reason provided.'
                 embed.add_field(name=f"{entry['id']}: {natural_timedelta(entry['created_at'])}",
                                 value=f"**User**: {base_user_format(user)}\n**Moderator**: {base_user_format(mod)}"
