@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -327,3 +327,41 @@ async def create_pool(dsn: str, **kwargs) -> pgPool:
         await connection.set_type_codec('jsonb', encoder=json.dumps, decoder=json.loads, schema='pg_catalog')
 
     return await asyncpg.create_pool(dsn, init=init, **kwargs)
+
+
+class WebhookEmbedBulker:
+    def __init__(self, url: str, *, session: aiohttp.ClientSession = None, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
+        self.session = session or aiohttp.ClientSession()
+        self.webhook = discord.Webhook.from_url(url, adapter=discord.AsyncWebhookAdapter(self.session))
+
+        self._task = None
+        self._queue = asyncio.Queue()
+
+    async def put(self, embed: discord.Embed) -> None:
+        await self._queue.put(embed)
+
+    def start(self) -> None:
+        self._task = self.loop.create_task(self._run())
+
+    async def _run(self):
+        while not self.closed:
+            embed = await self._queue.get()
+            embeds = [embed]
+            await asyncio.sleep(5)
+
+            size = self._queue.qsize()
+            for _ in range(min(9, size)):
+                embeds.append(self._queue.get_nowait())
+
+            await self.webhook.send(embeds=embeds)
+
+    @property
+    def closed(self):
+        return self._task.cancelled()
+
+    def close(self) -> None:
+        self._task.cancel()
+
+    def get_task(self):
+        return self._task
