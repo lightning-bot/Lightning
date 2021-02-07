@@ -294,6 +294,9 @@ class Meta(LightningCog):
     def cog_unload(self):
         self.bot.help_command = self.original_help_command
 
+        if hasattr(self, 'webhook_bulker'):
+            self.webhook_bulker.close()
+
     @lcommand(aliases=['avy'])
     async def avatar(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
         """Displays a user's avatar"""
@@ -731,9 +734,13 @@ class Meta(LightningCog):
 
         owner = getattr(guild, 'owner', guild.owner_id)
         embed.add_field(name='Owner', value=base_user_format(owner), inline=False)
-        webhook = discord.Webhook.from_url(self.bot.config['logging']['guild_alerts'],
-                                           adapter=discord.AsyncWebhookAdapter(self.bot.aiosession))
-        await webhook.execute(embed=embed)
+
+        if not hasattr(self, "webhook_bulker"):
+            self.webhook_bulker = helpers.WebhookEmbedBulker(self.bot.config['logging']['guild_alerts'],
+                                                             session=self.bot.aiosession, loop=self.bot.loop)
+            self.webhook_bulker.start()
+
+        await self.webhook_bulker.put(embed)
 
     @LightningCog.listener()
     async def on_lightning_guild_add(self, guild):
