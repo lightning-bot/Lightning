@@ -35,6 +35,7 @@ from lightning.context import LightningContext
 from lightning.meta import __version__ as version
 from lightning.models import GuildBotConfig
 from lightning.storage import Storage
+from lightning.utils.helpers import WebhookEmbedBulker
 
 log = logging.getLogger(__name__)
 
@@ -90,6 +91,11 @@ class LightningBot(commands.AutoShardedBot):
         self.aiosession = aiohttp.ClientSession(headers=headers)
         self.redis_pool = cache.redis_pool
 
+        # Error logger
+        self._error_logger = WebhookEmbedBulker(self.config['logging']['bot_errors'], session=self.aiosession,
+                                                loop=self.loop)
+        self._error_logger.start()
+
         path = pathlib.Path("lightning/cogs/")
         files = path.glob("**/*.py")
         cog_list = []
@@ -109,6 +115,18 @@ class LightningBot(commands.AutoShardedBot):
 
     @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=32)
     async def get_guild_bot_config(self, guild_id: int) -> Optional[GuildBotConfig]:
+        """Gets a guild's bot configuration from cache or fetches it from the database.
+
+        Parameters
+        ----------
+        guild_id : int
+            The guild's ID to fetch
+
+        Returns
+        -------
+        Optional[GuildBotConfig]
+            The guild's bot configuration or None
+        """
         query = """SELECT * FROM guild_config WHERE guild_id=$1;"""
         record = await self.pool.fetchrow(query, guild_id)
         return GuildBotConfig(record) if record else None
@@ -218,16 +236,29 @@ class LightningBot(commands.AutoShardedBot):
             scope.set_extra("kwargs", kwargs)
             log.exception(f"Error on {event}", exc_info=traceback.format_exc())
 
-        with contextlib.suppress(discord.HTTPException):
-            webhook = discord.Webhook.from_url(self.config['logging']['bot_errors'],
-                                               adapter=discord.AsyncWebhookAdapter(self.aiosession))
-            embed = discord.Embed(title="Event Error", description=f"```py\n{traceback.format_exc()}```",
-                                  color=0xff0000,
-                                  timestamp=datetime.utcnow())
-            embed.add_field(name="Event", value=event)
-            await webhook.execute(embed=embed, username="Event Error")
+        embed = discord.Embed(title="Event Error", description=f"```py\n{traceback.format_exc()}```",
+                              color=0xff0000,
+                              timestamp=datetime.utcnow())
+        embed.add_field(name="Event", value=event)
+        await self._error_logger.put(embed)
 
-    async def log_command_error(self, ctx, error, *, send_error_message=True) -> str:
+    async def log_command_error(self, ctx: LightningContext, error, *, send_error_message=True) -> str:
+        """Inserts a command error into the database.
+
+        Parameters
+        ----------
+        ctx : LightningContext
+            The context
+        error : Exception
+            The error from the command
+        send_error_message : bool, optional
+            Whether the bot should send an message back with the bug token, by default True
+
+        Returns
+        -------
+        str
+            The newly created bug's token
+        """
         error = error.original if hasattr(error, 'original') else error
         token = secrets.token_hex(6)
         lines = traceback.format_exception(type(error), error, error.__traceback__, chain=False)
@@ -314,9 +345,7 @@ class LightningBot(commands.AutoShardedBot):
         embed.add_field(name='Location', value=donefmt, inline=False)
 
         embed.add_field(name='Bug Token', value=token)
-        adp = discord.AsyncWebhookAdapter(self.aiosession)
-        webhook = discord.Webhook.from_url(self.config['logging']['bot_errors'], adapter=adp)
-        await webhook.send(embed=embed)
+        await self._error_logger.put(embed)
 
     async def close(self) -> None:
         log.info("Shutting down...")
