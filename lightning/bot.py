@@ -237,7 +237,7 @@ class LightningBot(commands.AutoShardedBot):
             log.exception(f"Error on {event}", exc_info=traceback.format_exc())
 
         embed = discord.Embed(title="Event Error", description=f"```py\n{traceback.format_exc()}```",
-                              color=0xff0000,
+                              color=discord.Color.gold(),
                               timestamp=datetime.utcnow())
         embed.add_field(name="Event", value=event)
         await self._error_logger.put(embed)
