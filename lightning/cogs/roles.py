@@ -20,6 +20,7 @@ from io import StringIO
 import discord
 import tabulate
 from discord.ext import commands
+from discord.ext.commands.view import StringView
 from rapidfuzz import process
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
@@ -27,6 +28,25 @@ from lightning import (CommandLevel, LightningBot, LightningCog,
 from lightning.converters import Role
 from lightning.utils import paginator
 from lightning.utils.checks import has_guild_permissions
+
+
+class RoleView(StringView):
+    def get_word(self):
+        current = self.current
+        if current is None:
+            return None
+
+        result = [current.strip(",")]
+
+        while not self.eof:
+            current = self.get()
+            if not current:
+                return ''.join(result)
+
+            if current == ",":
+                return ''.join(result)
+
+            result.append(current)
 
 
 class Roles(LightningCog):
@@ -52,6 +72,14 @@ class Roles(LightningCog):
             continue
         role_names = [r.name for r in roles]
 
+        view = RoleView(' '.join(args))
+        args = []
+        while not view.eof:
+            word = view.get_word()
+            if word is None:
+                break
+            args.append(word.strip())
+
         resolved = []
         unresolved = []
         for argument in args:
@@ -76,6 +104,8 @@ class Roles(LightningCog):
     @commands.bot_has_permissions(manage_roles=True)
     async def togglerole(self, ctx: LightningContext, *roles) -> None:
         """Toggles a role that this server has setup.
+
+        To toggle multiple roles, you'll need to use "," as a separator.
 
         Use 'togglerole list' for a list of roles that you can toggle."""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
