@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2021 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -74,10 +74,11 @@ def launch_bot(config) -> None:
     log = logging.getLogger("lightning")
 
     sentry_dsn = config.get('tokens', {}).get("sentry", None)
-    env = "dev" if "beta_prefix" in config['bot'] else "prod"
     commit_out = loop.run_until_complete(run_in_shell('git rev-parse HEAD'))
     commit = commit_out[0].strip()
+
     if sentry_dsn is not None:
+        env = "dev" if "beta_prefix" in config['bot'] else "prod"
         sentry_sdk.init(sentry_dsn, integrations=[AioHttpIntegration()], environment=env, release=commit)
 
     bot = LightningBot()
