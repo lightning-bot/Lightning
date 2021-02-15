@@ -19,5 +19,8 @@ from lightning.storage import TOMLStorage
 
 
 class Base(TOMLStorage):
-    def __init__(self, file_path):
+    def __init__(self, file_path: str = 'config.toml'):
         super().__init__(file_path)
+
+
+CONFIG = Base()
