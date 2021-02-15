@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -24,11 +24,12 @@ import inspect
 import logging
 import time
 from functools import wraps
-from typing import Optional
+from typing import Union
 
-import toml
 from aredis import StrictRedis
 from lru import LRU
+
+from lightning.config import CONFIG
 
 
 class CacheError(Exception):
@@ -166,7 +167,7 @@ class TimedCache(DictBasedCache):
 
 class RedisCache(BaseCache):
     def __init__(self, **kwargs):
-        if redis_pool is None:
+        if isinstance(redis_pool, Exception):
             raise Exception("Redis is not initialized")
         self.pool = redis_pool
         super().__init__(**kwargs)
@@ -282,19 +283,15 @@ class CacheRegistry:
         self.caches[new_name] = self.caches.pop(old_name)
 
 
-def start_redis_client() -> Optional[StrictRedis]:
-    log = logging.getLogger("lightning.cache.start_redis_client")
-
+def start_redis_client() -> Union[StrictRedis, Exception]:
     loop = asyncio.get_event_loop()
-    config = toml.load(open('config.toml', 'r'))
 
     try:
-        pool = StrictRedis(**config['tokens']['redis'])
+        pool = StrictRedis(**CONFIG['tokens']['redis'])
         # Only way to ensure the pool is connected to redis
         loop.run_until_complete(pool.ping())
     except Exception as e:
-        log.warning(f"Unable to connect to redis {e}")
-        pool = None
+        pool = e
 
     return pool
 

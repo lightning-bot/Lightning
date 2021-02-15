@@ -30,7 +30,8 @@ import discord
 import sentry_sdk
 from discord.ext import commands, menus
 
-from lightning import cache, config, errors
+from lightning import cache, errors
+from lightning.config import CONFIG
 from lightning.context import LightningContext
 from lightning.meta import __version__ as version
 from lightning.models import GuildBotConfig
@@ -83,7 +84,7 @@ class LightningBot(commands.AutoShardedBot):
         # This should be good enough
         self.command_spam_cooldown = commands.CooldownMapping.from_cooldown(6, 5.0, commands.BucketType.user)
 
-        self.config = config.Base('config.toml')
+        self.config = CONFIG
         self.version = version
         self._pending_cogs = {}
 

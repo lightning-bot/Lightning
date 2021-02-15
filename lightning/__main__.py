@@ -24,11 +24,11 @@ import sys
 
 import discord
 import sentry_sdk
-import toml
 import typer
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from lightning.bot import LightningBot
+from lightning.config import CONFIG
 from lightning.utils.helpers import create_pool, run_in_shell
 
 try:
@@ -73,7 +73,7 @@ def launch_bot(config) -> None:
 
     log = logging.getLogger("lightning")
 
-    sentry_dsn = config.get('tokens', {}).get("sentry", None)
+    sentry_dsn = config._storage.get('tokens', {}).get("sentry", None)
     commit_out = loop.run_until_complete(run_in_shell('git rev-parse HEAD'))
     commit = commit_out[0].strip()
 
@@ -98,9 +98,8 @@ def launch_bot(config) -> None:
 @parser.callback(invoke_without_command=True)
 def main(ctx: typer.Context):
     if ctx.invoked_subcommand is None:
-        config = toml.load(open("config.toml", "r"))
         with init_logging():
-            launch_bot(config)
+            launch_bot(CONFIG)
 
 
 @parser.command(help="Initializes the database")
@@ -109,8 +108,8 @@ def init_db(init_yoyo: bool = typer.Option(False, "--setup-migrations",
     typer.echo("Running initial schema script...")
     loop = asyncio.get_event_loop()
 
-    config = toml.load(open("config.toml", "r"))
-    pool = loop.run_until_complete(create_pool(config['tokens']['postgres']['uri'], command_timeout=60))
+    config = CONFIG
+    pool = loop.run_until_complete(create_pool(CONFIG['tokens']['postgres']['uri'], command_timeout=60))
     with open("scripts/schema.sql", "r") as fp:
         loop.run_until_complete(pool.execute(fp.read()))
 
