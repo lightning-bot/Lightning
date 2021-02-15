@@ -15,10 +15,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
+from io import StringIO
+from json import dumps as json_dumps
 
 import discord
 from discord.ext import menus
-from discord.ext.commands import default
+from discord.ext.commands import bot_has_permissions, default
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, group)
@@ -212,6 +214,25 @@ class Infractions(LightningCog, required=['Mod']):
             await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
         else:
             await ctx.send("Infraction deleted!")
+
+    @infraction.command(level=CommandLevel.Admin)
+    @has_guild_permissions(manage_guild=True)
+    @bot_has_permissions(attach_files=True)
+    async def export(self, ctx: LightningContext) -> None:
+        """Exports the server's infractions to a JSON"""
+        query = "SELECT * FROM infractions WHERE guild_id=$1;"
+        records = await self.bot.pool.fetch(query, ctx.guild.id)
+
+        objs = []
+        for record in records:
+            _dict = dict(record)
+            _dict['created_at'] = record['created_at'].isoformat()
+            _dict['expiry'] = record['expiry'].isoformat() if record['expiry'] else None
+            objs.append(_dict)
+
+        raw_bytes = StringIO(json_dumps(objs))
+        raw_bytes.seek(0)
+        await ctx.send(file=discord.File(raw_bytes, filename="infractions.json"))
 
     async def start_keyset_pages(self, ctx: LightningContext, source: InfractionSource) -> None:
         menu = menus.MenuKeysetPages(source, timeout=60.0, clear_reactions_after=True,
