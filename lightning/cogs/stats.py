@@ -1,6 +1,6 @@
 """
-Lightning.py - A multi-purpose Discord bot
-Copyright (C) 2020 - LightSage
+Lightning.py - A personal Discord bot
+Copyright (C) 2019-2021 - LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -251,7 +251,7 @@ class Stats(LightningCog):
     @has_guild_permissions(manage_guild=True)
     @commands.cooldown(1, 60.0, commands.BucketType.member)
     async def stats_audit_log(self, ctx: LightningContext, limit: InbetweenNumber(1, 500) = 50):
-        """Shows command status for the server through a table."""
+        """Shows command stats for the server through a table."""
         async with ctx.typing():
             query = """SELECT command_name, channel_id, user_id, used_at
                        FROM commands_usage
