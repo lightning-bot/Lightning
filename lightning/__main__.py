@@ -52,13 +52,26 @@ def init_logging():
         log_format = logging.Formatter('[%(asctime)s] %(name)s (%(filename)s:%(lineno)d) %(levelname)s: %(message)s')
         file_handler.setFormatter(log_format)
 
+        logging_config = CONFIG.get("logging") or {}
+
         log = logging.getLogger()
-        log.setLevel(logging.INFO)
+
+        level = logging_config.get("level", "")
+
+        if level != "":
+            log.setLevel(level)
+        else:
+            log.setLevel("INFO")
+
         log.addHandler(file_handler)
 
-        stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setFormatter(log_format)
-        log.addHandler(stdout_handler)
+        console_handler = logging_config.get("console", True)
+
+        if console_handler:
+            stdout_handler = logging.StreamHandler(sys.stdout)
+            stdout_handler.setFormatter(log_format)
+            log.addHandler(stdout_handler)
+
         yield
     finally:
         logging.shutdown()

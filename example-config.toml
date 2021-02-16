@@ -47,6 +47,14 @@ auto_blacklist = ""
 # Logging for guild additions and removals
 guild_alerts = ""
 
+# Logging Level (defaults to INFO if not set)
+level = ""
+
+# Console logger handler
+console = True
+
+
+
 
 [bot]
 # Bot description
