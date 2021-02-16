@@ -21,7 +21,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import enum
 import inspect
-import logging
 import time
 from functools import wraps
 from typing import Union
