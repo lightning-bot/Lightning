@@ -122,8 +122,12 @@ class TOMLStorage(Storage):
             self._storage = toml_parse(f.read())
 
     def _dump(self):
-        with open(self.file_name, 'w') as r:
+        name = self.file_name.replace("/", "_")
+        tmp = f"{secrets.token_hex()}-{name}.tmp"
+        with open(tmp, 'w') as r:
             r.write(toml_dumps(self._storage.copy()))
+
+        os.replace(tmp, self.file_name)
 
     def __setitem__(self, key, value):
         self._storage.__setitem__(key, value)
