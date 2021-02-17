@@ -25,7 +25,6 @@ import typing
 import aiohttp
 import asyncpg
 import discord
-from asyncpg.pool import Pool as pgPool
 from discord.ext import menus
 
 from lightning import errors
@@ -319,7 +318,7 @@ async def run_in_shell(command: str):
     return stdout.decode('utf-8'), stderr.decode('utf-8')
 
 
-async def create_pool(dsn: str, **kwargs) -> pgPool:
+async def create_pool(dsn: str, **kwargs) -> asyncpg.Pool:
     """Creates a connection pool"""
 
     async def init(connection: asyncpg.Connection):
