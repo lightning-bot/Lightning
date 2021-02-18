@@ -1,0 +1,10 @@
+.venv
+*.log
+
+.DS_Store
+
+.git
+.dockerignore
+.gitignore
+
+__pycache__/

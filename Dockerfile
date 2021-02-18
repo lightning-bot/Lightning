@@ -1,13 +1,25 @@
-FROM python:3.7
+FROM python:3.7-slim-buster
 
-WORKDIR /app
+ENV PYTHONUNBUFFERED=1 \
+	PYTHONDONTWRITEBYTECODE=1 \
+	POETRY_HOME="/opt/poetry"
 
-COPY requirements.txt ./
+ENV PATH="$POETRY_HOME/bin:$PATH"
 
-ENV JISHAKU_NO_UNDERSCORE=true
+RUN apt-get update && apt-get install --no-install-recommends -y curl build-essential git libpq-dev \
+	&& apt-get clean \
+ 	&& rm -rf /var/lib/apt/lists/*
 
-RUN pip install -e .
+WORKDIR /bot
+
+# Poetry
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
+
 
 COPY . .
 
-CMD [ "python", "-m", "lightning"]
+RUN poetry install --no-ansi
+
+
+CMD ["poetry", "run", "lightning"]

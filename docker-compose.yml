@@ -1,0 +1,19 @@
+version: "3"
+services:
+  postgres:
+    image: postgres:12-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=lightning
+      - POSTGRES_PASSWORD=postgres
+
+  bot:
+    build: .
+    volumes:
+      - .:/bot
+      - venv:/bot/.venv
+    depends_on:
+      - postgres
+
+volumes:
+  venv:
