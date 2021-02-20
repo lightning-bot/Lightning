@@ -22,6 +22,7 @@ from discord.ext import commands
 from discord.ext import menus as dmenus
 
 from lightning import LightningBot, LightningCog, LightningContext, command
+from lightning.converters import ReadableChannel
 from lightning.utils import helpers
 
 
@@ -102,21 +103,22 @@ class Misc(LightningCog):
 
     @command()
     @commands.bot_has_permissions(read_message_history=True)
-    @commands.cooldown(rate=1, per=250.0, type=commands.BucketType.channel)
-    async def archive(self, ctx: LightningContext, limit: int) -> None:
+    @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
+    async def archive(self, ctx: LightningContext, limit: int, *,
+                      channel: ReadableChannel = commands.default.CurrentChannel) -> None:
         """Archives the current channel's contents to a txt file."""
         if limit > 250:
             await ctx.send("You can only archive 250 messages.")
             return
 
         async with ctx.typing():
-            f = await helpers.archive_messages(ctx.channel, limit)
+            f = await helpers.archive_messages(channel, limit)
 
         await ctx.send(file=f)
 
     @command()
     @commands.guild_only()
-    async def topic(self, ctx, *, channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+    async def topic(self, ctx, *, channel: ReadableChannel = commands.default.CurrentChannel) -> None:
         """Quotes a channel's topic"""
         if channel.topic is None or channel.topic == "":
             await ctx.send(f"{channel.mention} has no topic set!")
