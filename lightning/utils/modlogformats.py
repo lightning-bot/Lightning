@@ -224,8 +224,7 @@ def escape_markdown_and_mentions(text) -> str:
         The escaped text
     """
     escaped_markdown = discord.utils.escape_markdown(text)
-    escaped_mentions = discord.utils.escape_mentions(escaped_markdown)
-    return escaped_mentions
+    return discord.utils.escape_mentions(escaped_markdown)
 
 
 def action_format(author, action_text="Action done by", *, reason=None) -> str:
@@ -287,11 +286,7 @@ class MinimalisticFormat(BaseFormat):
 
     @staticmethod
     def timed_action_expired(action, user, mod, creation, expiry, *, with_timestamp: bool = True) -> str:
-        if with_timestamp:
-            text = f"`[{expiry.strftime('%H:%M:%S UTC')}]` "
-        else:
-            text = ""
-
+        text = f"`[{expiry.strftime('%H:%M:%S UTC')}]` " if with_timestamp else ""
         action = action.capitalize()
 
         text += f"**{action} expired**\n**User**: "\
@@ -324,7 +319,7 @@ class MinimalisticFormat(BaseFormat):
         entry_time = self.timestamp
         log_action = log_actions[str(self.log_action).lower()]
 
-        if with_timestamp is True:
+        if with_timestamp:
             base = f"`[{entry_time.strftime('%H:%M:%S UTC')}]` **{log_action.title}**"\
                    f" | Infraction ID {self.infraction_id}"
         else:
