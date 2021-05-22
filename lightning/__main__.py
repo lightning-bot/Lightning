@@ -56,8 +56,7 @@ def init_logging():
 
         log = logging.getLogger()
 
-        level = logging_config.get("level", "")
-
+        level = logging_config.get("level", "INFO")
         if level != "":
             log.setLevel(level)
         else:
