@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Lightning.py"
-version = "3.1.0"
+version = "3.2.0-alpha"
 description = ""
 authors = ["LightSage <lightsage01@gmail.com>"]
 license = "AGPL-3.0-or-later"
@@ -11,7 +11,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 "discord.py" = {git = "https://github.com/LightSage/discord.py"}
 Pillow = "^7.2.0"
 python-dateutil = "^2.8.1"
@@ -22,8 +22,8 @@ uwuify = "^1.0.1"
 hiredis = "^1.1.0"
 aredis = "^1.1.8"
 feedparser = "^5.2.1"
-asyncpg = "^0.22.0"
-discord-ext-menus = {git = "https://github.com/LightSage/discord-ext-menus"}
+asyncpg = "^0.23.0"
+discord-ext-menus = {git = "https://github.com/LightSage/discord-ext-menus.git"}
 lru_dict = "^1.1.6"
 sentry-sdk = "^0.20.0"
 migra = {extras = ["pg"], version = "^1.0.1597915807", optional = true}
