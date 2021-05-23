@@ -670,7 +670,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "5b8a82753d9c870a2ec909edfd7b585c6d1c29c7ece9b9e78ff0a1e05e21f489"
+content-hash = "556940d1b0883a9500544039fa9d2d75fbd56b0055cdbfc496830504c9cd9f8f"
 
 [metadata.files]
 aiohttp = [
