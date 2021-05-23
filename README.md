@@ -1,5 +1,5 @@
 [![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://discord.gg/SpFjsy3)
-[![Pipeline Status](https://img.shields.io/gitlab/pipeline/lightning-bot/Lightning/v3?label=Pipeline&logo=GitLab)](https://gitlab.com/lightning-bot/Lightning/pipelines/latest)
+[![Pipeline Status](https://img.shields.io/gitlab/pipeline/lightning-bot/Lightning/master?label=Pipeline&logo=GitLab)](https://gitlab.com/lightning-bot/Lightning/pipelines/latest)
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://gitlab.com/lightning-bot/Lightning)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
