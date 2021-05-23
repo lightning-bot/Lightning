@@ -40,7 +40,7 @@ uvloop = {version = "^0.14.0", optional = true}
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
-flake8 = "^3.8.3"
+flake8 = "^3.9.2"
 
 [tool.poetry.scripts]
 lightning = 'lightning.__main__:parser'
