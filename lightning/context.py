@@ -1,6 +1,6 @@
 """
 Lightning.py - A multi-purpose Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -25,6 +25,7 @@ from discord.ext import commands
 from lightning import errors
 from lightning.utils.helpers import ConfirmationMenu, Emoji, haste
 from lightning.utils.helpers import request as make_request
+from lightning.utils.helpers import ticker
 
 
 class LightningContext(commands.Context):
@@ -32,10 +33,7 @@ class LightningContext(commands.Context):
         super().__init__(**kwargs)
 
     async def tick(self, boolean: bool, *, send=True) -> Union[bool, discord.Message]:
-        if boolean:
-            tick = Emoji.greentick
-        else:
-            tick = Emoji.redtick
+        tick = ticker(boolean)
 
         if send:
             return await self.send(tick)
