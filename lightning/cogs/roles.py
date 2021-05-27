@@ -105,9 +105,9 @@ class Roles(LightningCog):
     async def togglerole(self, ctx: LightningContext, *roles) -> None:
         """Toggles a role that this server has setup.
 
-        To toggle multiple roles, you'll need to use "," as a separator.
+        To toggle multiple roles, you'll need to use a comma (",") as a separator.
 
-        Use 'togglerole list' for a list of roles that you can toggle."""
+        Use "{prefix}togglerole list" for a list of roles that you can toggle."""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if not record or not record.toggleroles:
             await ctx.send("This feature is not setup in this server.")
@@ -121,8 +121,7 @@ class Roles(LightningCog):
         paginator = commands.Paginator(prefix='', suffix='')
         for role in resolved:
             if role > ctx.me.top_role:
-                await ctx.send('That role is higher than my highest role.')
-                return
+                paginator.add_line(f'{role.name} is higher than my highest role.')
 
             if role in member.roles and role.id in record.toggleroles:
                 diff_roles[0].append(role)
