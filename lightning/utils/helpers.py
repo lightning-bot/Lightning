@@ -184,6 +184,13 @@ class Emoji:
                '\N{KEYCAP TEN}')
 
 
+def ticker(boolean: bool) -> str:
+    if boolean:
+        return Emoji.greentick
+    else:
+        return Emoji.redtick
+
+
 class BetterUserObject(discord.Object):
     def __init__(self, id):
         super().__init__(id)
