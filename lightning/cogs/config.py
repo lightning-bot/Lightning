@@ -32,7 +32,7 @@ from lightning.converters import (Prefix, Role, ValidCommandName,
 from lightning.formatters import plural
 from lightning.models import ConfigFlags, GuildModConfig
 from lightning.utils.checks import has_guild_permissions
-from lightning.utils.helpers import Emoji
+from lightning.utils.helpers import Emoji, ticker
 from lightning.utils.paginator import SessionMenu
 
 log = logging.getLogger(__name__)
@@ -236,8 +236,7 @@ class ConfigViewerMenu(menus.Menu):
 
         # Mute Role stuff
         if obj.mute_role_id is not None:
-            role = discord.utils.get(self.ctx.guild.roles, id=obj.mute_role_id)
-            if role is not None:
+            if (role := discord.utils.get(self.ctx.guild.roles, id=obj.mute_role_id))is not None:
                 embed.add_field(name="Permanent Mute Role", value=f"{role.name} (ID: {role.id})")
 
         if obj.temp_mute_role_id:
@@ -845,7 +844,54 @@ class Configuration(LightningCog):
     async def show_perms(self, ctx: LightningContext) -> None:
         """Shows raw permissions"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
+        if not record or record.permissions is None:
+            await ctx.send("You have not setup this feature!")
+            return
+
         await ctx.send(f"```json\n{record.permissions.raw()}```")
+
+    async def debug_command_perms(self, ctx: LightningContext, command, member):
+        embed = discord.Embed(title="Debug Result")
+        record = await self.bot.get_guild_bot_config(ctx.guild.id)
+        if not record or record.permissions is None:
+            res = await command._resolve_permissions(ctx, CommandLevel.User)
+            embed.add_field(name="Default Permission Checks", value=ticker(res))
+            await ctx.send(embed=embed)
+            return
+
+        if record.permissions.levels is None:
+            # We're gonna assume they are a user unless otherwise
+            user_level = CommandLevel.User
+        else:
+            user_level = record.permissions.levels.get_user_level(ctx.author.id, [r.id for r in ctx.author.roles])
+        
+        ovr = record.permissions.command_overrides
+        if ovr is not None:
+            ids = [r.id for r in ctx.author.roles]
+            ids.append(ctx.author.id)
+
+            embed.add_field(name="ID Overriden", value=ticker(ovr.is_command_id_overriden(command.qualified_name, ids)), inline=False)
+
+            embed.add_field(name="Blocked", value=ticker(ovr.is_command_blocked(command.qualified_name)), inline=False)
+            # Level Overrides
+            raw = ovr.get_overrides(command.qualified_name)
+
+            level_overriden = raw.get("LEVEL", None) if raw else None
+
+            embed.add_field(name="Level Overriden", value=ticker((user_level.value >= level_overriden)), inline=False)
+
+        user_perms = await command._resolve_permissions(ctx, user_level)
+        embed.add_field(name="Default Permission Checks", value=ticker(user_perms), inline=False)
+        await ctx.send(embed=embed)
+
+    @permissions.command(level=CommandLevel.Admin, name="debug")
+    @has_guild_permissions(manage_guild=True)
+    async def debug_permissions(self, ctx: LightningContext, command: ValidCommandName,
+                                member: discord.Member = commands.default.Author):
+        """Debugs a member's permissions to use a command."""
+        # TODO: Debug a member's permissions only...
+        command = self.bot.get_command(command)
+        await self.debug_command_perms(ctx, command, member)
 
     @permissions.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
