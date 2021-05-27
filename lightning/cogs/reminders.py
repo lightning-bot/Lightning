@@ -41,7 +41,7 @@ log = logging.getLogger(__name__)
 
 
 class Reminders(LightningCog):
-    """Commands to remind you something"""
+    """Commands that remind you something"""
 
     def __init__(self, bot: LightningBot):
         self.bot = bot
@@ -172,11 +172,63 @@ class Reminders(LightningCog):
         duration_text = lightning.utils.time.natural_timedelta(when.dt, source=ctx.message.created_at)
         await ctx.send(f"Ok {ctx.author.mention}, I'll remind you in {duration_text} about {when.arg}.")
 
+    # remind hide/show
+    async def reminder_toggler(self, ctx: LightningContext, reminder_id: int, secret: bool) -> None:
+        """Marks or unmarks a reminder from the secret status"""
+        query = """SELECT extra FROM timers WHERE id=$1 AND event = 'reminder'
+                   AND extra ->> 'author' = $2;"""
+        record = await self.bot.pool.fetchval(query, reminder_id, str(ctx.author.id))
+
+        if not record:
+            await ctx.send("Could not find a reminder with that id.")
+            return
+
+        record['secret'] = secret
+
+        query = """UPDATE timers SET extra=$1 WHERE id=$2;"""
+        await self.bot.pool.execute(query, record, reminder_id)
+
+        if self._current_task and reminder_id == self._current_task.id:
+            # It's probably better to re-run it again.
+            self._current_task.extra = record
+
+        if secret:
+            await ctx.send(f"Marked {reminder_id} as secret")
+        else:
+            await ctx.send(f"Unmarked {reminder_id}.")
+
+    @remind.command()
+    async def hide(self, ctx: LightningContext, reminder_id: int) -> None:
+        """Marks a reminder as "secret"
+
+           A secret reminder will not show the description if you list reminders in a server.
+           When it's time to remind you, the bot will DM you about your reminder."""
+        await self.reminder_toggler(ctx, reminder_id, True)
+
+    @remind.command()
+    async def show(self, ctx: LightningContext, reminder_id: int) -> None:
+        """Unmarks a reminder from the "secret" status."""
+        await self.reminder_toggler(ctx, reminder_id, False)
+
+    def format_list(self, records, *, guild=False):
+        embed = discord.Embed(title="Reminders", color=0xf74b06)
+        for record in records:
+            timed_txt = lightning.utils.time.natural_timedelta(record['expiry'], suffix=True)
+            secret = record['extra'].get("secret", False)
+            if guild is True and secret is True:
+                text = "This reminder is explicitly marked as secret"
+            else:
+                text = textwrap.shorten(record['extra']['reminder_text'], width=512)
+
+            embed.add_field(name=f"{record['id']}: In {timed_txt}", value=text, inline=False)
+
+        return embed
+
     @remind.command(name='list')
     async def listreminders(self, ctx: LightningContext) -> None:
         """Lists up to 10 of your reminders
 
-        Only shows reminders that are longer than one minute."""
+        This will only show reminders that are longer than one minute."""
         query = """SELECT id, expiry, extra
                    FROM timers
                    WHERE event = 'reminder'
@@ -190,18 +242,14 @@ class Reminders(LightningCog):
             await ctx.send("Seems you haven't set a reminder yet...")
             return
 
-        embed = discord.Embed(title="Reminders", color=0xf74b06)
-        for record in records:
-            timed_txt = lightning.utils.time.natural_timedelta(record['expiry'], suffix=True)
-            text = textwrap.shorten(record['extra']['reminder_text'], width=512)
-            embed.add_field(name=f"{record['id']}: In {timed_txt}", value=text, inline=False)
+        embed = self.format_list(records, guild=bool(ctx.guild))
         await ctx.send(embed=embed)
 
     @remind.command(name='delete', aliases=['cancel'])
     async def deletereminder(self, ctx: LightningContext, *, reminder_id: int) -> None:
         """Deletes a reminder by ID.
 
-        You can get the ID of a reminder with `remind list`
+        You can get the ID of a reminder with {prefix}remind list
 
         You must own the reminder to remove it"""
 
@@ -268,11 +316,14 @@ class Reminders(LightningCog):
         timed_txt = lightning.utils.time.natural_timedelta(timer.created,
                                                            source=timer.expiry,
                                                            suffix=True)
-        message = f"You asked to be reminded {timed_txt} about "\
+        message = f"<@!{user.id}> You asked to be reminded {timed_txt} about "\
                   f"{timer.extra['reminder_text']}"
+        secret = timer.extra.pop("secret", False)
 
-        if not channel:
-            # We'll just dm them the reminder...
+        # The reminder will be DM'd on one of the following conditions
+        # 1. The channel the reminder was made in has been deleted/is not cached.
+        # 2. The reminder has been explicitly marked as secret.
+        if not channel or secret is True:
             await dm_user(user, message)
             return
 
@@ -284,20 +335,11 @@ class Reminders(LightningCog):
             else:
                 _id = channel.guild.id
 
-            ref = discord.MessageReference(message_id=timer.extra['message_id'], channel_id=channel.id, guild_id=_id)
+            ref = discord.MessageReference(message_id=timer.extra['message_id'], channel_id=channel.id, guild_id=_id,
+                                           fail_if_not_exists=False)
             kwargs.update({"reference": ref})
 
-        async def try_to_send(thing, msg):
-            try:
-                await thing.send(msg, **kwargs)
-            except (discord.Forbidden, discord.HTTPException, AttributeError) as e:
-                return e
-
-        e = await try_to_send(channel, message)
-        if hasattr(e, 'code'):
-            if e.code == 50035:
-                kwargs.pop("reference")
-                await try_to_send(channel, f"{user.mention}: {message}")
+        await channel.send(message, **kwargs)
 
     async def check_ninupdate_feed(self):
         if not hasattr(self.bot, 'nintendo_updates'):
