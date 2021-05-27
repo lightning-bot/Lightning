@@ -1,5 +1,5 @@
 """
-Lightning.py - A multi-purpose Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -23,9 +23,8 @@ import discord
 from discord.ext import commands
 
 from lightning import errors
-from lightning.utils.helpers import ConfirmationMenu, Emoji, haste
+from lightning.utils.helpers import ConfirmationMenu, haste, ticker
 from lightning.utils.helpers import request as make_request
-from lightning.utils.helpers import ticker
 
 
 class LightningContext(commands.Context):
