@@ -236,7 +236,7 @@ class ConfigViewerMenu(menus.Menu):
 
         # Mute Role stuff
         if obj.mute_role_id is not None:
-            if (role := discord.utils.get(self.ctx.guild.roles, id=obj.mute_role_id))is not None:
+            if (role := discord.utils.get(self.ctx.guild.roles, id=obj.mute_role_id)) is not None:
                 embed.add_field(name="Permanent Mute Role", value=f"{role.name} (ID: {role.id})")
 
         if obj.temp_mute_role_id:
@@ -864,15 +864,18 @@ class Configuration(LightningCog):
             user_level = CommandLevel.User
         else:
             user_level = record.permissions.levels.get_user_level(ctx.author.id, [r.id for r in ctx.author.roles])
-        
+
         ovr = record.permissions.command_overrides
         if ovr is not None:
             ids = [r.id for r in ctx.author.roles]
             ids.append(ctx.author.id)
 
-            embed.add_field(name="ID Overriden", value=ticker(ovr.is_command_id_overriden(command.qualified_name, ids)), inline=False)
+            embed.add_field(name="ID Overriden",
+                            value=ticker(ovr.is_command_id_overriden(command.qualified_name, ids)),
+                            inline=False)
 
-            embed.add_field(name="Blocked", value=ticker(ovr.is_command_blocked(command.qualified_name)), inline=False)
+            embed.add_field(name="Blocked", value=ticker(ovr.is_command_level_blocked(command.qualified_name)),
+                            inline=False)
             # Level Overrides
             raw = ovr.get_overrides(command.qualified_name)
 
