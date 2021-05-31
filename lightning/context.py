@@ -23,8 +23,9 @@ import discord
 from discord.ext import commands
 
 from lightning import errors
-from lightning.utils.helpers import ConfirmationMenu, haste, ticker
+from lightning.utils.helpers import ConfirmationMenu, haste
 from lightning.utils.helpers import request as make_request
+from lightning.utils.helpers import ticker
 
 
 class LightningContext(commands.Context):
