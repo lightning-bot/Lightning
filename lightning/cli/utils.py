@@ -14,6 +14,13 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from lightning.cli import main
+import asyncio
+from functools import wraps
 
-main.parser(prog_name="lightning")
+
+def asyncd(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(func(*args, **kwargs))
+    return wrapper
