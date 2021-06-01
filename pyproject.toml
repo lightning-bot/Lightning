@@ -12,7 +12,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-"discord.py" = {git = "https://github.com/LightSage/discord.py"}
+"discord.py" = {git = "https://github.com/LightSage/discord.py", branch = "v1"}
 Pillow = "^7.2.0"
 python-dateutil = "^2.8.1"
 parsedatetime = "^2.6"
