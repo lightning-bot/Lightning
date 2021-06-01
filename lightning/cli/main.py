@@ -28,6 +28,7 @@ import typer
 from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from lightning.bot import LightningBot
+from lightning.cli import tools
 from lightning.cli.utils import asyncd
 from lightning.config import CONFIG
 from lightning.utils.helpers import create_pool, run_in_shell
@@ -42,6 +43,7 @@ else:
 
 
 parser = typer.Typer()
+parser.add_typer(tools.parser, name="tools", help="Developer tools")
 
 
 @contextlib.contextmanager
