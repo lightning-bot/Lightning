@@ -39,11 +39,15 @@ async def cleardata(id: int = typer.Argument(...),
     pool = await asyncpg.create_pool(CONFIG['tokens']['postgres']['uri'])
     for table in tables:
         if prompt:
-            resp = typer.prompt(f"Are you sure you want to remove data from {table[0]}?")
+            resp = typer.confirm(f"Are you sure you want to remove data from {table[0]}?")
             if resp:
                 await pool.execute(build_delete_query(*table), id)
+            else:
+                continue
         else:
             await pool.execute(build_delete_query(*table), id)
+
+    typer.echo("Done")
 
 
 if __name__ == "__main__":
