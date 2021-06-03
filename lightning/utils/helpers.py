@@ -21,6 +21,8 @@ import json
 import logging
 import subprocess
 import typing
+import warnings
+from functools import wraps
 
 import aiohttp
 import asyncpg
@@ -28,6 +30,7 @@ import discord
 from discord.ext import menus
 
 from lightning import errors
+from lightning.utils.emitters import WebhookEmbedEmitter
 
 log = logging.getLogger(__name__)
 
@@ -326,7 +329,7 @@ async def run_in_shell(command: str):
 
 
 async def create_pool(dsn: str, **kwargs) -> asyncpg.Pool:
-    """Creates a connection pool"""
+    """Creates a connection pool with type codecs for json and jsonb"""
 
     async def init(connection: asyncpg.Connection):
         await connection.set_type_codec('json', encoder=json.dumps, decoder=json.loads, schema='pg_catalog')
@@ -335,39 +338,25 @@ async def create_pool(dsn: str, **kwargs) -> asyncpg.Pool:
     return await asyncpg.create_pool(dsn, init=init, **kwargs)
 
 
-class WebhookEmbedBulker:
-    def __init__(self, url: str, *, session: aiohttp.ClientSession = None, loop=None):
-        self.loop = loop or asyncio.get_event_loop()
-        self.session = session or aiohttp.ClientSession()
-        self.webhook = discord.Webhook.from_url(url, adapter=discord.AsyncWebhookAdapter(self.session))
+def deprecated(deprecated_in: str = None, removed_in: str = None, details: str = None):
+    """A decorator that marks a function as deprecated"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            dfmt = f" as of {deprecated_in}" if deprecated_in else ""
+            rfmt = f" and will be removed in {removed_in}" if removed_in else ""
 
-        self._task = None
-        self._queue = asyncio.Queue()
+            defmt = "" if not details else details
+            fmt = f"{func.__name__} is deprecated{dfmt}{rfmt}. {defmt}"
 
-    async def put(self, embed: discord.Embed) -> None:
-        await self._queue.put(embed)
+            warnings.simplefilter("always", DeprecationWarning)
+            warnings.warn(fmt, category=DeprecationWarning, stacklevel=2)
+            warnings.simplefilter("default", DeprecationWarning)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
-    def start(self) -> None:
-        self._task = self.loop.create_task(self._run())
 
-    async def _run(self):
-        while not self.closed:
-            embed = await self._queue.get()
-            embeds = [embed]
-            await asyncio.sleep(5)
-
-            size = self._queue.qsize()
-            for _ in range(min(9, size)):
-                embeds.append(self._queue.get_nowait())
-
-            await self.webhook.send(embeds=embeds)
-
-    @property
-    def closed(self):
-        return self._task.cancelled()
-
-    def close(self) -> None:
-        self._task.cancel()
-
-    def get_task(self):
-        return self._task
+@deprecated("3.2.0", "4.0.0", "Use lightning.utils.emitters.WebhookEmbedEmitter instead")
+class WebhookEmbedBulker(WebhookEmbedEmitter):
+    ...
