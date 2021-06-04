@@ -87,14 +87,14 @@ log_actions = {
 
 
 def construct_dm_message(member, action, location, *, middle=None, reason=None, ending=None):
-    msg = f"You were {action} {location} {member.guild.name}"
+    msg = [f"You were {action} {location} {member.guild.name}"]
     if middle:
-        msg += middle
+        msg.append(middle)
     if reason:
-        msg += f"\n\nThe given reason is {reason}"
+        msg.append(f"\n\nThe given reason is {reason}")
     if ending:
-        msg += ending
-    return msg
+        msg.append(ending)
+    return ''.join(msg)
 
 
 class EmojiFormat(BaseFormat):
@@ -120,19 +120,19 @@ class EmojiFormat(BaseFormat):
 
     def format_message(self) -> str:
         attrs = log_actions[str(self.log_action).lower()]
-        message = f"{attrs.emoji} **{attrs.title}**: {self.moderator.mention}"\
-                  f" {attrs.tense} "
+        message = [f"{attrs.emoji} **{attrs.title}**: {self.moderator.mention}"
+                   f" {attrs.tense} "]
 
         if self.expiry:
-            message += self.temp_action_target(self.expiry)
+            message.append(self.temp_action_target(self.expiry))
         else:
-            message += self.target_mention_and_safe_name()
+            message.append(self.target_mention_and_safe_name())
 
         if hasattr(self.target, 'id'):
-            message += f"\n\N{LABEL} __User ID__: {self.target.id}"
+            message.append(f"\n\N{LABEL} __User ID__: {self.target.id}")
 
-        message += f"\n\N{PENCIL}\N{VARIATION SELECTOR-16} __Reason__: \"{self.reason}\""
-        return message
+        message.append(f"\n\N{PENCIL}\N{VARIATION SELECTOR-16} __Reason__: \"{self.reason}\"")
+        return ''.join(message)
 
     @staticmethod
     def bot_addition(bot: discord.Member, mod) -> str:
@@ -147,9 +147,8 @@ class EmojiFormat(BaseFormat):
             removed = entry.changes.before.roles
             added = entry.changes.after.roles
 
-        msg = ""
+        msg = ["\n👑__Role change__: "]
         if len(added) != 0 or len(removed) != 0:
-            msg += "\n👑 __Role change__: "
             roles = []
             for role in removed:
                 safe_role_name = escape_markdown_and_mentions(role.name)
@@ -166,32 +165,30 @@ class EmojiFormat(BaseFormat):
                 if role not in added and role not in removed:
                     roles.append(escape_markdown_and_mentions(role.name))
 
-        msg += ", ".join(roles)
-        if msg:  # Ending
-            safe_user = escape_markdown_and_mentions(str(after))
-            msg = f"\N{INFORMATION SOURCE} "\
-                  f"**Member update**: {safe_user} | "\
-                  f"{after.id} {msg}"
-            if mod:
-                safe_mod = escape_markdown_and_mentions(str(mod))
-                msg += f"\n\N{BLUE BOOK} __Moderator__: "\
-                       f"{safe_mod} ({mod.id})"
-            return msg
+        msg.append(", ".join(roles))
+        safe_user = escape_markdown_and_mentions(str(after))
+        msg = [f"\N{INFORMATION SOURCE} **Member update**: {safe_user} | "
+               f"{after.id} {''.join(msg)}"]
+        if mod:
+            safe_mod = escape_markdown_and_mentions(str(mod))
+            msg.append(f"\n\N{BLUE BOOK} __Moderator__: "
+                       f"{safe_mod} ({mod.id})")
+        return ''.join(msg)
 
     @staticmethod
     def timed_action_expired(action, user, mod, creation) -> str:
-        msg = f"\N{WARNING SIGN} **{action.capitalize()} expired**: <@!{user.id}>"
+        msg = [f"\N{WARNING SIGN} **{action.capitalize()} expired**: <@!{user.id}>"]
 
         if hasattr(user, 'name'):
-            msg += f" | {discord.utils.escape_mentions(str(user))}"
+            msg.append(f" | {discord.utils.escape_mentions(str(user))}")
 
-        msg += f"\nTime{action} was made by <@!{mod.id}>"
+        msg.append(f"\nTime{action} was made by <@!{mod.id}>")
 
         if hasattr(mod, 'name'):
-            msg += f" | {discord.utils.escape_mentions(str(mod))}"
+            msg.append(f" | {discord.utils.escape_mentions(str(mod))}")
 
-        msg += f" at {get_utc_timestamp(creation)}"
-        return msg
+        msg.append(f" at {get_utc_timestamp(creation)}")
+        return ''.join(msg)
 
     @staticmethod
     def join_leave(log_type: str, member) -> str:
@@ -207,6 +204,13 @@ class EmojiFormat(BaseFormat):
                   f"**Member Leave**: {member.mention} | "\
                   f"{safe_name}\n"\
                   f"\N{LABEL} __User ID__: {member.id}"
+        return msg
+
+    @staticmethod
+    def command_ran(ctx) -> str:
+        command = ctx.command
+        msg = f"\N{CLIPBOARD} **Command Used**: {ctx.author.mention} ran {command.qualified_name}\n"\
+              f"__Channel__: {ctx.channel.mention} | {ctx.channel.name}"
         return msg
 
 
@@ -250,7 +254,7 @@ class MinimalisticFormat(BaseFormat):
             return f"ID: {user.id}"
 
     @staticmethod
-    def role_change(user, added, removed, *, entry=None, with_timestamp=True):
+    def role_change(user, added, removed, *, entry=None, with_timestamp=True) -> str:
         time = datetime.utcnow()
         mod = None
         reason = None
@@ -263,36 +267,35 @@ class MinimalisticFormat(BaseFormat):
             reason = entry.reason
 
         if with_timestamp:
-            base = f"`[{time.strftime('%H:%M:%S UTC')}]` **Role Change**\n"\
-                   f"**User**: {escape_markdown_and_mentions(str(user))} ({user.id})\n"
+            base = [f"`[{time.strftime('%H:%M:%S UTC')}]` **Role Change**\n"
+                    f"**User**: {escape_markdown_and_mentions(str(user))} ({user.id})\n"]
         else:
-            base = "**Role Change**\n"\
-                   f"**User**: {escape_markdown_and_mentions(str(user))} ({user.id})\n"
+            base = ["**Role Change**\n**User**:"
+                    f"{escape_markdown_and_mentions(str(user))} ({user.id})\n"]
 
         if added != 0:
             for role in added:
-                base += f"**Role Added**: {escape_markdown_and_mentions(str(role))} ({role.id})\n"
+                base.append(f"**Role Added**: {escape_markdown_and_mentions(str(role))} ({role.id})\n")
         if removed != 0:
             for role in removed:
-                base += f"**Role Removed**: {escape_markdown_and_mentions(str(role))} ({role.id})\n"
+                base.append(f"**Role Removed**: {escape_markdown_and_mentions(str(role))} ({role.id})\n")
 
         if mod is not None:
-            base += f"**Moderator**: {escape_markdown_and_mentions(str(mod))} ({mod.id})"
+            base.append(f"**Moderator**: {escape_markdown_and_mentions(str(mod))} ({mod.id})")
 
         if reason:
-            base += f"\n**Reason**: {escape_markdown_and_mentions(reason)}"
+            base.append(f"\n**Reason**: {escape_markdown_and_mentions(reason)}")
 
-        return base
+        return ''.join(base)
 
     @staticmethod
     def timed_action_expired(action, user, mod, creation, expiry, *, with_timestamp: bool = True) -> str:
-        text = f"`[{expiry.strftime('%H:%M:%S UTC')}]` " if with_timestamp else ""
-        action = action.capitalize()
+        text = [f"`[{expiry.strftime('%H:%M:%S UTC')}]` "] if with_timestamp else []
 
-        text += f"**{action} expired**\n**User**: "\
-                f"{MinimalisticFormat.format_user(user)}\n**Moderator**: {MinimalisticFormat.format_user(mod)}"\
-                f"\n**Created at**: {get_utc_timestamp(creation)}"
-        return text
+        text.append(f"**{action.capitalize()} expired**\n**User**: "
+                    f"{MinimalisticFormat.format_user(user)}\n**Moderator**: {MinimalisticFormat.format_user(mod)}"
+                    f"\n**Created at**: {get_utc_timestamp(creation)}")
+        return ''.join(text)
 
     @staticmethod
     def bot_addition(bot, mod, time) -> str:
@@ -314,36 +317,50 @@ class MinimalisticFormat(BaseFormat):
                   f" **Member Leave**: {discord.utils.escape_markdown(str(member))} ({member.id})"
         return msg
 
+    @staticmethod
+    def command_ran(ctx, *, with_timestamp: bool = True) -> str:
+        timestamp = ctx.message.created_at
+
+        if with_timestamp:
+            base = [f"`[{entry_time.strftime('%H:%M:%S UTC')}]` "]
+        else:
+            base = []
+
+        base.append(f"**Command Ran**\n**User**: {MinimalisticFormat.format_user(ctx.author)}\n"
+                    f"**Channel**: {base_user_format(ctx.channel)}")
+
+        return ''.join(base)
+
     def format_message(self, *, with_timestamp: bool = True) -> str:
         """Formats a log entry."""
         entry_time = self.timestamp
         log_action = log_actions[str(self.log_action).lower()]
 
         if with_timestamp:
-            base = f"`[{entry_time.strftime('%H:%M:%S UTC')}]` **{log_action.title}**"\
-                   f" | Infraction ID {self.infraction_id}"
+            base = [f"`[{entry_time.strftime('%H:%M:%S UTC')}]` "]
         else:
-            base = f"**{log_action.title}** | Infraction ID {self.infraction_id}"
+            base = []
 
-        base += f"\n**User**: {self.format_user(self.target)}\n**Moderator**: {self.format_user(self.moderator)}"
+        base.append(f"**{log_action.title}** | Infraction ID {self.infraction_id}"
+                    f"\n**User**: {self.format_user(self.target)}\n**Moderator**: {self.format_user(self.moderator)}")
 
         if self.expiry:
-            base += f"\n**Expiry**: {self.expiry}"
+            base.append(f"\n**Expiry**: {self.expiry}")
 
-        base += f"\n**Reason**: {escape_markdown_and_mentions(self.reason)}"
-        return base
+        base.append(f"\n**Reason**: {escape_markdown_and_mentions(self.reason)}")
+        return ''.join(base)
 
 
 class EmbedFormat(BaseFormat):
     @staticmethod
     def join_leave(log_type: str, member):
-        embed = discord.Embed(title="Member ")
+        embed = discord.Embed()
 
         if log_type == "MEMBER_JOIN":
-            embed.title += "Join"
+            embed.title = "Member Join"
             embed.color = discord.Color.green()
         else:
-            embed.title += "Leave"
+            embed.title = "Member Leave"
             embed.color = discord.Color.red()
 
         embed.set_author(name=member, icon_url=member.avatar_url)
@@ -356,13 +373,14 @@ class EmbedFormat(BaseFormat):
         embed = discord.Embed(title=action.title, color=action.color)
         reason = truncate_text(self.reason, 512)
 
-        base = f"**User**: {str(self.target)} <@!{self.target.id}>\n"\
-               f"**Moderator**: {str(self.moderator)} <@!{self.moderator.id}>"
+        base = [f"**User**: {str(self.target)} <@!{self.target.id}>\n"
+                f"**Moderator**: {str(self.moderator)} <@!{self.moderator.id}>"]
 
         if self.expiry:
-            base += f"\n**Expiry**: {self.expiry}"
+            base.append(f"\n**Expiry**: {self.expiry}")
 
-        embed.description = base + f"\n**Reason**: {discord.utils.escape_markdown(reason)}"
+        base.append(f"\n**Reason**: {discord.utils.escape_markdown(reason)}")
+        embed.description = ''.join(base)
         embed.set_footer(text=f"Infraction ID: {self.infraction_id}")
         embed.timestamp = self.timestamp
         return embed
@@ -397,4 +415,11 @@ class EmbedFormat(BaseFormat):
             embed.description += f"\nRemoved: {removed}"
 
         embed.timestamp = time
+        return embed
+
+    @staticmethod
+    def command_ran(ctx) -> discord.Embed:
+        embed = discord.Embed(title="Command Ran", color=0xf74b06, timestamp=ctx.message.created_at)
+        embed.description = f"**Command**: {ctx.command.qualified_name}\n**User**: {user.mention} ({user.id})"\
+                            f"**Channel**: {ctx.channel.mention} ({ctx.channel.id})"
         return embed
