@@ -27,7 +27,7 @@ tables = [("commands_usage", "guild_id"), ("nin_updates", "guild_id"), ("guilds"
 
 
 def build_delete_query(table: str, column: str) -> str:
-    query = f"DELETE * FROM {table} WHERE {column}=$1"
+    query = f"DELETE FROM {table} WHERE {column}=$1"
     return query
 
 
