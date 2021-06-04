@@ -81,7 +81,6 @@ class TextChannelEmitter(Emitter):
         self._task.set_name(f"textchannel-emitter-{self.channel.id}")
 
     async def put(self, *args, **kwargs):
-        # coro should be a coroutine object
         coro = self.channel.send(*args, **kwargs)
         await self._queue.put(coro)
 
@@ -95,10 +94,10 @@ class TextChannelEmitter(Emitter):
 
             try:
                 await coro
+            except discord.NotFound:
+                self.close()
             except (asyncio.TimeoutError, aiohttp.ClientError, discord.HTTPException):
                 pass
-            except discord.NotFound:
-                self.stop()
 
             # Rough estimate to wait before sending again without hitting ratelimits.
             # We may need to rethink this...
