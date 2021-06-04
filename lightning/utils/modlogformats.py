@@ -322,7 +322,7 @@ class MinimalisticFormat(BaseFormat):
         timestamp = ctx.message.created_at
 
         if with_timestamp:
-            base = [f"`[{entry_time.strftime('%H:%M:%S UTC')}]` "]
+            base = [f"`[{timestamp.strftime('%H:%M:%S UTC')}]` "]
         else:
             base = []
 
@@ -420,6 +420,7 @@ class EmbedFormat(BaseFormat):
     @staticmethod
     def command_ran(ctx) -> discord.Embed:
         embed = discord.Embed(title="Command Ran", color=0xf74b06, timestamp=ctx.message.created_at)
+        user = ctx.author
         embed.description = f"**Command**: {ctx.command.qualified_name}\n**User**: {user.mention} ({user.id})"\
                             f"**Channel**: {ctx.channel.mention} ({ctx.channel.id})"
         return embed
