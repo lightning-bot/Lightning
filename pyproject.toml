@@ -7,7 +7,9 @@ license = "AGPL-3.0-or-later"
 readme = "README.md"
 repository = "https://gitlab.com/lightning-bot/Lightning"
 packages = [
-    { include = "lightning/**/*.py" }
+    { include = "lightning/**/*.py" }, 
+    { include = "LICENSE" },
+    { include = "LICENSE.header" }
 ]
 
 [tool.poetry.dependencies]
@@ -43,7 +45,7 @@ isort = "^5.4.2"
 flake8 = "^3.9.2"
 
 [tool.poetry.scripts]
-lightning = 'lightning.__main__:parser'
+lightning = 'lightning.cli.main:parser'
 
 [build-system]
 requires = ["poetry>=0.12"]
