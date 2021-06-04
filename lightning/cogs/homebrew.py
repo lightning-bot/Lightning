@@ -287,7 +287,7 @@ class Homebrew(LightningCog):
         em = self.mod_embed("Universal-Updater",
                             description, social_links, discord.Color.green())
         em.set_thumbnail(url="https://btw.i-use-ar.ch/i/7rj8.png")
-        em.set_footer(text="Made by Universal-Team (Mainly by VoltZ)")
+        em.set_footer(text="Made by Universal-Team")
         await ctx.send(embed=em)
 
     @mod.group(name="ds", aliases=['DS', 'dsi', 'DSi'], invoke_without_command=True)
@@ -301,32 +301,6 @@ class Homebrew(LightningCog):
                 await ctx.invoke(self.mod_ds.get_command(match[0]))
                 return
 
-        if ctx.invoked_with in ("dsi", "DSi"):
-            await ctx.invoke(self.mod_dsi_cfw)
-            return
-
-        features = ["Run Nintendo DS game backups without requiring "
-                    "a physical cartridge",
-                    "Load multiple backups of Nintendo DS games "
-                    "without having to carry around a bunch of cartridges",
-                    "Modify your Nintendo DS game using Cheat Codes",
-                    "Install Custom FirmWare on your 3DS using NTRBoot Hax"]
-        embed = discord.Embed(title="Nintendo DS Flashcard guide",
-                              url="https://nightyoshi370.github.io/mm-github-pages-starter/",
-                              color=0xD6FEFF)
-        embed.description = ("This [guide](https://nightyoshi370.github.io/mm-github-pages-starter/)"
-                             " links to most flashcard kernels that are made "
-                             "for the Nintendo DS. You can also view its "
-                             "compatibility status for the Nintendo DSi and the Nintendo 3DS"
-                             "\n(If looking for DSi Modding, use `mod ds cfw`)")
-        feature = '\n- '.join(features)
-        embed.add_field(name="Advantages to using a Flashcard", value=f"- {feature}")
-        embed.set_footer(text="Guide by NightScript",
-                         icon_url="https://btw.i-use-ar.ch/i/pglx.png")
-        await ctx.send(embed=embed)
-
-    @mod_ds.command(name='cfw')
-    async def mod_dsi_cfw(self, ctx: LightningContext) -> None:
         features = ["Redirect your NAND to the SD card",
                     "Use normally incompatible flashcards",
                     "Boot into different homebrew applications by holding different buttons when turning on your "
@@ -343,11 +317,33 @@ class Homebrew(LightningCog):
         # Original embed color was "16776918", search got me "D6FEFF".
         em.description = ("This [guide](https://dsi.cfw.guide/) "
                           "will take you from a regular Nintendo "
-                          "DSi to a modified console by using the Memory Pit exploit.")
+                          "DSi to a modified console by using the Memory Pit exploit."
+                          "\n(If looking for Flashcard usage, use `mod ds flashcard`)")
         feature = '\n- '.join(features)
         em.add_field(name="Advantages to modding a Nintendo DSi", value=f"- {feature}")
         em.set_footer(text="Guide by NightScript, RocketRobz & emiyl")
         await ctx.send(embed=em)
+
+    @mod_ds.command(name='flashcard', aliases=['flashcart'])
+    async def mod_ds_flashcard(self, ctx: LightningContext) -> None:
+        features = ["Run Nintendo DS game backups without requiring "
+                    "a physical cartridge",
+                    "Load multiple backups of Nintendo DS games "
+                    "without having to carry around a bunch of cartridges",
+                    "Modify your Nintendo DS game using Cheat Codes",
+                    "Install Custom FirmWare on your 3DS using NTRBoot Hax"]
+        embed = discord.Embed(title="Nintendo DS Flashcard guide",
+                              url="https://nightyoshi370.github.io/mm-github-pages-starter/",
+                              color=0xD6FEFF)
+        embed.description = ("This [guide](https://nightyoshi370.github.io/mm-github-pages-starter/)"
+                             " links to most flashcard kernels that are made "
+                             "for the Nintendo DS. You can also view its "
+                             "compatibility status for the Nintendo DSi and the Nintendo 3DS")
+        feature = '\n- '.join(features)
+        embed.add_field(name="Advantages to using a Flashcard", value=f"- {feature}")
+        embed.set_footer(text="Guide by NightScript",
+                         icon_url="https://btw.i-use-ar.ch/i/pglx.png")
+        await ctx.send(embed=embed)
 
     @mod_ds.command(name='lolsnes')
     async def mod_ds_lolsnes(self, ctx: LightningContext) -> None:
@@ -414,7 +410,7 @@ class Homebrew(LightningCog):
                  "[Discord Server](https://discord.gg/KDJCfGF)",
                  "[GBAtemp Thread](https://gbatemp.net/threads/release-"
                  "pkmn-chest-a-pokemon-bank-for-the-nintendo-ds-i.549249/)",
-                 "[Website](https://universal-team.github.io/pkmn-chest)"]
+                 "[Website](https://universal-team.net/projects/pkmn-chest)"]
         em = self.mod_embed("pkmn-chest", description, links, 0xBF0300)
         em.set_thumbnail(url="https://elixi.re/i/1ve4.png")
         em.set_footer(text="Made by Universal Team (Mainly by Pk11)")
