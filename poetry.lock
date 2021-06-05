@@ -206,7 +206,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "humanize"
-version = "3.6.0"
+version = "3.7.0"
 description = "Python humanize utilities"
 category = "main"
 optional = false
@@ -260,9 +260,9 @@ python-versions = ">=3.8.0"
 develop = false
 
 [package.dependencies]
-braceexpand = ">=0.1.5"
-"discord.py" = ">=1.5.0"
-humanize = "*"
+braceexpand = ">=0.1.7"
+"discord.py" = ">=1.7.2"
+humanize = ">=3.7.0"
 import-expression = ">=1.0.0,<2.0.0"
 
 [package.extras]
@@ -275,7 +275,7 @@ voice = ["discord.py[voice] (>=1.5.0)", "youtube-dl"]
 type = "git"
 url = "https://gitlab.com/Gorialis/jishaku.git"
 reference = "master"
-resolved_reference = "873f863052a663efab3b6184d2516e03bf16bcf9"
+resolved_reference = "a933c6f41418669764542e4c3d72f99f04f6addd"
 
 [[package]]
 name = "lru-dict"
@@ -880,8 +880,8 @@ hiredis = [
     {file = "hiredis-1.1.0.tar.gz", hash = "sha256:996021ef33e0f50b97ff2d6b5f422a0fe5577de21a8873b58a779a5ddd1c3132"},
 ]
 humanize = [
-    {file = "humanize-3.6.0-py3-none-any.whl", hash = "sha256:6d9bee57f856418302b5d11d7229bc401882d800962a19fd6dcdd83672cb15e6"},
-    {file = "humanize-3.6.0.tar.gz", hash = "sha256:a31704cf41f023e268032c4813c6482573320150a0d986f76b245e0451bb89e1"},
+    {file = "humanize-3.7.0-py3-none-any.whl", hash = "sha256:5eaafcd584fd01ab9a59f040e20b3daa35a24e8125d4c84788392d799be2012a"},
+    {file = "humanize-3.7.0.tar.gz", hash = "sha256:8b1463a17bf722c06712ac9d31f7e46efd048dd4e76fafeac9f3b8f972b0b8e3"},
 ]
 idna = [
     {file = "idna-3.2-py3-none-any.whl", hash = "sha256:14475042e284991034cb48e06f6851428fb14c4dc953acd9be9a5e95c7b6dd7a"},
