@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -20,4 +20,4 @@ from lightning.cog import LightningCog  # noqa
 from lightning.commands import *  # noqa
 from lightning.context import LightningContext  # noqa
 from lightning.meta import *  # noqa
-from lightning.storage import Storage
+from lightning.storage import Storage  # noqa
