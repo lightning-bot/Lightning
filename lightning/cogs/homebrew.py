@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,26 +14,32 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 import asyncio
+import hashlib
+import logging
 import secrets
 import urllib.parse
+from datetime import datetime
 from io import BytesIO
 from typing import Optional
 
 import asyncpg
+import dateutil.parser
 import discord
-from discord.ext import commands, menus
+import feedparser
+from discord.ext import commands, menus, tasks
 from jishaku.functools import executor_function
 from PIL import Image
 from rapidfuzz import fuzz, process
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, command, group)
+                       LightningContext, Storage, command, group)
 from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
 from lightning.utils.checks import has_channel_permissions
 from lightning.utils.paginator import InfoMenuPages
+
+log = logging.getLogger(__name__)
 
 
 class TinyDBPageSource(menus.ListPageSource):
@@ -68,6 +74,11 @@ class FindBMPAttachment(commands.CustomDefault):
 class Homebrew(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
+
+        # Nintendo updates related
+        self.ninupdates_data = Storage("resources/nindy_data.json")
+        self.ninupdates_feed_digest = None
+        self.do_ninupdates.start()
 
     @group(aliases=['nuf', 'stability'], invoke_without_command=True, level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
@@ -141,6 +152,78 @@ class Homebrew(LightningCog):
         await webhook.delete()
         await self.bot.pool.execute(query, ctx.guild.id)
         await ctx.send("Successfully deleted webhook and configuration!")
+
+    async def check_ninupdate_feed(self):
+        data = self.ninupdates_data
+        feedurl = 'https://yls8.mtheall.com/ninupdates/feed.php'
+        # Letting feedparser do the request for us can block the entire bot
+        # https://github.com/kurtmckee/feedparser/issues/111
+        async with self.bot.aiosession.get(feedurl, expect100=True) as resp:
+            raw_bytes = await resp.read()
+
+        # Running feedparser is expensive.
+        digest = hashlib.sha256(raw_bytes).digest()
+        if self.ninupdates_feed_digest == digest:
+            return
+
+        log.debug("Cached digest does not equal the current digest...")
+        feed = feedparser.parse(raw_bytes, response_headers={"Content-Location": feedurl})
+        self.feed_digest = digest
+        for entry in feed["entries"]:
+            version = entry["title"].split(" ")[-1]
+            console = entry["title"].replace(version, " ").strip()
+            link = entry["link"]
+
+            if "published" in entry and entry.published:
+                timestamp = dateutil.parser.parse(entry.published)
+            elif "updated" in entry:
+                timestamp = dateutil.parser.parse(entry.updated)
+            else:
+                continue
+
+            try:
+                # Migration things:tm:
+                if timestamp <= datetime.fromtimestamp(data[console]["last_updated"],
+                                                       tz=timestamp.tzinfo):
+                    continue
+            except TypeError:
+                if timestamp <= datetime.fromisoformat(data[console]['last_updated']):
+                    continue
+            except KeyError:
+                pass
+
+            hook_text = f"`[{timestamp.strftime('%H:%M:%S')}]` 🚨 **System update detected for {console}: {version}**\n"\
+                        f"More information at <{link}>"
+            await data.add(console, {"version": version,
+                                     "last_updated": timestamp.isoformat()})
+            await self.dispatch_message_to_guilds(console, hook_text)
+
+    async def dispatch_message_to_guilds(self, console: str, text: str):
+        records = await self.bot.pool.fetch("SELECT * FROM nin_updates;")
+        log.info(f"Dispatching new update for {console} to {len(records)} guilds.")
+        bad_webhooks = []
+        for record in records:
+            try:
+                webhook = discord.Webhook.partial(record['id'], record['webhook_token'],
+                                                  adapter=discord.AsyncWebhookAdapter(self.bot.aiosession))
+                await webhook.send(text)
+            except (discord.NotFound, discord.Forbidden):
+                bad_webhooks.append(record['id'])
+            except discord.HTTPException:  # discord heckin died
+                continue
+
+        # Remove deleted webhooks
+        if bad_webhooks:
+            query = "DELETE FROM nin_updates WHERE id=$1;"
+            await self.bot.pool.executemany(query, bad_webhooks)
+
+    @tasks.loop(seconds=45)
+    async def do_ninupdates(self) -> None:
+        await self.check_ninupdate_feed()
+
+    @do_ninupdates.before_loop
+    async def before_ninupdates_task(self) -> None:
+        await self.bot.wait_until_ready()
 
     @executor_function
     def convert_to_png(self, _bytes) -> BytesIO:
