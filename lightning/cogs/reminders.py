@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 import asyncio
 import hashlib
 import logging
@@ -35,7 +34,7 @@ from lightning import LightningBot, LightningCog, LightningContext, group
 from lightning.formatters import plural
 from lightning.models import Timer
 from lightning.storage import Storage
-from lightning.utils.helpers import BetterUserObject, dm_user
+from lightning.utils.helpers import BetterUserObject, deprecated, dm_user
 
 log = logging.getLogger(__name__)
 
@@ -49,11 +48,9 @@ class Reminders(LightningCog):
         self._current_task = None
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
         self.feed_digest = None
-        self.stability.start()
 
     def cog_unload(self) -> None:
         self.dispatch_jobs.cancel()
-        self.stability.cancel()
 
     async def get_next_timer(self) -> Optional[Timer]:
         query = """SELECT * FROM timers
@@ -160,9 +157,9 @@ class Reminders(LightningCog):
         or a human readable offset.
 
         Examples:
-        - "remind in 2 days do essay" (2 days)
-        - "remind 1 hour do dishes" (1 hour)
-        - "remind 60s clean" (60 seconds)
+        - "{prefix}remind in 2 days do essay" (2 days)
+        - "{prefix}remind 1 hour do dishes" (1 hour)
+        - "{prefix}remind 60s clean" (60 seconds)
 
         Times are in UTC.
         """
@@ -210,7 +207,7 @@ class Reminders(LightningCog):
         """Unmarks a reminder from the "secret" status."""
         await self.reminder_toggler(ctx, reminder_id, False)
 
-    def format_list(self, records, *, guild=False):
+    def format_list(self, records, *, guild=False) -> discord.Embed:
         embed = discord.Embed(title="Reminders", color=0xf74b06)
         for record in records:
             timed_txt = lightning.utils.time.natural_timedelta(record['expiry'], suffix=True)
@@ -341,6 +338,7 @@ class Reminders(LightningCog):
 
         await channel.send(message, **kwargs)
 
+    @deprecated("3.2.0", "4.0.0")
     async def check_ninupdate_feed(self):
         if not hasattr(self.bot, 'nintendo_updates'):
             self.bot.nintendo_updates = Storage("resources/nindy_data.json")
@@ -389,6 +387,7 @@ class Reminders(LightningCog):
                                      "last_updated": timestamp.isoformat()})
             await self.dispatch_message(console, hook_text)
 
+    @deprecated("3.2.0", "4.0.0")
     async def dispatch_message(self, console: str, text: str):
         records = await self.bot.pool.fetch("SELECT * FROM nin_updates;")
         log.info(f"Dispatching new update for {console} to {len(records)} servers.")
@@ -409,10 +408,12 @@ class Reminders(LightningCog):
             await self.bot.pool.executemany(query, bad_webhooks)
 
     @tasks.loop(seconds=45)
+    @deprecated("3.2.0", "4.0.0")
     async def stability(self) -> None:
         await self.check_ninupdate_feed()
 
     @stability.before_loop
+    @deprecated("3.2.0", "4.0.0")
     async def stability_load(self) -> None:
         await self.bot.wait_until_ready()
 
