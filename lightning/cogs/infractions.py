@@ -24,6 +24,7 @@ from discord.ext.commands import bot_has_permissions, default
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, group)
+from lightning.converters import TargetMember
 from lightning.formatters import truncate_text
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import Emoji
@@ -196,7 +197,19 @@ class Infractions(LightningCog, required=['Mod']):
 
         await ctx.send(f"Edited {infraction_id}")
 
-    # TODO: Infraction transfer
+    @infraction.command(level=CommandLevel.Admin)
+    @has_guild_permissions(manage_guild=True)
+    async def transfer(self, ctx: LightningContext, old_user: TargetMember, new_user: TargetMember) -> None:
+        """Transfers a user's infractions to another user"""
+        confirm = await ctx.prompt(f"Are you sure you want to transfer infractions from {old_user} to {new_user}?")
+        if not confirm:
+            return
+
+        query = """UPDATE infractions SET user_id=$1 WHERE guild_id=$2 AND user_id=$3;"""
+        resp = await self.bot.pool.execute(query, new_user.id, ctx.guild.id, old_user.id)
+        resp = resp.split()
+
+        await ctx.send(f"Transferred {resp[-1]} infractions to {new_user.mention}")
 
     @infraction.command(aliases=['remove'], level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
@@ -225,10 +238,10 @@ class Infractions(LightningCog, required=['Mod']):
 
         objs = []
         for record in records:
-            _dict = dict(record)
-            _dict['created_at'] = record['created_at'].isoformat()
-            _dict['expiry'] = record['expiry'].isoformat() if record['expiry'] else None
-            objs.append(_dict)
+            data = dict(record)
+            data['created_at'] = record['created_at'].isoformat()
+            data['expiry'] = record['expiry'].isoformat() if record['expiry'] else None
+            objs.append(data)
 
         raw_bytes = StringIO(json_dumps(objs))
         raw_bytes.seek(0)
@@ -242,12 +255,12 @@ class Infractions(LightningCog, required=['Mod']):
     @infraction.group(name='list', invoke_without_command=True, level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
     async def list_infractions(self, ctx: LightningContext) -> None:
-        """Lists infractions for the server."""
+        """Lists infractions for the server"""
         await self.start_keyset_pages(ctx, InfractionSource(ctx.bot, ctx.guild))
 
     @list_infractions.command(name='member', level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
-    async def list_infractions_member(self, ctx: LightningContext, *, member: discord.Member) -> None:
+    async def list_infractions_member(self, ctx: LightningContext, *, member: discord.User) -> None:
         """Lists infractions done to a user"""
         await self.start_keyset_pages(ctx, InfractionSource(ctx.bot, ctx.guild, member=member))
 
