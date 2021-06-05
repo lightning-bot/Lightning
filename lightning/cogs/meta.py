@@ -23,6 +23,7 @@ import logging
 import os
 import time
 from datetime import datetime
+from typing import Union
 
 import discord
 import psutil
@@ -35,6 +36,7 @@ from lightning import group as lgroup
 from lightning.converters import (GuildID, GuildorNonGuildUser, Message,
                                   ReadableChannel)
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
+from lightning.models import PartialGuild
 from lightning.utils import helpers
 from lightning.utils.modlogformats import base_user_format
 from lightning.utils.paginator import InfoMenuPages
@@ -153,10 +155,10 @@ class PaginatedHelpCommand(commands.HelpCommand):
             'help': 'Shows help about the bot, a command, or a category'
         })
 
-    def get_ending_note(self):
-        return 'Use {0}{1} [command] for more info on a command.'.format(self.clean_prefix, self.invoked_with)
+    def get_ending_note(self) -> str:
+        return f'Use {self.clean_prefix}{self.invoked_with} [command] for more info on a command.'
 
-    async def command_not_found(self, string):
+    async def command_not_found(self, string) -> str:
         output = f"No command called \"{string}\" found."
         commands = [c.qualified_name for c in await self.filter_commands(self.context.bot.commands)]
         fuzzymatches = extractOne(string, commands, score_cutoff=70)
@@ -164,7 +166,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             output += f" Did you mean \"{fuzzymatches[0]}\"?"
         return output
 
-    def get_command_signature(self, command):
+    def get_command_signature(self, command) -> str:
         parent = command.full_parent_name
         if len(command.aliases) > 0:
             aliases = '|'.join(command.aliases)
@@ -176,7 +178,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             alias = command.name if not parent else f'{parent} {command.name}'
         return f'{alias}'
 
-    async def send_bot_help(self, mapping):
+    async def send_bot_help(self, mapping) -> None:
         bot = self.context.bot
         entries = await self.filter_commands(bot.commands, sort=True)
         commands = {}
@@ -189,7 +191,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
         pages = HelpPaginatorMenu(self, self.context, HelpMenu(commands, bot_help=True))
         await pages.paginate()
 
-    async def send_cog_help(self, cog):
+    async def send_cog_help(self, cog) -> None:
         entries = await self.filter_commands(cog.get_commands(), sort=True)
         embed = discord.Embed(title=f'{cog.qualified_name} Commands', description=cog.description or '', color=0xf74b06)
         pages = HelpPaginatorMenu(self, self.context, HelpMenu(entries, embed=embed, per_page=5))
@@ -231,9 +233,11 @@ class PaginatedHelpCommand(commands.HelpCommand):
             usage = f"**Usage**: {command.qualified_name}\n\n"
 
         if command.description:
-            page_or_embed.description = f'{usage}{command.description}\n\n{command.help}'
+            description = command.description.format(prefix=self.clean_prefix)
+            page_or_embed.description = f'{usage}{description}\n\n{command.help}'
         else:
-            page_or_embed.description = f'{usage}{command.help}' if command.help else f'{usage}No help found...'
+            description = command.help.format(prefix=self.clean_prefix)
+            page_or_embed.description = f'{usage}{description}' if command.help else f'{usage}No help found...'
 
         if hasattr(command, 'level'):
             page_or_embed.description += f"\n\n**Default Level Required**: {command.level.name}"
@@ -399,7 +403,8 @@ class Meta(LightningCog):
                 break
 
         if not activity:
-            await ctx.send(f"{member} is not listening to Spotify with Discord integration.")
+            await ctx.send(f"{member} is not listening to Spotify with Discord integration."
+                           " If that is wrong, then blame Discord's API.")
             return
 
         embed = discord.Embed(title=activity.title, color=0x1DB954)
@@ -546,6 +551,7 @@ class Meta(LightningCog):
 
         lines, firstlineno = inspect.getsourcelines(src)
         location = ""
+
         if module.startswith("jishaku"):
             location = module.replace(".", "/") + ".py"
             source = "https://github.com/Gorialis/jishaku"
@@ -723,7 +729,7 @@ class Meta(LightningCog):
 
         await ctx.send(f"```json\n{json.dumps(message, indent=2, sort_keys=True)}```")
 
-    async def send_guild_info(self, embed: discord.Embed, guild) -> None:
+    async def send_guild_info(self, embed: discord.Embed, guild: Union[PartialGuild, discord.Guild]) -> None:
         embed.add_field(name='Guild Name', value=guild.name)
         embed.add_field(name='Guild ID', value=guild.id)
 
@@ -743,13 +749,13 @@ class Meta(LightningCog):
         await self.webhook_bulker.put(embed)
 
     @LightningCog.listener()
-    async def on_lightning_guild_add(self, guild):
+    async def on_lightning_guild_add(self, guild: Union[PartialGuild, discord.Guild]):
         embed = discord.Embed(title="Joined New Guild", color=discord.Color.blue())
         log.info(f"Joined Guild | {guild.name} | {guild.id}")
         await self.send_guild_info(embed, guild)
 
     @LightningCog.listener()
-    async def on_lightning_guild_remove(self, guild):
+    async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]):
         embed = discord.Embed(title="Left Guild", color=discord.Color.red())
         log.info(f"Left Guild | {guild.name} | {guild.id}")
         await self.send_guild_info(embed, guild)
@@ -758,6 +764,5 @@ class Meta(LightningCog):
 def setup(bot: LightningBot):
     bot.add_cog(Meta(bot))
     # Remove support command if not in config
-    invite = bot.config['bot'].get("support_server_invite")
-    if not invite:
+    if bot.config['bot'].get("support_server_invite", None) is None:
         bot.remove_command("support")
