@@ -228,6 +228,7 @@ def build_cog_docs():
     cogs = sorted(bot.cogs.values(), key=lambda c: c.qualified_name)
     for cog in cogs:
         cmds = []
+
         for command in sorted(cog.walk_commands(), key=lambda c: c.qualified_name):
             aliases = ' '.join("`{}`".format(r) for r in command.aliases) or "None"
             signature = command.signature or command.usage
@@ -235,13 +236,21 @@ def build_cog_docs():
             if signature:
                 usage += f" {signature}"
 
+            if command.cog:
+                cog_name = command.cog.qualified_name.lower()
+            else:
+                cog_name = "not_categorized"
+
             description = command.help.replace('\n', '<br>') if command.help else None
 
-            cmds.append((command.qualified_name, aliases, description, f"`{usage}`"))
+            link = f'https://lightning-bot.gitlab.io/commands/{cog_name}/'\
+                   f'{command.qualified_name.lower().replace(" ", "_")}'
 
-        path = pathlib.Path("build/docs/cogs/")
+            cmds.append((f"[{command.qualified_name}]({link})", aliases, description, f"`{usage}`"))
+
+        path = pathlib.Path(f"build/docs/commands/{cog.qualified_name.lower()}")
         path.mkdir(parents=True, exist_ok=True)
-        path = path / pathlib.Path(f"{cog.qualified_name.lower()}.md")
+        path = path / pathlib.Path("index.md")  # There should never be a command called "index"
 
         desc = (cog.qualified_name, cog.description, tabulate(cmds,
                 headers=("Name", "Aliases", "Description", "Usage"), tablefmt="github"))
