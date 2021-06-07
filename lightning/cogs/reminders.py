@@ -43,7 +43,8 @@ class Reminders(LightningCog):
     """Commands that remind you something"""
 
     def __init__(self, bot: LightningBot):
-        self.bot = bot
+        super().__init__(bot)
+
         self.task_available = asyncio.Event(loop=bot.loop)
         self._current_task = None
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
@@ -407,13 +408,12 @@ class Reminders(LightningCog):
             query = "DELETE FROM nin_updates WHERE id=$1;"
             await self.bot.pool.executemany(query, bad_webhooks)
 
-    @tasks.loop(seconds=45)
     @deprecated("3.2.0", "4.0.0")
+    @tasks.loop(seconds=45)
     async def stability(self) -> None:
         await self.check_ninupdate_feed()
 
     @stability.before_loop
-    @deprecated("3.2.0", "4.0.0")
     async def stability_load(self) -> None:
         await self.bot.wait_until_ready()
 
