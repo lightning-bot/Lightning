@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -277,7 +277,7 @@ class Fun(LightningCog):
     @command()
     async def dog(self, ctx: LightningContext) -> None:
         """Gives you a random dog picture"""
-        data = await helpers.request("https://dog.ceo/api/breeds/image/random", self.bot.aiosession)
+        data = await ctx.request("https://dog.ceo/api/breeds/image/random")
         embed = discord.Embed(color=discord.Color.blurple())
         embed.set_image(url=data['message'])
         embed.set_footer(text="Powered by dog.ceo", icon_url="https://dog.ceo/img/favicon.png")
@@ -314,7 +314,7 @@ class Fun(LightningCog):
     @commands.bot_has_permissions(embed_links=True)
     async def headpat(self, ctx: LightningContext) -> None:
         """Pat someone"""
-        data = await helpers.request("https://nekos.life/api/pat", self.bot.aiosession)
+        data = await ctx.request("https://nekos.life/api/pat")
         color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
         embed = discord.Embed(colour=discord.Color.from_rgb(*color_random))
         embed.set_image(url=data['url'])
