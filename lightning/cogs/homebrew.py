@@ -80,6 +80,9 @@ class Homebrew(LightningCog):
         self.ninupdates_feed_digest = None
         self.do_ninupdates.start()
 
+    def cog_unload(self) -> None:
+        self.do_ninupdates.cancel()
+
     @group(aliases=['nuf', 'stability'], invoke_without_command=True, level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
     @has_channel_permissions(manage_webhooks=True)
