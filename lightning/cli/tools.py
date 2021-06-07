@@ -109,7 +109,7 @@ def format_command_flags(flags: List[Flag]) -> str:
 
         help_text = flag.help if flag.help else "No help found..."
         base.append(f'`{", ".join(flag.names)}` ({arg}): {help_text}')
-    return "\n\n".join(base)
+    return "\n\n\n".join(base)
 
 
 def format_command_params(parameters: OrderedDict) -> str:
