@@ -413,7 +413,7 @@ class Reminders(LightningCog):
     async def stability(self) -> None:
         await self.check_ninupdate_feed()
 
-    @stability.before_loop
+    @deprecated("3.2.0", "4.0.0")
     async def stability_load(self) -> None:
         await self.bot.wait_until_ready()
 
