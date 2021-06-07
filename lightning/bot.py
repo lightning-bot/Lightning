@@ -36,7 +36,7 @@ from lightning.context import LightningContext
 from lightning.meta import __version__ as version
 from lightning.models import GuildBotConfig
 from lightning.storage import Storage
-from lightning.utils.helpers import WebhookEmbedBulker
+from lightning.utils.emitters import WebhookEmbedEmitter
 
 log = logging.getLogger(__name__)
 
@@ -93,8 +93,8 @@ class LightningBot(commands.AutoShardedBot):
         self.redis_pool = cache.redis_pool
 
         # Error logger
-        self._error_logger = WebhookEmbedBulker(self.config['logging']['bot_errors'], session=self.aiosession,
-                                                loop=self.loop)
+        self._error_logger = WebhookEmbedEmitter(self.config['logging']['bot_errors'], session=self.aiosession,
+                                                 loop=self.loop)
         self._error_logger.start()
 
         path = pathlib.Path("lightning/cogs/")
@@ -190,8 +190,8 @@ class LightningBot(commands.AutoShardedBot):
             if self.command_spammers[author] >= self.config['bot']['spam_count']:
                 await self.blacklisted_users.add(author, "Automatic blacklist on command spam")
                 await self._notify_of_spam(message.author, message.channel, message.guild, True)
-            # Notify ourselves that user is spamming
             else:
+                # Notify of hitting the ratelimit
                 await self._notify_of_spam(message.author, message.channel, message.guild)
                 log.debug(f"User {message.author} ({author}) hit the command ratelimit")
         else:
@@ -275,20 +275,19 @@ class LightningBot(commands.AutoShardedBot):
 
         return token
 
-    async def on_command_error(self, ctx: LightningContext, error):
-        # If command or cog has it's own error handler, return
-        if hasattr(ctx, 'cog'):
-            handler = getattr(ctx.cog, 'cog_command_error')
-            overridden = ctx.cog._get_overridden_method(handler)
-            if overridden:
-                return
-
-        if hasattr(ctx.command, 'on_error'):
+    async def on_command_error(self, ctx: LightningContext, error) -> None:
+        # Check if command has an error handler first
+        if ctx.command.has_error_handler():
             return
+        # Check if cog has an error handler after
+        if hasattr(ctx, 'cog'):
+            if ctx.cog.has_error_handler():
+                return
 
         error = getattr(error, "original", error)
         error_text = str(error)
 
+        # Generic error handler messages
         handled = ERROR_HANDLER_MESSAGES.get(type(error), None)
         if handled:
             await ctx.send(handled)
@@ -354,7 +353,6 @@ class LightningBot(commands.AutoShardedBot):
         await self.pool.close()
         await self.aiosession.close()
         log.info("Closed aiohttp session and database successfully.")
-        if self.redis_pool:
+        with contextlib.suppress(AttributeError):
             self.redis_pool.connection_pool.disconnect()
-            log.info("Disconnected from Redis server")
         await super().close()
