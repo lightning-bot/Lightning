@@ -18,7 +18,20 @@ The invite is no longer displayed here as Discord's verification requirements ha
 ---
 ## Self Hosting
 
-If you want to run your own instance, https://lightning-bot.gitlab.io/config/self-deploy/ contains some general instructions.
+If you want to run your own instance, https://lightning-bot.gitlab.io/config/self-hosting/ contains some general instructions.
+
+---
+## Versioning
+
+Lightning is versioned as `major.minor.patch`.
+
+This is similar to SemVer, with a few exceptions.
+
+Major versions are generally expected for project rewrites.
+
+Minor versions are incremented when a command's behavior has changed, functionality has been moved to another cog (where it makes sense to be), a command was removed, etc.
+
+Patch versions are incremented when a bug has been fixed.
 
 ---
 ### Credits
