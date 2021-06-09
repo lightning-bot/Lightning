@@ -34,8 +34,6 @@ log = logging.getLogger(__name__)
 
 
 class Emoji(LightningCog):
-    def __init__(self, bot: LightningBot):
-        self.bot = bot
 
     @property
     def apne(self):
