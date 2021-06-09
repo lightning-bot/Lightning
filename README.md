@@ -27,7 +27,7 @@ Lightning is versioned as `major.minor.patch`.
 
 This is similar to SemVer, with a few exceptions.
 
-Major versions are generally expected for project rewrites.
+Major versions are incremented when the project undergoes a major rewrite.
 
 Minor versions are incremented when a command's behavior has changed, functionality has been moved to another cog (where it makes sense to be), a command was removed, etc.
 
