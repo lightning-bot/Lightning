@@ -15,7 +15,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncio
-import hashlib
 import logging
 import textwrap
 import traceback
@@ -23,18 +22,14 @@ from datetime import datetime, timedelta
 from typing import Optional, Union
 
 import asyncpg
-import dateutil.parser
 import discord
-import feedparser
-from discord.ext import tasks
 from discord.ext.commands import clean_content
 
 import lightning.utils.time
 from lightning import LightningBot, LightningCog, LightningContext, group
 from lightning.formatters import plural
 from lightning.models import Timer
-from lightning.storage import Storage
-from lightning.utils.helpers import BetterUserObject, deprecated, dm_user
+from lightning.utils.helpers import BetterUserObject, dm_user
 
 log = logging.getLogger(__name__)
 
@@ -48,7 +43,6 @@ class Reminders(LightningCog):
         self.task_available = asyncio.Event(loop=bot.loop)
         self._current_task = None
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
-        self.feed_digest = None
 
     def cog_unload(self) -> None:
         self.dispatch_jobs.cancel()
@@ -338,84 +332,6 @@ class Reminders(LightningCog):
             kwargs.update({"reference": ref})
 
         await channel.send(message, **kwargs)
-
-    @deprecated("3.2.0", "4.0.0")
-    async def check_ninupdate_feed(self):
-        if not hasattr(self.bot, 'nintendo_updates'):
-            self.bot.nintendo_updates = Storage("resources/nindy_data.json")
-
-        data = self.bot.nintendo_updates
-        feedurl = 'https://yls8.mtheall.com/ninupdates/feed.php'
-        # Letting feedparser do the request for us can block the entire bot
-        # https://github.com/kurtmckee/feedparser/issues/111
-        async with self.bot.aiosession.get(feedurl, expect100=True) as resp:
-            raw_bytes = await resp.read()
-
-        # Running feedparser is expensive.
-        digest = hashlib.sha256(raw_bytes).digest()
-        if self.feed_digest == digest:
-            return
-
-        log.debug("Cached digest does not equal the current digest...")
-        feed = feedparser.parse(raw_bytes, response_headers={"Content-Location": feedurl})
-        self.feed_digest = digest
-        for entry in feed["entries"]:
-            version = entry["title"].split(" ")[-1]
-            console = entry["title"].replace(version, " ").strip()
-            link = entry["link"]
-
-            if "published" in entry and entry.published:
-                timestamp = dateutil.parser.parse(entry.published)
-            elif "updated" in entry:
-                timestamp = dateutil.parser.parse(entry.updated)
-            else:
-                continue
-
-            try:
-                # Migration things:tm:
-                if timestamp <= datetime.fromtimestamp(data[console]["last_updated"],
-                                                       tz=timestamp.tzinfo):
-                    continue
-            except TypeError:
-                if timestamp <= datetime.fromisoformat(data[console]['last_updated']):
-                    continue
-            except KeyError:
-                pass
-
-            hook_text = f"`[{timestamp.strftime('%H:%M:%S')}]` 🚨 **System update detected for {console}: {version}**\n"\
-                        f"More information at <{link}>"
-            await data.add(console, {"version": version,
-                                     "last_updated": timestamp.isoformat()})
-            await self.dispatch_message(console, hook_text)
-
-    @deprecated("3.2.0", "4.0.0")
-    async def dispatch_message(self, console: str, text: str):
-        records = await self.bot.pool.fetch("SELECT * FROM nin_updates;")
-        log.info(f"Dispatching new update for {console} to {len(records)} servers.")
-        bad_webhooks = []
-        for record in records:
-            try:
-                webhook = discord.Webhook.partial(record['id'], record['webhook_token'],
-                                                  adapter=discord.AsyncWebhookAdapter(self.bot.aiosession))
-                await webhook.send(text)
-            except (discord.NotFound, discord.Forbidden):
-                bad_webhooks.append(record['id'])
-            except discord.HTTPException:
-                # discord heckin died
-                continue
-        # Remove deleted webhooks
-        if bad_webhooks:
-            query = "DELETE FROM nin_updates WHERE id=$1;"
-            await self.bot.pool.executemany(query, bad_webhooks)
-
-    @deprecated("3.2.0", "4.0.0")
-    @tasks.loop(seconds=45)
-    async def stability(self) -> None:
-        await self.check_ninupdate_feed()
-
-    @deprecated("3.2.0", "4.0.0")
-    async def stability_load(self) -> None:
-        await self.bot.wait_until_ready()
 
 
 def setup(bot: LightningBot) -> None:
