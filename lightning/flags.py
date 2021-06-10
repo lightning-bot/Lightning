@@ -134,7 +134,7 @@ class Namespace:
 
 class Parser:
     def __init__(self, flag_options: List[Flag] = [], *, raise_on_bad_flag: bool = True, consume_rest: bool = True,
-                 rest_converter = None, rest_attribute_name: Optional[str] = None):
+                 rest_converter=None, rest_attribute_name: Optional[str] = None):
         self.raise_on_bad_flag = raise_on_bad_flag
         self.rest_attribute_name = rest_attribute_name
         self.rest_converter = rest_converter
@@ -338,8 +338,6 @@ class FlagCommand(LightningCommand):
             elif param.kind == param.KEYWORD_ONLY:
                 # kwarg only param denotes "consume rest" semantics
                 if self.rest_is_raw:
-                    converter = self._get_converter(param)
-                    argument = view.read_rest()
                     kwargs[name] = await self.callback.__lightning_argparser__.parse_args(ctx)
                 else:
                     kwargs[name] = await self.transform(ctx, param)
