@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -89,10 +89,9 @@ class Flag:
         self.names = names
         self.help = help
         self.converter = converter
+
         attr_name = attr_name if attr_name is not None else names[0]
         self.attr_name = attr_name.strip("-").replace("-", "_")
-        if self.attr_name == "rest":
-            raise FlagError("\"rest\" is a reserved attribute name.")
 
         self.default = default
         self.required = required
@@ -134,15 +133,22 @@ class Namespace:
 
 
 class Parser:
-    # TODO: Port some functionality over to discord.ext.argparse
-    def __init__(self, flag_options: List[Flag] = [], *, raise_on_bad_flag: bool = True, consume_rest: bool = True):
+    def __init__(self, flag_options: List[Flag] = [], *, raise_on_bad_flag: bool = True, consume_rest: bool = True,
+                 rest_converter = None, rest_attribute_name: Optional[str] = None):
         self.raise_on_bad_flag = raise_on_bad_flag
+        self.rest_attribute_name = rest_attribute_name
+        self.rest_converter = rest_converter
         self.consume_rest = consume_rest
         self._flags: dict = {}
+
         self._register_flags(flag_options)
 
     def add_flag(self, flag: Flag) -> None:
-        for name in flag.names:
+        for idx, name in enumerate(flag.names):
+            if idx == 0:
+                if self.rest_attribute_name == name:
+                    raise FlagError(f"{self.rest_attribute_name} is reserved.")
+
             if name in self._flags:
                 raise FlagError(f"Flag name \"{name}\" is already registered.")
             else:
@@ -259,7 +265,7 @@ class Parser:
             if ns[flag.attr_name] is None and flag.required is True:
                 raise MissingRequiredFlagArgument(flag.names[0])
 
-        ns['rest'] = ''.join(rest) or None if self.consume_rest is True else None
+        ns[self.rest_attribute_name] = ''.join(rest) or None if self.consume_rest is True else None
 
         return Namespace(**ns)
 
@@ -271,12 +277,30 @@ class FlagCommand(LightningCommand):
 
         if hasattr(self.callback, '__lightning_argparser__'):
             raise_bad_flag = kwargs.pop('raise_bad_flag', True)
+            rest_usage_name = kwargs.pop('rest_attribute_name', "rest")
+            self.callback.__lightning_argparser__.rest_attribute_name = rest_usage_name
             self.callback.__lightning_argparser__.raise_on_bad_flag = raise_bad_flag
 
         parser = kwargs.pop('parser', None)
         if parser:
             # Ability to add a flag parser with predefined flags.
             self.callback.__lightning_argparser__ = parser
+
+    @property
+    def signature(self):
+        old_signature = super().signature.split()
+        del old_signature[-1]
+        sig = [''.join(old_signature)]
+        parser = self.callback.__lightning_argparser__
+
+        sig.append(f"[{parser.rest_attribute_name}]")
+        for flag in parser.get_all_unique_flags():
+            if flag.required:
+                sig.append(f"<{flag.names[0]}>")
+            else:
+                sig.append(f"[{flag.names[0]}]")
+
+        return ' '.join(sig)
 
     async def _parse_flag_args(self, ctx):
         args = await self.callback.__lightning_argparser__.parse_args(ctx)
@@ -316,7 +340,7 @@ class FlagCommand(LightningCommand):
                 if self.rest_is_raw:
                     converter = self._get_converter(param)
                     argument = view.read_rest()
-                    kwargs[name] = await self.do_conversion(ctx, converter, argument, param)
+                    kwargs[name] = await self.callback.__lightning_argparser__.parse_args(ctx)
                 else:
                     kwargs[name] = await self.transform(ctx, param)
                 break
