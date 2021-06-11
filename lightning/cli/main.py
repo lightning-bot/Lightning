@@ -25,7 +25,6 @@ import sys
 import discord
 import sentry_sdk
 import typer
-from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from lightning.bot import LightningBot
 from lightning.cli import guild, tools
@@ -93,9 +92,15 @@ def launch_bot(config) -> None:
 
     if sentry_dsn is not None:
         env = "dev" if "beta_prefix" in config['bot'] else "prod"
-        sentry_sdk.init(sentry_dsn, integrations=[AioHttpIntegration()], environment=env, release=commit)
+        sentry_sdk.init(sentry_dsn, environment=env, release=commit)
 
-    bot = LightningBot()
+    kwargs = {}
+
+    owner_ids = config._storage.get('bot', {}).get('owner_ids', None)
+    if owner_ids:
+        kwargs['owner_ids'] == owner_ids
+
+    bot = LightningBot(**kwargs)
     bot.commit_hash = commit
     if config['bot']['game']:
         bot.activity = discord.Game(config['bot']['game'])
