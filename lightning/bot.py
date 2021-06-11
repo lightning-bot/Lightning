@@ -69,7 +69,7 @@ async def _callable_prefix(bot, message):
 
 
 class LightningBot(commands.AutoShardedBot):
-    def __init__(self):
+    def __init__(self, **kwargs):
         # Intents stuff
         intents = discord.Intents.all()
         intents.invites = False
@@ -77,7 +77,7 @@ class LightningBot(commands.AutoShardedBot):
         super().__init__(command_prefix=_callable_prefix, reconnect=True,
                          allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False),
                          member_cache_flags=discord.MemberCacheFlags(online=True, voice=False, joined=True),
-                         intents=intents)
+                         intents=intents, **kwargs)
         self.launch_time = datetime.utcnow()
 
         self.command_spammers = collections.Counter()
@@ -90,7 +90,7 @@ class LightningBot(commands.AutoShardedBot):
 
         headers = {"User-Agent": self.config['bot'].pop("user_agent", f"Lightning Bot {self.version}")}
         self.aiosession = aiohttp.ClientSession(headers=headers)
-        self.redis_pool = cache.redis_pool
+        self.redis_pool = cache.start_redis_client()
 
         # Error logger
         self._error_logger = WebhookEmbedEmitter(self.config['logging']['bot_errors'], session=self.aiosession,
