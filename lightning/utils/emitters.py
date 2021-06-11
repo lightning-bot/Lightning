@@ -32,7 +32,7 @@ class Emitter:
 
     @property
     def closed(self):
-        return self._task.cancelled()
+        return self._task.cancelled() if self._task else True
 
     def close(self) -> None:
         self._task.cancel()
