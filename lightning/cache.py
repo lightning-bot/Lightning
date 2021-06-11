@@ -23,7 +23,7 @@ import enum
 import inspect
 import time
 from functools import wraps
-from typing import Union
+from typing import Any, Union
 
 from aredis import StrictRedis
 from lru import LRU
@@ -70,7 +70,7 @@ class ExpiringCache(dict):
 
 
 class BaseCache:
-    """Base cache class"""
+    """Base cache strategy class"""
 
     def __init__(self, name: str):
         self.name = name
@@ -166,9 +166,7 @@ class TimedCache(DictBasedCache):
 
 class RedisCache(BaseCache):
     def __init__(self, **kwargs):
-        if isinstance(redis_pool, Exception):
-            raise Exception("Redis is not initialized")
-        self.pool = redis_pool
+        self.pool = start_redis_client()
         super().__init__(**kwargs)
 
     async def _get(self, key):
@@ -250,15 +248,21 @@ class CacheRegistry:
         self.caches = {}
         self.override = override
 
-    def register(self, name, cache):
+    def register(self, name: str, cache) -> None:
         """Registers a cache"""
         if self.override is False and name in self.caches:
             raise CacheError(f"A cache under the name of \"{name}\" is already registered!")
 
         self.caches[name] = cache
 
-    def unregister(self, name):
-        """Removes a cache from the registry"""
+    def unregister(self, name: str) -> None:
+        """Removes a cache from the registry
+
+        Parameters
+        ----------
+        name : str
+            The name of the cache to remove from the registry.
+        """
         if name not in self.caches:
             raise CacheError(f"A cache under the name of \"{name}\" is not registered!")
 
@@ -274,8 +278,16 @@ class CacheRegistry:
         """
         return self.caches.get(name, None)
 
-    def rename(self, old_name, new_name):
-        """Renames a registered cache"""
+    def rename(self, old_name: str, new_name: str) -> None:
+        """Renames a registered cache
+
+        Parameters
+        ----------
+        old_name : str
+            The current name of the cache.
+        new_name : str
+            The new name of the cache.
+        """
         if self.override is False and new_name in self.caches:
             raise CacheError(f"A cache under the name of \"{new_name}\" is already registered!")
 
@@ -295,5 +307,4 @@ def start_redis_client() -> Union[StrictRedis, Exception]:
     return pool
 
 
-redis_pool = start_redis_client()
 registry = CacheRegistry()
