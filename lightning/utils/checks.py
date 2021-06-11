@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -90,6 +90,7 @@ def has_guild_permissions(**permissions):
         if permcheck is False:
             raise commands.MissingPermissions(permissions)
         return permcheck
+    # Note to myself: Change these to __lightning_user_guild_requires__ when rewriting.
     pred.guild_permissions = list(permissions.keys())
     return commands.check(pred)
 
