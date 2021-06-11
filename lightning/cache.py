@@ -23,7 +23,7 @@ import enum
 import inspect
 import time
 from functools import wraps
-from typing import Any, Union
+from typing import Union
 
 from aredis import StrictRedis
 from lru import LRU
