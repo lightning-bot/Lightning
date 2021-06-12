@@ -85,11 +85,40 @@ class LoggingConfig:
                 channels.append((key, value))
         return channels
 
+    # Helper functions for emitters
+    def add_emitter(self, key, emitter):
+        """Adds an emitter to a key"""
+        try:
+            self.logging[key]['emitter'] = emitter
+        except KeyError:
+            return False
+
+        return True
+
+    def get_emitter(self, key) -> Optional[Emitter]:
+        """Gets an emitter"""
+        key = self.get(key)
+        if not key:
+            return
+
+        return key.get("emitter", None)
+
+    def stop_emitter(self, key) -> None:
+        """Stops an emitter"""
+        emitter = self.get_emitter(key)
+        if not emitter:
+            return
+
+        emitter.close()
+
     def get(self, key):
         return self.logging.get(key, None)
 
+    def remove(self, key):
+        del self.logging[key]
 
-@attr.s(slots=True)
+
+@attr.s(slots=True, auto_attribs=True)
 class AutoModConfig:
     join_threshold_seconds: int
     join_threshold_users: int
