@@ -1,6 +1,6 @@
 """
 Lightning.py - A personal Discord bot
-Copyright (C) 2019-2021 - LightSage
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 import asyncio
 import collections
 import logging
@@ -41,11 +40,11 @@ class Stats(LightningCog):
         self.bot = bot
 
         self._command_inserts = []
-        self._lock = asyncio.Lock(loop=bot.loop)
+        self._lock = asyncio.Lock()
         self.bulk_command_insertion.start()
 
         self._socket_stats = collections.Counter()
-        self._socket_lock = asyncio.Lock(loop=bot.loop)
+        self._socket_lock = asyncio.Lock()
         self.bulk_socket_stats_loop.start()
 
         self.number_places = (
@@ -79,7 +78,7 @@ class Stats(LightningCog):
                 'failure': ctx.command_failed,
             })
 
-    async def bulk_database_insert(self):
+    async def bulk_database_insert(self) -> None:
         query = """INSERT INTO commands_usage (guild_id, channel_id, user_id, used_at, command_name, failure)
                    SELECT data.guild_id, data.channel_id, data.user_id, data.used_at, data.command_name, data.failure
                    FROM jsonb_to_recordset($1::jsonb) AS
@@ -93,7 +92,7 @@ class Stats(LightningCog):
                 log.info(f'{total} commands were added to the database.')
             self._command_inserts.clear()
 
-    async def bulk_socket_stats_insert(self):
+    async def bulk_socket_stats_insert(self) -> None:
         query = """INSERT INTO socket_stats (event, count)
                    VALUES ($1, $2::bigint)
                    ON CONFLICT (event)
@@ -346,10 +345,10 @@ class Stats(LightningCog):
 
     async def add_guild(self, guild: discord.Guild) -> None:
         async with self.bot.pool.acquire() as con:
-            queryc = """SELECT true FROM guilds WHERE id=$1 AND left_at IS NULL;"""
-            queryb = """SELECT whitelisted FROM guilds WHERE id=$1;"""  # should probably do this in a subquery
-            registered = await con.fetchval(queryc, guild.id)
-            whitelisted = await con.fetchval(queryb, guild.id)
+            query = """SELECT true FROM guilds WHERE id=$1 AND left_at IS NULL;"""
+            registered = await con.fetchval(query, guild.id)
+            query = """SELECT whitelisted FROM guilds WHERE id=$1;"""  # should probably do this in a subquery
+            whitelisted = await con.fetchval(query, guild.id)
             query = """INSERT INTO guilds (id, name, owner_id)
                        VALUES ($1, $2, $3)
                        ON CONFLICT (id) DO UPDATE
