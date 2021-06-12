@@ -170,14 +170,14 @@ class Mod(LightningCog, required=["Configuration"]):
                      help="Bot does not DM the user the reason for the action.")
     @commands.bot_has_guild_permissions(kick_members=True)
     @has_guild_permissions(kick_members=True)
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod)
+    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason")
     async def kick(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
         """Kicks a user from the server"""
         if not flags['nodm']:
             await helpers.dm_user(target, modlogformats.construct_dm_message(target, "kicked", "from",
-                                  reason=flags['rest']))
+                                  reason=flags['reason']))
 
-        await ctx.guild.kick(target, reason=self.format_reason(ctx.author, flags['rest']))
+        await ctx.guild.kick(target, reason=self.format_reason(ctx.author, flags['reason']))
         await ctx.send(f"{target} has been kicked. \N{OK HAND SIGN}")
         await self.log_action(ctx, target, "KICK")
 
@@ -189,12 +189,13 @@ class Mod(LightningCog, required=["Configuration"]):
                      help="Delete message history from a specified amount of days (Max 7)")
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod)
+    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason")
     async def ban(self, ctx: LightningContext, target: converters.TargetMember, **flags) -> None:
         """Bans a user."""
         if flags['delete_messages'] < 0:
             raise commands.BadArgument("You can't delete a negative amount of messages.")
-        reason = flags['rest']
+
+        reason = flags['reason']
 
         if flags['duration']:
             return await self.time_ban_user(ctx, target, ctx.author, reason, flags['duration'],
@@ -267,14 +268,14 @@ class Mod(LightningCog, required=["Configuration"]):
     @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
                      help="Bot does not DM the user the reason for the action.")
     @has_guild_permissions(manage_messages=True)
-    @group(cls=dflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod)
+    @group(cls=dflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod, rest_attribute_name="reason")
     async def warn(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
         """Warns a user"""
         no_dm = not flags['nodm']
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
         warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, modlogformats.ActionType.WARN.value) or 0
         warn_count = await self.warn_count_check(ctx, warns + 1, target,
-                                                 flags['rest'], no_dm)
+                                                 flags['reason'], no_dm)
         await ctx.send(f"{target} warned. User now has {plural(warn_count):warning}.")
         await self.log_action(ctx, target, "WARN")
 
@@ -491,16 +492,16 @@ class Mod(LightningCog, required=["Configuration"]):
                      help="Bot does not DM the user the reason for the action.")
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod)
+    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason")
     async def mute(self, ctx: LightningContext, target: converters.TargetMember, **flags) -> None:
         """Mutes a user"""
         role = await self.get_mute_role(ctx)
         if flags['duration']:
-            await self.time_mute_user(ctx, target, flags['rest'], flags['duration'], dm_user=not flags['nodm'])
+            await self.time_mute_user(ctx, target, flags['reason'], flags['duration'], dm_user=not flags['nodm'])
             return
 
         if not flags['nodm']:
-            dm_message = modlogformats.construct_dm_message(target, "muted", "in", reason=flags['rest'])
+            dm_message = modlogformats.construct_dm_message(target, "muted", "in", reason=flags['reason'])
             await helpers.dm_user(target, dm_message)
 
         await target.add_roles(role, reason=self.format_reason(ctx.author, '[Mute]'))
@@ -534,7 +535,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    async def unban(self, ctx: LightningContext, member: converters.BannedMember, *, reason: str = "") -> None:
+    async def unban(self, ctx: LightningContext, member: converters.BannedMember, *, reason: str = None) -> None:
         """Unbans a user
 
         You can pass either the ID of the banned member or the Name#Discrim \
@@ -564,7 +565,7 @@ class Mod(LightningCog, required=["Configuration"]):
                      help="Bot does not DM the user the reason for the action.")
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    @command(cls=dflags.FlagCommand, aliases=['tempban'], level=CommandLevel.Mod)
+    @command(cls=dflags.FlagCommand, aliases=['tempban'], level=CommandLevel.Mod, rest_attribute_name="reason")
     async def timeban(self, ctx: LightningContext, target: converters.TargetMember,
                       duration: FutureTime, **flags) -> None:
         """Bans a user for a specified amount of time.
@@ -574,11 +575,11 @@ class Mod(LightningCog, required=["Configuration"]):
         or a more concrete time format such as "2020-12-31".
 
         Note that duration time is in UTC."""
-        await self.time_ban_user(ctx, target, ctx.author, flags['rest'], duration, dm_user=not flags['nodm'])
+        await self.time_ban_user(ctx, target, ctx.author, flags['reason'], duration, dm_user=not flags['nodm'])
 
     @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
                      help="Bot does not DM the user the reason for the action.")
-    @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=dflags.FlagCommand)
+    @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=dflags.FlagCommand, rest_attribute_name="reason")
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
     async def timemute(self, ctx: LightningContext, target: converters.TargetMember,
@@ -590,7 +591,7 @@ class Mod(LightningCog, required=["Configuration"]):
         or a more concrete time format such as "2020-12-31".
 
         Note that duration time is in UTC."""
-        await self.time_mute_user(ctx, target, flags['rest'], duration, dm_user=not flags['nodm'])
+        await self.time_mute_user(ctx, target, flags['reason'], duration, dm_user=not flags['nodm'])
 
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
