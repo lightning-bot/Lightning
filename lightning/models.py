@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from datetime import datetime
-from typing import Union
+from typing import Optional, Union
 
 import attr
 import discord
@@ -24,12 +24,17 @@ from flags import Flags
 from lightning import errors
 from lightning.commands import CommandLevel
 from lightning.context import LightningContext
+from lightning.enums import ConfigFlags as ConfigBFlags
+from lightning.enums import ModFlags
 from lightning.utils import modlogformats
+from lightning.utils.emitters import Emitter
 from lightning.utils.time import natural_timedelta
 
+#@deprecated("3.2.0", "4.0.0", "Use lightning.enums.ConfigFlags instead")
+ConfigFlags = ConfigBFlags
 
 class GuildModConfig:
-    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "temp_mute_role_id")
+    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "temp_mute_role_id", "flags")
 
     def __init__(self, record):
         self.guild_id = record['guild_id']
@@ -37,6 +42,7 @@ class GuildModConfig:
         self.warn_kick = record['warn_kick']
         self.warn_ban = record['warn_ban']
         self.temp_mute_role_id = record['temp_mute_role_id']
+        self.flags = ModFlags(record['flags'] or 0)
 
         # These aren't ready...
         # self.automod = AutoModConfig.from_record(record)
