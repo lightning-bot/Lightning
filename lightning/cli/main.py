@@ -98,7 +98,7 @@ def launch_bot(config) -> None:
 
     owner_ids = config._storage.get('bot', {}).get('owner_ids', None)
     if owner_ids:
-        kwargs['owner_ids'] == owner_ids
+        kwargs['owner_ids'] = owner_ids
 
     bot = LightningBot(**kwargs)
     bot.commit_hash = commit
