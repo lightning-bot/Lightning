@@ -131,7 +131,7 @@ resolved_reference = "ef77c9f3491f1790b0557dfdad8a9393175adbb4"
 
 [[package]]
 name = "discord.py"
-version = "1.7.2"
+version = "1.7.3"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -149,7 +149,7 @@ voice = ["PyNaCl (>=1.3.0,<1.5)"]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
 reference = "v1"
-resolved_reference = "5a9184e6692c66121b1d28bd6e89fefc5e5e703c"
+resolved_reference = "9947c4f4eaafac73743dbb6930807f6ed10172db"
 
 [[package]]
 name = "discord.py-stubs"
@@ -252,7 +252,7 @@ colors = ["colorama (>=0.4.3,<0.5.0)"]
 
 [[package]]
 name = "jishaku"
-version = "2.0.0"
+version = "2.0.0a315+g010991f.master"
 description = "A discord.py extension including useful tools for bot development and debugging."
 category = "main"
 optional = false
@@ -266,16 +266,17 @@ humanize = ">=3.7.0"
 import-expression = ">=1.0.0,<2.0.0"
 
 [package.extras]
-docs = ["sphinx (>=3.1.2)", "sphinxcontrib-asyncio"]
+docs = ["sphinx (>=3.5.4)", "sphinxcontrib-asyncio"]
 procinfo = ["psutil"]
-test = ["coverage", "flake8", "isort", "pylint", "pytest", "pytest-cov", "pytest-mock"]
-voice = ["discord.py[voice] (>=1.5.0)", "youtube-dl"]
+publish = ["jinja2"]
+test = ["click", "coverage", "flake8", "isort", "pylint", "pytest", "pytest-cov", "pytest-mock"]
+voice = ["discord.py[voice] (>=1.7.2)", "youtube-dl"]
 
 [package.source]
 type = "git"
 url = "https://gitlab.com/Gorialis/jishaku.git"
 reference = "master"
-resolved_reference = "a933c6f41418669764542e4c3d72f99f04f6addd"
+resolved_reference = "010991f2a3fb9c32c9801501b9d57caf6fb5e9f4"
 
 [[package]]
 name = "lru-dict"
