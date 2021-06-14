@@ -277,12 +277,6 @@ class Timer:
         return self.id
 
 
-class ConfigFlags(Flags):
-    invoke_delete = 1 << 0
-    role_reapply = 1 << 1
-    role_reapply_punishments_only = 1 << 2
-
-
 class GuildBotConfig:
     def __init__(self, record):
         self.guild_id = record['guild_id']
