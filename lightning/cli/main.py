@@ -110,6 +110,14 @@ def launch_bot(config) -> None:
     bot = LightningBot(**kwargs)
     bot.commit_hash = commit
 
+    # idk but adding your own cogs to your own instance might be useful(?) 
+    # ~~Feels like this is becoming another Red bot.~~
+    # This should be a list of extra cogs you want to add. e.g. ['ext.publisher', 'ext.emojify']
+    extra_cogs = bot_config.get("extra_cogs", None)
+    if extra_cogs:
+        for cog in extra_cogs:
+            bot.load_extension(cog)
+
     try:
         bot.pool = loop.run_until_complete(create_pool(config['tokens']['postgres']['uri'], command_timeout=60))
     except Exception as e:
