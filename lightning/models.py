@@ -19,7 +19,6 @@ from typing import Optional, Union
 
 import attr
 import discord
-from flags import Flags
 
 from lightning import errors
 from lightning.commands import CommandLevel
@@ -30,8 +29,9 @@ from lightning.utils import modlogformats
 from lightning.utils.emitters import Emitter
 from lightning.utils.time import natural_timedelta
 
-#@deprecated("3.2.0", "4.0.0", "Use lightning.enums.ConfigFlags instead")
+# Alias
 ConfigFlags = ConfigBFlags
+
 
 class GuildModConfig:
     __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "temp_mute_role_id", "flags")

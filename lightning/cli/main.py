@@ -94,16 +94,21 @@ def launch_bot(config) -> None:
         env = "dev" if "beta_prefix" in config['bot'] else "prod"
         sentry_sdk.init(sentry_dsn, environment=env, release=commit)
 
-    kwargs = {}
+    bot_config = config._storage.get('bot', {})
 
-    owner_ids = config._storage.get('bot', {}).get('owner_ids', None)
+    message_cache = bot_config.get('message_cache', 1000)
+    kwargs = {'max_messages': message_cache}
+
+    owner_ids = bot_config.get('owner_ids', None)
     if owner_ids:
         kwargs['owner_ids'] = owner_ids
 
+    game = bot_config.get("game", None)
+    if game:
+        kwargs['activity'] = discord.Game(game)
+
     bot = LightningBot(**kwargs)
     bot.commit_hash = commit
-    if config['bot']['game']:
-        bot.activity = discord.Game(config['bot']['game'])
 
     try:
         bot.pool = loop.run_until_complete(create_pool(config['tokens']['postgres']['uri'], command_timeout=60))
