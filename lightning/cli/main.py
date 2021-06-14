@@ -110,7 +110,7 @@ def launch_bot(config) -> None:
     bot = LightningBot(**kwargs)
     bot.commit_hash = commit
 
-    # idk but adding your own cogs to your own instance might be useful(?) 
+    # idk but adding your own cogs to your own instance might be useful(?)
     # ~~Feels like this is becoming another Red bot.~~
     # This should be a list of extra cogs you want to add. e.g. ['ext.publisher', 'ext.emojify']
     extra_cogs = bot_config.get("extra_cogs", None)
