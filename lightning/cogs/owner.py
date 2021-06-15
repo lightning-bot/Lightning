@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 import random
 import time
 import traceback
@@ -64,10 +63,7 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
     async def fetchlog(self, ctx: LightningContext) -> None:
         """Sends the log file into the invoking author's DMs"""
         res = await helpers.dm_user(ctx.author, "Here's the current log file:", file=discord.File("lightning.log"))
-        if not res:
-            await ctx.message.add_reaction("💢")
-        else:
-            await ctx.message.add_reaction("✅")
+        await ctx.send(helpers.ticker(res))
 
     @Feature.Command()
     async def blacklist(self, ctx: LightningContext) -> None:
@@ -210,11 +206,11 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
     @Feature.Command(parent="bug", name='list', aliases=['recent'])
     async def listbugs(self, ctx: LightningContext, limit: int = 10) -> None:
         """Lists the most recent bugs"""
-        query = """SELECT * FROM command_bugs
-                   ORDER BY created_at DESC
-                   LIMIT $1;
-                """
         async with self.bot.pool.acquire() as con:
+            query = """SELECT * FROM command_bugs
+                       ORDER BY created_at DESC
+                       LIMIT $1;
+                    """
             records = await con.fetch(query, limit)
             total = await con.fetchval("SELECT COUNT(*) FROM command_bugs;")
 
