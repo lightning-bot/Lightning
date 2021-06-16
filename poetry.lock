@@ -465,7 +465,7 @@ sqlalchemy = "*"
 
 [[package]]
 name = "sentry-sdk"
-version = "0.20.3"
+version = "1.1.0"
 description = "Python client for Sentry (https://sentry.io)"
 category = "main"
 optional = false
@@ -672,7 +672,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "a24ae125749a4cc0e6146b494342b0b8fc7b8ba73b747103cc82791f3dab7ddc"
+content-hash = "b655366c2f931d0ab01fb498c18ca4d54fd4aabc5136ecdeb09e36ebcc13ee22"
 
 [metadata.files]
 aiohttp = [
@@ -1180,8 +1180,8 @@ schemainspect = [
     {file = "schemainspect-3.0.1616029793.tar.gz", hash = "sha256:b81f0482e0df338032eda30ee6e41f69df7d15a21b03688fd1128cdbcb409e6c"},
 ]
 sentry-sdk = [
-    {file = "sentry-sdk-0.20.3.tar.gz", hash = "sha256:4ae8d1ced6c67f1c8ea51d82a16721c166c489b76876c9f2c202b8a50334b237"},
-    {file = "sentry_sdk-0.20.3-py2.py3-none-any.whl", hash = "sha256:e75c8c58932bda8cd293ea8e4b242527129e1caaec91433d21b8b2f20fee030b"},
+    {file = "sentry-sdk-1.1.0.tar.gz", hash = "sha256:c1227d38dca315ba35182373f129c3e2722e8ed999e52584e6aca7d287870739"},
+    {file = "sentry_sdk-1.1.0-py2.py3-none-any.whl", hash = "sha256:c7d380a21281e15be3d9f67a3c4fbb4f800c481d88ff8d8931f39486dd7b4ada"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
