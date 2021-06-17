@@ -137,7 +137,12 @@ class Misc(LightningCog):
         if not match:
             await ctx.send("That doesn't seem like a snowflake.")
 
-        await ctx.send(format_timestamp(discord.utils.snowflake_time(int(match.group(0)))))
+        snowflake = discord.utils.snowflake_time(int(match.group(0)))
+
+        embed = discord.Embed(description="See the timestamp on this embed to see it in your timezone!",
+                              timestamp=snowflake, color=discord.Color.blurple())
+
+        await ctx.send(format_timestamp(snowflake), embed=embed)
 
 
 def setup(bot: LightningBot):
