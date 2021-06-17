@@ -14,8 +14,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 import asyncio
+import re
 
 import discord
 from discord.ext import commands
@@ -24,6 +24,7 @@ from discord.ext import menus as dmenus
 from lightning import LightningBot, LightningCog, LightningContext, command
 from lightning.converters import ReadableChannel
 from lightning.utils import helpers
+from lightning.utils.time import format_timestamp
 
 
 class EmbedBuilderMenu(dmenus.Menu):
@@ -128,6 +129,15 @@ class Misc(LightningCog):
                               color=discord.Color.dark_blue())
         embed.set_footer(text=f"Showing topic for #{str(channel)}")
         await ctx.send(embed=embed)
+
+    @command()
+    async def snowflake(self, ctx: LightningContext, snowflake: str) -> None:
+        """Tells you when a snowflake was created"""
+        match = re.match(r"[0-9]{15,20}", snowflake)
+        if not match:
+            await ctx.send("That doesn't seem like a snowflake.")
+
+        await ctx.send(format_timestamp(discord.utils.snowflake_time(int(match.group(0)))))
 
 
 def setup(bot: LightningBot):
