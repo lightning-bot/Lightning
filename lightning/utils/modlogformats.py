@@ -209,7 +209,7 @@ class EmojiFormat(BaseFormat):
     @staticmethod
     def command_ran(ctx) -> str:
         command = ctx.command
-        msg = f"\N{CLIPBOARD} **Command Used**: {ctx.author.mention} ran {command.qualified_name}\n"\
+        msg = f"\N{CLIPBOARD} **Command Used**: {ctx.author.mention} ran `{command.qualified_name}`\n"\
               f"__Channel__: {ctx.channel.mention} | {ctx.channel.name}"
         return msg
 
@@ -326,7 +326,8 @@ class MinimalisticFormat(BaseFormat):
         else:
             base = []
 
-        base.append(f"**Command Ran**\n**User**: {MinimalisticFormat.format_user(ctx.author)}\n"
+        base.append(f"**Command Ran**\n**Command**: {ctx.command.qualified_name}\n**User**: "
+                    f"{MinimalisticFormat.format_user(ctx.author)}\n"
                     f"**Channel**: {base_user_format(ctx.channel)}")
 
         return ''.join(base)
