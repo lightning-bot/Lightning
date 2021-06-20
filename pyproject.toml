@@ -43,9 +43,16 @@ uvloop = {version = "^0.14.0", optional = true}
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
 flake8 = "^3.9.2"
+autopep8 = "^1.5.7"
 
 [tool.poetry.scripts]
 lightning = 'lightning.cli.main:parser'
+
+[tool.autopep8]
+max_line_length = 120
+ignore = ["E301", "F402"]
+in-place = true
+recursive = true
 
 [build-system]
 requires = ["poetry>=0.12"]
