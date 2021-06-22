@@ -443,7 +443,7 @@ class Meta(LightningCog):
                     text += 1
                 elif isinstance(channel, discord.VoiceChannel):
                     voice += 1
-        embed.add_field(name="Channels", value=f"{text} text channels\n{voice} voice channels")
+        embed.add_field(name="Channels", value=f"{text:,} text channels\n{voice:,} voice channels")
 
         # Members
         membertotal = 0
@@ -452,8 +452,8 @@ class Meta(LightningCog):
             membertotal += 1
             if member.status is not discord.Status.offline:
                 membertotal_online += 1
-        all_members = f"Total: {membertotal}\nUnique: {len(self.bot.users)}\n"\
-                      f"Unique Members Online: {membertotal_online}"
+        all_members = f"Total: {membertotal:,}\nUnique: {len(self.bot.users):,}\n"\
+                      f"Unique Members Online: {membertotal_online:,}"
         embed.add_field(name="Members", value=all_members)
 
         memory = self.process.memory_full_info().uss / 1024**2
@@ -461,7 +461,7 @@ class Meta(LightningCog):
 
         embed.add_field(name="Commit", value=f"[{self.bot.commit_hash[:8]}]({embed.url}/commit/{self.bot.commit_hash})")
 
-        embed.add_field(name="Servers", value=f"{len(self.bot.guilds)}\nShards: {self.bot.shard_count}")
+        embed.add_field(name="Servers", value=f"{len(self.bot.guilds):,}\nShards: {self.bot.shard_count}")
 
         query = """SELECT COUNT(*) AS total_commands, (SELECT sum(count) FROM socket_stats) AS total_socket_stats
                    FROM commands_usage;"""
