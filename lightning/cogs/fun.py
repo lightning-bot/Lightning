@@ -343,7 +343,7 @@ class Fun(LightningCog):
         await ctx.send(embed=embed)
 
     @flags.add_flag("--message", converter=discord.Message)
-    @command(cls=flags.FlagCommand)
+    @command(cls=flags.FlagCommand, rest_attribute_name="text")
     async def mock(self, ctx: LightningContext, **args) -> None:
         """Mocks text"""
         if args['message']:
@@ -351,7 +351,7 @@ class Fun(LightningCog):
             if not text:
                 raise commands.BadArgument("No message content was found in that message.")
         else:
-            text = args['rest']
+            text = args['text']
 
         if not text:
             raise commands.BadArgument("Missing text to mock")
