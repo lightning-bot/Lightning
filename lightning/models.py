@@ -315,19 +315,28 @@ class Action:
         self.kwargs = kwargs
         self.timestamp = self.kwargs.pop("timestamp", datetime.utcnow())
 
+        self.infraction_id = None
+
     async def add_infraction(self, connection) -> int:
+        """Inserts an infraction into the database"""
         if len(self.kwargs) == 0:
             query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry)
                        VALUES ($1, $2, $3, $4, $5, $6, $7)
                        RETURNING id;"""
-            return await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
-                                             self.reason, self.timestamp, self.expiry)
+            r = await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
+                                          self.reason, self.timestamp, self.expiry)
         else:
             query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry, extra)
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                        RETURNING id;"""
-            return await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
-                                             self.reason, self.timestamp, self.expiry, self.kwargs)
+            r = await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
+                                          self.reason, self.timestamp, self.expiry, self.kwargs)
+
+        self.infraction_id = r
+        return r
+
+    def is_logged(self):
+        return bool(self.infraction_id)
 
     @property
     def event(self):
