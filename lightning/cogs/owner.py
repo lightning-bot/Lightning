@@ -141,7 +141,7 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         """Stops the bot"""
         shutdown_messages = ['Shutting Down...', "See ya!", "RIP", "Turning off...."]
         await ctx.send(f"{helpers.Emoji.greentick} {random.choice(shutdown_messages)}")
-        await self.bot.logout()
+        await self.bot.close()
 
     @Feature.Command()
     async def sql(self, ctx: LightningContext, *, query: codeblock_converter) -> None:
@@ -221,29 +221,6 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             embed.description += f"`{bug.token}`: `{preview}` {ltime.natural_timedelta(bug.created_at, brief=True)}\n"
         embed.set_footer(text=f"{total} bugs")
         await ctx.send(embed=embed)
-
-    @Feature.Command()
-    async def prettycommandlist(self, ctx: LightningContext) -> None:
-        commands = []
-        cogs = sorted(self.bot.cogs.values(), key=lambda c: c.qualified_name)
-        for cog in cogs:
-            cmds = []
-            for command in cog.walk_commands():
-                aliases = ' '.join("`{}`".format(r) for r in command.aliases) or "None"
-                signature = command.signature or command.usage
-                usage = f".{command.qualified_name}"
-                if signature:
-                    usage += f" {signature}"
-
-                description = command.help.replace('\n', '<br>') if command.help else None
-
-                cmds.append((command.qualified_name, aliases, description, f"`{usage}`"))
-            commands.append((cog.qualified_name, cog.description, tabulate.tabulate(cmds,
-                             headers=("Name", "Aliases", "Description", "Usage"), tablefmt="github")))
-
-        e = ["# {}\n{}\n\n{}\n\n".format(c, d, t) for c, d, t in commands]
-        content = "".join(e)
-        await ctx.send(content)
 
 
 def setup(bot: LightningBot) -> None:
