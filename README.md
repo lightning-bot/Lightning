@@ -7,8 +7,19 @@
 <p align="center">
     <img src="https://i.imgur.com/6JmkKwH.png" height="70">
     <h3 align="center">Lightning.py</h3>
-  <p align="center">Personal Discord bot.</p>
+  <p align="center">A Discord bot.</p>
 </p>
+
+---
+## Features
+
+- Powerful moderation commands with easy-to-use flag syntax
+- Multiple mod log channels with multiple formats to choose from
+- Self roles & sticky roles
+- Reminders
+- Various commands for users
+
+You can check the command pages on our website to see all the commands!
 
 ---
 ## Invite
@@ -34,12 +45,13 @@ Minor versions are incremented when a command's behavior has changed, functional
 Patch versions are incremented when a bug has been fixed.
 
 ---
-### Credits
+#### Credits
 
-This bot uses parts and ideas from other Discord Bots:
+This bot uses parts and ideas from other Discord bots:
 
-- [Kurisu](https://github.com/nh-server/Kurisu) by ihaveahax/ihaveamac and 916253. (For the compact logging format)
-- [RoboDanny](https://github.com/Rapptz/RoboDanny) by Rapptz. (For time utils, unban converter, and other things)
+- [RoboDanny](https://github.com/Rapptz/RoboDanny)'s utils.
+- Emoji format is based off of [Kurisu](https://github.com/nh-server/Kurisu)'s logging format.
+- Lightning's event system is based off of [Mousey](https://github.com/LostLuma/Mousey)'s event system.
 
 
 Extended special thanks to:
