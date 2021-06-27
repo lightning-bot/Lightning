@@ -16,14 +16,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import json
 import random
-from logging import getLogger
+from logging import Logger, getLogger
 
 from discord import Activity, ActivityType
 from discord.ext import tasks
 
 from lightning import LightningBot, LightningCog
 
-log = getLogger(__name__)
+log: Logger = getLogger(__name__)
 
 
 class Switchy(LightningCog):
@@ -43,7 +43,7 @@ class Switchy(LightningCog):
     def cog_unload(self):
         self.switchy.cancel()
 
-    @tasks.loop(minutes=5)  # This would be :verycool: if I made this change dynamically to match each songs length
+    @tasks.loop(minutes=5)  # This would be :verycool: if I made this change dynamically to match each song's length
     async def switchy(self):
         await self.bot.wait_until_ready()
 
