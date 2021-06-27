@@ -27,7 +27,7 @@ from lightning import (CommandLevel, LightningBot, LightningCog,
 from lightning.converters import TargetMember
 from lightning.formatters import truncate_text
 from lightning.utils.checks import has_guild_permissions
-from lightning.utils.helpers import Emoji
+from lightning.utils.helpers import ticker
 from lightning.utils.modlogformats import ActionType, base_user_format
 from lightning.utils.time import natural_timedelta
 
@@ -139,6 +139,18 @@ class InfractionSource(menus.KeysetPageSource):
         return embed
 
 
+def serialize_infraction(record) -> dict:
+    data = dict(record)
+
+    data['created_at'] = record['created_at'].isoformat()
+    if record['expiry']:
+        data['expiry'] = record['expiry'].isoformat()
+    else:
+        data['expiry'] = None
+
+    return data
+
+
 class Infractions(LightningCog, required=['Mod']):
     """Infraction related commands"""
 
@@ -162,8 +174,7 @@ class Infractions(LightningCog, required=['Mod']):
                               timestamp=record.created_at)
         embed.add_field(name="User", value=base_user_format(record.user))
         embed.add_field(name="Moderator", value=base_user_format(record.moderator))
-        embed.add_field(name="Active", value=str(Emoji.greentick) if record.active else str(Emoji.redtick),
-                        inline=False)
+        embed.add_field(name="Active", value=ticker(record.active), inline=False)
         embed.set_footer(text="Infraction created at")
         await ctx.send(embed=embed)
 
@@ -233,17 +244,9 @@ class Infractions(LightningCog, required=['Mod']):
     @bot_has_permissions(attach_files=True)
     async def export(self, ctx: LightningContext) -> None:
         """Exports the server's infractions to a JSON"""
-        query = "SELECT * FROM infractions WHERE guild_id=$1;"
-        records = await self.bot.pool.fetch(query, ctx.guild.id)
+        records = await self.bot.pool.fetch("SELECT * FROM infractions WHERE guild_id=$1;", ctx.guild.id)
 
-        objs = []
-        for record in records:
-            data = dict(record)
-            data['created_at'] = record['created_at'].isoformat()
-            data['expiry'] = record['expiry'].isoformat() if record['expiry'] else None
-            objs.append(data)
-
-        raw_bytes = StringIO(json_dumps(objs))
+        raw_bytes = StringIO(json_dumps(list(map(records, serialize_infraction))))
         raw_bytes.seek(0)
         await ctx.send(file=discord.File(raw_bytes, filename="infractions.json"))
 
