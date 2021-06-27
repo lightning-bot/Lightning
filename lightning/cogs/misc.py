@@ -113,9 +113,9 @@ class Misc(LightningCog):
             return
 
         async with ctx.typing():
-            f = await helpers.archive_messages(channel, limit)
+            fp = await helpers.archive_messages(channel, limit)
 
-        await ctx.send(file=f)
+        await ctx.send(file=fp)
 
     @command()
     @commands.guild_only()

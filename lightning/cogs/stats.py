@@ -30,7 +30,7 @@ from lightning.converters import InbetweenNumber
 from lightning.models import PartialGuild
 from lightning.utils.checks import has_guild_permissions
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class Stats(LightningCog):
@@ -59,7 +59,7 @@ class Stats(LightningCog):
             '9\N{combining enclosing keycap}',
             '\N{KEYCAP TEN}')
 
-    def cog_unload(self):
+    def cog_unload(self) -> None:
         self.bulk_command_insertion.stop()
         self.bulk_socket_stats_loop.stop()
 
