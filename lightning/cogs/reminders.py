@@ -31,7 +31,7 @@ from lightning.formatters import plural
 from lightning.models import Timer
 from lightning.utils.helpers import BetterUserObject, dm_user
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class Reminders(LightningCog):

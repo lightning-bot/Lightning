@@ -92,7 +92,7 @@ class LoggingConfig:
         return channels
 
     # Helper functions for emitters
-    def add_emitter(self, key, emitter):
+    def add_emitter(self, key, emitter) -> bool:
         """Adds an emitter to a key"""
         try:
             self.logging[key]['emitter'] = emitter
