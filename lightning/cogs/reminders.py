@@ -57,10 +57,10 @@ class Reminders(LightningCog):
     async def short_timers(self, seconds: float, record: Timer) -> None:
         """A short loop for the bot to process small timers."""
         await asyncio.sleep(seconds)
-        self.bot.dispatch(f"{record.event}_job_complete", record)
+        self.bot.dispatch(f'lightning_{record.event}_complete', record)
 
     async def execute_timer(self, record: Timer) -> None:
-        self.bot.dispatch(f'{record.event}_job_complete', record)
+        self.bot.dispatch(f'lightning_{record.event}_complete', record)
         await self.bot.pool.execute("DELETE FROM timers WHERE id=$1;", record.id)
 
     async def wait_for_timers(self) -> Optional[Timer]:
@@ -90,7 +90,7 @@ class Reminders(LightningCog):
         force_insert : bool, optional
             Whether to insert into the database regardless of how long the expiry is. Defaults to False
         **kwargs
-            Keyword arguments about the event
+            Keyword arguments about the event that are passed to the database
         """
         delta = (expiry - created).total_seconds()
         if delta <= 60 and force_insert is False:
@@ -125,9 +125,9 @@ class Reminders(LightningCog):
         try:
             while not self.bot.is_closed():
                 timer = self._current_task = await self.wait_for_timers()
-                timestamp = datetime.utcnow()
-                if timer.expiry >= timestamp:
-                    tmp = (timer.expiry - timestamp).total_seconds()
+                current_time = datetime.utcnow()
+                if timer.expiry >= current_time:
+                    tmp = (timer.expiry - current_time).total_seconds()
                     await asyncio.sleep(tmp)
                 # Dispatch the job and delete it.
                 await self.execute_timer(timer)
@@ -148,8 +148,7 @@ class Reminders(LightningCog):
                                                                  default='something')) -> None:  # noqa: F821
         """Reminds you of something after a certain date.
 
-        The input can be any direct date (e.g. YYYY-MM-DD)
-        or a human readable offset.
+        The input can be any direct date (e.g. YYYY-MM-DD) or a human readable offset.
 
         Examples:
         - "{prefix}remind in 2 days do essay" (2 days)
@@ -177,8 +176,7 @@ class Reminders(LightningCog):
 
         record['secret'] = secret
 
-        query = """UPDATE timers SET extra=$1 WHERE id=$2;"""
-        await self.bot.pool.execute(query, record, reminder_id)
+        await self.bot.pool.execute("UPDATE timers SET extra=$1 WHERE id=$2;", record, reminder_id)
 
         if self._current_task and reminder_id == self._current_task.id:
             # It's probably better to re-run it again.
@@ -244,7 +242,6 @@ class Reminders(LightningCog):
         You can get the ID of a reminder with {prefix}remind list
 
         You must own the reminder to remove it"""
-
         query = """DELETE FROM timers
                    WHERE id = $1
                    AND event = 'reminder'
@@ -297,7 +294,7 @@ class Reminders(LightningCog):
         await ctx.send("Cleared all of your reminders.")
 
     @LightningCog.listener()
-    async def on_reminder_job_complete(self, timer: Timer) -> None:
+    async def on_lightning_reminder_complete(self, timer: Timer) -> None:
         channel = self.bot.get_channel(timer.extra['channel'])
         user = self.bot.get_user(timer.extra['author']) or BetterUserObject(id=timer.extra['author'])
 
@@ -308,8 +305,7 @@ class Reminders(LightningCog):
         timed_txt = lightning.utils.time.natural_timedelta(timer.created,
                                                            source=timer.expiry,
                                                            suffix=True)
-        message = f"<@!{user.id}> You asked to be reminded {timed_txt} about "\
-                  f"{timer.extra['reminder_text']}"
+        message = f"<@!{user.id}> You asked to be reminded {timed_txt} about {timer.extra['reminder_text']}"
         secret = timer.extra.pop("secret", False)
 
         # The reminder will be DM'd on one of the following conditions
