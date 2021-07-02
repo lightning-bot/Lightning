@@ -83,7 +83,7 @@ class InfractionEvent:  # ModerationEvent sounded nice too...
     def __init__(self, event_name: str, *, member, guild, moderator, reason, **kwargs):
         self.guild = guild
         self.event_name = event_name
-        self.action = Action(self.guild.id, event_name, member, self.moderator, self.reason, **kwargs)
+        self.action = Action(self.guild.id, event_name, member, moderator, reason, **kwargs)
 
     @property
     def member(self):
