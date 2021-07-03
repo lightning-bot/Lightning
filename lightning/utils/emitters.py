@@ -51,7 +51,7 @@ class WebhookEmbedEmitter(Emitter):
     """An emitter designed for webhooks sending embeds"""
     def __init__(self, url: str, *, session: aiohttp.ClientSession = None, **kwargs):
         self.session = session or aiohttp.ClientSession()
-        self.webhook = discord.Webhook.from_url(url, adapter=discord.AsyncWebhookAdapter(self.session))
+        self.webhook = discord.Webhook.from_url(url, session=self.session)
         super().__init__(**kwargs)
 
     async def put(self, embed: discord.Embed) -> None:
