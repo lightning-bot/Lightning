@@ -75,7 +75,6 @@ class LightningBot(commands.AutoShardedBot):
         intents.voice_states = False
         super().__init__(command_prefix=_callable_prefix, reconnect=True,
                          allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False),
-                         member_cache_flags=discord.MemberCacheFlags(online=True, voice=False, joined=True),
                          intents=intents, **kwargs)
         self.launch_time = datetime.utcnow()
 
