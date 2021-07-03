@@ -14,7 +14,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-"discord.py" = {git = "https://github.com/LightSage/discord.py", branch = "v1"}
+"discord.py" = {git = "https://github.com/LightSage/discord.py", rev = "v2/defaults-patch"}
 Pillow = "^7.2.0"
 python-dateutil = "^2.8.1"
 parsedatetime = "^2.6"
@@ -29,7 +29,6 @@ discord-ext-menus = {git = "https://github.com/LightSage/discord-ext-menus.git"}
 lru_dict = "^1.1.6"
 sentry-sdk = "^1.1.0"
 migra = {extras = ["pg"], version = "^1.0.1597915807", optional = true}
-"discord.py-stubs" = {version = "^1.4.0", optional = true}
 attrs = "20.3.0"
 py-flags = "^1.1.4"
 jishaku = {git = "https://gitlab.com/Gorialis/jishaku.git"}
