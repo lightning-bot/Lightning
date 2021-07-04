@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -88,7 +88,7 @@ class EmbedBuilderMenu(dmenus.Menu):
 class Misc(LightningCog):
     """Commands that might be helpful..."""
 
-    @command()
+    @command(enabled=False, hidden=True)
     async def embedbuilder(self, ctx: LightningContext) -> None:
         """WIP embed builder command"""
         em = EmbedBuilderMenu()
@@ -139,10 +139,8 @@ class Misc(LightningCog):
 
         snowflake = discord.utils.snowflake_time(int(match.group(0)))
 
-        embed = discord.Embed(description="See the timestamp on this embed to see it in your timezone!",
-                              timestamp=snowflake, color=discord.Color.blurple())
-
-        await ctx.send(format_timestamp(snowflake), embed=embed)
+        fmt = f"{discord.utils.format_dt(snowflake, style='f')}\n{format_timestamp(snowflake)}"
+        await ctx.send(fmt)
 
 
 def setup(bot: LightningBot):
