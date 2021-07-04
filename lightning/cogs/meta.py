@@ -303,16 +303,16 @@ class Meta(LightningCog):
     async def avatar(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
         """Displays a user's avatar"""
         embed = discord.Embed(color=discord.Color.blue(),
-                              description=f"[Link to Avatar]({member.avatar_url_as(static_format='png')})")
+                              description=f"[Link to Avatar]({member.avatar.with_static_format('png')})")
         embed.set_author(name=f"{member.name}\'s Avatar")
-        embed.set_image(url=member.avatar_url)
+        embed.set_image(url=member.avatar.url)
         await ctx.send(embed=embed)
 
     @lcommand(aliases=['ui'])
     async def userinfo(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
         """Displays information for a user"""
         embed = discord.Embed(title=str(member), color=member.colour, description=f"**ID**: {member.id}")
-        embed.set_thumbnail(url=member.avatar_url)
+        embed.set_thumbnail(url=member.avatar.url)
 
         if member.bot:
             embed.description += "\nThis user is a bot."
@@ -321,8 +321,7 @@ class Meta(LightningCog):
                         f"({natural_timedelta(member.created_at, accuracy=3)})",
                         inline=False)
 
-        shared = sum(g.get_member(member.id) is not None for g in self.bot.guilds)
-        embed.add_field(name="Shared Servers", value=shared)
+        embed.add_field(name="Shared Servers", value=len(member.mutual_guilds))
         if not isinstance(member, discord.Member):
             embed.set_footer(text='This member is not in this server.')
 
@@ -354,10 +353,7 @@ class Meta(LightningCog):
                             inline=False)
 
         if hasattr(member, 'roles'):
-            roles = [x.mention for x in member.roles]
-            if ctx.guild.default_role.mention in roles:
-                roles.remove(ctx.guild.default_role.mention)
-
+            roles = [x.mention for x in member.roles if not x.is_default()]
             if roles:
                 revrole = reversed(roles)
                 embed.add_field(name=f"Roles [{len(roles)}]",
@@ -407,7 +403,7 @@ class Meta(LightningCog):
 
         embed = discord.Embed(title=activity.title, color=0x1DB954)
         embed.set_thumbnail(url=activity.album_cover_url)
-        embed.set_author(name=member, icon_url=member.avatar_url)
+        embed.set_author(name=member, icon_url=member.avatar.url)
         embed.add_field(name="Artist", value=', '.join(activity.artists))
         embed.add_field(name="Album", value=activity.album, inline=False)
 
@@ -425,9 +421,9 @@ class Meta(LightningCog):
         if not bot_owner:
             bot_owner = await self.bot.fetch_user(376012343777427457)
 
-        embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar_url_as(static_format='png'))
+        embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar.with_static_format('png'))
         embed.url = "https://gitlab.com/lightning-bot/Lightning"
-        embed.set_thumbnail(url=ctx.me.avatar_url)
+        embed.set_thumbnail(url=ctx.me.avatar.url)
 
         if self.bot.config['bot']['description']:
             embed.description = self.bot.config['bot']['description']
@@ -524,7 +520,8 @@ class Meta(LightningCog):
     @lcommand()
     async def support(self, ctx: LightningContext) -> None:
         """Sends an invite that goes to the support server"""
-        await ctx.send(f"Official Support Server Invite: {self.bot.config['bot']['support_server_invite']}")
+        await ctx.send("You can join this server to get support for this bot: "
+                       f"{self.bot.config['bot']['support_server_invite']}")
 
     @lcommand()
     async def source(self, ctx: LightningContext, *, command: str = None) -> None:
@@ -610,33 +607,33 @@ class Meta(LightningCog):
         else:
             guild = ctx.guild
 
-        embed = discord.Embed(title=f"Server Info for {guild.name}")
+        embed = discord.Embed(title=guild.name)
         embed.description = f"**Owner**: {str(guild.owner)}"
 
         embed.add_field(name="Creation", value=f"{format_timestamp(guild.created_at)} "
                         f"({natural_timedelta(guild.created_at, accuracy=3)})", inline=False)
 
         if guild.icon:
-            if guild.is_icon_animated():
-                icon_url = guild.icon_url_as(format="gif")
+            if guild.icon.is_animated():
+                icon_url = guild.icon.with_format("gif")
             else:
-                icon_url = guild.icon_url_as(static_format="png")
+                icon_url = guild.icon.with_static_format("png")
             embed.description += f"\n**Icon**: [Link]({icon_url})"
 
-            embed.set_thumbnail(url=guild.icon_url)
+            embed.set_thumbnail(url=icon_url)
 
         member_by_status = collections.Counter()
         for m in guild.members:
             member_by_status[str(m.status)] += 1
             if m.bot:
                 member_by_status["bots"] += 1
-        sta = f'{helpers.Emoji.online} {member_by_status["online"]} ' \
+        fmt = f'{helpers.Emoji.online} {member_by_status["online"]} ' \
               f'{helpers.Emoji.idle} {member_by_status["idle"]} ' \
               f'{helpers.Emoji.do_not_disturb} {member_by_status["dnd"]} ' \
               f'{helpers.Emoji.offline}{member_by_status["offline"]}\n' \
               f'<:bot_tag:596576775555776522> {member_by_status["bots"]}\n'\
               f'Total: {guild.member_count}'
-        embed.add_field(name="Members", value=sta, inline=False)
+        embed.add_field(name="Members", value=fmt, inline=False)
 
         features = {"VIP_REGIONS": "VIP Voice Servers",
                     "DISCOVERABLE": "Server Discovery",
@@ -675,7 +672,7 @@ class Meta(LightningCog):
         else:
             author_name = msg.author
 
-        embed.set_author(name=author_name, icon_url=msg.author.avatar_url)
+        embed.set_author(name=author_name, icon_url=msg.author.avatar.url)
 
         if msg.guild:
             embed.set_footer(text=f"\N{NUMBER SIGN}{msg.channel}")
