@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -125,7 +125,7 @@ class Fun(LightningCog):
             await ctx.send(file=discord.File(image_buffer, filename="fyi.png"))
 
     async def get_user_avatar(self, user: typing.Union[discord.User, discord.Member]) -> bytes:
-        async with self.bot.aiosession.get(str(user.avatar_url_as(format="png"))) as resp:
+        async with self.bot.aiosession.get(user.avatar.with_format("png")) as resp:
             avy_bytes = await resp.read()
         return avy_bytes
 
@@ -187,10 +187,9 @@ class Fun(LightningCog):
     async def warm(self, ctx: LightningContext, user: discord.Member) -> None:
         """Warms a user"""
         celsius = random.randint(15, 100)
-        fahrenheit = self.c_to_f(celsius)
-        await ctx.send(f"{user} warmed. User is now {celsius}°C ({fahrenheit}°F).")
+        await ctx.send(f"{user} warmed. User is now {celsius}°C ({self.c_to_f(celsius)}°F).")
 
-    @command(aliases=['cool', 'cold'])
+    @command(aliases=['cool'])
     async def chill(self, ctx: LightningContext, user: discord.Member) -> None:
         """Chills a user"""
         celsius = random.randint(-50, 15)
@@ -212,7 +211,7 @@ class Fun(LightningCog):
     @command(cls=flags.FlagCommand, aliases=['owo', 'uwuify'], raise_bad_flag=False)
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.channel)
     async def owoify(self, ctx: LightningContext, **args) -> None:
-        """An owo-ifier"""
+        """Turns a message into owo-speak"""
         if args['random'] is True and args['lastmessage'] is True:
             raise commands.BadArgument("--lastmessage and --random cannot be mixed together.")
 
@@ -232,13 +231,16 @@ class Fun(LightningCog):
         else:
             text = args['rest']
 
-        uwutalk = uwuify.uwu(text, flags=(uwuify.SMILEY | uwuify.YU))
-        await ctx.send(uwutalk)
+        if not text:
+            raise commands.BadArgument("Missing text to translate into owo")
+
+        fmt = uwuify.uwu(text, flags=(uwuify.SMILEY | uwuify.YU))
+        await ctx.send(fmt)
 
     @command()
     async def lolice(self, ctx: LightningContext, *, user: discord.Member = commands.default.Author) -> None:
         """Lolice chief"""
-        url = f'https://nekobot.xyz/api/imagegen?type=lolice&url={user.avatar_url_as(format="png")}'
+        url = f'https://nekobot.xyz/api/imagegen?type=lolice&url={user.avatar.with_format("png")}'
         data = await ctx.request(url)
         embed = discord.Embed()
         embed.set_image(url=data['message'])
@@ -247,7 +249,7 @@ class Fun(LightningCog):
     @command()
     async def awooify(self, ctx: LightningContext, *, user: discord.Member = commands.default.Author) -> None:
         """Awooify a user"""
-        url = f'https://nekobot.xyz/api/imagegen?type=awooify&url={user.avatar_url_as(format="png")}'
+        url = f'https://nekobot.xyz/api/imagegen?type=awooify&url={user.avatar.with_format("png")}'
         data = await ctx.request(url)
         embed = discord.Embed()
         embed.set_image(url=data['message'])
