@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ from lightning.formatters import truncate_text
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
 from lightning.utils.modlogformats import ActionType, base_user_format
-from lightning.utils.time import natural_timedelta
+from lightning.utils.time import add_tzinfo, natural_timedelta
 
 
 class InfractionRecord:
@@ -171,7 +171,7 @@ class Infractions(LightningCog, required=['Mod']):
 
         record = InfractionRecord(self.bot, record)
         embed = discord.Embed(title=str(record.action).capitalize(), description=record.reason or "No reason provided",
-                              timestamp=record.created_at)
+                              timestamp=add_tzinfo(record.created_at))
         embed.add_field(name="User", value=base_user_format(record.user))
         embed.add_field(name="Moderator", value=base_user_format(record.moderator))
         embed.add_field(name="Active", value=ticker(record.active), inline=False)
