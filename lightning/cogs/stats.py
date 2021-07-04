@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -188,7 +188,7 @@ class Stats(LightningCog):
         em.add_field(name="Top Commands Today", value=commands_used_des, inline=False)
 
         if ctx.guild.icon:
-            em.set_thumbnail(url=ctx.guild.icon_url)
+            em.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.send(embed=em)
 
     async def command_stats_member(self, ctx: LightningContext, member):
@@ -232,7 +232,7 @@ class Stats(LightningCog):
             commands_used_des = 'No commands used yet for today'
         em.add_field(name="Top Commands Today", value=commands_used_des, inline=False)
 
-        em.set_thumbnail(url=member.avatar_url)
+        em.set_thumbnail(url=member.avatar.url)
         await ctx.send(embed=em)
 
     @group(invoke_without_command=True)
