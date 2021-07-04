@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -49,7 +49,6 @@ class HelpPaginatorMenu(InfoMenuPages):
     def __init__(self, help_command, ctx, source, **kwargs):
         super().__init__(source, clear_reactions_after=True, check_embeds=True, **kwargs)
         self.help_command = help_command
-        self.prefix = help_command.clean_prefix
         self.total = len(source.entries)
         self.ctx = ctx
         self.is_bot = False
@@ -99,8 +98,8 @@ class HelpMenu(menus.ListPageSource):
         super().__init__(data, per_page=per_page)
 
     def format_category_embed(self, embed: discord.Embed, menu, entries: list) -> discord.Embed:
-        description = f"Use \"{menu.prefix}help [command]\" for help about a command.\nYou can also use \""\
-                      f"{menu.prefix}help [category]\" for help about a category."
+        description = f"Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.\nYou can also use \""\
+                      f"{menu.ctx.clean_prefix}help [category]\" for help about a category."
         if "support_server_invite" in menu.bot.config['bot']:
             description += "\nFor additional help, join the support server: "\
                            f"{menu.bot.config['bot']['support_server_invite']}"
@@ -120,7 +119,7 @@ class HelpMenu(menus.ListPageSource):
             embed.add_field(name=entry, value=value, inline=False)
 
         embed.set_footer(text=f"Page {menu.current_page + 1} of {self.get_max_pages()} ({self.total} categories)",
-                         icon_url=menu.ctx.bot.user.avatar_url)
+                         icon_url=menu.ctx.bot.user.avatar.url)
         return embed
 
     def format_group_embed(self, embed: discord.Embed, menu, entries: list) -> discord.Embed:
@@ -129,7 +128,7 @@ class HelpMenu(menus.ListPageSource):
             embed.add_field(name=signature, value=command.short_doc or "No help found...", inline=False)
 
         embed.set_author(name=f"Page {menu.current_page + 1} of {self.get_max_pages()} ({self.total} commands)",
-                         icon_url=menu.ctx.bot.user.avatar_url)
+                         icon_url=menu.ctx.bot.user.avatar.url)
         return embed
 
     async def format_page(self, menu, entries) -> discord.Embed:
@@ -150,12 +149,12 @@ class HelpMenu(menus.ListPageSource):
 class PaginatedHelpCommand(commands.HelpCommand):
     def __init__(self):
         super().__init__(command_attrs={
-            'cooldown': commands.Cooldown(1, 3.0, commands.BucketType.member),
+            'cooldown': commands.CooldownMapping(commands.Cooldown(1, 3.0), commands.BucketType.member),
             'help': 'Shows help about the bot, a command, or a category'
         })
 
     def get_ending_note(self) -> str:
-        return f'Use {self.clean_prefix}{self.invoked_with} [command] for more info on a command.'
+        return f'Use {self.context.clean_prefix}{self.invoked_with} [command] for more info on a command.'
 
     async def command_not_found(self, string) -> str:
         output = f"No command called \"{string}\" found."
@@ -232,10 +231,10 @@ class PaginatedHelpCommand(commands.HelpCommand):
             usage = f"**Usage**: {command.qualified_name}\n\n"
 
         if command.description:
-            description = command.description.format(prefix=self.clean_prefix)
+            description = command.description.format(prefix=self.context.clean_prefix)
             page_or_embed.description = f'{usage}{description}\n\n{command.help}'
         else:
-            description = command.help.format(prefix=self.clean_prefix)
+            description = command.help.format(prefix=self.context.clean_prefix)
             page_or_embed.description = f'{usage}{description}' if command.help else f'{usage}No help found...'
 
         if hasattr(command, 'level'):
