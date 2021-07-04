@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -92,6 +92,9 @@ class Reminders(LightningCog):
         **kwargs
             Keyword arguments about the event that are passed to the database
         """
+        created = lightning.utils.time.strip_tzinfo(created)
+        expiry = lightning.utils.time.strip_tzinfo(expiry)  # Just in case
+
         delta = (expiry - created).total_seconds()
         if delta <= 60 and force_insert is False:
             # A loop for small timers
