@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@ from lightning.errors import LightningError
 from lightning.utils.checks import has_channel_permissions
 from lightning.utils.paginator import InfoMenuPages
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class TinyDBPageSource(menus.ListPageSource):
@@ -102,7 +102,7 @@ class Homebrew(LightningCog):
             await self.bot.pool.execute(query, ctx.guild.id)
             await ctx.send("The webhook that sent Nintendo console update notifications seems to "
                            "be deleted. Please re-configure with "
-                           f"`{ctx.prefix}nintendoupdatesfeed setup`.")
+                           f"`{ctx.clean_prefix}nintendoupdatesfeed setup`.")
             return
 
         await ctx.send("Nintendo console updates are currently "
@@ -201,14 +201,13 @@ class Homebrew(LightningCog):
                                      "last_updated": timestamp.isoformat()})
             await self.dispatch_message_to_guilds(console, hook_text)
 
-    async def dispatch_message_to_guilds(self, console: str, text: str):
+    async def dispatch_message_to_guilds(self, console: str, text: str) -> None:
         records = await self.bot.pool.fetch("SELECT * FROM nin_updates;")
-        log.info(f"Dispatching new update for {console} to {len(records)} guilds.")
+        log.info(f"Dispatching new update message for {console} to {len(records)} guilds.")
         bad_webhooks = []
         for record in records:
             try:
-                webhook = discord.Webhook.partial(record['id'], record['webhook_token'],
-                                                  adapter=discord.AsyncWebhookAdapter(self.bot.aiosession))
+                webhook = discord.Webhook.partial(record['id'], record['webhook_token'], session=self.bot.aiosession)
                 await webhook.send(text)
             except (discord.NotFound, discord.Forbidden):
                 bad_webhooks.append(record['id'])
@@ -238,7 +237,7 @@ class Homebrew(LightningCog):
 
     @command()
     @commands.cooldown(30.0, 1, commands.BucketType.user)
-    async def bmp(self, ctx, link: Whitelisted_URL = FindBMPAttachment) -> None:
+    async def bmp(self, ctx: LightningContext, link: Whitelisted_URL = FindBMPAttachment) -> None:
         """Converts a .bmp image to .png"""
         img_bytes = await ctx.request(link.url)
         img_final = await self.convert_to_png(img_bytes)
@@ -383,7 +382,7 @@ class Homebrew(LightningCog):
             commands = list(self.mod_ds.all_commands.keys())
             match = self.get_match(commands, homebrew, 75)
             if match is not None:
-                # self.bot.log.info(f"Command match found {match}")
+                # log.debug(f"Command match found {match}")
                 await ctx.invoke(self.mod_ds.get_command(match[0]))
                 return
 
