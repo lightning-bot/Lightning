@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -19,8 +19,8 @@ from typing import Any, List, Optional
 
 import discord
 from discord.ext import commands
-from discord.ext.commands import converter as converters
-from discord.ext.commands.converter import _convert_to_bool
+from discord.ext.commands.converter import (CONVERTER_MAPPING, Converter,
+                                            _convert_to_bool)
 from discord.ext.commands.view import StringView
 
 from lightning.commands import (LightningCommand, LightningGroupCommand,
@@ -183,22 +183,16 @@ class Parser:
             pass
         else:
             if module is not None and (module.startswith('discord.') and not module.endswith('converter')):
-                converter = getattr(converters, converter.__name__ + 'Converter', converter)
+                converter = CONVERTER_MAPPING.get(converter, converter)
 
         try:
-            if inspect.isclass(converter):
-                if issubclass(converter, commands.Converter):
-                    instance = converter()
-                    ret = await instance.convert(ctx, argument)
-                    return ret
+            if inspect.isclass(converter) and issubclass(converter, Converter):
+                if inspect.ismethod(converter.convert):
+                    return await converter.convert(ctx, argument)
                 else:
-                    method = getattr(converter, 'convert', None)
-                    if method is not None and inspect.ismethod(method):
-                        ret = await method(ctx, argument)
-                        return ret
-            elif isinstance(converter, commands.Converter):
-                ret = await converter.convert(ctx, argument)
-                return ret
+                    return await converter().convert(ctx, argument)
+            elif isinstance(converter, Converter):
+                return await converter.convert(ctx, argument)
         except commands.CommandError:
             raise
         except Exception as exc:
