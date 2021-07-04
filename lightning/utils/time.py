@@ -1,6 +1,6 @@
 """
-Lightning.py - A multi-purpose Discord bot
-Copyright (C) 2020 - LightSage
+Lightning.py - A Discord bot
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -210,6 +210,10 @@ class UserFriendlyTime(commands.Converter):
 
 def natural_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True) -> str:
     now = source or datetime.datetime.utcnow()
+
+    if dt.tzinfo is not None:
+        now = add_tzinfo(now)
+
     # Microsecond free zone
     now = now.replace(microsecond=0)
     dt = dt.replace(microsecond=0)
@@ -268,6 +272,20 @@ def natural_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True) 
             return human_join(output, conj='and') + suffix
         else:
             return ' '.join(output) + suffix
+
+
+def strip_tzinfo(dt: datetime.datetime):
+    """Removes tzinfo from a datetime
+
+    This really just removes tzinfo"""
+    return dt.replace(tzinfo=None)
+
+
+def add_tzinfo(dt: datetime.datetime):
+    """Adds tzinfo to a datetime.
+
+    The timezone is changed to UTC by default"""
+    return dt.replace(tzinfo=datetime.timezone.utc)
 
 
 def format_timestamp(timestamp, *, timezone="UTC") -> str:
