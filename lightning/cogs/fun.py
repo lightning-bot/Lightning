@@ -125,7 +125,7 @@ class Fun(LightningCog):
             await ctx.send(file=discord.File(image_buffer, filename="fyi.png"))
 
     async def get_user_avatar(self, user: typing.Union[discord.User, discord.Member]) -> bytes:
-        async with self.bot.aiosession.get(user.avatar.with_format("png")) as resp:
+        async with self.bot.aiosession.get(user.avatar.with_format("png").url) as resp:
             avy_bytes = await resp.read()
         return avy_bytes
 
