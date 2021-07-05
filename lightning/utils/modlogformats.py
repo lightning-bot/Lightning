@@ -370,7 +370,7 @@ class MinimalisticFormat(BaseFormat):
         elif current is None and previous is not None:
             base.append(f"**Member Nickname Removed**\n**Old Nickname**: {previous}")
 
-        base.append(f"**Member**: {MinimalisticFormat.format_user(member)}")
+        base.append(f"\n**Member**: {MinimalisticFormat.format_user(member)}")
 
         if moderator:
             base.append(f"\n**Moderator**: {MinimalisticFormat.format_user(moderator)}")
@@ -484,6 +484,8 @@ class EmbedFormat(BaseFormat):
         elif current is None and previous is not None:
             embed.title = "Member Nickname Removed"
             embed.description = f"**Old Nickname**: {previous}"
+
+        embed.description += f"\n**Member**: {base_user_format(member)}"
 
         if moderator:
             embed.add_field(name="Moderator", value=base_user_format(moderator))
