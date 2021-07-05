@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncio
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional
 
 import discord
@@ -51,7 +51,7 @@ class ListenerEvents(LightningCog):
     async def fetch_audit_log_entry(self, guild: discord.Guild, action: discord.AuditLogAction, *, target=None,
                                     limit: int = 50, check=None) -> Optional[discord.AuditLogEntry]:
         async for entry in guild.audit_logs(limit=limit, action=action):
-            td = datetime.utcnow() - entry.created_at
+            td = discord.utils.utcnow() - entry.created_at
             if td < timedelta(seconds=10):
                 if target is not None and entry.target.id == target.id:
                     return entry
