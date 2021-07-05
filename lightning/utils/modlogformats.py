@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Union
+from typing import Optional, Union
 
 import discord
 
@@ -55,8 +55,11 @@ class BaseFormat:
         self.kwargs = kwargs
 
     @classmethod
-    def from_action(cls, action, infraction_id: int):
-        return cls(action.action, action.target, action.moderator, infraction_id, action.reason,
+    def from_action(cls, action):
+        if not action.is_logged():
+            raise  # TODO
+
+        return cls(action.action, action.target, action.moderator, action.infraction_id, action.reason,
                    timestamp=action.timestamp, expiry=action.expiry, **action.kwargs)
 
     def format_message(self):
@@ -213,6 +216,25 @@ class EmojiFormat(BaseFormat):
               f"__Channel__: {ctx.channel.mention} | {ctx.channel.name}"
         return msg
 
+    @staticmethod
+    def nick_change(member, previous, current, moderator=None):
+        if previous is None and current is not None:
+            msg = f"\N{LABEL} __Nickname added__: None -> {current}"
+        elif previous is not None and current is not None:
+            msg = f"\N{LABEL} __Nickname changed__: {previous} -> {current}"
+        elif previous is not None and current is None:
+            msg = f"\N{LABEL} __Nickname removed__: {previous} -> None"
+
+        msg = [f"\N{INFORMATION SOURCE} **Member update**: {member} | "
+               f"{member.id} {msg}"]
+
+        if moderator:
+            safe_mod = escape_markdown_and_mentions(str(moderator))
+            msg.append(f"\n\N{BLUE BOOK} __Moderator__: "
+                       f"{safe_mod} ({moderator.id})")
+
+        return ''.join(msg)
+
 
 def escape_markdown_and_mentions(text) -> str:
     """Helper function to escape mentions and markdown from a string
@@ -332,6 +354,29 @@ class MinimalisticFormat(BaseFormat):
 
         return ''.join(base)
 
+    @staticmethod
+    def nick_change(member, previous: str, current: Optional[str], moderator=None, *, with_timestamp: bool = True):
+        timestamp = datetime.utcnow()
+
+        if with_timestamp:
+            base = [f"`[{timestamp.strftime('%H:%M:%S UTC')}]`"]
+        else:
+            base = []
+
+        if current and previous:
+            base.append(f"**Member Nickname Update**\n**Old Nickname**: {previous}\n**New Nickname**: {current}")
+        elif previous is None and current is not None:
+            base.append(f"**Member Nickname Add**\n**New Nickname**: {current}")
+        elif current is None and previous is not None:
+            base.append(f"**Member Nickname Removed**\n**Old Nickname**: {previous}")
+
+        base.append(f"**Member**: {MinimalisticFormat.format_user(member)}")
+
+        if moderator:
+            base.append(f"\n**Moderator**: {MinimalisticFormat.format_user(moderator)}")
+
+        return ''.join(base)
+
     def format_message(self, *, with_timestamp: bool = True) -> str:
         """Formats a log entry."""
         entry_time = self.timestamp
@@ -424,4 +469,23 @@ class EmbedFormat(BaseFormat):
         user = ctx.author
         embed.description = f"**Command**: {ctx.command.qualified_name}\n**User**: {user.mention} ({user.id})"\
                             f"**Channel**: {ctx.channel.mention} ({ctx.channel.id})"
+        return embed
+
+    @staticmethod
+    def nick_change(member, previous: str, current: Optional[str], moderator=None) -> discord.Embed:
+        embed = discord.Embed(color=discord.Color.blurple(), timestamp=datetime.utcnow())
+
+        if current and previous:
+            embed.title = "Member Nickname Update"
+            embed.description = f"**Old Nickname**: {previous}\n**New Nickname**: {current}"
+        elif previous is None and current is not None:
+            embed.title = "Member Nickname Add"
+            embed.description = f"**New Nickname**: {current}"
+        elif current is None and previous is not None:
+            embed.title = "Member Nickname Removed"
+            embed.description = f"**Old Nickname**: {previous}"
+
+        if moderator:
+            embed.add_field(name="Moderator", value=base_user_format(moderator))
+
         return embed
