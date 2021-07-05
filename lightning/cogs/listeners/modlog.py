@@ -27,8 +27,8 @@ from lightning.utils import modlogformats
 from lightning.utils.emitters import TextChannelEmitter
 
 
-class Logging(LightningCog):
-    """Logging. Like it says.
+class ModLog(LightningCog):
+    """Mod Logging. Like it says.
 
     Infractions should be inserted here as it's part of logging."""
     def __init__(self, bot: LightningBot):
@@ -90,7 +90,9 @@ class Logging(LightningCog):
     # Bot events
     @LightningCog.listener()
     async def on_command_completion(self, ctx) -> None:
-        # Type.to_simple_str()
+        if ctx.guild is None:
+            return
+
         async for emitter, record in self.get_records(ctx.guild, LoggingType.COMMAND_RAN):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
                 arg = False if record['format'] == "minimal without timestamp" else True
@@ -228,4 +230,4 @@ class Logging(LightningCog):
 
 
 def setup(bot: LightningBot) -> None:
-    bot.add_cog(Logging(bot))
+    bot.add_cog(ModLog(bot))
