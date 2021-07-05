@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -14,8 +14,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from discord import Enum
 from discord.ext.commands import BadArgument
 from flags import Flags
+
+__all__ = ("ConfigFlags",
+           "ModFlags",
+           "LoggingType",
+           "PunishmentType")
 
 
 class BaseFlags(Flags):
@@ -45,3 +51,38 @@ class ModFlags(BaseFlags):
     react_only_confirmation = 1 << 1
     # Hides the confirmation message
     hide_confirmation_message = 1 << 2
+
+
+class LoggingType(Flags):
+    __all_flags_name__ = "all"
+
+    # Bot Event
+    COMMAND_RAN = 1 << 0
+
+    # Moderation Events
+    MEMBER_KICK = 1 << 1
+    MEMBER_BAN = 1 << 2
+    MEMBER_MUTE = 1 << 3
+    MEMBER_UNMUTE = 1 << 4
+    MEMBER_WARN = 1 << 5
+    MEMBER_UNBAN = 1 << 6
+
+    # Discord Events
+    MEMBER_JOIN = 1 << 7
+    MEMBER_LEAVE = 1 << 8
+    MEMBER_ROLE_CHANGE = 1 << 9  # TODO: Separate into two.
+    MEMBER_NICK_CHANGE = 1 << 10
+    MEMBER_SCREENING_COMPLETE = 1 << 11
+
+    def __str__(self):
+        return self.name
+
+
+class PunishmentType(Enum):
+    DELETE = 1
+    WARN = 2
+    KICK = 3
+    MUTE = 4
+    TEMPMUTE = 5
+    BAN = 6
+    TEMPBAN = 7
