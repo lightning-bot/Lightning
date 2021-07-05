@@ -205,7 +205,8 @@ class ModLog(LightningCog):
                                                                        event.moderator, with_timestamp=arg)
                 await emitter.put(message)
             elif record['format'] == "emoji":
-                message = modlogformats.EmojiFormat.nick_change(event.before, event.after)
+                message = modlogformats.EmojiFormat.nick_change(event.after, event.before.nick, event.after.nick,
+                                                                event.moderator)
                 await emitter.put(message, allowed_mentions=discord.AllowedMentions(users=[event.after]))
             elif record['format'] == "embed":
                 embed = modlogformats.EmbedFormat.nick_change(event.after, event.before.nick, event.after.nick,
