@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -14,63 +14,53 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import asyncio
 from collections import Counter
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands
 
-from lightning import (CommandLevel, LightningCog, LightningContext, cache,
-                       command, converters)
+from lightning import (CommandLevel, LightningCog, LightningContext, ModFlags,
+                       PunishmentType, cache, command, converters)
 from lightning import flags as dflags
 from lightning import group
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
+from lightning.events import InfractionEvent
 from lightning.formatters import truncate_text
-from lightning.models import Action, GuildModConfig, LoggingConfig
+from lightning.models import GuildModConfig, PartialGuild
 from lightning.utils import helpers, modlogformats
 from lightning.utils.checks import (has_channel_permissions,
                                     has_guild_permissions)
 from lightning.utils.time import (FutureTime, get_utc_timestamp,
                                   natural_timedelta, plural)
 
+confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
+                 "timeban": "{target} was banned. \N{THUMBS UP SIGN} It will expire in {expiry}.",
+                 "kick": "{target} was kicked. \N{OK HAND SIGN}",
+                 "warn": "{target} was warned. ({count})",
+                 "mute": "{target} can no longer speak",
+                 "timemute": "{target} can no longer speak. It will expire in {expiry}.",
+                 "unmute": "{target} can now speak again.",
+                 "unban": "\N{OK HAND SIGN} {target} is now unbanned."}
+
 
 class Mod(LightningCog, required=["Configuration"]):
     """Moderation and server management commands."""
 
     @cache.cached('mod_config', cache.Strategy.lru)
-    async def get_mod_config(self, guild_id):
+    async def get_mod_config(self, guild_id: int) -> Optional[GuildModConfig]:
         query = "SELECT * FROM guild_mod_config WHERE guild_id=$1;"
         record = await self.bot.pool.fetchrow(query, guild_id)
         return GuildModConfig(record) if record else None
 
-    @cache.cached('logging', cache.Strategy.lru)
-    async def get_logging_record(self, guild_id):
-        records = await self.bot.pool.fetch("SELECT * FROM logging WHERE guild_id=$1;", guild_id)
-        return LoggingConfig(records) if records else None
-
-    async def cog_check(self, ctx):
+    async def cog_check(self, ctx: LightningContext) -> bool:
         if ctx.guild is None:
             raise commands.NoPrivateMessage()
         return True
 
-    def format_reason(self, author, reason: str, *, action_text=None):
-        reason = truncate_text(modlogformats.action_format(author, reason=reason), 512)
-        return reason
-
-    async def channelid_send(self, guild_id: int, channel_id: int, message=None, **kwargs):
-        guild = self.bot.get_guild(guild_id)
-        if guild is None:
-            return
-        channel = guild.get_channel(int(channel_id))
-        if channel is None:
-            return await self.remove_mod_channel(guild_id)
-        try:
-            msg = await channel.send(message, **kwargs)
-            return msg
-        except discord.Forbidden:
-            await self.remove_mod_channel(guild_id)
+    def format_reason(self, author, reason: str, *, action_text=None) -> str:
+        return truncate_text(modlogformats.action_format(author, reason=reason), 512)
 
     async def add_punishment_role(self, guild_id: int, user_id: int, role_id: int) -> str:
         query = """INSERT INTO roles (guild_id, user_id, punishment_roles)
@@ -87,43 +77,15 @@ class Mod(LightningCog, required=["Configuration"]):
         connection = connection or self.bot.pool
         await connection.execute(query, role_id, guild_id, user_id)
 
-    async def log_action(self, ctx: LightningContext, target, action: str, **kwargs) -> None:
-        reason = ctx.kwargs.get('rest') or ctx.kwargs.get('reason')
+    async def log_manual_action(self, target, moderator, action, *, timestamp=None, reason=None, **kwargs) -> None:
         # We need this for bulk actions
         connection = kwargs.pop('connection', self.bot.pool)
-        obj = Action(ctx.guild.id, action, target, ctx.author, reason, **kwargs)
-        inf_id = await obj.add_infraction(connection)
 
-        if obj.expiry:
-            obj.expiry = natural_timedelta(obj.expiry, source=ctx.message.created_at)
+        timestamp = timestamp or datetime.utcnow()
 
-        await self.do_log_message(obj.guild_id, obj.event, obj, inf_id)
+        event = InfractionEvent(action, member=target, guild=target.guild, moderator=moderator, reason=reason, **kwargs)
+        await event.action.add_infraction(connection)
 
-    async def send_log_message(self, records, guild: discord.Guild, obj: Action, infraction_id: int) -> None:
-        if not records:
-            return
-
-        for channel_id, record in records:
-            channel = guild.get_channel(channel_id)
-            if not channel:
-                continue
-
-            if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
-                fmt = modlogformats.MinimalisticFormat.from_action(obj, infraction_id)
-                arg = False if record['format'] == "minimal without timestamp" else True
-                msg = fmt.format_message(with_timestamp=arg)
-                await channel.send(msg)
-            elif record['format'] == "emoji":
-                fmt = modlogformats.EmojiFormat.from_action(obj, infraction_id)
-                msg = fmt.format_message()
-                await channel.send(msg, allowed_mentions=discord.AllowedMentions(users=[obj.target, obj.moderator]))
-            elif record['format'] == "embed":
-                fmt = modlogformats.EmbedFormat.from_action(obj, infraction_id)
-                embed = fmt.format_message()
-                await channel.send(embed=embed)
-
-    async def do_log_message(self, guild_id: int, action: Union[modlogformats.ActionType, str], obj: Action,
-                             infraction_id: int) -> None:
         if not isinstance(action, modlogformats.ActionType):
             action = modlogformats.ActionType[str(action)]
 
@@ -133,20 +95,74 @@ class Mod(LightningCog, required=["Configuration"]):
         if str(action) == "TIMEBAN":
             action = modlogformats.ActionType.BAN
 
-        record = await self.get_logging_record(guild_id)
+        if event.action.expiry:
+            event.action.expiry = natural_timedelta(event.action.expiry, source=timestamp)
+
+        self.bot.dispatch(f"lightning_member_{str(action).lower()}", event)
+
+    async def log_action(self, ctx: LightningContext, target, action: str, **kwargs) -> None:
+        reason = ctx.kwargs.get('rest') or ctx.kwargs.get('reason')
+
+        await self.log_manual_action(target, ctx.author, action, timestamp=ctx.message.created_at, reason=reason,
+                                     **kwargs)
+
+    async def log_bulk_actions(self, ctx: LightningContext, targets: list, action: str, **kwargs) -> None:
+        """Logs a bunch of actions"""
+        async with self.bot.pool.acquire() as conn:
+            for target in targets:
+                await self.log_action(ctx, target, action, connection=conn, **kwargs)
+
+    async def confirm_and_log_action(self, ctx: LightningContext, target, action: str, **kwargs) -> None:
+        duration_text = kwargs.pop("duration_text", None)
+        warning_text = kwargs.pop("warning_text", None)
+
+        record = await self.get_mod_config(ctx.guild.id)
         if not record:
+            await ctx.send(confirmations.get(action.lower(), "Done!").format(target=target,
+                                                                             expiry=duration_text,
+                                                                             count=warning_text))
+            await self.log_action(ctx, target, action)
             return
-        records = record.get_channels_with_feature(str(action).upper())
-        await self.send_log_message(records, self.bot.get_guild(guild_id), obj, infraction_id)
+
+        if record.flags and ModFlags.react_only_confirmation in record.flags:
+            try:
+                await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+
+        if record.flags and ModFlags.hide_confirmation_message in record.flags:
+            await self.log_action(ctx, target, action)
+            return
+
+        await ctx.send(confirmations.get(action.lower(), "Done!").format(target=target, expiry=duration_text,
+                                                                         count=warning_text))
+
+        await self.log_action(ctx, target, action, **kwargs)
+
+    @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
+                     help="Bot does not DM the user the reason for the action.")
+    @commands.bot_has_guild_permissions(kick_members=True)
+    @has_guild_permissions(kick_members=True)
+    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason")
+    async def kick(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
+        """Kicks a user from the server"""
+        if not flags['nodm']:
+            await helpers.dm_user(target, modlogformats.construct_dm_message(target, "kicked", "from",
+                                  reason=flags['reason']))
+
+        await ctx.guild.kick(target, reason=self.format_reason(ctx.author, flags['reason']))
+        await self.confirm_and_log_action(ctx, target, "KICK")
 
     async def time_ban_user(self, ctx, target, moderator, reason, duration, *, dm_user=False,
                             delete_message_days=0) -> None:
         dt = get_utc_timestamp(duration.dt)
         timed_txt = natural_timedelta(duration.dt, source=ctx.message.created_at)
         duration_text = f"{timed_txt} ({dt})"
+
         cog = self.bot.get_cog('Reminders')
         if not cog:
             raise TimersUnavailable
+
         job_id = await cog.add_job("timeban", ctx.message.created_at, duration.dt, guild_id=ctx.guild.id,
                                    user_id=target.id, mod_id=moderator.id, force_insert=True)
 
@@ -162,24 +178,8 @@ class Mod(LightningCog, required=["Configuration"]):
 
         await ctx.guild.ban(target, reason=self.format_reason(ctx.author, opt_reason),
                             delete_message_days=delete_message_days)
-        await ctx.send(f"{str(target)} is now banned. \N{THUMBS UP SIGN} It will expire in {duration_text}.")
-        await self.log_action(ctx, target, "TIMEBAN",
-                              expiry=duration.dt, timer_id=job_id)
-
-    @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
-                     help="Bot does not DM the user the reason for the action.")
-    @commands.bot_has_guild_permissions(kick_members=True)
-    @has_guild_permissions(kick_members=True)
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason")
-    async def kick(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
-        """Kicks a user from the server"""
-        if not flags['nodm']:
-            await helpers.dm_user(target, modlogformats.construct_dm_message(target, "kicked", "from",
-                                  reason=flags['reason']))
-
-        await ctx.guild.kick(target, reason=self.format_reason(ctx.author, flags['reason']))
-        await ctx.send(f"{target} has been kicked. \N{OK HAND SIGN}")
-        await self.log_action(ctx, target, "KICK")
+        await self.confirm_and_log_action(ctx, target, "TIMEBAN", duration_text=duration_text,
+                                          expiry=duration.dt, timer_id=job_id)
 
     @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
                      help="Bot does not DM the user the reason for the action.")
@@ -191,7 +191,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @has_guild_permissions(ban_members=True)
     @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason")
     async def ban(self, ctx: LightningContext, target: converters.TargetMember, **flags) -> None:
-        """Bans a user."""
+        """Bans a user from the server."""
         if flags['delete_messages'] < 0:
             raise commands.BadArgument("You can't delete a negative amount of messages.")
 
@@ -209,8 +209,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
         await ctx.guild.ban(target, reason=self.format_reason(ctx.author, reason),
                             delete_message_days=min(flags['delete_messages'], 7))
-        await ctx.send(f"{target} is now banned. \N{THUMBS UP SIGN}")
-        await self.log_action(ctx, target, "BAN")
+        await self.confirm_and_log_action(ctx, target, "BAN")
 
     async def warn_count_check(self, ctx, warn_count, target, reason: str = "", no_dm=False):
         msg = f"You were warned in {ctx.guild.name}."
@@ -271,13 +270,13 @@ class Mod(LightningCog, required=["Configuration"]):
     @group(cls=dflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod, rest_attribute_name="reason")
     async def warn(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
         """Warns a user"""
+        # TODO: Rework this
         no_dm = not flags['nodm']
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
         warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, modlogformats.ActionType.WARN.value) or 0
         warn_count = await self.warn_count_check(ctx, warns + 1, target,
                                                  flags['reason'], no_dm)
-        await ctx.send(f"{target} warned. User now has {plural(warn_count):warning}.")
-        await self.log_action(ctx, target, "WARN")
+        await self.confirm_and_log_action(ctx, target, "WARN", warning_text=f"{plural(warn_count):warning}")
 
     @has_guild_permissions(manage_guild=True)
     @warn.group(name="punishments", aliases=['punishment'], invoke_without_command=True, level=CommandLevel.Admin)
@@ -309,7 +308,7 @@ class Mod(LightningCog, required=["Configuration"]):
         query = """SELECT warn_ban
                    FROM guild_mod_config
                    WHERE guild_id=$1;"""
-        ban_count = await self.bot.db.fetchval(query, ctx.guild.id)
+        ban_count = await self.bot.pool.fetchval(query, ctx.guild.id)
         if ban_count:
             if number >= ban_count:
                 await ctx.send("You cannot set the same or a higher value "
@@ -322,7 +321,7 @@ class Mod(LightningCog, required=["Configuration"]):
                    ON CONFLICT (guild_id)
                    DO UPDATE SET warn_kick = EXCLUDED.warn_kick;
                 """
-        await self.bot.db.execute(query, ctx.guild.id, number)
+        await self.bot.pool.execute(query, ctx.guild.id, number)
         await self.get_mod_config.invalidate(ctx.guild.id)
         await ctx.send(f"Users will now get kicked if they reach "
                        f"{number} warns.")
@@ -337,7 +336,7 @@ class Mod(LightningCog, required=["Configuration"]):
         query = """SELECT warn_kick
                    FROM guild_mod_config
                    WHERE guild_id=$1;"""
-        kick_count = await self.bot.db.fetchval(query, ctx.guild.id)
+        kick_count = await self.bot.pool.fetchval(query, ctx.guild.id)
         if kick_count:
             if number <= kick_count:
                 await ctx.send("You cannot set the same or a lesser value for warn ban punishment "
@@ -349,9 +348,9 @@ class Mod(LightningCog, required=["Configuration"]):
                    ON CONFLICT (guild_id)
                    DO UPDATE SET warn_ban = EXCLUDED.warn_ban;
                 """
-        await self.bot.db.execute(query, ctx.guild.id, number)
+        await self.bot.pool.execute(query, ctx.guild.id, number)
         await self.get_mod_config.invalidate(ctx.guild.id)
-        await ctx.send(f"Users will now get banned if they reach "
+        await ctx.send("Users will now get banned if they reach "
                        f"{number} or a higher amount of warns.")
 
     @has_guild_permissions(manage_guild=True)
@@ -363,7 +362,7 @@ class Mod(LightningCog, required=["Configuration"]):
                    warn_kick=NULL
                    WHERE guild_id=$1;
                 """
-        ret = await self.bot.db.execute(query, ctx.guild.id)
+        ret = await self.bot.pool.execute(query, ctx.guild.id)
         await self.get_mod_config.invalidate(ctx.guild.id)
         if ret == "DELETE 0":
             await ctx.send("Warn punishments were never configured!")
@@ -484,8 +483,8 @@ class Mod(LightningCog, required=["Configuration"]):
             await target.add_roles(role, reason=self.format_reason(ctx.author, opt_reason))
 
         await self.add_punishment_role(ctx.guild.id, target.id, role.id)
-        await ctx.send(f"{str(target)} can no longer speak. It will expire in {duration_text}.")
-        await self.log_action(ctx, target, "TIMEMUTE", expiry=duration.dt, timer_id=job_id)
+        await self.confirm_and_log_action(ctx, target, "TIMEMUTE", duration_text=duration_text, expiry=duration.dt,
+                                          timer_id=job_id)
 
     @dflags.add_flag("--duration", "-D", converter=FutureTime, help="Duration for the mute", required=False)
     @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
@@ -506,13 +505,22 @@ class Mod(LightningCog, required=["Configuration"]):
 
         await target.add_roles(role, reason=self.format_reason(ctx.author, '[Mute]'))
         await self.add_punishment_role(ctx.guild.id, target.id, role.id)
-        await ctx.send(f"{target} can no longer speak.")
-        await self.log_action(ctx, target, "MUTE")
+        await self.confirm_and_log_action(ctx, target, "MUTE")
 
     async def punishment_role_check(self, guild_id, target_id, role_id, *, connection=None):
         query = """SELECT $3 = ANY(punishment_roles) FROM roles WHERE guild_id=$1 AND user_id=$2"""
         connection = connection or self.bot.pool
         return await connection.fetchval(query, guild_id, target_id, role_id)
+
+    async def update_last_mute(self, guild_id, user_id, *, connection=None):
+        query = """UPDATE infractions
+                   SET active=false
+                   WHERE guild_id=$1 AND user_id=$2 AND action='6'
+                   ORDER BY created_at DESC
+                   LIMIT 1;
+                """
+        connection = connection or self.bot.pool
+        return await connection.execute(query, guild_id, user_id)
 
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(manage_roles=True)
@@ -521,15 +529,21 @@ class Mod(LightningCog, required=["Configuration"]):
                      reason: str = None) -> None:
         """Unmutes a user"""
         role = await self.get_mute_role(ctx)
-        role_check_2 = await self.punishment_role_check(ctx.guild.id, target.id, role.id)
-        if role not in target.roles or role_check_2 is None:
+        check = await self.punishment_role_check(ctx.guild.id, target.id, role.id)
+        if role not in target.roles or check is None:
             await ctx.send('This user is not muted!')
             return
 
-        # TODO: Update mute status
-        await target.remove_roles(role, reason=f"{self.format_reason(ctx.author, '[Unmute]')}")
+        await self.update_last_mute(ctx.guild.id, target.id)
         await self.remove_punishment_role(ctx.guild.id, target.id, role.id)
-        await ctx.send(f"{target} can now speak again.")
+
+        try:
+            await target.remove_roles(role, reason=self.format_reason(ctx.author, '[Unmute]'))
+        except discord.Forbidden:
+            await ctx.send(f"Unable to remove the mute role from {str(target)}'s roles.")
+        else:
+            await ctx.send(f"{target} can now speak again.")
+
         await self.log_action(ctx, target, "UNMUTE")
 
     @command(level=CommandLevel.Mod)
@@ -541,8 +555,7 @@ class Mod(LightningCog, required=["Configuration"]):
         You can pass either the ID of the banned member or the Name#Discrim \
         combination of the member. The member's ID is easier to use."""
         await ctx.guild.unban(member.user, reason=self.format_reason(ctx.author, reason))
-        await ctx.send(f"\N{OK HAND SIGN} {member.user} is now unbanned.")
-        await self.log_action(ctx, member.user, "UNBAN")
+        await self.confirm_and_log_action(ctx, member.user, "UNBAN")
 
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(ban_members=True)
@@ -606,6 +619,7 @@ class Mod(LightningCog, required=["Configuration"]):
             await ctx.send(f"🔒 {channel.mention} is already locked down. "
                            f"Use `{ctx.prefix}unlock` to unlock.")
             return
+
         reason = modlogformats.action_format(ctx.author, "Lockdown done by")
         await channel.set_permissions(ctx.guild.default_role, reason=reason, send_messages=False,
                                       add_reactions=False)
@@ -646,6 +660,7 @@ class Mod(LightningCog, required=["Configuration"]):
         if channel.overwrites_for(ctx.guild.default_role).send_messages is None:
             await ctx.send(f"🔓 {channel.mention} is already unlocked.")
             return
+
         reason = modlogformats.action_format(ctx.author, "Lockdown removed by")
         await channel.set_permissions(ctx.guild.default_role, reason=reason, send_messages=None,
                                       add_reactions=None)
@@ -662,6 +677,7 @@ class Mod(LightningCog, required=["Configuration"]):
         if channel.overwrites_for(ctx.guild.default_role).read_messages is None:
             await ctx.send(f"🔓 {channel.mention} is already unlocked.")
             return
+
         reason = modlogformats.action_format(ctx.author, "Hard lockdown removed by")
         await channel.set_permissions(ctx.guild.default_role, reason=reason,
                                       read_messages=None, send_messages=None)
@@ -720,50 +736,18 @@ class Mod(LightningCog, required=["Configuration"]):
         that many messages from the bot in the specified channel and clean them."""
         if (search > 100):
             raise commands.BadArgument("Cannot purge more than 100 messages.")
+
         has_perms = ctx.channel.permissions_for(ctx.guild.me).manage_messages
         await channel.purge(limit=search, check=lambda b: b.author == ctx.bot.user,
                             before=ctx.message.created_at,
                             after=datetime.utcnow() - timedelta(days=14),
                             bulk=has_perms)
+
         await ctx.send("\N{OK HAND SIGN}", delete_after=15)
 
-    # Automod
-    @command(hidden=True)
-    async def raidmode(self, ctx: LightningContext) -> None:
-        ...
-
-    async def log_timed_action_complete(self, timer, action, feature, guild, user, moderator) -> None:
-        record = await self.get_logging_record(guild.id)
-        if not record:
-            return
-
-        records = record.get_channels_with_feature(feature)
-        if not records:
-            return
-
-        for channel_id, record in records:
-            channel = guild.get_channel(channel_id)
-            if not channel:
-                continue
-
-            if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
-                arg = False if record['format'] == "minimal without timestamp" else True
-                message = modlogformats.MinimalisticFormat.timed_action_expired(action.lower(), user, moderator,
-                                                                                timer.created_at, timer.expiry,
-                                                                                with_timestamp=arg)
-                await channel.send(message)
-            elif record['format'] == "emoji":
-                message = modlogformats.EmojiFormat.timed_action_expired(action.lower(), user, moderator,
-                                                                         timer.created_at)
-                await channel.send(message, allowed_mentions=discord.AllowedMentions(users=[user, moderator]))
-            elif record['format'] == "embed":
-                embed = modlogformats.EmbedFormat.timed_action_expired(action.lower(), moderator, user,
-                                                                       timer.created_at)
-                await channel.send(embed=embed)
-
     @LightningCog.listener()
-    async def on_timeban_job_complete(self, timer):
-        # Update timeban status
+    async def on_lightning_timeban_complete(self, timer):
+        # We need to update timeban status first. Eventually, we need to move this over to infractions cog but idk
         query = "UPDATE infractions SET active=false WHERE guild_id=$1 AND user_id=$2 AND expiry=$3 AND action='4';"
         await self.bot.pool.execute(query, timer.extra['guild_id'], timer.extra['user_id'], timer.expiry)
 
@@ -773,9 +757,9 @@ class Mod(LightningCog, required=["Configuration"]):
             return
 
         try:
-            uid = await self.bot.fetch_user(timer.extra['user_id'])
+            user = await self.bot.fetch_user(timer.extra['user_id'])
         except Exception:
-            uid = helpers.BetterUserObject(id=timer.extra['user_id'])
+            user = helpers.BetterUserObject(id=timer.extra['user_id'])
 
         moderator = guild.get_member(timer.extra['mod_id'])
         if moderator is None:
@@ -786,11 +770,11 @@ class Mod(LightningCog, required=["Configuration"]):
                 moderator = helpers.BetterUserObject(id=timer.extra['mod_id'])
 
         reason = f"Timed ban made by {modlogformats.base_user_format(moderator)} at {timer.created_at} expired"
-        await guild.unban(uid, reason=reason)
-        await self.log_timed_action_complete(timer, "ban", "UNBAN", guild, uid, moderator)
+        await guild.unban(user, reason=reason)
+        self.bot.dispatch("lightning_timed_moderation_action_done", "UNBAN", guild, user, moderator, timer)
 
     @LightningCog.listener()
-    async def on_timemute_job_complete(self, timer):
+    async def on_lightning_timemute_complete(self, timer):
         async with self.bot.pool.acquire() as connection:
             if await self.punishment_role_check(timer.extra['guild_id'],
                                                 timer.extra['user_id'],
@@ -833,177 +817,158 @@ class Mod(LightningCog, required=["Configuration"]):
             # I think I'll intentionally let it raise an error if bot missing perms or w/e...
             await user.remove_roles(role, reason=reason)
 
-        await self.log_timed_action_complete(timer, "mute", "UNMUTE", guild, user, moderator)
+        self.bot.dispatch("lightning_timed_moderation_action_done", "UNMUTE", guild, user, moderator, timer)
 
-    # Logging
-    # -------
-    async def fetch_audit_log_entry(self, guild, action, *, target=None, limit: int = 50):
-        async for entry in guild.audit_logs(limit=limit, action=action):
-            td = datetime.utcnow() - entry.created_at
-            if td < timedelta(seconds=10):
-                if target is not None and entry.target == target:
-                    return entry
+    @LightningCog.listener()
+    async def on_lightning_member_role_change(self, event):
+        """Removes or adds the mute status to a member if the action was manually done"""
+        record = await self.get_mod_config(event.guild.id)
+        if not record or not record.mute_role_id:
+            return
+
+        # TODO: Handle temp mute role
+
+        previously_muted = event.before._roles.has(record.mute_role_id)
+        currently_muted = event.after._roles.has(record.mute_role_id)
+
+        if previously_muted == currently_muted:
+            return
+
+        if event.moderator is None:
+            # WARNING: This shouldn't happen, but this is a failsafe in case the guild hasn't given the
+            # bot audit log perms. I don't like this solution, but this is ultimately the best solution.
+            # The moderator who did the manual action can just claim the created infraction.
+            event.moderator = self.bot.me
+
+        if previously_muted is True and currently_muted is False:  # Role was removed
+            async with self.bot.pool.acquire() as conn:
+                check = await self.punishment_role_check(event.guild.id,
+                                                         event.after.id, record.mute_role_id, connection=conn)
+                if check is None:
+                    return
+
+                await self.remove_punishment_role(event.guild.id, event.after.id, record.mute_role_id,
+                                                  connection=conn)
+                await self.update_last_mute(event.guild.id, event.after.id, connection=conn)
+
+                if event.moderator.id != self.bot.me.id:
+                    reason = modlogformats.action_format(event.moderator, "Mute role manually removed by")
                 else:
-                    continue
-            else:
-                continue
+                    reason = "Mute role manually removed"
 
-        return None
+                await self.log_manual_action(event.after, event.moderator, "UNMUTE", reason=reason,
+                                             connection=conn)
+
+        if currently_muted is True and previously_muted is False:  # Role was added
+            async with self.bot.pool.acquire() as conn:
+                await self.add_punishment_role(event.guild.id, event.after.id, record.mute_role_id, connection=conn)
+
+                if event.moderator.id != self.bot.me.id:
+                    reason = modlogformats.action_format(event.moderator, "Mute role manually added by")
+                else:
+                    reason = "Mute role manually added"
+
+                await self.log_manual_action(event.after, event.moderator, "MUTE", reason=reason,
+                                             connection=conn)
+
+    # Automod
+    # -------
+    # TBH, this is mostly a bunch of listeners, but there's a command or two so it's staying in the same file.
+
+    @command(hidden=True)
+    async def raidmode(self, ctx: LightningContext) -> None:
+        ...
+
+    async def is_member_whitelisted(self, message) -> bool:
+        """Check that tells whether a member is exempt from automod or not"""
+        # TODO: Check against a generic set of moderator permissions.
+        record = await self.bot.get_guild_bot_config(message.guild.id)
+        if not record or record.permissions is None:
+            return None
+
+        if record.permissions.levels is None:
+            level = CommandLevel.User
+        else:
+            roles = message.author._roles or []
+            level = record.permissions.levels.get_user_level(message.author.id, roles)
+
+        if level == CommandLevel.Blocked:  # Blocked to commands, not ignored by automod
+            return False
+
+        if level.value >= CommandLevel.Trusted.value:
+            return True
+        else:
+            return False
+
+    async def _warn_punishment(self, target):
+        query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
+        await self.bot.pool.fetchval(query, target.id, target.guild.id,
+                                     modlogformats.ActionType.WARN.value) or 0
+        # warn_count = await self.warn_count_check(ctx, warns + 1, target,
+        #                                         "Automod", no_dm)
+        reason = modlogformats.action_format(self.bot.me, reason="Automod triggered")
+        await self.log_manual_action(target, self.bot.me, "WARN", reason=reason)
+
+    async def _kick_punishment(self, target):
+        reason = modlogformats.action_format(self.bot.me, reason="Automod triggered")
+        await target.kick(reason=reason)
+        await self.log_manual_action(target, self.bot.me, "KICK", reason="Member triggered automod")
+
+    async def _ban_punishment(self, target):
+        reason = modlogformats.action_format(self.bot.me, reason="Automod triggered")
+        await target.ban(reason=reason)
+        await self.log_manual_action(target, self.bot.me, "BAN", reason=reason)
+
+    async def _delete_punishment(self, message):
+        try:
+            await message.delete()
+        except (discord.Forbidden, discord.HTTPException):
+            pass
+
+    punishments = {PunishmentType.WARN: _warn_punishment,
+                   PunishmentType.KICK: _kick_punishment,
+                   PunishmentType.BAN: _ban_punishment,
+                   PunishmentType.DELETE: _delete_punishment
+                   # PunishmentType.MUTE: self._mute_punishment
+                   }
+
+    @LightningCog.listener("on_lightning_member_warn")
+    async def handle_warn_punishments(self, event):
+        record = await self.get_mod_config(event.guild.id)
+
+        if not record or not record.warn_ban or not record.warn_kick:
+            return
+
+        await self._warn_punishment(event.member)
 
     @LightningCog.listener()
-    async def on_member_ban(self, guild, user):
-        await self.bot.wait_until_ready()
-        # Wait for Audit Log to update
-        await asyncio.sleep(0.5)
-
-        if not guild.me.guild_permissions.view_audit_log:
+    async def on_message(self, message):
+        if message.guild is None:  # DM Channels are exempt.
             return
 
-        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.ban, target=user)
-        if entry.user == self.bot.user:
-            # Assuming it's already logged
+        # TODO: Ignored channels
+        check = await self.is_member_whitelisted(message)
+        if check is True:
             return
 
-        obj = Action(guild.id, "BAN", user, entry.user, entry.reason or None)
-        inf_id = await obj.add_infraction(self.bot.pool)
-        await self.do_log_message(obj.guild_id, obj.event, obj, inf_id)
-
-    @LightningCog.listener()
-    async def on_member_unban(self, guild, user):
-        await self.bot.wait_until_ready()
-        # Wait for Audit Log to update
-        await asyncio.sleep(0.5)
-
-        if not guild.me.guild_permissions.view_audit_log:
-            return
-
-        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.unban, target=user)
-        if entry.user == self.bot.user:
-            # Assuming it's already logged
-            return
-
-        obj = Action(guild.id, "UNBAN", user, entry.user, entry.reason or None)
-        inf_id = await obj.add_infraction(self.bot.pool)
-        await self.do_log_message(obj.guild_id, obj.event, obj, inf_id)
-
-    async def get_records(self, guild, feature):
-        record = await self.get_logging_record(guild.id)
+        record = await self.get_mod_config(message.guild.id)
         if not record:
             return
 
-        records = record.get_channels_with_feature(feature)
-        if not records:
-            return
+        # Literally a way to punish nitro users :isabellejoy:
+        if ModFlags.delete_longer_messages in record.flags:
+            if len(message.content) > 2000:
+                await self._delete_punishment(message)
 
-        for channel_id, record in records:
-            channel = guild.get_channel(channel_id)
-            if not channel:
-                continue
-
-            yield channel, record
-
-    @LightningCog.listener()
-    async def on_member_join(self, member):
-        await self.bot.wait_until_ready()
-
-        guild = member.guild
-        async for channel, record in self.get_records(guild, "MEMBER_JOIN"):
-            if record['format'] == "minimal with timestamp":
-                message = modlogformats.MinimalisticFormat.join_leave("MEMBER_JOIN", member)
-                await channel.send(message)
-            elif record['format'] == "emoji":
-                message = modlogformats.EmojiFormat.join_leave("MEMBER_JOIN", member)
-                await channel.send(message, allowed_mentions=discord.AllowedMentions(users=[member]))
-            elif record['format'] == "embed":
-                embed = modlogformats.EmbedFormat.join_leave("MEMBER_JOIN", member)
-                await channel.send(embed=embed)
+        # Mentions per message, we need to add a cooldown for mentions in general. Completely configurable obviously.
+        if record.automod and record.automod.mention_count:
+            if len(message.mentions) >= record.automod.mention_count:
+                meth = self.punishments[PunishmentType.DELETE]
+                await meth(message)
 
     @LightningCog.listener()
-    async def on_member_remove(self, member):
-        await self.bot.wait_until_ready()
-
-        guild = member.guild
-        async for channel, record in self.get_records(guild, "MEMBER_LEAVE"):
-            if record['format'] == "minimal with timestamp":
-                message = modlogformats.MinimalisticFormat.join_leave("MEMBER_LEAVE", member)
-                await channel.send(message)
-            elif record['format'] == "emoji":
-                message = modlogformats.EmojiFormat.join_leave("MEMBER_LEAVE", member)
-                await channel.send(message, allowed_mentions=discord.AllowedMentions(users=[member]))
-            elif record['format'] == "embed":
-                embed = modlogformats.EmbedFormat.join_leave("MEMBER_LEAVE", member)
-                await channel.send(embed=embed)
-
-        # Kick stuff
-        if not guild.me.guild_permissions.view_audit_log:
-            return
-
-        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.kick, target=member)
-
-        if not entry:
-            return
-
-        if member.joined_at is None or member.joined_at > entry.created_at:
-            return
-
-        if entry.user == self.bot.user:
-            # Assuming it's already logged
-            return
-
-        obj = Action(guild.id, "KICK", member, entry.user, entry.reason or None)
-        inf_id = await obj.add_infraction(self.bot.pool)
-        await self.do_log_message(obj.guild_id, obj.event, obj, inf_id)
-
-    async def find_occurance(self, guild, action, match, limit=50, retry=True):
-        if not guild.me.guild_permissions.view_audit_log:
-            return
-
-        entry = None
-        async for e in guild.audit_logs(action=action, limit=limit):
-            if match(e):
-                if entry is None or e.id > entry.id:
-                    entry = e
-                    break
-
-        if entry is None and retry:
-            await asyncio.sleep(2)
-            return await self.find_occurance(guild, action, match, limit, False)
-        # if entry is not None and isinstance(entry.target, discord.Object):
-        #    entry.target = await self.bot.get_user(entry.target.id)
-        return entry
-
-    @LightningCog.listener()
-    async def on_member_update(self, before, after):
-        await self.bot.wait_until_ready()
-        guild = before.guild
-
-        if before.roles != after.roles:
-            added = [role for role in after.roles if role not in before.roles]
-            removed = [role for role in before.roles if role not in after.roles]
-            if (len(added) + len(removed)) == 0:
-                return
-
-            def check(e):
-                return e.target.id == before.id and hasattr(e.changes.before, "roles") \
-                    and hasattr(e.changes.after, "roles") and \
-                    all(r in e.changes.before.roles for r in removed) and \
-                    all(r in e.changes.after.roles for r in added)
-
-            entry = await self.find_occurance(guild, discord.AuditLogAction.member_role_update,
-                                              check)
-
-            async for channel, record in self.get_records(guild, "MEMBER_ROLE_CHANGE"):
-                if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
-                    arg = False if record['format'] == "minimal without timestamp" else True
-                    message = modlogformats.MinimalisticFormat.role_change(after, added, removed, entry=entry,
-                                                                           with_timestamp=arg)
-                    await channel.send(message)
-                elif record['format'] == "emoji":
-                    message = modlogformats.EmojiFormat.role_change(added, removed, after, entry=entry)
-                    await channel.send(message)
-                elif record['format'] == "embed":
-                    embed = modlogformats.EmbedFormat.role_change(after, added, removed, entry=entry)
-                    await channel.send(embed=embed)
+    async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:
+        await self.get_mod_config.invalidate(guild.id)
 
 
 def setup(bot) -> None:
