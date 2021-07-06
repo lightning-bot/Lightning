@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -46,14 +46,10 @@ class CommandBug:
 class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
     """Commands that manage the bot"""
     @Feature.Command(parent="jsk", name="leaveguild")
-    async def jsk_leaveguild(self, ctx: LightningContext, guild_id: int) -> None:
-        """Leaves a guild that the bot is in via ID"""
-        server = self.bot.get_guild(guild_id)
-        if server is None:
-            await ctx.send('I\'m not in this server.')
-            return
-        await server.leave()
-        await ctx.send(f'Successfully left **{server.name}**')
+    async def jsk_leaveguild(self, ctx: LightningContext, guild: discord.Guild) -> None:
+        """Leaves a guild that the bot is in"""
+        await guild.leave()
+        await ctx.send(f'Successfully left **{guild.name}** ({guild.id})')
 
     @Feature.Command(parent="jsk", name="pip")
     async def jsk_pip(self, ctx: LightningContext, *, argument: codeblock_converter):
