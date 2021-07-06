@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -15,19 +15,17 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from datetime import datetime
-from typing import Optional, Union
+from typing import Union
 
-import attr
 import discord
 
 from lightning import errors
 from lightning.commands import CommandLevel
 from lightning.context import LightningContext
 from lightning.enums import ConfigFlags as ConfigBFlags
-from lightning.enums import ModFlags
+from lightning.enums import LoggingType, ModFlags, PunishmentType
 from lightning.utils import modlogformats
-from lightning.utils.emitters import Emitter
-from lightning.utils.time import natural_timedelta
+from lightning.utils.time import natural_timedelta, strip_tzinfo
 
 # Alias
 ConfigFlags = ConfigBFlags
@@ -43,9 +41,7 @@ class GuildModConfig:
         self.warn_ban = record['warn_ban']
         self.temp_mute_role_id = record['temp_mute_role_id']
         self.flags = ModFlags(record['flags'] or 0)
-
-        # These aren't ready...
-        # self.automod = AutoModConfig.from_record(record)
+        # self.automod = AutoModConfig(record)
         # self.raid_mode = record['raid_mode']
 
     def get_mute_role(self, ctx: LightningContext) -> discord.Role:
@@ -76,13 +72,46 @@ class GuildModConfig:
         return role
 
 
+class AutoModConfig:
+    def __init__(self, bot, record):
+        self.mention_spam = AutoModMentionConfig(record['automod_mention_spam'])
+        self.warnings = AutoModPunishmentConfig()
+        self.join_thresholds = AutoModRaidModeConfig()
+
+
+class AutoModRaidModeConfig:
+    def __init__(self, record):
+        self.config = AutoModPunishmentConfig(record['punishments_config'])
+        # X amount of users can join in Y seconds, if more than act.
+        self.users = record['automod_join_threshold_users']
+        self.seconds = record['automod_join_threshold_seconds']
+
+
+class AutoModMentionConfig:
+    __slots__ = ("config", "count")
+
+    def __init__(self, record):
+        self.config = AutoModPunishmentConfig(record['punishments_config'])  # Punishment config
+        self.count = record['count']
+
+
+class AutoModPunishmentConfig:
+    __slots__ = ("punishment_type", "event", "interval")
+
+    def __init__(self, record):
+        self.punishment_type = PunishmentType(record['type'])
+        self.event = record['event']
+        self.interval = record['interval']
+
+
 class LoggingConfig:
     __slots__ = ('logging')
 
     def __init__(self, records):
         self.logging = {}
         for record in records:
-            self.logging[record['channel_id']] = {"types": record['types'], "format": record['format']}
+            self.logging[record['channel_id']] = {"types": LoggingType(record['types']),
+                                                  "format": record['format']}
 
     def get_channels_with_feature(self, feature) -> list:
         channels = []
@@ -91,50 +120,11 @@ class LoggingConfig:
                 channels.append((key, value))
         return channels
 
-    # Helper functions for emitters
-    def add_emitter(self, key, emitter) -> bool:
-        """Adds an emitter to a key"""
-        try:
-            self.logging[key]['emitter'] = emitter
-        except KeyError:
-            return False
-
-        return True
-
-    def get_emitter(self, key) -> Optional[Emitter]:
-        """Gets an emitter"""
-        key = self.get(key)
-        if not key:
-            return
-
-        return key.get("emitter", None)
-
-    def stop_emitter(self, key) -> None:
-        """Stops an emitter"""
-        emitter = self.get_emitter(key)
-        if not emitter:
-            return
-
-        emitter.close()
-
     def get(self, key):
         return self.logging.get(key, None)
 
     def remove(self, key):
         del self.logging[key]
-
-
-@attr.s(slots=True, auto_attribs=True)
-class AutoModConfig:
-    join_threshold_seconds: int
-    join_threshold_users: int
-
-    @classmethod
-    def from_record(cls, record):
-        self = cls()
-        self.join_threshold_seconds = record.get('automod_join_threshold_seconds')
-        self.join_threshold_users = record.get('automod_join_threshold_users')
-        return self
 
 
 class CommandOverrides:
@@ -171,6 +161,9 @@ class CommandOverrides:
         return True
 
     def resolve_overrides(self, ctx: LightningContext) -> bool:
+        # TODO: Rewrite this.
+        # {"DISABLED": {"COMMANDS": {}, "COGS": {}}}
+        # {"PERMISSION_OVERRIDES": {command: {"USERS": [], "ROLES": []}}}
         command = ctx.command.qualified_name
         ids = [r.id for r in ctx.author.roles]
         ids.append(ctx.author.id)
@@ -226,6 +219,7 @@ class GuildPermissionsConfig:
         self.command_overrides = CommandOverrides(record['COMMAND_OVERRIDES']) if "COMMAND_OVERRIDES" in record else \
             None
         self.levels = LevelConfig(record['LEVELS']) if "LEVELS" in record else None
+        # self.disabled_features = record['DISABLED']
 
     def raw(self):
         y = {}
@@ -233,10 +227,10 @@ class GuildPermissionsConfig:
         if self.command_overrides:
             y['COMMAND_OVERRIDES'] = self.command_overrides.to_dict()
         else:
-            y["COMMAND_OVERRIDES"] = {}
+            y['COMMAND_OVERRIDES'] = {}
 
         if self.levels:
-            y.update({"LEVELS": self.levels.to_dict()})
+            y['LEVELS'] = self.levels.to_dict()
         else:
             y['LEVELS'] = {}
 
@@ -318,19 +312,22 @@ class Action:
         self.infraction_id = None
 
     async def add_infraction(self, connection) -> int:
-        """Inserts an infraction into the database"""
+        """Inserts an infraction into the database.
+
+        As a safeguard, timestamp and expiry datetimes are stripped of tzinfo"""
         if len(self.kwargs) == 0:
             query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry)
                        VALUES ($1, $2, $3, $4, $5, $6, $7)
                        RETURNING id;"""
             r = await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
-                                          self.reason, self.timestamp, self.expiry)
+                                          self.reason, strip_tzinfo(self.timestamp), strip_tzinfo(self.expiry))
         else:
             query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry, extra)
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                        RETURNING id;"""
             r = await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
-                                          self.reason, self.timestamp, self.expiry, self.kwargs)
+                                          self.reason, strip_tzinfo(self.timestamp), strip_tzinfo(self.expiry),
+                                          self.kwargs)
 
         self.infraction_id = r
         return r
