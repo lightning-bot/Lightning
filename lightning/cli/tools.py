@@ -197,7 +197,7 @@ def build_command_docs():
         if hasattr(command, "commands"):
             subcmd_fmt = subcmds_page.format(subcmds=format_subcommands(command.commands))
 
-        fmt = command_page.format(name=command.qualified_name, signature=signature or "",
+        fmt = command_page.format(name=command.qualified_name, signature=signature.strip() or "",
                                   description=description.replace("\n", "<br>") if description else "",
                                   aliases=format_command_aliases(command.aliases),
                                   params=format_command_params(command.clean_params),
