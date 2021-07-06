@@ -14,6 +14,7 @@
 ## Features
 
 - Powerful moderation commands with easy-to-use flag syntax
+- Powerful & completely configurable auto-moderation
 - Multiple mod log channels with multiple formats to choose from
 - Self roles & sticky roles
 - Reminders
