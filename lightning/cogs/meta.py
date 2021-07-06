@@ -32,8 +32,7 @@ from rapidfuzz.process import extractOne
 from lightning import LightningBot, LightningCog, LightningContext
 from lightning import command as lcommand
 from lightning import group as lgroup
-from lightning.converters import (GuildID, GuildorNonGuildUser, Message,
-                                  ReadableChannel)
+from lightning.converters import GuildorNonGuildUser, Message, ReadableChannel
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from lightning.models import PartialGuild
 from lightning.utils import helpers
@@ -600,10 +599,10 @@ class Meta(LightningCog):
 
     @commands.guild_only()
     @lcommand(aliases=['guildinfo'], usage='')
-    async def serverinfo(self, ctx: LightningContext, guild_id: GuildID = commands.default.CurrentGuild) -> None:
+    async def serverinfo(self, ctx: LightningContext, guild: discord.Guild = commands.default.CurrentGuild) -> None:
         """Shows information about the server"""
         if await self.bot.is_owner(ctx.author):
-            guild = guild_id
+            guild = guild.id
         else:
             guild = ctx.guild
 
