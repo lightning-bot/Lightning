@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -254,7 +254,9 @@ class Whitelisted_URL:
         url_regex = re.compile("https?:\\/\\/(?:www\\.)?.+")
         if not url_regex.match(url):
             raise LightningError("Invalid URL")
+
         url = yarl.URL(url)
+
         if url.host not in WHITELISTED_HOSTS:
             raise LightningError(f"`\"{url}\"` is not supported.")
         self.url = url
