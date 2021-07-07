@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,8 @@ import discord
 from discord.ext import commands
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, command, converters, errors, group)
+                       LightningContext, command, errors, group)
+from lightning.converters import EmojiRE, Whitelisted_URL
 from lightning.utils.checks import has_guild_permissions, is_one_of_guilds
 from lightning.utils.modlogformats import action_format
 from lightning.utils.paginator import BasicEmbedMenu, InfoMenuPages
@@ -69,7 +70,7 @@ class Emoji(LightningCog):
 
     @emoji.command()
     @commands.is_owner()
-    async def approvenitro(self, ctx: LightningContext, guild: converters.GuildID) -> None:
+    async def approvenitro(self, ctx: LightningContext, guild: discord.Guild) -> None:
         """Approves a guild for the nitro emoji command"""
         self.bot.config['bot']['nitro_emoji_guilds'].append(guild.id)
         await self.bot.config.save()
@@ -99,7 +100,7 @@ class Emoji(LightningCog):
         elif len(args) >= 3 or len(args) == 0:
             raise commands.BadArgument(error_msg)
 
-        wurl = converters.Whitelisted_URL(url)
+        wurl = Whitelisted_URL(url)
         if len(emoji_name) > 32:
             await ctx.send("Emoji name cannot be longer than 32 characters!")
             return
@@ -180,7 +181,7 @@ class Emoji(LightningCog):
         await pages.start(ctx)
 
     @emoji.command()
-    async def info(self, ctx: LightningContext, emote: converters.EmojiRE) -> None:
+    async def info(self, ctx: LightningContext, emote: EmojiRE) -> None:
         """Gives some info on an emote.
 
         Unicode emoji are not supported."""
