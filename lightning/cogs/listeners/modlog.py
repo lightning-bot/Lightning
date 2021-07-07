@@ -195,12 +195,12 @@ class ModLog(LightningCog):
     @LightningCog.listener()
     async def on_lightning_member_role_change(self, event):
         if event.added_roles:
-            await self._log_role_changes(LoggingType.MEMBER_ROLE_ADD, event.guild, added=event.added_roles,
+            await self._log_role_changes(LoggingType.MEMBER_ROLE_ADD, event.guild, event.after, added=event.added_roles,
                                          entry=event.entry)
 
         if event.removed_roles:
-            await self._log_role_changes(LoggingType.MEMBER_ROLE_REMOVE, event.guild, removed=event.removed_roles,
-                                         entry=event.entry)
+            await self._log_role_changes(LoggingType.MEMBER_ROLE_REMOVE, event.guild, event.after,
+                                         removed=event.removed_roles, entry=event.entry)
 
     @LightningCog.listener()
     async def on_lightning_member_nick_change(self, event):
