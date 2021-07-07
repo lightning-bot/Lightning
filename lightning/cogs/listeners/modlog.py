@@ -177,23 +177,30 @@ class ModLog(LightningCog):
     async def on_member_remove(self, member):
         await self._log_member_join_leave(member, LoggingType.MEMBER_LEAVE)
 
-    @LightningCog.listener()
-    async def on_lightning_member_role_change(self, event):
-        added = [role for role in event.after.roles if role not in event.before.roles]
-        removed = [role for role in event.before.roles if role not in event.after.roles]
-        guild = event.after.guild
-        async for emitter, record in self.get_records(guild, LoggingType.MEMBER_ROLE_CHANGE):
+    async def _log_role_changes(self, ltype: LoggingType, guild, member, *, added=None, removed=None,
+                                entry=None) -> None:
+        async for emitter, record in self.get_records(guild, ltype):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
                 arg = False if record['format'] == "minimal without timestamp" else True
-                message = modlogformats.MinimalisticFormat.role_change(event.after, added, removed, entry=event.entry,
+                message = modlogformats.MinimalisticFormat.role_change(member, added, removed, entry=entry,
                                                                        with_timestamp=arg)
                 await emitter.send(message)
             elif record['format'] == "emoji":
-                message = modlogformats.EmojiFormat.role_change(added, removed, event.after, entry=event.entry)
+                message = modlogformats.EmojiFormat.role_change(added, removed, member, entry=entry)
                 await emitter.put(message)
             elif record['format'] == "embed":
-                embed = modlogformats.EmbedFormat.role_change(event.after, added, removed, entry=event.entry)
+                embed = modlogformats.EmbedFormat.role_change(member, added, removed, entry=entry)
                 await emitter.put(embed=embed)
+
+    @LightningCog.listener()
+    async def on_lightning_member_role_change(self, event):
+        if event.added_roles:
+            await self._log_role_changes(LoggingType.MEMBER_ROLE_ADD, event.guild, added=event.added_roles,
+                                         entry=event.entry)
+
+        if event.removed_roles:
+            await self._log_role_changes(LoggingType.MEMBER_ROLE_REMOVE, event.guild, removed=event.removed_roles,
+                                         entry=event.entry)
 
     @LightningCog.listener()
     async def on_lightning_member_nick_change(self, event):
