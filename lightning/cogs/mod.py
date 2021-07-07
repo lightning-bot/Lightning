@@ -211,72 +211,20 @@ class Mod(LightningCog, required=["Configuration"]):
                             delete_message_days=min(flags['delete_messages'], 7))
         await self.confirm_and_log_action(ctx, target, "BAN")
 
-    async def warn_count_check(self, ctx, warn_count, target, reason: str = "", no_dm=False):
-        msg = f"You were warned in {ctx.guild.name}."
-        if reason:
-            msg += " The given reason is: " + reason
-        msg += f"\n\nThis is warn #{warn_count}."
-        punishable_warn = await self.get_mod_config(ctx.guild.id)
-        if not punishable_warn:
-            if isinstance(target, discord.Member):
-                if no_dm is True:
-                    return warn_count
-                await helpers.dm_user(target, msg)
-                return warn_count
-            else:
-                return warn_count
-        if punishable_warn.warn_kick:
-            if warn_count == punishable_warn.warn_kick - 1:
-                msg += " __The next warn will automatically kick.__"
-            if warn_count == punishable_warn.warn_kick:
-                msg += "\n\nYou were kicked because of this warning. " \
-                       "You can join again right away. "
-        if punishable_warn.warn_ban:
-            if warn_count == punishable_warn.warn_ban - 1:
-                msg += "This is your final warning. " \
-                       "Do note that " \
-                       "**one more warn will result in a ban**."
-            if warn_count >= punishable_warn.warn_ban:
-                msg += f"\n\nYou were automatically banned due to reaching "\
-                       f"the server's warn ban limit of "\
-                       f"{punishable_warn.warn_ban} warnings."
-                msg += "\nIf you believe this to be in error, please message the staff."
-        if isinstance(target, (discord.Member, discord.User)):
-            if no_dm is False:
-                await helpers.dm_user(target, msg)
-            if punishable_warn.warn_kick:
-                if warn_count == punishable_warn.warn_kick:
-                    opt_reason = f"[AutoMod] Reached {warn_count} warns. "
-                    try:
-                        await ctx.guild.kick(target,
-                                             reason=self.format_reason(ctx.author, opt_reason))
-                    except discord.Forbidden:
-                        return warn_count
-                    self.bot.dispatch("automod_action", ctx.guild, "kick", target, opt_reason)
-        if punishable_warn.warn_ban:
-            if warn_count >= punishable_warn.warn_ban:  # just in case
-                opt_reason = f"[AutoMod] Exceeded WarnBan Limit ({warn_count}). "
-                try:
-                    await ctx.guild.ban(target, reason=self.format_reason(ctx.author, opt_reason),
-                                        delete_message_days=0)
-                except discord.Forbidden:
-                    return warn_count
-                self.bot.dispatch("automod_action", ctx.guild, "ban", target, opt_reason)
-        return warn_count
-
     @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
                      help="Bot does not DM the user the reason for the action.")
     @has_guild_permissions(manage_messages=True)
     @group(cls=dflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod, rest_attribute_name="reason")
     async def warn(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
         """Warns a user"""
-        # TODO: Rework this
-        no_dm = not flags['nodm']
+        if not flags['nodm'] and isinstance(target, discord.Member):
+            dm_message = modlogformats.construct_dm_message(target, "warned", "in", reason=flags['reason'])
+            # ending="\n\nAdditional action may be taken against you if the server has set it up."
+            await helpers.dm_user(target, dm_message)
+
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
         warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, modlogformats.ActionType.WARN.value) or 0
-        warn_count = await self.warn_count_check(ctx, warns + 1, target,
-                                                 flags['reason'], no_dm)
-        await self.confirm_and_log_action(ctx, target, "WARN", warning_text=f"{plural(warn_count):warning}")
+        await self.confirm_and_log_action(ctx, target, "WARN", warning_text=f"{plural(warns + 1):warning}")
 
     @has_guild_permissions(manage_guild=True)
     @warn.group(name="punishments", aliases=['punishment'], invoke_without_command=True, level=CommandLevel.Admin)
