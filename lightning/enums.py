@@ -51,6 +51,8 @@ class ModFlags(BaseFlags):
     react_only_confirmation = 1 << 1
     # Hides the confirmation message
     hide_confirmation_message = 1 << 2
+    # Deletes stickers
+    delete_stickers = 1 << 3
 
 
 class LoggingType(Flags):

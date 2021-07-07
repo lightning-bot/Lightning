@@ -908,6 +908,9 @@ class Mod(LightningCog, required=["Configuration"]):
             if len(message.content) > 2000:
                 await self._delete_punishment(message)
 
+        if ModFlags.delete_stickers in record.flags:
+            await self._delete_punishment(message)
+
         # Mentions per message, we need to add a cooldown for mentions in general. Completely configurable obviously.
         if record.automod and record.automod.mention_count:
             if len(message.mentions) >= record.automod.mention_count:
