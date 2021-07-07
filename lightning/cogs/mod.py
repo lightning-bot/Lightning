@@ -904,11 +904,12 @@ class Mod(LightningCog, required=["Configuration"]):
             return
 
         # Literally a way to punish nitro users :isabellejoy:
-        if ModFlags.delete_longer_messages in record.flags:
-            if len(message.content) > 2000:
-                await self._delete_punishment(message)
+        if len(message.content) > 2000 and ModFlags.delete_longer_messages in record.flags:
+            await self._delete_punishment(message)
 
-        if ModFlags.delete_stickers in record.flags:
+        # More nitro punishments
+        # Apparently some guilds are banning usage of stickers so this might be helpful for them.
+        if len(message.stickers) != 0 and ModFlags.delete_stickers in record.flags:
             await self._delete_punishment(message)
 
         # Mentions per message, we need to add a cooldown for mentions in general. Completely configurable obviously.
