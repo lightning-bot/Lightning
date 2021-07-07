@@ -21,7 +21,8 @@ from typing import Optional
 import discord
 
 from lightning import LightningBot, LightningCog
-from lightning.events import AuditLogModAction, MemberUpdateEvent
+from lightning.events import (AuditLogModAction, MemberRolesUpdateEvent,
+                              MemberRoleUpdateEvent, MemberUpdateEvent)
 
 
 def match_attribute(attr, before, after):
@@ -154,14 +155,22 @@ class ListenerEvents(LightningCog):
         entry = await self.fetch_audit_log_entry(before.guild, discord.AuditLogAction.member_role_update,
                                                  target=before, check=role_check(before, after))
 
-        # Alternatively, we can dispatch an add event and a remove event instead.
-        self.bot.dispatch("lightning_member_role_change", MemberUpdateEvent(before, after, entry))
+        self.bot.dispatch("lightning_member_role_change", MemberRolesUpdateEvent(before, after, entry))
 
     # Member events that don't need audit logs
     @LightningCog.listener('on_member_update')
     async def on_member_passed_screening(self, before, after):
         if before.pending is True and after.pending is False:
             self.bot.dispatch("lightning_member_passed_screening", after)
+
+    # Dispatches role_add and role_remove events.
+    @LightningCog.listener()
+    async def on_lightning_member_role_change(self, event):
+        for role in event.added_roles:
+            self.bot.dispatch("lightning_member_role_add", MemberRoleUpdateEvent(role, event.entry))
+
+        for role in event.removed_roles:
+            self.bot.dispatch("lightning_member_role_remove", MemberRoleUpdateEvent(role, event.entry))
 
 
 def setup(bot: LightningBot) -> None:

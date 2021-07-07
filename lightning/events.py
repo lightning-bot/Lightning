@@ -32,7 +32,6 @@ class BaseAuditLogEvent:
             self.reason = None
 
 
-# lightning_member_role_change
 # lightning_member_nick_change
 class MemberUpdateEvent(BaseAuditLogEvent):
     """Represents a member update with optional audit log information"""
@@ -48,6 +47,29 @@ class MemberUpdateEvent(BaseAuditLogEvent):
     def guild(self):
         """A shortcut for MemberUpdateEvent.after.guild"""
         return self.after.guild
+
+
+# lightning_member_role_change
+class MemberRolesUpdateEvent(MemberUpdateEvent):
+    @property
+    def added_roles(self):
+        added = [role for role in self.after.roles if role not in self.before.roles]
+        return added
+
+    @property
+    def removed_roles(self):
+        removed = [role for role in self.before.roles if role not in self.after.roles]
+        return removed
+
+
+# lightning_member_role_add
+# lightning_member_role_remove
+class MemberRoleUpdateEvent(BaseAuditLogEvent):
+    __slots__ = ("role")
+
+    def __init__(self, role, entry):
+        super().__init__(entry)
+        self.role = role
 
 
 # lightning_member_kick

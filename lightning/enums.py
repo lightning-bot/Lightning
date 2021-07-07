@@ -70,9 +70,10 @@ class LoggingType(Flags):
     # Discord Events
     MEMBER_JOIN = 1 << 7
     MEMBER_LEAVE = 1 << 8
-    MEMBER_ROLE_CHANGE = 1 << 9  # TODO: Separate into two.
-    MEMBER_NICK_CHANGE = 1 << 10
-    MEMBER_SCREENING_COMPLETE = 1 << 11
+    MEMBER_ROLE_ADD = 1 << 9
+    MEMBER_ROLE_REMOVE = 1 << 10
+    MEMBER_NICK_CHANGE = 1 << 11
+    MEMBER_SCREENING_COMPLETE = 1 << 12
 
     def __str__(self):
         return self.name
