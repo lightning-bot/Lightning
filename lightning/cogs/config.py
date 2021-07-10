@@ -22,12 +22,12 @@ import discord
 from discord.ext import commands, menus
 
 from lightning import (CommandLevel, ConfigFlags, LightningBot, LightningCog,
-                       LightningContext, LoggingType, ModFlags, cache)
-from lightning import command as lcommand
+                       LightningContext, LoggingType, ModFlags, cache, command)
 from lightning import flags as lflags
 from lightning import group as lgroup
 from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
+from lightning.events import ChannelConfigInvalidateEvent
 from lightning.formatters import plural
 from lightning.models import GuildModConfig
 from lightning.utils.checks import has_guild_permissions
@@ -39,7 +39,7 @@ LOG_FORMAT_D = {Emoji.numbers[0]: 'emoji', Emoji.numbers[1]: 'minimal with times
                 Emoji.numbers[2]: 'minimal without timestamp', Emoji.numbers[3]: 'embed'}
 
 
-# TODO: Switch to bot kit ui TM since ext.buttons are probably gonna be gone when dpy 2.0 releases.
+# TODO: Switch to bot kit ui TM since ext.menus are probably gonna be gone when dpy 2.0 releases.
 class SetupMenu(SessionMenu):
     def __init__(self, channel, **kwargs):
         super().__init__(**kwargs)
@@ -84,16 +84,12 @@ class SetupMenu(SessionMenu):
     async def log_everything(self, payload) -> None:
         await self.log_all_in_one(self.ctx.guild.id, self.log_channel.id)
         await self.ctx.send(f"Successfully setup logging for {self.log_channel.mention}")
-        await self.invalidate_cache()
+        self.invalidate_cache()
         self.stop()
 
-    async def invalidate_cache(self):
-        # We could dispatch another event, but this works for now. We'll have to rethink this later
-        # when I decide to add a channel_delete event type.
-        c = self.bot.get_cog("Logging")
-        if not c:
-            return
-        await c.on_guild_channel_delete(self.log_channel)
+    def invalidate_cache(self):
+        self.bot.dispatch("lightning_channel_config_remove",
+                          ChannelConfigInvalidateEvent(self.log_channel))
 
     async def _setup_logging(self, payload: discord.Message):
         match = re.fullmatch(r'^[\s\d]+$', payload.content)
@@ -117,7 +113,7 @@ class SetupMenu(SessionMenu):
                        ON CONFLICT (channel_id)
                        DO UPDATE SET types = EXCLUDED.types;"""
             await self.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(flags))
-            await self.invalidate_cache()
+            self.invalidate_cache()
             await self.ctx.send(f"Successfully set up logging for {self.log_channel.mention}! "
                                 f"({flags.to_simple_str().replace('|', ' ')})")
             self.stop()
@@ -153,7 +149,7 @@ class SetupMenu(SessionMenu):
         await self.ctx.send(f"Removed logging from {self.log_channel.mention}!")
         if resp != 0:
             # Invalidate cache if channel was a logging channel
-            await self.invalidate_cache()
+            self.invalidate_cache()
         self.stop()
 
     @menus.button("\N{NOTEBOOK}")
@@ -187,7 +183,7 @@ class SetupMenu(SessionMenu):
             await self.ctx.send(f"{self.log_channel.mention} is not setup as a logging channel!")
             return self.stop()
 
-        await self.invalidate_cache()
+        self.invalidate_cache()
         await self.ctx.send("Successfully changed log format")
         self.stop()
 
@@ -268,7 +264,8 @@ Features = {"role saver": (ConfigFlags.role_reapply, "Now saving member roles.",
             "invoke delete": (ConfigFlags.invoke_delete, "Now deleting successful command invocation messages",
                               "No longer deleting successful command invocation messages")}
 AutoModFeatures = {"delete longer messages": (ModFlags.delete_longer_messages,
-                                              "deleting messages over 2000 characters")}
+                                              "deleting messages over 2000 characters"),
+                   "delete stickers": (ModFlags.delete_stickers, "deleting messages containing a sticker.")}
 
 
 def convert_to_feature(argument):
@@ -306,7 +303,7 @@ class Configuration(LightningCog):
         c = cache.registry.get(config_name)
         return await c.invalidate(str(ctx.guild.id))
 
-    @lcommand(level=CommandLevel.Admin)
+    @command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
     async def settings(self, ctx):
         menu = ConfigViewerMenu(timeout=60.0, clear_reactions_after=True)
