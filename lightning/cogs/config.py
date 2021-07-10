@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import contextlib
 import logging
 import re
 from typing import Optional, Union
@@ -22,15 +21,15 @@ from typing import Optional, Union
 import discord
 from discord.ext import commands, menus
 
-from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, cache)
+from lightning import (CommandLevel, ConfigFlags, LightningBot, LightningCog,
+                       LightningContext, LoggingType, ModFlags, cache)
 from lightning import command as lcommand
 from lightning import flags as lflags
 from lightning import group as lgroup
 from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
 from lightning.formatters import plural
-from lightning.models import ConfigFlags, GuildModConfig
+from lightning.models import GuildModConfig
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import Emoji, ticker
 from lightning.utils.paginator import SessionMenu
@@ -38,22 +37,21 @@ from lightning.utils.paginator import SessionMenu
 log = logging.getLogger(__name__)
 LOG_FORMAT_D = {Emoji.numbers[0]: 'emoji', Emoji.numbers[1]: 'minimal with timestamp',
                 Emoji.numbers[2]: 'minimal without timestamp', Emoji.numbers[3]: 'embed'}
-LOGGING_TYPES = {"1": "WARN", "2": "KICK", "3": "BAN", "4": "MUTE",
-                 "5": "UNMUTE", "6": "UNBAN", "7": "MEMBER_JOIN", "8": "MEMBER_LEAVE", "9": "MEMBER_ROLE_CHANGE"}
 
 
+# TODO: Switch to bot kit ui TM since ext.buttons are probably gonna be gone when dpy 2.0 releases.
 class SetupMenu(SessionMenu):
     def __init__(self, channel, **kwargs):
         super().__init__(**kwargs)
         self.log_channel = channel
         self._emoji_list = ["\N{LEDGER}", "\N{OPEN BOOK}", "\N{CLOSED BOOK}", "\N{NOTEBOOK}"]
 
-    async def send_initial_message(self, ctx, channel):
+    async def send_initial_message(self, ctx, channel) -> discord.Message:
         emoji_init = self._emoji_list
-        content = f"React with {emoji_init[0]} to log everything to {self.log_channel.mention}, "\
+        content = f"Editing Channel: {self.log_channel.mention}\nReact with {emoji_init[0]} to log everything,"\
                   f"react with {emoji_init[1]} to setup specific logging, "\
                   f"or react with {emoji_init[2]} to remove logging "\
-                  f"from {self.log_channel.mention}. To change the mod logging format, "\
+                  f"from the channel. To change the mod logging format, "\
                   f"react with {emoji_init[3]}."\
                   "\n\nIf you want to cancel setup, react with "\
                   "\N{BLACK SQUARE FOR STOP}."
@@ -76,13 +74,11 @@ class SetupMenu(SessionMenu):
 
     async def log_all_in_one(self, guild_id: int, channel_id: int, *, connection=None) -> None:
         connection = connection or self.bot.pool
-        allevents = list(LOGGING_TYPES.values())
         query = """INSERT INTO logging (guild_id, channel_id, types)
                    VALUES ($1, $2, $3)
                    ON CONFLICT (channel_id)
                    DO UPDATE SET types=EXCLUDED.types;"""
-        # TODO: Tell the user we are already logging x events
-        await connection.execute(query, guild_id, channel_id, allevents)
+        await connection.execute(query, guild_id, channel_id, int(LoggingType.all))
 
     @menus.button('\N{LEDGER}')
     async def log_everything(self, payload) -> None:
@@ -92,8 +88,12 @@ class SetupMenu(SessionMenu):
         self.stop()
 
     async def invalidate_cache(self):
-        c = cache.registry.get("logging")
-        await c.invalidate(str(self.ctx.guild.id))
+        # We could dispatch another event, but this works for now. We'll have to rethink this later
+        # when I decide to add a channel_delete event type.
+        c = self.bot.get_cog("Logging")
+        if not c:
+            return
+        await c.on_guild_channel_delete(self.log_channel)
 
     async def _setup_logging(self, payload: discord.Message):
         match = re.fullmatch(r'^[\s\d]+$', payload.content)
@@ -102,24 +102,24 @@ class SetupMenu(SessionMenu):
             await self.ctx.send("Unable to determine what logging to setup")
             return self.stop()
 
-        toggled = []
+        events = {x: y for x, y in enumerate(LoggingType.all)}
+
+        flags = LoggingType()
         for char in group:
             try:
-                toggled.append(LOGGING_TYPES[char])
+                flags |= events[int(char)]
             except KeyError:
                 continue
 
-        if toggled:
-            query = "SELECT types FROM logging WHERE guild_id=$1 AND channel_id=$2;"
-            types = await self.bot.pool.fetchval(query, self.ctx.guild.id, self.log_channel.id) or []
-            types.extend(toggled)
+        if flags:
             query = """INSERT INTO logging (guild_id, channel_id, types)
-                       VALUES ($1, $2, $3::text[])
+                       VALUES ($1, $2, $3)
                        ON CONFLICT (channel_id)
                        DO UPDATE SET types = EXCLUDED.types;"""
-            await self.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, set(types))
+            await self.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(flags))
             await self.invalidate_cache()
-            await self.ctx.send(f"Successfully set up logging for {self.log_channel.mention}! ({', '.join(toggled)})")
+            await self.ctx.send(f"Successfully set up logging for {self.log_channel.mention}! "
+                                f"({flags.to_simple_str().replace('|', ' ')})")
             self.stop()
         else:
             await self.ctx.send("Unable to determine what logging you wanted setup!")
@@ -132,10 +132,13 @@ class SetupMenu(SessionMenu):
         content = "​Send the number of each event "\
                   "you want to log in a single message "\
                   "(space separated, \"1 3 5\"):\n"
+
         items = []
-        for x, y in LOGGING_TYPES.items():
-            items.append(f"{y.lower()}: {x}")
-        content += ', '.join(items) + "\n\n**To cancel, send 0**"
+        for x, y in enumerate(LoggingType.all):
+            items.append(f"{y.name.lower()}: {x}")
+
+        content += ', '.join(items) + "\n\n**To cancel, press \N{BLACK SQUARE FOR STOP}**"
+
         await self.message.edit(content=content)
 
         def check(m):
@@ -246,12 +249,12 @@ class ConfigViewerMenu(menus.Menu):
 
         # Warn Thresholds
         if obj.warn_kick or obj.warn_ban:
-            msg = ""
+            msg = []
             if obj.warn_kick:
-                msg += f"Kick: at {obj.warn_kick} warns\n"
+                msg.append(f"Kick: at {obj.warn_kick} warns\n")
             if obj.warn_ban:
-                msg += f"Ban: at {obj.warn_ban}+ warns\n"
-            embed.add_field(name="Warn Thresholds", value=msg)
+                msg.append(f"Ban: at {obj.warn_ban}+ warns\n")
+            embed.add_field(name="Warn Thresholds", value="".join(msg))
 
         await self.message.edit(embed=embed)
 
@@ -264,11 +267,20 @@ class ConfigViewerMenu(menus.Menu):
 Features = {"role saver": (ConfigFlags.role_reapply, "Now saving member roles.", "No longer saving member roles."),
             "invoke delete": (ConfigFlags.invoke_delete, "Now deleting successful command invocation messages",
                               "No longer deleting successful command invocation messages")}
+AutoModFeatures = {"delete longer messages": (ModFlags.delete_longer_messages,
+                                              "deleting messages over 2000 characters")}
 
 
 def convert_to_feature(argument):
     if argument.lower() in Features.keys():
         return Features[argument.lower()]
+    else:
+        raise commands.BadArgument(f"\"{argument}\" is not a valid feature flag.")
+
+
+def convert_to_automod_feature(argument):
+    if argument.lower() in AutoModFeatures.keys():
+        return AutoModFeatures[argument.lower()]
     else:
         raise commands.BadArgument(f"\"{argument}\" is not a valid feature flag.")
 
@@ -300,8 +312,8 @@ class Configuration(LightningCog):
         menu = ConfigViewerMenu(timeout=60.0, clear_reactions_after=True)
         await menu.start(ctx)
 
-    async def remove_config_key(self, guild_id: int, key: str, *, column='guild_config') -> str:
-        query = f"UPDATE {column} SET {key} = NULL WHERE guild_id=$1;"
+    async def remove_config_key(self, guild_id: int, key: str, *, table='guild_config') -> str:
+        query = f"UPDATE {table} SET {key} = NULL WHERE guild_id=$1;"
         return await self.bot.pool.execute(query, guild_id)
 
     @lgroup(invoke_without_command=True, level=CommandLevel.Admin)
@@ -403,8 +415,8 @@ class Configuration(LightningCog):
         await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.send(f"Removed `{prefix}`")
 
-    async def add_config_key(self, guild_id, key, value, *, column="guild_config") -> str:
-        query = f"""INSERT INTO {column} (guild_id, {key})
+    async def add_config_key(self, guild_id, key, value, *, table="guild_config") -> str:
+        query = f"""INSERT INTO {table} (guild_id, {key})
                     VALUES ($1, $2)
                     ON CONFLICT (guild_id)
                     DO UPDATE SET {key} = EXCLUDED.{key};"""
@@ -456,25 +468,6 @@ class Configuration(LightningCog):
 
         await ctx.send(piece)
 
-    @LightningCog.listener()
-    async def on_command_completion(self, ctx: LightningContext) -> None:
-        if ctx.guild is None:
-            return
-
-        record = await self.bot.get_guild_bot_config(ctx.guild.id)
-        if not record or not record.flags.invoke_delete:
-            return
-
-        try:
-            await ctx.message.delete()
-        except discord.Forbidden:
-            # Toggle it off
-            await self.add_config_key(ctx.guild.id, "invoke_delete", False)
-            await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
-            return
-        except discord.NotFound:
-            return
-
     @config.group(invoke_without_command=True, level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
@@ -504,81 +497,6 @@ class Configuration(LightningCog):
         await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.send("Successfully removed the server's autorole")
 
-    async def apply_users_roles(self, member: discord.Member, *, reapply=False, punishments_only=True, all=False):
-        query = "SELECT roles, punishment_roles FROM roles WHERE guild_id=$1 AND user_id=$2;"
-        record = await self.bot.pool.fetchrow(query, member.guild.id, member.id)
-
-        if not record:
-            return
-
-        roles = []
-        unresolved = []
-
-        def get_and_append(r):
-            role = member.guild.get_role(r)
-            if role:
-                roles.append(role)
-            else:
-                unresolved.append(role)
-
-        if record['punishment_roles']:
-            for role in record['punishment_roles']:
-                get_and_append(role)
-
-            if len(unresolved) != 0:
-                query = "UPDATE roles SET punishment_roles=$1 WHERE guild_id=$2 AND user_id=$3;"
-                log.debug(f"Unable to resolve roles: {unresolved}")
-                await self.bot.pool.execute(query, [r.id for r in roles], member.guild.id, member.id)
-
-            await member.add_roles(*roles, reason="Applying previous punishment roles")
-
-            if punishments_only:
-                return
-
-        if record['roles'] and reapply:
-            for role in record['roles']:
-                get_and_append(role)
-            await member.add_roles(*roles, reason="Applying old roles back.")
-
-    @LightningCog.listener()
-    async def on_member_remove(self, member):
-        record = await self.bot.get_guild_bot_config(member.guild.id)
-
-        if not record or not record.flags.role_reapply or len(member.roles) == 0:
-            return
-
-        query = """INSERT INTO roles (guild_id, user_id, roles)
-                   VALUES ($1, $2, $3::bigint[])
-                   ON CONFLICT (guild_id, user_id)
-                   DO UPDATE SET roles = EXCLUDED.roles;"""
-        await self.bot.pool.execute(query, member.guild.id, member.id,
-                                    [r.id for r in member.roles if r is not r.is_default()])
-
-    @LightningCog.listener()
-    async def on_member_join(self, member: discord.Member) -> None:
-        record = await self.bot.get_guild_bot_config(member.guild.id)
-
-        if not record or not record.autorole:
-            if hasattr(record, 'flags'):
-                await self.apply_users_roles(member, reapply=bool(record.flags.role_reapply))
-            else:
-                await self.apply_users_roles(member)
-            return
-
-        role = member.guild.get_role(record.autorole)
-        if not role:
-            await self.apply_users_roles(member, reapply=record.flags.role_reapply)
-            # Role is deleted
-            await self.remove_config_key(member.guild.id, "autorole")
-            await self.bot.get_guild_bot_config.invalidate(member.guild.id)
-            return
-
-        await self.apply_users_roles(member, reapply=bool(record.flags.role_reapply))
-
-        if role not in member.roles:
-            with contextlib.suppress(discord.Forbidden, discord.HTTPException):
-                await member.add_roles(role, reason="Applying configured autorole")
-
     # Mute role
 
     @config.group(invoke_without_command=True, level=CommandLevel.Admin)
@@ -603,7 +521,7 @@ class Configuration(LightningCog):
             await ctx.send('You cannot use the @\u200beveryone role.')
             return
 
-        await self.add_config_key(ctx.guild.id, "mute_role_id", role.id, column="guild_mod_config")
+        await self.add_config_key(ctx.guild.id, "mute_role_id", role.id, table="guild_mod_config")
         await self.invalidate_config(ctx)
         await ctx.send(f"Successfully set the mute role to {role.name}")
 
@@ -624,7 +542,7 @@ class Configuration(LightningCog):
             await ctx.send('You cannot use the @\u200beveryone role.')
             return
 
-        await self.add_config_key(ctx.guild.id, "temp_mute_role_id", role.id, column="guild_mod_config")
+        await self.add_config_key(ctx.guild.id, "temp_mute_role_id", role.id, table="guild_mod_config")
         await self.invalidate_config(ctx)
         await ctx.send(f"Successfully set the temporary mute role to {role.name}")
 
@@ -717,10 +635,41 @@ class Configuration(LightningCog):
     async def automod(self, ctx: LightningContext) -> None:
         await ctx.send_help("config automod")
 
+    async def toggle_automod_feature_flag(self, guild_id: int, flag: ModFlags) -> ModFlags:
+        """Toggles an automod feature flag for a guild
+
+        Parameters
+        ----------
+        guild_id : int
+            The ID of the server
+        flag : ModFlags
+            The flag that is being toggled.
+
+        Returns
+        -------
+        ModFlags
+            Returns the newly created flags.
+        """
+        record = await self.bot.get_mod_config(guild_id)
+        toggle = record.flags - flag if flag in record.flags else record.flags | flag
+        await self.add_config_key(guild_id, "flags", int(toggle), table="guild_mod_config")
+        await self.invalidate_config(guild_id)
+        return toggle
+
+    @automod.command(name="toggle", level=CommandLevel.Admin)
+    async def toggle_auto(self, ctx: LightningContext, feature: convert_to_automod_feature) -> None:
+        flag, msg = feature
+        toggle = await self.toggle_automod_feature_flag(flag)
+
+        if flag in toggle:
+            await ctx.send(f"Now {msg}")
+        else:
+            await ctx.send(f"No longer {msg}")
+
     @automod.command(level=CommandLevel.Admin, enabled=False)
     async def jointhreshold(self, ctx: LightningContext, joins: Optional[int] = 3, seconds: Optional[int] = 6) -> None:
         if not joins and not seconds:
-            await self.remove_config_key(ctx.guild.id, "automod_jointhreshold", column="guild_mod_config")
+            await self.remove_config_key(ctx.guild.id, "automod_jointhreshold", table="guild_mod_config")
             await ctx.send("Reset join threshold.")
         ...
 
@@ -813,7 +762,7 @@ class Configuration(LightningCog):
 
     @permissions.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def unblockcommand(self, ctx, command: ValidCommandName) -> None:
+    async def unblockcommand(self, ctx: LightningContext, command: ValidCommandName) -> None:
         """Unblocks a command"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if record.permissions is None:
@@ -833,9 +782,9 @@ class Configuration(LightningCog):
 
     @permissions.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)  # TODO: Replace with an owner check
-    async def fallback(self, ctx, boolean: bool) -> None:
+    async def fallback(self, ctx: LightningContext, boolean: bool) -> None:
         """Toggles the fallback permissions feature"""
-        await self.add_config_key(ctx.guild.id, "fallback", boolean, column="guild_permissions")
+        await self.add_config_key(ctx.guild.id, "fallback", boolean, table="guild_permissions")
         await self.bot.get_permissions_config.invalidate(ctx.guild.id)
         await ctx.tick(True)
 
@@ -863,11 +812,11 @@ class Configuration(LightningCog):
             # We're gonna assume they are a user unless otherwise
             user_level = CommandLevel.User
         else:
-            user_level = record.permissions.levels.get_user_level(ctx.author.id, [r.id for r in ctx.author.roles])
+            user_level = record.permissions.levels.get_user_level(ctx.author.id, ctx.author._roles)
 
         ovr = record.permissions.command_overrides
         if ovr is not None:
-            ids = [r.id for r in ctx.author.roles]
+            ids = ctx.author._roles.copy()
             ids.append(ctx.author.id)
 
             embed.add_field(name="ID Overriden",
