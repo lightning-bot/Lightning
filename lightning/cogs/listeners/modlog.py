@@ -221,15 +221,15 @@ class ModLog(LightningCog):
                 await emitter.put(embed=embed)
 
     @LightningCog.listener()
-    async def on_guild_channel_delete(self, channel):
-        if not isinstance(channel, discord.TextChannel):
+    async def on_lightning_channel_config_remove(self, event):
+        if not isinstance(event.channel, discord.TextChannel):
             return
 
-        emitter = self._emitters.pop(channel.id, None)
+        emitter = self._emitters.pop(event.channel.id, None)
         if emitter:
             emitter.close()
 
-        await self.get_logging_record.invalidate(channel.guild.id)
+        await self.get_logging_record.invalidate(event.guild.id)
 
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild):

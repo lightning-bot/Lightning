@@ -126,6 +126,21 @@ class InfractionEvent:  # ModerationEvent sounded nice too...
         return self.event_name
 
 
+class GuildConfigInvalidateEvent:
+    __slots__ = ("guild")
+
+    def __init__(self, guild):
+        self.guild = guild
+
+
+# lightning_channel_config_remove
+class ChannelConfigInvalidateEvent(GuildConfigInvalidateEvent):
+    __slots__ = ("channel")
+
+    def __init__(self, channel):
+        self.channel = channel
+        super().__init__(channel.guild)
+
 # These won't be used yet until I do a refactor of modlogformats for single param events
 
 
