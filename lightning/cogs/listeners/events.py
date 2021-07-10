@@ -66,6 +66,9 @@ class ListenerEvents(LightningCog):
         """Checks if the bot has permissions to view the audit log and waits if the bot does have permission."""
         await self.bot.wait_until_ready()  # Might make this optional...
 
+        if not guild.me:
+            return False
+
         if not guild.me.guild_permissions.view_audit_log:
             # There's no point to wait if we don't have perms
             return False
