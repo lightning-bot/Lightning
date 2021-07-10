@@ -259,6 +259,7 @@ class Whitelisted_URL:
 
         if url.host not in WHITELISTED_HOSTS:
             raise LightningError(f"`\"{url}\"` is not supported.")
+
         self.url = url
 
     @classmethod
