@@ -20,6 +20,9 @@ import discord
 
 from lightning.context import LightningContext
 
+__all__ = ("BaseView",
+           "MenuLikeView")
+
 
 class BaseView(discord.ui.View):
     """A view that adds cleanup to it"""
