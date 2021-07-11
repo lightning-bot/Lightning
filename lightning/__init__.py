@@ -21,3 +21,4 @@ from lightning.context import LightningContext  # noqa
 from lightning.enums import *  # noqa
 from lightning.meta import *  # noqa
 from lightning.storage import Storage  # noqa
+from lightning.views import *  # noqa
