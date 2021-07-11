@@ -22,7 +22,7 @@ import discord
 
 from lightning import LightningBot, LightningCog, LoggingType
 from lightning.cache import Strategy, cached
-from lightning.models import LoggingConfig
+from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils import modlogformats
 from lightning.utils.emitters import TextChannelEmitter
 
@@ -220,20 +220,27 @@ class ModLog(LightningCog):
                                                               event.moderator)
                 await emitter.put(embed=embed)
 
+    def _close_emitter(self, channel_id: int) -> None:
+        emitter = self._emitters.pop(channel_id, None)
+        if emitter:
+            emitter.close()
+
     @LightningCog.listener()
     async def on_lightning_channel_config_remove(self, event):
         if not isinstance(event.channel, discord.TextChannel):
             return
 
-        emitter = self._emitters.pop(event.channel.id, None)
-        if emitter:
-            emitter.close()
-
+        self._close_emitter(event.channel.id)
         await self.get_logging_record.invalidate(event.guild.id)
 
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild):
-        # We probably need to rethink this if emitters aren't closing
+        if isinstance(guild, PartialGuild):  # Guild was removed when the bot was down
+            return
+
+        for channel in guild.text_channels:
+            self._close_emitter(channel.id)
+
         await self.get_logging_record.invalidate(guild.id)  # :meowsad:
 
 
