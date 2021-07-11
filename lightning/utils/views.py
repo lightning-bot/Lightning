@@ -18,6 +18,8 @@ import asyncio
 
 import discord
 
+from lightning.context import LightningContext
+
 
 class BaseView(discord.ui.View):
     """A view that adds cleanup to it"""
@@ -55,15 +57,15 @@ class MenuLikeView(BaseView):
         self.clear_view_after = clear_view_after
         self.delete_message_after = delete_message_after
 
-    # Not sure about this yet, might change it
-    def initial_message(self, ctx):
+    # Seemed like reasonable naming
+    def format_initial_message(self, ctx):
         raise NotImplementedError
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return (self.ctx.author.id == interaction.user.id and  # noqa
-                self.ctx.channel.id == interaction.channnel.id)  # noqa
+        return self.ctx.author.id == interaction.user.id and \
+            self.ctx.channel.id == interaction.channnel.id
 
-    def _assume_message_kwargs(self, value):  # "Assumes" kwargs that are passed to message.send
+    def _assume_message_kwargs(self, value) -> dict:  # "Assumes" kwargs that are passed to message.send
         if isinstance(value, dict):
             return value
         elif isinstance(value, str):
@@ -71,7 +73,7 @@ class MenuLikeView(BaseView):
         elif isinstance(value, discord.Embed):
             return {'embed': value, 'content': None}
 
-    async def start(self, ctx, *, channel=None, wait=True):
+    async def start(self, ctx: LightningContext, *, channel=None, wait=True) -> None:
         self.ctx = ctx
 
         dest = channel or ctx.channel
@@ -82,7 +84,7 @@ class MenuLikeView(BaseView):
         if wait:
             await self.wait()
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         # This is first for obvious reasons
         if self.delete_message_after:
             await self.message.delete()
