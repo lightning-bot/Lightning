@@ -18,8 +18,6 @@ import asyncio
 
 import discord
 
-from lightning.context import LightningContext
-
 __all__ = ("BaseView",
            "MenuLikeView")
 
@@ -76,12 +74,12 @@ class MenuLikeView(BaseView):
         elif isinstance(value, discord.Embed):
             return {'embed': value, 'content': None}
 
-    async def start(self, ctx: LightningContext, *, channel=None, wait=True) -> None:
+    async def start(self, ctx, *, channel=None, wait=True) -> None:
         self.ctx = ctx
 
         dest = channel or ctx.channel
 
-        kwargs = self._assume_message_kwargs(self.initial_message(ctx))
+        kwargs = self._assume_message_kwargs(self.format_initial_message(ctx))
         self.message = await dest.send(**kwargs, view=self)
 
         if wait:
