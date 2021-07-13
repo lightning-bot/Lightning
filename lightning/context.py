@@ -14,18 +14,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
+import asyncio
 import io
 from contextlib import suppress
-from typing import Union
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands
 
 from lightning import errors
-from lightning.utils.helpers import ConfirmationMenu, haste
+from lightning.utils.helpers import haste
 from lightning.utils.helpers import request as make_request
 from lightning.utils.helpers import ticker
+from lightning.utils.views import ConfirmationView
 
 
 class LightningContext(commands.Context):
@@ -48,10 +49,27 @@ class LightningContext(commands.Context):
             except discord.Forbidden:
                 await self.message.add_reaction(emoji)
 
-    async def prompt(self, message: str, *, delete_after=False, confirmation_message=True) -> bool:
-        resp = await ConfirmationMenu(self, message, delete_message_after=delete_after,
-                                      confirmation_message=confirmation_message).prompt()
-        return resp
+    async def prompt(self, message: str, *, delete_after=False, confirmation_message=False) -> bool:
+        view = ConfirmationView(message, delete_message_after=delete_after,
+                                include_help_message=confirmation_message)
+        await view.start(self)
+
+        return view.value
+
+    async def ask(self, question: str, *, timeout: int = 60) -> Optional[discord.Message]:
+        """Prompts the member to send a message"""
+        await self.send(question)
+
+        def check(m):
+            return m.channel == self.channel and m.author == self.author
+
+        try:
+            message = await self.bot.wait_for("message", check=check, timeout=timeout)
+        except asyncio.TimeoutError:
+            await self.send("Timed out while waiting for a response.")
+            return
+
+        return message
 
     async def send(self, content=None, *args, **kwargs) -> discord.Message:
         if content:
