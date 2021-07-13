@@ -47,12 +47,12 @@ class MenuLikeView(BaseView):
     Parameters
     ----------
     clear_view_after : bool
-        Whether to remove the view after the view is done or timed out. Defaults to False
+        Whether to remove the view after the view is done or timed out. Defaults to True
     delete_message_after : bool
         Whether to delete the message after the view is done or timed out. Defaults to False
     timeout : Optional[float]
         Defines when the view should stop listening for the interaction event."""
-    def __init__(self, *, clear_view_after=False, delete_message_after=False, timeout=180.0):
+    def __init__(self, *, clear_view_after=True, delete_message_after=False, timeout=180.0):
         super().__init__(timeout=timeout)
         self.ctx = None
         self.clear_view_after = clear_view_after
