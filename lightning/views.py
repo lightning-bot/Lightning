@@ -42,12 +42,11 @@ class BaseView(discord.ui.View):
 class MenuLikeView(BaseView):
     """A view that mimics similar behavior of discord.ext.menus.
 
-    This is intended for use with discord.ui.buttons, but you can use discord.ui.select too.
 
     Parameters
     ----------
     clear_view_after : bool
-        Whether to remove the view after the view is done or timed out. Defaults to True
+        Whether to remove the view from the message after the view is done or timed out. Defaults to True
     delete_message_after : bool
         Whether to delete the message after the view is done or timed out. Defaults to False
     timeout : Optional[float]
