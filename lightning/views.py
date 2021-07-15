@@ -63,8 +63,7 @@ class MenuLikeView(BaseView):
         raise NotImplementedError
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return self.ctx.author.id == interaction.user.id and \
-            self.ctx.channel.id == interaction.channnel.id
+        return self.ctx.author.id == interaction.user.id
 
     def _assume_message_kwargs(self, value) -> dict:  # "Assumes" kwargs that are passed to message.send
         if isinstance(value, dict):
