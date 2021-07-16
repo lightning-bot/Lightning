@@ -709,13 +709,7 @@ class Mod(LightningCog, required=["Configuration"]):
         except Exception:
             user = helpers.BetterUserObject(id=timer.extra['user_id'])
 
-        moderator = guild.get_member(timer.extra['mod_id'])
-        if moderator is None:
-            try:
-                moderator = await self.bot.fetch_user(timer.extra['mod_id'])
-            except Exception:
-                # Discord Broke/Failed/etc.
-                moderator = helpers.BetterUserObject(id=timer.extra['mod_id'])
+        moderator = guild.get_member(timer.extra['mod_id']) or helpers.BetterUserObject(id=timer.extra['mod_id'])
 
         reason = f"Timed ban made by {modlogformats.base_user_format(moderator)} at {timer.created_at} expired"
         await guild.unban(user, reason=reason)
@@ -739,17 +733,7 @@ class Mod(LightningCog, required=["Configuration"]):
             # Bot was kicked.
             return
 
-        moderator = guild.get_member(timer.extra['mod_id'])
-        if moderator is None:
-            try:
-                mod = await self.bot.fetch_user(timer.extra['mod_id'])
-            except Exception:
-                # Discord Broke/Failed/etc.
-                mod = f"Moderator ID {timer.extra['mod_id']}"
-            else:
-                mod = f'{moderator} (ID: {moderator.id})'
-        else:
-            mod = f'{moderator} (ID: {moderator.id})'
+        moderator = guild.get_member(timer.extra['mod_id']) or helpers.BetterUserObject(timer.extra['mod_id'])
 
         role = guild.get_role(timer.extra['role_id'])
         if role is None:
@@ -761,7 +745,8 @@ class Mod(LightningCog, required=["Configuration"]):
             # User left probably...
             user = helpers.BetterUserObject(timer.extra['user_id'])
         else:
-            reason = f"Timed mute made by {mod} at {get_utc_timestamp(timer.created)} expired"
+            reason = f"Timed mute made by {modlogformats.base_user_format(moderator)} at "\
+                     f"{get_utc_timestamp(timer.created)} expired"
             # I think I'll intentionally let it raise an error if bot missing perms or w/e...
             await user.remove_roles(role, reason=reason)
 
