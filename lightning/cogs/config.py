@@ -15,180 +15,124 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import logging
-import re
 from typing import Optional, Union
 
 import discord
 from discord.ext import commands, menus
 
 from lightning import (CommandLevel, ConfigFlags, LightningBot, LightningCog,
-                       LightningContext, LoggingType, ModFlags, cache, command)
+                       LightningContext, LoggingType, MenuLikeView, ModFlags,
+                       cache, command)
 from lightning import flags as lflags
-from lightning import group as lgroup
+from lightning import group
 from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
 from lightning.events import ChannelConfigInvalidateEvent
 from lightning.formatters import plural
 from lightning.models import GuildModConfig
 from lightning.utils.checks import has_guild_permissions
-from lightning.utils.helpers import Emoji, ticker
-from lightning.utils.paginator import SessionMenu
+from lightning.utils.helpers import ticker
 
 log = logging.getLogger(__name__)
-LOG_FORMAT_D = {Emoji.numbers[0]: 'emoji', Emoji.numbers[1]: 'minimal with timestamp',
-                Emoji.numbers[2]: 'minimal without timestamp', Emoji.numbers[3]: 'embed'}
 
 
-# TODO: Switch to bot kit ui TM since ext.menus are probably gonna be gone when dpy 2.0 releases.
-class SetupMenu(SessionMenu):
-    def __init__(self, channel, **kwargs):
-        super().__init__(**kwargs)
-        self.log_channel = channel
-        self._emoji_list = ["\N{LEDGER}", "\N{OPEN BOOK}", "\N{CLOSED BOOK}", "\N{NOTEBOOK}"]
+class LoggingTypeSelects(discord.ui.Select):
+    def __init__(self):
+        super().__init__(max_values=len(LoggingType.all),
+                         options=[discord.SelectOption(label=x.name) for x in LoggingType.all])
 
-    async def send_initial_message(self, ctx, channel) -> discord.Message:
-        emoji_init = self._emoji_list
-        content = f"Editing Channel: {self.log_channel.mention}\nReact with {emoji_init[0]} to log everything,"\
-                  f"react with {emoji_init[1]} to setup specific logging, "\
-                  f"or react with {emoji_init[2]} to remove logging "\
-                  f"from the channel. To change the mod logging format, "\
-                  f"react with {emoji_init[3]}."\
-                  "\n\nIf you want to cancel setup, react with "\
-                  "\N{BLACK SQUARE FOR STOP}."
-        return await channel.send(content)
-
-    async def remove_channel_log(self, *, connection=None) -> str:
-        """Removes logging from a channel
-
-        connection : None, Optional
-            Optional database connection to use
-
-        Returns
-        -------
-        str
-            The result of the query
-        """
-        connection = connection if connection else self.bot.pool
-        query = """DELETE FROM logging WHERE guild_id=$1 AND channel_id=$2;"""
-        return await connection.execute(query, self.ctx.guild.id, self.log_channel.id)
-
-    async def log_all_in_one(self, guild_id: int, channel_id: int, *, connection=None) -> None:
-        connection = connection or self.bot.pool
+    async def callback(self, interaction: discord.Interaction) -> None:
+        assert self.view is not None
+        ctx = self.view.ctx
+        values = LoggingType.from_simple_str("|".join(self.values))
         query = """INSERT INTO logging (guild_id, channel_id, types)
                    VALUES ($1, $2, $3)
                    ON CONFLICT (channel_id)
-                   DO UPDATE SET types=EXCLUDED.types;"""
-        await connection.execute(query, guild_id, channel_id, int(LoggingType.all))
+                   DO UPDATE SET types = EXCLUDED.types;"""
+        await ctx.bot.pool.execute(query, ctx.guild.id, self.view.log_channel.id, int(values))
+        self.view.invalidate()
+        await interaction.response.send_message(f"Successfully set up logging for {self.view.log_channel.mention}! "
+                                                f"({values.to_simple_str().replace('|', ' ')})")
+        self.view.stop()
 
-    @menus.button('\N{LEDGER}')
-    async def log_everything(self, payload) -> None:
-        await self.log_all_in_one(self.ctx.guild.id, self.log_channel.id)
-        await self.ctx.send(f"Successfully setup logging for {self.log_channel.mention}")
-        self.invalidate_cache()
-        self.stop()
 
-    def invalidate_cache(self):
-        self.bot.dispatch("lightning_channel_config_remove",
-                          ChannelConfigInvalidateEvent(self.log_channel))
+class LogFormatButton(discord.ui.Button):
+    def __init__(self, format_type):
+        self.format_type = format_type
+        super().__init__(label=format_type.title())
 
-    async def _setup_logging(self, payload: discord.Message):
-        match = re.fullmatch(r'^[\s\d]+$', payload.content)
-        group = match.group().split()
-        if not group:
-            await self.ctx.send("Unable to determine what logging to setup")
-            return self.stop()
-
-        events = {x: y for x, y in enumerate(LoggingType.all)}
-
-        flags = LoggingType()
-        for char in group:
-            try:
-                flags |= events[int(char)]
-            except KeyError:
-                continue
-
-        if flags:
-            query = """INSERT INTO logging (guild_id, channel_id, types)
-                       VALUES ($1, $2, $3)
-                       ON CONFLICT (channel_id)
-                       DO UPDATE SET types = EXCLUDED.types;"""
-            await self.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(flags))
-            self.invalidate_cache()
-            await self.ctx.send(f"Successfully set up logging for {self.log_channel.mention}! "
-                                f"({flags.to_simple_str().replace('|', ' ')})")
-            self.stop()
-        else:
-            await self.ctx.send("Unable to determine what logging you wanted setup!")
-            self.stop()
-
-    @menus.button('\N{OPEN BOOK}')
-    async def specific_logging(self, payload) -> None:
-        await self.clear_buttons(react=True)
-
-        content = "​Send the number of each event "\
-                  "you want to log in a single message "\
-                  "(space separated, \"1 3 5\"):\n"
-
-        items = []
-        for x, y in enumerate(LoggingType.all):
-            items.append(f"{y.name.lower()}: {x}")
-
-        content += ', '.join(items) + "\n\n**To cancel, press \N{BLACK SQUARE FOR STOP}**"
-
-        await self.message.edit(content=content)
-
-        def check(m):
-            return m.author.id == self.ctx.author.id and self.ctx.channel.id == m.channel.id
-
-        await self.add_button(menus.Button('⏹', self.quit), react=True)
-        self.add_command(check, self._setup_logging)
-
-    @menus.button('\N{CLOSED BOOK}')
-    async def remove_logging(self, payload) -> None:
-        resp = await self.remove_channel_log()
-        await self.ctx.send(f"Removed logging from {self.log_channel.mention}!")
-        if resp != 0:
-            # Invalidate cache if channel was a logging channel
-            self.invalidate_cache()
-        self.stop()
-
-    @menus.button("\N{NOTEBOOK}")
-    async def change_format(self, payload) -> None:
-        await self.clear_buttons(react=True)
-
-        logformats = [f'{Emoji.numbers[0]} for Emoji format',
-                      f'{Emoji.numbers[1]} for Minimalistic with Timestamp format',
-                      f'{Emoji.numbers[2]} for Minimalistic without Timestamp format',
-                      f'{Emoji.numbers[3]} for Embed format']
-        content = f"React with {' or '.join(logformats)}.\n\nIf you want to cancel setup, react with " \
-                  "\N{BLACK SQUARE FOR STOP} to cancel."
-        await self.message.edit(content=content)
-
-        for emoji in LOG_FORMAT_D:
-            await self.add_button(menus.Button(emoji, self.process_payload), react=True)
-
-        await self.add_button(menus.Button('⏹', self.quit), react=True)
-
-    @menus.button('⏹')
-    async def quit(self, payload) -> None:
-        await self.ctx.send("Cancelled")
-        self.stop()
-
-    async def process_payload(self, payload):
-        """Changes the log format based on the payload"""
+    async def callback(self, interaction: discord.Interaction) -> None:
+        assert self.view is not None
+        connection = self.view.ctx.bot.pool
         query = """UPDATE logging SET format=$1 WHERE guild_id=$2 and channel_id=$3;"""
-        result = await self.bot.pool.execute(query, LOG_FORMAT_D[str(payload.emoji)], self.ctx.guild.id,
-                                             self.log_channel.id)
-        if result == "UPDATE 0":
-            await self.ctx.send(f"{self.log_channel.mention} is not setup as a logging channel!")
-            return self.stop()
+        resp = await connection.execute(query, self.format_type, self.view.log_channel.guild.id,
+                                        self.view.log_channel.id)
 
-        self.invalidate_cache()
-        await self.ctx.send("Successfully changed log format")
+        if resp == "UPDATE 0":
+            await interaction.response.send_message(f"{self.view.log_channel.mention} is not setup as a logging "
+                                                    "channel!")
+            self.view.stop()
+            return
+
+        await interaction.response.send_message(f"Successfully changed the log format to {self.label}!")
+        self.view.invalidate()
+        self.view.stop()
+
+
+class LoggingConfigView(MenuLikeView):
+    def __init__(self, log_channel: discord.TextChannel, **kwargs):
+        super().__init__(**kwargs)
+        self.log_channel = log_channel
+
+    def invalidate(self):
+        self.ctx.bot.dispatch("lightning_channel_config_remove",
+                              ChannelConfigInvalidateEvent(self.log_channel))
+
+    def format_initial_message(self, ctx):
+        content = "Welcome to the interactive logging configuration setup, please select a button below to continue."\
+                  "\n\nIf you want to cancel setup, press the button with \N{BLACK SQUARE FOR STOP}."
+        return content
+
+    @discord.ui.button(label="Log all events", emoji="\N{LEDGER}")
+    async def log_all_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        query = """INSERT INTO logging (guild_id, channel_id, types)
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (channel_id)
+                   DO UPDATE SET types = EXCLUDED.types;"""
+        await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(LoggingType.all))
+        self.invalidate()
+        await interaction.response.send_message(f"Successfully set up logging for {self.view.log_channel.mention}! "
+                                                f"({LoggingType.all.to_simple_str().replace('|', ', ')})")
         self.stop()
 
-    async def start(self, *args, **kwargs) -> None:
-        await super().start(*args, **kwargs)
+    @discord.ui.button(label="Setup specific logging events", emoji="\N{OPEN BOOK}")
+    async def specific_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        self.clear_items()
+        self.add_item(LoggingTypeSelects())
+        await interaction.response.edit_message(content='Select the events you wish to log', view=self)
+
+    @discord.ui.button(label="Remove logging", style=discord.ButtonStyle.red, emoji="\N{CLOSED BOOK}")
+    async def remove_logging_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        query = """DELETE FROM logging
+                   WHERE guild_id=$1
+                   AND channel_id=$2;"""
+        await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id)
+
+        await interaction.response.send_message(f"Removed logging from {self.log_channel.mention}!")
+        self.invalidate()
+        self.stop()
+
+    @discord.ui.button(label="Change logging format", emoji="\N{NOTEBOOK}")
+    async def change_format_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        self.clear_items()
+        for log_format in ['emoji', 'minimal with timestamp', 'minimal without timestamp', 'embed']:
+            self.add_item(LogFormatButton(log_format))
+        await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(emoji="\N{BLACK SQUARE FOR STOP}")
+    async def stop_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        await interaction.response.edit_message(content="Cancelled.")
+        self.stop()
 
 
 class ConfigViewerMenu(menus.Menu):
@@ -313,7 +257,7 @@ class Configuration(LightningCog):
         query = f"UPDATE {table} SET {key} = NULL WHERE guild_id=$1;"
         return await self.bot.pool.execute(query, guild_id)
 
-    @lgroup(invoke_without_command=True, level=CommandLevel.Admin)
+    @group(invoke_without_command=True, level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
     async def config(self, ctx: LightningContext) -> None:
         """Manages most of the configuration for the bot.
@@ -400,7 +344,7 @@ class Configuration(LightningCog):
 
         To remove word/multi-word prefixes, you need to quote it.
 
-        Example: `.prefix remove "lightning "` removes the "lightning " prefix.
+        Example: `{prefix}prefix remove "lightning "` removes the "lightning " prefix.
         """
         prefixes = await self.get_guild_prefixes(ctx.guild.id)
         if prefix not in prefixes:
@@ -427,7 +371,7 @@ class Configuration(LightningCog):
 
         This handles changing the log format for the server, removing logging from a channel, and setting up \
         logging for a channel."""
-        await SetupMenu(channel, timeout=60, clear_reactions_after=True).start(ctx, wait=True)
+        await LoggingConfigView(channel, timeout=180.0).start(ctx)
 
     async def toggle_feature_flag(self, guild_id: int, flag: ConfigFlags) -> ConfigFlags:
         """Toggles a feature flag for a guild
