@@ -136,6 +136,7 @@ class Misc(LightningCog):
         match = re.match(r"[0-9]{15,20}", snowflake)
         if not match:
             await ctx.send("That doesn't seem like a snowflake.")
+            return
 
         snowflake = discord.utils.snowflake_time(int(match.group(0)))
 
