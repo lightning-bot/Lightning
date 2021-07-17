@@ -1,12 +1,12 @@
 """
-3.2.0
+3.2.0 data migrator
 """
 
 from yoyo import step
 
 from lightning.enums import LoggingType
 
-__depends__ = {'20210128_01_dkC4d-3-0-0-migration', '20210609_01_YXSjP-3-2-0'}
+__depends__ = {'20210128_01_dkC4d-initial', '20210609_01_YXSjP-3-2-0'}
 
 
 flags = {"BAN": "MEMBER_BAN",
