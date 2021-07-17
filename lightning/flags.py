@@ -96,8 +96,9 @@ class Flag:
         self.default = default
         self.required = required
 
-        if self.default and is_bool_flag:
-            raise FlagError("Boolean flags cannot have a default")
+        # Special handling for boolean flags
+        if is_bool_flag:
+            self.default = bool(default)
 
         if self.required and is_bool_flag:
             raise FlagError("Boolean flags cannot require an argument")
@@ -214,10 +215,7 @@ class Parser:
         ns = {}
         flags = self.get_all_unique_flags()
         for flag in flags:
-            if flag.is_bool_flag is True:
-                ns[flag.attr_name] = False
-            else:
-                ns[flag.attr_name] = flag.default  # More and likely it's probably None...
+            ns[flag.attr_name] = flag.default  # More and likely it's probably None...
         return ns
 
     async def parse_args(self, ctx):
