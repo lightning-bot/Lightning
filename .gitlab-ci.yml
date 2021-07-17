@@ -51,7 +51,6 @@ Test Migrations:
     - pip3 install yoyo-migrations psycopg2
     - export PGPASSWORD=$POSTGRES_PASSWORD
     - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v "ON_ERROR_STOP=1" -c "CREATE DATABASE tests;"
-    - psql -h "postgres" -U "$POSTGRES_USER" -d "tests" -v "ON_ERROR_STOP=1" -f tests/original_schema.sql
     - yoyo apply --batch --database postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/tests ./migrations
   rules:
     - changes:
