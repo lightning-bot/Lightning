@@ -725,7 +725,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
             await self.remove_punishment_role(timer.extra['guild_id'], timer.extra['user_id'],
                                               timer.extra['role_id'], connection=connection)
-            query = "UPDATE infractions SET active=false WHERE guild_id=$1 AND user_id=$2 AND expiry=$3;"
+            query = "UPDATE infractions SET active=false WHERE guild_id=$1 AND user_id=$2 AND expiry=$3 AND action='8';"
             await connection.execute(query, timer.extra['guild_id'], timer.extra['user_id'], timer.expiry)
 
         guild = self.bot.get_guild(timer.extra['guild_id'])
@@ -833,12 +833,13 @@ class Mod(LightningCog, required=["Configuration"]):
         else:
             return False
 
-    async def _warn_punishment(self, target):
+    async def get_warn_count(self, guild_id: int, user_id: int) -> int:
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
-        await self.bot.pool.fetchval(query, target.id, target.guild.id,
-                                     modlogformats.ActionType.WARN.value) or 0
-        # warn_count = await self.warn_count_check(ctx, warns + 1, target,
-        #                                         "Automod", no_dm)
+        rev = await self.bot.pool.fetchval(query, user_id, guild_id,
+                                           modlogformats.ActionType.WARN.value)
+        return rev or 0
+
+    async def _warn_punishment(self, target):
         reason = modlogformats.action_format(self.bot.me, reason="Automod triggered")
         await self.log_manual_action(target, self.bot.me, "WARN", reason=reason)
 
@@ -872,7 +873,13 @@ class Mod(LightningCog, required=["Configuration"]):
         if not record or not record.warn_ban or not record.warn_kick:
             return
 
-        await self._warn_punishment(event.member)
+        count = await self.get_warn_count(event.guild.id, event.member.id)
+
+        if record.warn_kick == count:
+            await self._kick_punishment(event.member)
+
+        if record.warn_ban >= count:
+            await self._ban_punishment(event.member)
 
     @LightningCog.listener()
     async def on_message(self, message):
