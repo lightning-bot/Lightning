@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -131,7 +131,7 @@ async def webhook_send(session: aiohttp.ClientSession, webhook_id: int, token: s
     Optional[discord.Message]
         Returns a message object if the wait kwarg is passed
     """
-    webhook = discord.Webhook.partial(webhook_id, token, adapter=discord.AsyncWebhookAdapter(session))
+    webhook = discord.Webhook.partial(webhook_id, token, session=session)
     try:
         await webhook.send(message, **kwargs)
     except discord.NotFound:
