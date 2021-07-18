@@ -232,9 +232,10 @@ class PaginatedHelpCommand(commands.HelpCommand):
         if command.description:
             description = command.description.format(prefix=self.context.clean_prefix)
             page_or_embed.description = f'{usage}{description}\n\n{command.help}'
+        elif command.help:
+            page_or_embed.description = f'{usage}{command.help.format(prefix=self.context.clean_prefix)}'
         else:
-            description = command.help.format(prefix=self.context.clean_prefix)
-            page_or_embed.description = f'{usage}{description}' if command.help else f'{usage}No help found...'
+            page_or_embed.description = f'{usage}No help found...'
 
         if hasattr(command, 'level'):
             page_or_embed.description += f"\n\n**Default Level Required**: {command.level.name}"
