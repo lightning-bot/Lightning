@@ -93,7 +93,7 @@ class LoggingConfigView(MenuLikeView):
                   "\n\nIf you want to cancel setup, press the button with \N{BLACK SQUARE FOR STOP}."
         return content
 
-    @discord.ui.button(label="Log all events", emoji="\N{LEDGER}")
+    @discord.ui.button(label="Log all events", style=discord.ButtonStyle.primary, emoji="\N{LEDGER}")
     async def log_all_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         query = """INSERT INTO logging (guild_id, channel_id, types)
                    VALUES ($1, $2, $3)
@@ -101,15 +101,22 @@ class LoggingConfigView(MenuLikeView):
                    DO UPDATE SET types = EXCLUDED.types;"""
         await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(LoggingType.all))
         self.invalidate()
-        await interaction.response.send_message(f"Successfully set up logging for {self.view.log_channel.mention}! "
+        await interaction.response.send_message(f"Successfully set up logging for {self.log_channel.mention}! "
                                                 f"({LoggingType.all.to_simple_str().replace('|', ', ')})")
         self.stop()
 
-    @discord.ui.button(label="Setup specific logging events", emoji="\N{OPEN BOOK}")
+    @discord.ui.button(label="Setup specific logging events", style=discord.ButtonStyle.primary, emoji="\N{OPEN BOOK}")
     async def specific_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         self.clear_items()
         self.add_item(LoggingTypeSelects())
         await interaction.response.edit_message(content='Select the events you wish to log', view=self)
+
+    @discord.ui.button(label="Change logging format", style=discord.ButtonStyle.primary, emoji="\N{NOTEBOOK}")
+    async def change_format_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        self.clear_items()
+        for log_format in ['emoji', 'minimal with timestamp', 'minimal without timestamp', 'embed']:
+            self.add_item(LogFormatButton(log_format))
+        await interaction.response.edit_message(content="Select the type of log format to change to", view=self)
 
     @discord.ui.button(label="Remove logging", style=discord.ButtonStyle.red, emoji="\N{CLOSED BOOK}")
     async def remove_logging_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
@@ -121,13 +128,6 @@ class LoggingConfigView(MenuLikeView):
         await interaction.response.send_message(f"Removed logging from {self.log_channel.mention}!")
         self.invalidate()
         self.stop()
-
-    @discord.ui.button(label="Change logging format", emoji="\N{NOTEBOOK}")
-    async def change_format_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
-        self.clear_items()
-        for log_format in ['emoji', 'minimal with timestamp', 'minimal without timestamp', 'embed']:
-            self.add_item(LogFormatButton(log_format))
-        await interaction.response.edit_message(view=self)
 
     @discord.ui.button(emoji="\N{BLACK SQUARE FOR STOP}")
     async def stop_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
