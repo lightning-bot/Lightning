@@ -16,8 +16,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import discord
 
+from lightning.ui import MenuLikeView
 from lightning.utils.helpers import Emoji
-from lightning.views import MenuLikeView
 
 
 class ConfirmationView(MenuLikeView):

@@ -26,7 +26,7 @@ from lightning import errors
 from lightning.utils.helpers import haste
 from lightning.utils.helpers import request as make_request
 from lightning.utils.helpers import ticker
-from lightning.utils.views import ConfirmationView
+from lightning.utils.ui import ConfirmationView
 
 
 class LightningContext(commands.Context):
