@@ -91,7 +91,7 @@ class TargetMember(commands.Converter):
 class ReadableChannel(commands.Converter):
     async def convert(self, ctx, argument):
         channel = await commands.TextChannelConverter().convert(ctx, argument)
-        if not channel.guild.me.permissions_for(channel).read_messages:
+        if not channel.permissions_for(ctx.me).read_messages:
             raise ChannelPermissionFailure(f"I don't have permission to view channel {channel.mention}")
         if not ctx.author or not channel.permissions_for(ctx.author).read_messages:
             raise ChannelPermissionFailure(f"You don't have permission to view channel {channel.mention}")
@@ -101,7 +101,7 @@ class ReadableChannel(commands.Converter):
 class SendableChannel(commands.Converter):
     async def convert(self, ctx, argument):
         channel = await commands.TextChannelConverter().convert(ctx, argument)
-        if not channel.guild.me.permissions_for(channel).send_messages:
+        if not channel.permissions_for(ctx.me).send_messages:
             raise ChannelPermissionFailure("I don't have permission to send "
                                            f"messages in {channel.mention}")
         if not ctx.author or not channel.permissions_for(ctx.author).send_messages:
