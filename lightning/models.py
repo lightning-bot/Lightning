@@ -187,30 +187,53 @@ class CommandOverrides:
 
 class LevelConfig:
     def __init__(self, record):
-        self.ADMIN = record.get("ADMIN", []) or []
-        self.MOD = record.get("MOD", []) or []
-        self.TRUSTED = record.get("TRUSTED", []) or []
-        self.BLOCKED = record.get("BLOCKED", []) or []
+        admin = record.pop("ADMIN", {})
+        self.admin_role_ids = admin.pop("ROLE_IDS", [])
+        self.admin_user_ids = admin.pop("USER_IDS", [])
+        self.admin_ids = [*self.admin_role_ids, *self.admin_user_ids]
+
+        mod = record.pop("MOD", {})
+        self.mod_role_ids = mod.pop("ROLE_IDS", [])
+        self.mod_user_ids = mod.pop("USER_IDS", [])
+        self.mod_ids = [*self.mod_role_ids, *self.mod_user_ids]
+
+        trusted = record.pop("TRUSTED", {})
+        self.trusted_role_ids = trusted.pop("ROLE_IDS", [])
+        self.trusted_user_ids = trusted.pop("USER_IDS", [])
+        self.trusted_ids = [*self.trusted_role_ids, *self.trusted_user_ids]
+
+        blocked = record.pop("BLOCKED", {})
+        self.blocked_role_ids = blocked.pop("ROLE_IDS", [])
+        self.blocked_user_ids = blocked.pop("USER_IDS", [])
+        self.blocked_ids = [*self.blocked_role_ids, *self.blocked_user_ids]
+
+        # Legacy attributes
+        self.ADMIN = self.admin_ids
+        self.MOD = self.mod_ids
+        self.TRUSTED = self.trusted_ids
+        self.BLOCKED = self.blocked_ids
 
     def get_user_level(self, user_id: int, role_ids: list) -> CommandLevel:
-        ids = [user_id]
-        ids.extend(role_ids)
-        if any(r for r in ids if r in self.BLOCKED):
+        ids = [user_id, *role_ids]
+        if any(r for r in ids if r in self.blocked_ids):
             return CommandLevel.Blocked
 
-        if any(r for r in ids if r in self.ADMIN):
+        if any(r for r in ids if r in self.admin_ids):
             return CommandLevel.Admin
 
-        if any(r for r in ids if r in self.MOD):
+        if any(r for r in ids if r in self.mod_ids):
             return CommandLevel.Mod
 
-        if any(r for r in ids if r in self.TRUSTED):
+        if any(r for r in ids if r in self.trusted_ids):
             return CommandLevel.Trusted
 
         return CommandLevel.User
 
     def to_dict(self):
-        return {"ADMIN": self.ADMIN, "MOD": self.MOD, "TRUSTED": self.TRUSTED, "BLOCKED": self.BLOCKED}
+        return {"ADMIN": {"ROLE_IDS": self.admin_role_ids, "USER_IDS": self.admin_user_ids},
+                "MOD": {"ROLE_IDS": self.mod_role_ids, "USER_IDS": self.mod_user_ids},
+                "TRUSTED": {"ROLE_IDS": self.trusted_role_ids, "USER_IDS": self.trusted_user_ids},
+                "BLOCKED": {"ROLE_IDS": self.blocked_role_ids, "USER_IDS": self.blocked_user_ids}}
 
 
 class GuildPermissionsConfig:
