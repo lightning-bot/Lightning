@@ -15,7 +15,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.8"
 "discord.py" = {git = "https://github.com/LightSage/discord.py", rev = "v2/defaults-patch"}
-Pillow = "^7.2.0"
+Pillow = "^8.2.0"
 python-dateutil = "^2.8.1"
 parsedatetime = "^2.6"
 psutil = "^5.7.2"
