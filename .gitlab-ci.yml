@@ -33,11 +33,13 @@ Test Migrations:
   image: postgres:12-alpine
   services:
   - postgres:12-alpine
-  script:
+  before_script:
     - apk add --update python3 py3-pip openssl-dev python3-dev g++ libffi-dev cargo git
-    - pip3 install wheel
-    - pip3 install yoyo-migrations psycopg2
-    - pip3 install .
+    - pip install poetry wheel
+    - poetry --version
+    - poetry config settings.virtualenvs.in-project true
+    - poetry install -vv --no-dev
+  script:
     - export PGPASSWORD=$POSTGRES_PASSWORD
     - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v "ON_ERROR_STOP=1" -c "CREATE DATABASE tests;"
     - yoyo apply --batch --database postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/tests ./migrations
