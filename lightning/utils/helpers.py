@@ -35,36 +35,46 @@ from lightning.utils.emitters import WebhookEmbedEmitter
 log = logging.getLogger(__name__)
 
 
-async def archive_messages(channel: discord.TextChannel, limit: int, *, filename=None) -> discord.File:
+async def archive_messages(channel: discord.TextChannel, limit: int, *, filename=None, reverse=False) -> discord.File:
     """Makes a txt file containing the limit of messages specified.
 
     Parameters
     ----------
-    ctx : Context
-        The context that invoked the command.
+    channel : discord.TextChannel
+        The channel to archive messages for.
     limit : int
         How many messages to search for
     filename : None, Optional
         Optional file name
+    reverse : bool
+        Whether to reverse the messages or not. Defaults to False
 
     Returns
     -------
     :class:discord.File
         A .txt file containing the messages
     """
-    logtext = f"Archive of {channel} (ID: {channel.id}) "\
-              f"made on {datetime.datetime.utcnow()}\n\n\n"
-    async for log in channel.history(limit=limit):
-        logtext += f"[{log.created_at}]: {log.author} - {log.clean_content}"
-        if log.attachments:
-            for attach in log.attachments:
-                logtext += f"{attach.url}\n"
+    messages = []
+    async for msg in channel.history(limit=limit):
+        messages.append(f"[{msg.created_at}]: {msg.author} - {msg.clean_content}")
+
+        if msg.attachments:
+            for attachment in msg.attachments:
+                messages.append(f"{attachment.url}\n")
         else:
-            logtext += "\n"
-    txtlog = io.StringIO()
-    txtlog.write(logtext)
-    txtlog.seek(0)
-    return discord.File(txtlog, filename=filename or f"message_archive_{str(channel)}.txt")
+            messages.append("\n")
+
+    if reverse:
+        messages.reverse()
+
+    text = f"Archive of {channel} (ID: {channel.id}) "\
+           f"made at {datetime.datetime.utcnow()}\n\n\n{''.join(messages)}"
+
+    _bytes = io.StringIO()
+    _bytes.write(text)
+    _bytes.seek(0)
+
+    return discord.File(_bytes, filename=filename or f"message_archive_{str(channel)}.txt")
 
 
 async def message_id_lookup(bot, channel_id: int, message_id: int):
