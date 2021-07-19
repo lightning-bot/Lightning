@@ -2,6 +2,8 @@
 3.2.0 data migrator
 """
 
+import json
+
 from yoyo import step
 
 from lightning.enums import LoggingType
@@ -33,9 +35,20 @@ def convert_to_flags(record):
     return LoggingType.from_simple_str("|".join(x))
 
 
+def migrate_permissions(r: dict) -> str:
+    levels = r.get("LEVELS", None)
+    if not levels:
+        return r
+
+    for key, value in levels.items():
+        r["LEVELS"][key] = {"USER_IDS": value}
+
+    return json.dumps(r)
+
+
 def apply(conn):
+    # Logging Changes
     cur = conn.cursor()
-    # Temp column
     cur.execute("ALTER TABLE logging ADD COLUMN flags INT")
     conn.commit()
     cur.execute("SELECT guild_id, channel_id, types FROM logging")
@@ -45,6 +58,15 @@ def apply(conn):
 
     cur.execute("ALTER TABLE logging DROP COLUMN types")
     cur.execute("ALTER TABLE logging RENAME COLUMN flags TO types;")
+    conn.commit()
+    cur.close()
+    # Permission changes
+    cur = conn.cursor()
+    cur.execute("SELECT guild_id, permissions FROM guild_config WHERE permissions IS NOT NULL")
+    records = cur.fetchall()
+    for record in records:
+        perms = migrate_permissions(record[1])
+        cur.execute("UPDATE guild_config SET permissions=%s WHERE guild_id=%s", (perms, record[0]))
     conn.commit()
     cur.close()
 
