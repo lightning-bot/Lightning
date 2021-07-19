@@ -1,6 +1,6 @@
 """
-Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Lightning.py - A Discord bot
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -106,12 +106,11 @@ class LightningCommand(commands.Command):
             # We're gonna assume they are a user unless otherwise
             user_level = CommandLevel.User
         else:
-            user_level = record.permissions.levels.get_user_level(ctx.author.id, [r.id for r in ctx.author.roles])
+            user_level = record.permissions.levels.get_user_level(ctx.author.id, ctx.author._roles)
 
         overrides = record.permissions.command_overrides
         if overrides is not None:
-            ids = [r.id for r in ctx.author.roles]
-            ids.append(ctx.author.id)
+            ids = [*[r.id for r in ctx.author.roles], ctx.author.id]
             if overrides.is_command_id_overriden(self.qualified_name, ids) is True:
                 return True
 
