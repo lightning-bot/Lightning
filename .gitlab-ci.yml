@@ -34,7 +34,7 @@ Test Migrations:
   services:
   - postgres:12-alpine
   script:
-    - apk add --update python3 py3-pip openssl-dev python3-dev g++ libffi-dev
+    - apk add --update python3 py3-pip openssl-dev python3-dev g++ libffi-dev cargo git
     - pip3 install wheel
     - pip3 install yoyo-migrations psycopg2
     - pip3 install .
