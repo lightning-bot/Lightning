@@ -229,16 +229,18 @@ class PaginatedHelpCommand(commands.HelpCommand):
         else:
             usage = f"**Usage**: {command.qualified_name}\n\n"
 
+        desc = [usage]
+
         if command.description:
             description = command.description.format(prefix=self.context.clean_prefix)
-            page_or_embed.description = f'{usage}{description}\n\n{command.help}'
+            desc.append(description)
         elif command.help:
-            page_or_embed.description = f'{usage}{command.help.format(prefix=self.context.clean_prefix)}'
+            desc.append(command.help.format(prefix=self.context.clean_prefix))
         else:
-            page_or_embed.description = f'{usage}No help found...'
+            desc.append("No help found...")
 
         if hasattr(command, 'level'):
-            page_or_embed.description += f"\n\n**Default Level Required**: {command.level.name}"
+            desc.append(f"\n\n**Default Level Required**: {command.level.name}")
 
         cflags = self.flag_help_formatting(command)
         if cflags:
@@ -247,10 +249,12 @@ class PaginatedHelpCommand(commands.HelpCommand):
         channel, guild = self.permissions_required_format(command)
         if channel:
             req = ", ".join(channel).replace('_', ' ').replace('guild', 'server').title()
-            page_or_embed.description += f"\n**Channel Permissions Required**: {req}"
+            desc.append(f"\n**Channel Permissions Required**: {req}")
         if guild:
             req = ", ".join(guild).replace('_', ' ').replace('guild', 'server').title()
-            page_or_embed.description += f"\n**Server Permissions Required**: {req}"
+            desc.append(f"\n**Server Permissions Required**: {req}")
+
+        page_or_embed.description = ''.join(desc)
 
     async def send_command_help(self, command):
         # No pagination necessary for a single command.
