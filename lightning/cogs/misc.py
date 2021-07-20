@@ -15,14 +15,17 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncio
-import re
+from datetime import datetime
+from io import StringIO
 
 import discord
 from discord.ext import commands
 from discord.ext import menus as dmenus
 
-from lightning import LightningBot, LightningCog, LightningContext, command
-from lightning.converters import ReadableChannel
+from lightning import (LightningBot, LightningCog, LightningContext, command,
+                       group)
+from lightning.converters import ReadableChannel, Snowflake, SnowflakeDT
+from lightning.flags import FlagCommand, add_flag
 from lightning.utils import helpers
 from lightning.utils.time import format_timestamp
 
@@ -102,12 +105,12 @@ class Misc(LightningCog):
         await asyncio.gather(msg.add_reaction("\N{THUMBS UP SIGN}"), msg.add_reaction("\N{THUMBS DOWN SIGN}"),
                              msg.add_reaction("\N{SHRUG}"))
 
-    @command()
+    @group(invoke_without_command=True)
     @commands.bot_has_permissions(read_message_history=True)
     @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
-    async def archive(self, ctx: LightningContext, limit: int, *,
+    async def archive(self, ctx: LightningContext, limit: int,
                       channel: ReadableChannel = commands.default.CurrentChannel) -> None:
-        """Archives the current channel's contents to a txt file."""
+        """Archives a channel's contents to a text file."""
         if limit > 250:
             await ctx.send("You can only archive 250 messages.")
             return
@@ -117,9 +120,48 @@ class Misc(LightningCog):
 
         await ctx.send(file=fp)
 
+    @archive.command(cls=FlagCommand, name="custom")
+    @commands.bot_has_permissions(read_message_history=True)
+    @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
+    @add_flag("--reverse", "-r", help="Reverses the messages to oldest message first", is_bool_flag=True)
+    @add_flag("--limit", help="The limit of messages to get", converter=int, default=50)
+    @add_flag("--before", help="Archives messages from before this snowflake", converter=Snowflake)
+    @add_flag("--channel", "-c", help="The channel to archive messages from", converter=ReadableChannel)
+    async def archive_custom(self, ctx: LightningContext, **flags):
+        """An advanced archive command that uses flags only"""
+        args = {'limit': flags['limit']}
+
+        if flags['before']:
+            args['before'] = flags['before']
+
+        channel = flags['channel'] or ctx.channel
+
+        messages = []
+        async for msg in channel.history(**args):
+            messages.append(f"[{msg.created_at}]: {msg.author} - {msg.clean_content}")
+
+            if msg.attachments:
+                for attachment in msg.attachments:
+                    messages.append(f"{attachment.url}\n")
+            else:
+                messages.append("\n")
+
+        if flags['reverse']:
+            messages.reverse()
+
+        text = f"Archive of {channel} (ID: {channel.id}) "\
+               f"made at {datetime.utcnow()}\n\n\n{''.join(messages)}"
+
+        _bytes = StringIO()
+        _bytes.write(text)
+        _bytes.seek(0)
+
+        await ctx.send(file=discord.File(_bytes, filename="message_archive.txt"))
+
     @command()
     @commands.guild_only()
-    async def topic(self, ctx, *, channel: ReadableChannel = commands.default.CurrentChannel) -> None:
+    async def topic(self, ctx: LightningContext, *,
+                    channel: ReadableChannel = commands.default.CurrentChannel) -> None:
         """Quotes a channel's topic"""
         if channel.topic is None or channel.topic == "":
             await ctx.send(f"{channel.mention} has no topic set!")
@@ -131,15 +173,8 @@ class Misc(LightningCog):
         await ctx.send(embed=embed)
 
     @command()
-    async def snowflake(self, ctx: LightningContext, snowflake: str) -> None:
+    async def snowflake(self, ctx: LightningContext, snowflake: SnowflakeDT) -> None:
         """Tells you when a snowflake was created"""
-        match = re.match(r"[0-9]{15,20}", snowflake)
-        if not match:
-            await ctx.send("That doesn't seem like a snowflake.")
-            return
-
-        snowflake = discord.utils.snowflake_time(int(match.group(0)))
-
         fmt = f"{discord.utils.format_dt(snowflake, style='f')}\n{format_timestamp(snowflake)}"
         await ctx.send(fmt)
 
