@@ -626,56 +626,68 @@ class Configuration(LightningCog):
         if level.lower() not in ('user', 'trusted', 'mod', 'admin', 'owner', 'blocked'):
             raise
 
+        if not hasattr(_id, "id"):
+            _id = discord.Object(id=_id)
+
+        if isinstance(_id, discord.Role):
+            role_id = True
+        else:
+            role_id = False
+
         record = await self.bot.get_guild_bot_config(guild_id)
         if record.permissions is None or record.permissions.levels is None:
             perms = {"LEVELS": {}}
         else:
             perms = record.permissions.raw()
 
-        level = level.upper()
+        level_name = level.upper()
+        p = perms['LEVELS'].get(level_name, {level_name: {}})
+        perms['LEVELS'][level_name] = {"ROLE_IDS": p.get("ROLE_IDS", []),
+                                       "USER_IDS": p.get("USER_IDS", [])}
 
-        v: list = perms["LEVELS"].get(level, [])
-
-        def append():
-            if _id in v:
+        def append(d):
+            if _id in d:
                 return False
             else:
-                v.append(_id)
+                d.append(_id.id)
                 return True
 
-        def remove():
-            if _id not in v:
+        def remove(d):
+            if _id not in d:
                 return False
             else:
-                v.remove(_id)
+                d.remove(_id.id)
                 return True
 
         adj = {"append": append,
                "remove": remove}
 
-        res = adj[adjuster]()
+        if not role_id:
+            res = adj[adjuster](perms['LEVELS'][level_name]['USER_IDS'])
+        else:  # This should be a role id
+            res = adj[adjuster](perms['LEVELS'][level_name]['ROLE_IDS'])
 
         if res is False:  # Nothing changed
             return res
 
-        perms["LEVELS"][level] = v
         await self.add_config_key(guild_id, "permissions", perms)
         await self.bot.get_guild_bot_config.invalidate(guild_id)
         return res
 
     @permissions.command(name='add', level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def permissions_add(self, ctx: LightningContext, level: convert_to_level, _id: discord.Member) -> None:
-        """Adds a user to a level"""
-        await self.adjust_level(ctx.guild.id, level, _id.id, adjuster="append")
+    async def permissions_add(self, ctx: LightningContext, level: convert_to_level,
+                              _id: Union[discord.Role, discord.Member]) -> None:
+        """Adds a user or a role to a level"""
+        await self.adjust_level(ctx.guild.id, level, _id, adjuster="append")
         await ctx.tick(True)
 
     @permissions.command(name='remove', level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
     async def permissions_remove(self, ctx: LightningContext, level: convert_to_level,
-                                 _id: Union[discord.Member, int]) -> None:
-        """Removes a user from a level"""
-        added = await self.adjust_level(ctx.guild.id, _id.id, level, adjuster="remove")
+                                 _id: Union[discord.Member, discord.Role, int]) -> None:
+        """Removes a user or a role from a level"""
+        added = await self.adjust_level(ctx.guild.id, _id, level, adjuster="remove")
         if not added:
             await ctx.send(f"{_id} was never added to that level.")
             return
