@@ -33,6 +33,9 @@ class BaseFlags(Flags):
         else:
             raise BadArgument(f"\"{argument}\" is not a valid feature flag.")
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class ConfigFlags(BaseFlags):
     # Deletes invocation messages
@@ -76,9 +79,6 @@ class LoggingType(Flags):
     MEMBER_ROLE_REMOVE = 1 << 10
     MEMBER_NICK_CHANGE = 1 << 11
     MEMBER_SCREENING_COMPLETE = 1 << 12
-
-    def __str__(self):
-        return self.name
 
 
 class PunishmentType(Enum):
