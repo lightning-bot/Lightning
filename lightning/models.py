@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from datetime import datetime
-from typing import Union
+from typing import Optional, Union
 
 import discord
 
@@ -228,6 +228,19 @@ class LevelConfig:
             return CommandLevel.Trusted
 
         return CommandLevel.User
+
+    def blame(self, user_id: int, role_ids: list) -> Optional[str]:
+        """Figures out how a user is a certain level."""
+        ids = [user_id, *role_ids]
+        roles = [*self.blocked_role_ids, *self.admin_role_ids, *self.mod_role_ids, *self.trusted_role_ids]
+        if any(r for r in ids if r in roles):
+            return "roles"
+
+        users = [*self.blocked_user_ids, *self.admin_user_ids, *self.mod_user_ids, *self.trusted_user_ids]
+        if any(r for r in ids if r in users):
+            return "users"
+
+        return None
 
     def to_dict(self):
         return {"ADMIN": {"ROLE_IDS": self.admin_role_ids, "USER_IDS": self.admin_user_ids},
