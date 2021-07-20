@@ -282,7 +282,9 @@ class FlagCommand(LightningCommand):
     def signature(self):
         old_signature = super().signature.split()
         del old_signature[-1]
-        sig = [''.join(old_signature)]
+
+        sig = [*old_signature]
+
         parser = self.callback.__lightning_argparser__
 
         sig.append(f"[{parser.rest_attribute_name}]")
