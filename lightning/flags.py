@@ -28,6 +28,12 @@ from lightning.commands import (LightningCommand, LightningGroupCommand,
 from lightning.errors import (FlagError, FlagInputError,
                               MissingRequiredFlagArgument)
 
+__all__ = ("Flag",
+           "add_flag",
+           "FlagParser",
+           "FlagCommand",
+           "FlagGroup")
+
 
 class FlagView(StringView):
     def get_word(self):
@@ -260,6 +266,9 @@ class Parser:
         ns[self.rest_attribute_name] = ''.join(rest) or None if self.consume_rest is True else None
 
         return Namespace(**ns)
+
+
+FlagParser = Parser
 
 
 class FlagCommand(LightningCommand):

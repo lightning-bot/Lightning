@@ -19,6 +19,7 @@ from lightning.cog import LightningCog  # noqa
 from lightning.commands import *  # noqa
 from lightning.context import LightningContext  # noqa
 from lightning.enums import *  # noqa
+from lightning.flags import *  # noqa
 from lightning.meta import *  # noqa
 from lightning.storage import Storage  # noqa
 from lightning.ui import *  # noqa
