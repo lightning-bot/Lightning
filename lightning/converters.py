@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import logging
 import re
+from datetime import datetime
 
 import discord
 import yarl
@@ -312,3 +313,19 @@ def convert_to_level_value(argument):
         return d[argument.lower()]
     else:
         raise InvalidLevelArgument(d.keys(), argument)
+
+
+def Snowflake(argument) -> int:
+    match = re.match(r"[0-9]{15,20}", argument)
+    if not match:
+        raise commands.BadArgument("That doesn't seem like a snowflake.")
+
+    return int(match.group(0))
+
+
+def SnowflakeDT(argument) -> datetime:
+    match = re.match(r"[0-9]{15,20}", argument)
+    if not match:
+        raise commands.BadArgument("That doesn't seem like a snowflake.")
+
+    return discord.utils.snowflake_time(int(match.group(0)))
