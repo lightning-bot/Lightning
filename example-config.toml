@@ -71,13 +71,17 @@ edit_commands = true # bool
 # Support server invite
 support_server_invite = "https://discord.gg/SpFjsy3"
 
+# Git Repository URL.
+# By default this will link to the main project's repository unless a different one was specified.
+git_repo_url = "https://gitlab.com/lightning-bot/Lightning""
+
 # User-Agent
 user_agent = ""
 
 # Guild IDs to use emojis from for the nitro emoji command
 nitro_emoji_guilds = []
 
-disabled_cogs = ["lightning.cogs.git"]
+disabled_cogs = []
 
 [memes]
 lmao = "Sorry, what were we laughing about again? 😂😂😂"

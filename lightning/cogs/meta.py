@@ -426,7 +426,7 @@ class Meta(LightningCog):
             bot_owner = await self.bot.fetch_user(376012343777427457)
 
         embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar.with_static_format('png'))
-        embed.url = "https://gitlab.com/lightning-bot/Lightning"
+        embed.url = self.bot.config['bot'].get("git_repo_url", "https://gitlab.com/lightning-bot/Lightning")
         embed.set_thumbnail(url=ctx.me.avatar.url)
 
         if self.bot.config['bot']['description']:
@@ -530,7 +530,7 @@ class Meta(LightningCog):
     @lcommand()
     async def source(self, ctx: LightningContext, *, command: str = None) -> None:
         """Gives a link to the source code for a command."""
-        source = "https://gitlab.com/lightning-bot/Lightning"
+        source = self.bot.config['bot'].get("git_repo_url", "https://gitlab.com/lightning-bot/Lightning")
         if command is None:
             await ctx.send(source)
             return
