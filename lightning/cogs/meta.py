@@ -314,7 +314,7 @@ class Meta(LightningCog):
 
     @lcommand(aliases=['ui'])
     async def userinfo(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
-        """Displays information for a user"""
+        """Gives information about a member or a user"""
         embed = discord.Embed(title=str(member), color=member.colour, description=f"**ID**: {member.id}")
         embed.set_thumbnail(url=member.avatar.url)
 
