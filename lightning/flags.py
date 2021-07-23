@@ -62,7 +62,7 @@ class Flag:
     ----------
     *names : str
         Flag names. They must start with "-"
-    help_doc : Optional[str], optional
+    help : Optional[str], optional
         The help doc for the flag, by default None
     converter : Any, optional
         A converter to convert the argument passed for the flag.
@@ -79,10 +79,10 @@ class Flag:
 
     Raises
     ------
-    NotImplementedError
-        Raised when a flag does not start with "-"
+    TypeError
+        Raised when a flag name does not start with "-"
     FlagError
-        Raised when a registration error occurs
+        Raised when a bool flag has been marked as required
     """
 
     __slots__ = ('names', 'help', 'converter', 'attr_name', 'default', 'required', 'is_bool_flag')
@@ -91,7 +91,7 @@ class Flag:
                  default: Optional[Any] = None, required: bool = False, is_bool_flag: bool = False):
         for name in names:
             if name[0] != "-":
-                raise NotImplementedError("A flag name must start with \"-\"")
+                raise TypeError("A flag name must start with \"-\"")
         self.names = names
         self.help = help
         self.converter = converter
@@ -252,6 +252,7 @@ class Parser:
                 if flag.is_bool_flag is True:
                     ns[flag.attr_name] = True
                     continue
+
                 view.skip_ws()
                 next_arg = view.get_quoted_word()
                 ns[flag.attr_name] = await self.convert_flag_type(flag, ctx, next_arg, stripped)
@@ -324,15 +325,13 @@ class FlagCommand(LightningCommand):
             try:
                 next(iterator)
             except StopIteration:
-                fmt = 'Callback for {0.name} command is missing "self" parameter.'
-                raise discord.ClientException(fmt.format(self))
+                raise discord.ClientException(f'Callback for {self.name} command is missing "self" parameter.')
 
         # next we have the 'ctx' as the next parameter
         try:
             next(iterator)
         except StopIteration:
-            fmt = 'Callback for {0.name} command is missing "ctx" parameter.'
-            raise discord.ClientException(fmt.format(self))
+            raise discord.ClientException(f'Callback for {self.name} command is missing "ctx" parameter.')
 
         for name, param in iterator:
             if param.kind == param.POSITIONAL_OR_KEYWORD:
