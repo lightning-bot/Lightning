@@ -23,7 +23,7 @@ import discord
 from discord.ext import commands
 
 from lightning import errors
-from lightning.utils.helpers import haste
+from lightning.utils.helpers import deprecated, haste
 from lightning.utils.helpers import request as make_request
 from lightning.utils.helpers import ticker
 from lightning.utils.ui import ConfirmationView
@@ -49,12 +49,16 @@ class LightningContext(commands.Context):
             except discord.Forbidden:
                 await self.message.add_reaction(emoji)
 
-    async def prompt(self, message: str, *, delete_after=False, confirmation_message=False) -> bool:
+    async def confirm(self, message: str, *, delete_after=False, include_help_message=False) -> bool:
         view = ConfirmationView(message, delete_message_after=delete_after,
-                                include_help_message=confirmation_message)
+                                include_help_message=include_help_message)
         await view.start(self)
 
         return view.value
+
+    @deprecated("3.2.0", "4.0.0", "Use LightningContext.confirm instead")
+    async def prompt(self, message: str, *, delete_after=False, confirmation_message=False) -> bool:
+        return await self.confirm(message, delete_after=delete_after, include_help_message=confirmation_message)
 
     async def ask(self, question: str, *, timeout: int = 60) -> Optional[discord.Message]:
         """Prompts the member to send a message"""
