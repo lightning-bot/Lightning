@@ -212,7 +212,7 @@ class Infractions(LightningCog, required=['Mod']):
     @has_guild_permissions(manage_guild=True)
     async def transfer(self, ctx: LightningContext, old_user: TargetMember, new_user: TargetMember) -> None:
         """Transfers a user's infractions to another user"""
-        confirm = await ctx.prompt(f"Are you sure you want to transfer infractions from {old_user} to {new_user}?")
+        confirm = await ctx.confirm(f"Are you sure you want to transfer infractions from {old_user} to {new_user}?")
         if not confirm:
             return
 
@@ -227,12 +227,14 @@ class Infractions(LightningCog, required=['Mod']):
     async def delete(self, ctx: LightningContext, infraction_id: int) -> None:
         """Deletes an infraction"""
         # TODO: Query table before
-        confirmation = await ctx.prompt(f"Are you sure you want to delete {infraction_id}? "
-                                        "**This infraction cannot be restored once deleted!**")
+        confirmation = await ctx.confirm(f"Are you sure you want to delete {infraction_id}? "
+                                         "**This infraction cannot be restored once deleted!**")
         if not confirmation:
             return
 
-        query = """DELETE FROM infractions WHERE id=$1 AND guild_id=$2;"""
+        query = """DELETE FROM infractions
+                   WHERE id=$1
+                   AND guild_id=$2;"""
         resp = await self.bot.pool.execute(query, infraction_id, ctx.guild.id)
         if resp == "DELETE 0":
             await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
