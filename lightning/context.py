@@ -28,6 +28,8 @@ from lightning.utils.helpers import request as make_request
 from lightning.utils.helpers import ticker
 from lightning.utils.ui import ConfirmationView
 
+__all__ = ("LightningContext")
+
 
 class LightningContext(commands.Context):
     def __init__(self, **kwargs):
