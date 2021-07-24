@@ -25,6 +25,7 @@ from datetime import datetime
 from typing import Optional
 
 import aiohttp
+import asyncpg
 import discord
 import sentry_sdk
 from discord.ext import commands, menus
@@ -76,6 +77,7 @@ class LightningBot(commands.AutoShardedBot):
         super().__init__(command_prefix=_callable_prefix, reconnect=True,
                          allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False),
                          intents=intents, **kwargs)
+
         self.launch_time = datetime.utcnow()
 
         self.command_spammers = collections.Counter()
@@ -88,6 +90,7 @@ class LightningBot(commands.AutoShardedBot):
 
         headers = {"User-Agent": self.config['bot'].pop("user_agent", f"Lightning Bot {self.version}")}
         self.aiosession = aiohttp.ClientSession(headers=headers)
+        self.pool: Optional[asyncpg.Pool] = None
         self.redis_pool = cache.start_redis_client()
 
         # Error logger
