@@ -92,13 +92,12 @@ class AuditLogModAction(BaseAuditLogEvent):
 
         self.action = Action(self.guild.id, event, member, self.moderator, self.reason)
 
+
 # lightning_member_mute
 # lightning_member_unmute
 # lightning_member_kick
 # lightning_member_ban
 # lightning_member_unban
-
-
 class InfractionEvent:  # ModerationEvent sounded nice too...
     __slots__ = ("guild", "event_name", "action")
 
@@ -140,6 +139,23 @@ class ChannelConfigInvalidateEvent(GuildConfigInvalidateEvent):
     def __init__(self, channel):
         self.channel = channel
         super().__init__(channel.guild)
+
+
+# lightning_guild_role_remove
+class GuildRoleDeleteEvent(BaseAuditLogEvent):
+    __slots__ = ("role")
+
+    def __init__(self, role, entry):
+        super().__init__(entry)
+        self.role = role
+
+    @property
+    def guild(self):
+        return self.role.guild
+
+    @property
+    def guild_id(self):
+        return self.role.guild.id
 
 # These won't be used yet until I do a refactor of modlogformats for single param events
 
