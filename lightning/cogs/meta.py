@@ -195,20 +195,20 @@ class PaginatedHelpCommand(commands.HelpCommand):
         await pages.paginate()
 
     def flag_help_formatting(self, command):
-        if hasattr(command.callback, '__lightning_argparser__'):
-            flagopts = []
-            all_flags = command.callback.__lightning_argparser__.get_all_unique_flags()
-            for flag in all_flags:
-                if flag.is_bool_flag is True:
-                    arg = 'No argument'
-                else:
-                    name = flag.converter.__name__
-                    arg = flag_name_lookup[name] if name in flag_name_lookup else name
-                fhelp = flag.help if flag.help else "No help found..."
-                flagopts.append(f'`{", ".join(flag.names)}` ({arg}): {fhelp}')
-            return flagopts
-        else:
-            return None
+        if not hasattr(command.callback, "__lightning_argparser__"):
+            return
+
+        flagopts = []
+        all_flags = command.callback.__lightning_argparser__.get_all_unique_flags()
+        for flag in all_flags:
+            if flag.is_bool_flag is True:
+                arg = 'No argument'
+            else:
+                name = flag.converter.__name__
+                arg = flag_name_lookup[name] if name in flag_name_lookup else name
+            fhelp = flag.help if flag.help else "No help found..."
+            flagopts.append(f'`{", ".join(flag.names)}` ({arg}): {fhelp}')
+        return flagopts
 
     def permissions_required_format(self, command) -> tuple:
         guild_permissions = []
