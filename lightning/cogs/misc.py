@@ -91,7 +91,8 @@ ARCHIVE_FLAGS = [Flag("--reverse", "-r", help="Reverses the messages to oldest m
                  Flag("--limit", converter=int, default=50, help="The limit of messages to get"),
                  Flag("--ignore-bots", is_bool_flag=True, help="Ignores messages from bots"),
                  Flag("--user", converter=discord.User, help="The user to archive messages from"),
-                 Flag("--before", converter=Snowflake, help="Archives messages from before this snowflake"),
+                 Flag("--before", converter=Snowflake, help="Archives messages before a message ID"),
+                 Flag("--after", converter=Snowflake, help="Archives messages after a message ID"),
                  Flag("--channel", "-c", converter=ReadableChannel, help="The channel to archive messages from")]
 
 
@@ -136,6 +137,9 @@ class Misc(LightningCog):
 
         if flags['before']:
             args['before'] = flags['before']
+
+        if flags['after']:
+            args['after'] = flags['after']
 
         channel: discord.TextChannel = flags['channel'] or ctx.channel
 
