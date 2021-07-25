@@ -55,7 +55,7 @@ class Roles(LightningCog):
     @command()
     @commands.guild_only()
     async def rolemembers(self, ctx: LightningContext, *, role: discord.Role) -> None:
-        """Lists role members"""
+        """Lists members that have a certain role"""
         if len(role.members) == 0:
             await ctx.send(f"{str(role)} has no members.")
             return
@@ -176,29 +176,34 @@ class Roles(LightningCog):
             await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
             await ctx.send("All toggleable roles have been deleted.")
 
+    async def remove_assignable_role(self, guild_id, role_id):
+        query = """UPDATE guild_config
+                   SET toggleroles = array_remove(toggleroles, $1)
+                   WHERE guild_id=$2;
+                 """
+        await self.bot.pool.execute(query, role_id, guild_id)
+
     @togglerole.command(name="delete", aliases=['remove'], level=CommandLevel.Admin)
     @commands.guild_only()
     @has_guild_permissions(manage_roles=True)
     async def remove_toggleable_role(self, ctx: LightningContext, *, role: typing.Union[discord.Role, int]) -> None:
         """Removes a role from the toggleable role list"""
-        query = """UPDATE guild_config
-                   SET toggleroles = array_remove(toggleroles, $1)
-                   WHERE guild_id=$2;
-                 """
         role_repr = (role.id if hasattr(role, 'id') else role, role.name if hasattr(role, 'name') else role)
-        await self.bot.pool.execute(query, role_repr[0], ctx.guild.id)
+        await self.remove_assignable_role(ctx.guild.id, role_repr[0])
         await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.send(f"Successfully removed {role_repr[1]} from the list of toggleable roles")
 
     @commands.guild_only()
     @togglerole.command(name="list")
     async def list_toggleable_roles(self, ctx: LightningContext) -> None:
-        """Lists all the toggleable roles this server has"""
+        """Lists all the self-assignable roles this server has"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if not record or not record.toggleroles:
             await ctx.send("This feature is not setup in this server.")
             return
 
+        # Unresolved roles shouldn't generally need to be handled as it's handled in the listener below
+        # but it's kept as a just-in-case the bot is down when a role is deleted.
         unresolved = []
         role_list = []
 
@@ -216,11 +221,17 @@ class Roles(LightningCog):
                              WHERE NOT(x = ANY($1::bigint[])))
                        WHERE guild_id=$2;"""
             await self.bot.pool.execute(query, unresolved, ctx.guild.id)
+            await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
 
-        embed = discord.Embed(title="Toggleable Roles", color=discord.Color.greyple())
+        embed = discord.Embed(title="Self-Assignable Roles", color=discord.Color.greyple())
         menu = paginator.InfoMenuPages(paginator.BasicEmbedMenu(role_list, per_page=12, embed=embed),
                                        clear_reactions_after=True, check_embeds=True)
         await menu.start(ctx)
+
+    @LightningCog.listener()
+    async def on_lightning_guild_role_delete(self, event):
+        await self.remove_assignable_role(event.guild_id, event.role.id)
+        await self.bot.get_guild_bot_config.invalidate(event.guild_id)
 
 
 def setup(bot: LightningBot):
