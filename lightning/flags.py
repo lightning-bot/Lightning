@@ -278,15 +278,25 @@ class FlagCommand(LightningCommand):
         super().__init__(func, **kwargs)
 
         if hasattr(self.callback, '__lightning_argparser__'):
-            raise_bad_flag = kwargs.pop('raise_bad_flag', True)
-            rest_usage_name = kwargs.pop('rest_attribute_name', "rest")
-            self.callback.__lightning_argparser__.rest_attribute_name = rest_usage_name
-            self.callback.__lightning_argparser__.raise_on_bad_flag = raise_bad_flag
+            parser = self.callback.__lightning_argparser__
+        else:
+            parser = self.callback.__lightning_argparser__ = FlagParser()
 
-        parser = kwargs.pop('parser', None)
-        if parser:
-            # Ability to add a flag parser with predefined flags.
-            self.callback.__lightning_argparser__ = parser
+        if 'parser' in kwargs:
+            # Overrides any current parser.
+            parser = self.callback.__lightning_argparser__ = kwargs['parser']
+
+        raise_bad_flag = kwargs.pop('raise_bad_flag', True)
+        rest_usage_name = kwargs.pop('rest_attribute_name', "rest")
+
+        parser.rest_attribute_name = rest_usage_name
+        parser.raise_on_bad_flag = raise_bad_flag
+
+        # Add additional flags to the parser and prevents us from stacking a bunch of decorators.
+        if 'flags' in kwargs:
+            # Clear _flags in order to avoid (copy) issues. Hopefully this doesn't result in anything weird.
+            parser._flags.clear()
+            parser._register_flags(kwargs['flags'])
 
     @property
     def signature(self):
