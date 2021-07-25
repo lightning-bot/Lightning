@@ -132,7 +132,9 @@ class Misc(LightningCog):
     @commands.bot_has_permissions(read_message_history=True)
     @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
     async def archive_custom(self, ctx: LightningContext, **flags):
-        """An advanced archive command that uses flags only"""
+        """An advanced archive command
+
+        This command uses "command line" syntax."""
         args = {'limit': flags['limit']}
 
         if flags['before']:
