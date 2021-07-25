@@ -21,8 +21,9 @@ from typing import Optional
 import discord
 
 from lightning import LightningBot, LightningCog
-from lightning.events import (AuditLogModAction, MemberRolesUpdateEvent,
-                              MemberRoleUpdateEvent, MemberUpdateEvent)
+from lightning.events import (AuditLogModAction, GuildRoleDeleteEvent,
+                              MemberRolesUpdateEvent, MemberRoleUpdateEvent,
+                              MemberUpdateEvent)
 
 
 def match_attribute(attr, before, after):
@@ -39,6 +40,12 @@ def role_check(before, after):
             and hasattr(entry.changes.after, "roles") and \
             all(r in entry.changes.before.roles for r in removed) and \
             all(r in entry.changes.after.roles for r in added)
+    return check
+
+
+def guild_role_check(role):
+    def check(entry):
+        return role.id == entry.target.id  # getattr(entry.target, "id", None)
     return check
 
 
@@ -59,8 +66,6 @@ class ListenerEvents(LightningCog):
 
                 if check is not None and check(entry):
                     return entry
-
-        return None
 
     async def check_and_wait(self, guild: discord.Guild, *, timeout=0.5):
         """Checks if the bot has permissions to view the audit log and waits if the bot does have permission."""
@@ -165,6 +170,16 @@ class ListenerEvents(LightningCog):
     async def on_member_passed_screening(self, before, after):
         if before.pending is True and after.pending is False:
             self.bot.dispatch("lightning_member_passed_screening", after)
+
+    # Guild events with Audit Log Integration
+    @LightningCog.listener()
+    async def on_guild_role_delete(self, role):
+        await self.check_and_wait(role.guild)
+
+        entry = await self.fetch_audit_log_entry(role.guild, discord.AuditLogAction.role_delete,
+                                                 target=role, check=guild_role_check(role))
+
+        self.bot.dispatch("lightning_guild_role_delete", GuildRoleDeleteEvent(role, entry))
 
     # Dispatches role_add and role_remove events.
     @LightningCog.listener()
