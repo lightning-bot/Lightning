@@ -324,8 +324,4 @@ def Snowflake(argument) -> int:
 
 
 def SnowflakeDT(argument) -> datetime:
-    match = re.match(r"[0-9]{15,20}", argument)
-    if not match:
-        raise commands.BadArgument("That doesn't seem like a snowflake.")
-
-    return discord.utils.snowflake_time(int(match.group(0)))
+    return discord.utils.snowflake_time(Snowflake(argument))
