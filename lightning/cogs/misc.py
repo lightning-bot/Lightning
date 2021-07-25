@@ -22,10 +22,9 @@ import discord
 from discord.ext import commands
 from discord.ext import menus as dmenus
 
-from lightning import (LightningBot, LightningCog, LightningContext, command,
-                       group)
+from lightning import (Flag, FlagCommand, LightningBot, LightningCog,
+                       LightningContext, command, group)
 from lightning.converters import ReadableChannel, Snowflake, SnowflakeDT
-from lightning.flags import FlagCommand, add_flag
 from lightning.utils import helpers
 from lightning.utils.time import format_timestamp
 
@@ -88,6 +87,14 @@ class EmbedBuilderMenu(dmenus.Menu):
         self.stop()
 
 
+ARCHIVE_FLAGS = [Flag("--reverse", "-r", help="Reverses the messages to oldest message first", is_bool_flag=True),
+                 Flag("--limit", converter=int, default=50, help="The limit of messages to get"),
+                 Flag("--ignore-bots", is_bool_flag=True, help="Ignores messages from bots"),
+                 Flag("--user", converter=discord.User, help="The user to archive messages from"),
+                 Flag("--before", converter=Snowflake, help="Archives messages from before this snowflake"),
+                 Flag("--channel", "-c", converter=ReadableChannel, help="The channel to archive messages from")]
+
+
 class Misc(LightningCog):
     """Commands that might be helpful..."""
 
@@ -120,13 +127,9 @@ class Misc(LightningCog):
 
         await ctx.send(file=fp)
 
-    @archive.command(cls=FlagCommand, name="custom")
+    @archive.command(cls=FlagCommand, name="custom", flags=ARCHIVE_FLAGS)
     @commands.bot_has_permissions(read_message_history=True)
     @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
-    @add_flag("--reverse", "-r", help="Reverses the messages to oldest message first", is_bool_flag=True)
-    @add_flag("--limit", help="The limit of messages to get", converter=int, default=50)
-    @add_flag("--before", help="Archives messages from before this snowflake", converter=Snowflake)
-    @add_flag("--channel", "-c", help="The channel to archive messages from", converter=ReadableChannel)
     async def archive_custom(self, ctx: LightningContext, **flags):
         """An advanced archive command that uses flags only"""
         args = {'limit': flags['limit']}
@@ -134,11 +137,20 @@ class Misc(LightningCog):
         if flags['before']:
             args['before'] = flags['before']
 
-        channel = flags['channel'] or ctx.channel
+        channel: discord.TextChannel = flags['channel'] or ctx.channel
 
         messages = []
         async for msg in channel.history(**args):
+            if flags['user'] and msg.author.id != flags['user'].id:
+                continue
+
+            if flags['ignore_bots'] and msg.author.bot:
+                continue
+
             messages.append(f"[{msg.created_at}]: {msg.author} - {msg.clean_content}")
+
+            if msg.embeds:
+                messages.append(f"Embed data: {[e.to_dict() for e in msg.embeds]}")
 
             if msg.attachments:
                 for attachment in msg.attachments:
@@ -146,11 +158,15 @@ class Misc(LightningCog):
             else:
                 messages.append("\n")
 
+        if not messages:
+            await ctx.send("0 messages met your conditions. Try a bigger limit(?)")
+            return
+
         if flags['reverse']:
             messages.reverse()
 
-        text = f"Archive of {channel} (ID: {channel.id}) "\
-               f"made at {datetime.utcnow()}\n\n\n{''.join(messages)}"
+        text = f"Archive of {channel} (ID: {channel.id}) made at {datetime.utcnow()}\nConditions: {dict(flags)}"\
+               f"\n\n\n{''.join(messages)}"
 
         _bytes = StringIO()
         _bytes.write(text)
