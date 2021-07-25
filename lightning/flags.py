@@ -349,10 +349,7 @@ class FlagCommand(LightningCommand):
                 args.append(transformed)
             elif param.kind == param.KEYWORD_ONLY:
                 # kwarg only param denotes "consume rest" semantics
-                if self.rest_is_raw:
-                    kwargs[name] = await self.callback.__lightning_argparser__.parse_args(ctx)
-                else:
-                    kwargs[name] = await self.transform(ctx, param)
+                kwargs[name] = await self.callback.__lightning_argparser__.parse_args(ctx)
                 break
             elif param.kind == param.VAR_POSITIONAL:
                 if view.eof and self.require_var_positional:
