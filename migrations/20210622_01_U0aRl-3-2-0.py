@@ -43,7 +43,7 @@ def migrate_permissions(r: dict) -> str:
     for key, value in levels.items():
         r["LEVELS"][key] = {"USER_IDS": value}
 
-    return json.dumps(r)
+    return r
 
 
 def apply(conn):
@@ -66,7 +66,7 @@ def apply(conn):
     records = cur.fetchall()
     for record in records:
         perms = migrate_permissions(record[1])
-        cur.execute("UPDATE guild_config SET permissions=%s WHERE guild_id=%s", (perms, record[0]))
+        cur.execute("UPDATE guild_config SET permissions=%s WHERE guild_id=%s", (json.dumps(perms), record[0]))
     conn.commit()
     cur.close()
 
