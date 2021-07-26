@@ -32,7 +32,8 @@ ConfigFlags = ConfigBFlags
 
 
 class GuildModConfig:
-    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "temp_mute_role_id", "flags")
+    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "temp_mute_role_id", "flags",
+                 "automod")
 
     def __init__(self, record):
         self.guild_id = record['guild_id']
@@ -41,6 +42,7 @@ class GuildModConfig:
         self.warn_ban = record['warn_ban']
         self.temp_mute_role_id = record['temp_mute_role_id']
         self.flags = ModFlags(record['flags'] or 0)
+        self.automod = None
         # self.automod = AutoModConfig(record)
         # self.raid_mode = record['raid_mode']
 
