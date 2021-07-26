@@ -284,12 +284,11 @@ colors = ["colorama (>=0.4.3,<0.5.0)"]
 
 [[package]]
 name = "jishaku"
-version = "2.1.0a328+g1fab489.master"
+version = "2.1.0"
 description = "A discord.py extension including useful tools for bot development and debugging."
 category = "main"
 optional = false
 python-versions = ">=3.8.0"
-develop = false
 
 [package.dependencies]
 braceexpand = ">=0.1.7"
@@ -302,12 +301,6 @@ procinfo = ["psutil"]
 publish = ["jinja2"]
 test = ["click", "coverage", "flake8", "isort", "pylint", "pytest", "pytest-cov", "pytest-mock"]
 voice = ["discord.py[voice] (>=1.7.2)", "youtube-dl"]
-
-[package.source]
-type = "git"
-url = "https://gitlab.com/Gorialis/jishaku.git"
-reference = "master"
-resolved_reference = "1fab4895bed5758a3bb7faaca114d3b73d660945"
 
 [[package]]
 name = "lru-dict"
@@ -735,7 +728,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "5a5fef7329abc01bf807b65998d3745a62b217e5d0efa599ad5d3f1b3b75e242"
+content-hash = "f82551c4b89af23fd9ccc3ed4b5ff045204229423eebd4cea84ec85f3064dd0b"
 
 [metadata.files]
 aiohttp = [
@@ -975,7 +968,12 @@ isort = [
     {file = "isort-5.8.0-py3-none-any.whl", hash = "sha256:2bb1680aad211e3c9944dbce1d4ba09a989f04e238296c87fe2139faa26d655d"},
     {file = "isort-5.8.0.tar.gz", hash = "sha256:0a943902919f65c5684ac4e0154b1ad4fac6dcaa5d9f3426b732f1c8b5419be6"},
 ]
-jishaku = []
+jishaku = [
+    {file = "jishaku-2.1.0-py3-none-any.whl", hash = "sha256:28f0751934896024780b642dbae18d55be5535ab20839322c69b6fdba42e384d"},
+    {file = "jishaku-2.1.0-py3.8.egg", hash = "sha256:9dc9e4e6a415aab6dc06e6e0a3fe1ea4370a708169fd837b56ceb8e6016ff673"},
+    {file = "jishaku-2.1.0-py3.9.egg", hash = "sha256:ea5e25deb683483421e24d178cdee6ba61510f6e60c02cada548e19f60b6d996"},
+    {file = "jishaku-2.1.0.tar.gz", hash = "sha256:d593815faa7872d4288f93df2b31d43855bb313adc99c687c86408bdc06feb80"},
+]
 lru-dict = [
     {file = "lru-dict-1.1.7.tar.gz", hash = "sha256:45b81f67d75341d4433abade799a47e9c42a9e22a118531dcb5e549864032d7c"},
 ]
