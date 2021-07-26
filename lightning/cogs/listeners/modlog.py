@@ -41,7 +41,7 @@ class ModLog(LightningCog):
         for emitter in self._emitters.values():
             emitter.close()
 
-    @cached('logging', Strategy.lru, max_size=32)
+    @cached('logging', Strategy.lru, max_size=64)
     async def get_logging_record(self, guild_id: int) -> Optional[LoggingConfig]:
         """Gets a logging record.
 
@@ -62,7 +62,9 @@ class ModLog(LightningCog):
 
         Yields an emitter and the record"""
         if not hasattr(guild, "id"):  # This should be an int
-            guild = self.bot.get_guild(guild)  # Hopefully this isn't None ever...
+            guild = self.bot.get_guild(guild)
+            if not guild:
+                return
 
         record = await self.get_logging_record(guild.id)
         if not record:
