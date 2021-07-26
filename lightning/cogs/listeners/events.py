@@ -105,12 +105,12 @@ class ListenerEvents(LightningCog):
         self.bot.dispatch("lightning_member_kick", event)
 
     @LightningCog.listener()
-    async def on_member_ban(self, member):
-        check = await self.check_and_wait(member.guild)
+    async def on_member_ban(self, guild, user):
+        check = await self.check_and_wait(guild)
         if check is False:
             return
 
-        entry = await self.fetch_audit_log_entry(member.guild, discord.AuditLogAction.ban, target=member)
+        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.ban, target=user)
 
         if not entry:
             return
@@ -119,7 +119,7 @@ class ListenerEvents(LightningCog):
             # Assuming it's already logged
             return
 
-        event = AuditLogModAction("BAN", member, entry)
+        event = AuditLogModAction("BAN", user, entry, guild=guild)
         self.bot.dispatch("lightning_member_ban", event)
 
     @LightningCog.listener()
