@@ -15,9 +15,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncio
+import logging
 
 import aiohttp
 import discord
+
+log = logging.getLogger(__name__)
 
 
 class Emitter:
@@ -28,7 +31,7 @@ class Emitter:
         self._task = None
 
     def start(self) -> None:
-        self._task = self.loop.create_task(self._run())
+        self._task = self.loop.create_task(self.emit_loop())
 
     @property
     def closed(self):
@@ -43,7 +46,13 @@ class Emitter:
     def get_task(self):
         return self._task
 
-    async def _run(self):
+    async def emit_loop(self):
+        try:
+            await self._emit()
+        except Exception as e:
+            log.exception("An exception occurred during the emit loop", exc_info=e)
+
+    async def _emit(self):
         raise NotImplementedError
 
 
@@ -57,7 +66,7 @@ class WebhookEmbedEmitter(Emitter):
     async def put(self, embed: discord.Embed) -> None:
         await self._queue.put(embed)
 
-    async def _run(self):
+    async def _emit(self):
         while not self.closed:
             embed = await self._queue.get()
             embeds = [embed]
@@ -80,20 +89,19 @@ class TextChannelEmitter(Emitter):
         super().start()
         self._task.set_name(f"textchannel-emitter-{self.channel.id}")
 
-    async def put(self, *args, **kwargs):
-        coro = self.channel.send(*args, **kwargs)
-        await self._queue.put(coro)
+    async def put(self, content=None, **kwargs):
+        await self._queue.put({'content': content, **kwargs})
 
     async def send(self, *args, **kwargs):
         """Alias function for TextChannelEmitter.put"""
         await self.put(*args, **kwargs)
 
-    async def _run(self):
+    async def _emit(self):
         while not self.closed:
-            coro = await self._queue.get()
+            msg = await self._queue.get()
 
             try:
-                await coro
+                await self.channel.send(**msg)
             except discord.NotFound:
                 self.close()
             except (asyncio.TimeoutError, aiohttp.ClientError, discord.HTTPException):
