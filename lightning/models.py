@@ -353,19 +353,23 @@ class Action:
         """Inserts an infraction into the database.
 
         As a safeguard, timestamp and expiry datetimes are stripped of tzinfo"""
+        if self.expiry:
+            expiry = strip_tzinfo(self.expiry)
+        else:
+            expiry = None
+
         if len(self.kwargs) == 0:
             query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry)
                        VALUES ($1, $2, $3, $4, $5, $6, $7)
                        RETURNING id;"""
             r = await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
-                                          self.reason, strip_tzinfo(self.timestamp), strip_tzinfo(self.expiry))
+                                          self.reason, strip_tzinfo(self.timestamp), expiry)
         else:
             query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry, extra)
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                        RETURNING id;"""
             r = await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
-                                          self.reason, strip_tzinfo(self.timestamp), strip_tzinfo(self.expiry),
-                                          self.kwargs)
+                                          self.reason, strip_tzinfo(self.timestamp), expiry, self.kwargs)
 
         self.infraction_id = r
         return r
