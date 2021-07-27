@@ -62,14 +62,15 @@ class Mod(LightningCog, required=["Configuration"]):
     def format_reason(self, author, reason: str, *, action_text=None) -> str:
         return truncate_text(modlogformats.action_format(author, reason=reason), 512)
 
-    async def add_punishment_role(self, guild_id: int, user_id: int, role_id: int) -> str:
+    async def add_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection=None) -> str:
         query = """INSERT INTO roles (guild_id, user_id, punishment_roles)
                    VALUES ($1, $2, $3::bigint[])
                    ON CONFLICT (guild_id, user_id)
                    DO UPDATE SET
                        punishment_roles =
                    ARRAY(SELECT DISTINCT * FROM unnest(COALESCE(roles.punishment_roles, '{}') || $3::bigint[]));"""
-        return await self.bot.pool.execute(query, guild_id, user_id, [role_id])
+        connection = connection or self.bot.pool
+        return await connection.execute(query, guild_id, user_id, [role_id])
 
     async def remove_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection=None) -> None:
         query = """UPDATE roles SET punishment_roles = array_remove(punishment_roles, $1)
