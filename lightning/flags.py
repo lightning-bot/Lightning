@@ -264,7 +264,8 @@ class Parser:
             if ns[flag.attr_name] is None and flag.required is True:
                 raise MissingRequiredFlagArgument(flag.names[0])
 
-        ns[self.rest_attribute_name] = ''.join(rest) or None if self.consume_rest is True else None
+        if self.consume_rest:
+            ns[self.rest_attribute_name] = ''.join(rest) or None
 
         return Namespace(**ns)
 
@@ -288,7 +289,9 @@ class FlagCommand(LightningCommand):
 
         raise_bad_flag = kwargs.pop('raise_bad_flag', True)
         rest_usage_name = kwargs.pop('rest_attribute_name', "rest")
+        flag_consume_rest = kwargs.pop('flag_consume_rest', True)
 
+        parser.consume_rest = flag_consume_rest
         parser.rest_attribute_name = rest_usage_name
         parser.raise_on_bad_flag = raise_bad_flag
 
@@ -307,12 +310,18 @@ class FlagCommand(LightningCommand):
 
         parser = self.callback.__lightning_argparser__
 
-        sig.append(f"[{parser.rest_attribute_name}]")
+        if parser.consume_rest:
+            sig.append(f"[{parser.rest_attribute_name}]")
+
         for flag in parser.get_all_unique_flags():
             if flag.required:
+                # Required flags shouldn't have defaults?
                 sig.append(f"<{flag.names[0]}>")
             else:
-                sig.append(f"[{flag.names[0]}]")
+                if flag.default:
+                    sig.append(f"[{flag.names[0]}={flag.default}]")
+                else:
+                    sig.append(f"[{flag.names[0]}]")
 
         return ' '.join(sig)
 
