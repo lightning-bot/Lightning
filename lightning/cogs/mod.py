@@ -45,6 +45,11 @@ confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
                  "unban": "\N{OK HAND SIGN} {target} is now unbanned."}
 
 
+BaseModParser = dflags.FlagParser([dflags.Flag("--nodm", "--no-dm", is_bool_flag=True,
+                                   help="Bot does not DM the user the reason for the action.")],
+                                  rest_attribute_name="reason")
+
+
 class Mod(LightningCog, required=["Configuration"]):
     """Moderation and server management commands."""
 
@@ -122,7 +127,7 @@ class Mod(LightningCog, required=["Configuration"]):
             await ctx.send(confirmations.get(action.lower(), "Done!").format(target=target,
                                                                              expiry=duration_text,
                                                                              count=warning_text))
-            await self.log_action(ctx, target, action)
+            await self.log_action(ctx, target, action, **kwargs)
             return
 
         if record.flags and ModFlags.react_only_confirmation in record.flags:
@@ -131,8 +136,11 @@ class Mod(LightningCog, required=["Configuration"]):
             except (discord.Forbidden, discord.HTTPException):
                 pass
 
+            await self.log_action(ctx, target, action, **kwargs)
+            return
+
         if record.flags and ModFlags.hide_confirmation_message in record.flags:
-            await self.log_action(ctx, target, action)
+            await self.log_action(ctx, target, action, **kwargs)
             return
 
         await ctx.send(confirmations.get(action.lower(), "Done!").format(target=target, expiry=duration_text,
@@ -140,11 +148,9 @@ class Mod(LightningCog, required=["Configuration"]):
 
         await self.log_action(ctx, target, action, **kwargs)
 
-    @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
-                     help="Bot does not DM the user the reason for the action.")
+    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
     @commands.bot_has_guild_permissions(kick_members=True)
     @has_guild_permissions(kick_members=True)
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason")
     async def kick(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
         """Kicks a user from the server"""
         if not flags['nodm']:
