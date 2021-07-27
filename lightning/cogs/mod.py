@@ -772,7 +772,7 @@ class Mod(LightningCog, required=["Configuration"]):
             # WARNING: This shouldn't happen, but this is a failsafe in case the guild hasn't given the
             # bot audit log perms. I don't like this solution, but this is ultimately the best solution.
             # The moderator who did the manual action can just claim the created infraction.
-            event.moderator = self.bot.me
+            event.moderator = self.bot.user
 
         if previously_muted is True and currently_muted is False:  # Role was removed
             async with self.bot.pool.acquire() as conn:
@@ -785,7 +785,7 @@ class Mod(LightningCog, required=["Configuration"]):
                                                   connection=conn)
                 await self.update_last_mute(event.guild.id, event.after.id, connection=conn)
 
-                if event.moderator.id != self.bot.me.id:
+                if event.moderator.id != self.bot.user.id:
                     reason = modlogformats.action_format(event.moderator, "Mute role manually removed by")
                 else:
                     reason = "Mute role manually removed"
@@ -797,7 +797,7 @@ class Mod(LightningCog, required=["Configuration"]):
             async with self.bot.pool.acquire() as conn:
                 await self.add_punishment_role(event.guild.id, event.after.id, record.mute_role_id, connection=conn)
 
-                if event.moderator.id != self.bot.me.id:
+                if event.moderator.id != self.bot.user.id:
                     reason = modlogformats.action_format(event.moderator, "Mute role manually added by")
                 else:
                     reason = "Mute role manually added"
@@ -841,18 +841,18 @@ class Mod(LightningCog, required=["Configuration"]):
         return rev or 0
 
     async def _warn_punishment(self, target):
-        reason = modlogformats.action_format(self.bot.me, reason="Automod triggered")
-        await self.log_manual_action(target, self.bot.me, "WARN", reason=reason)
+        reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
+        await self.log_manual_action(target, self.bot.user, "WARN", reason=reason)
 
     async def _kick_punishment(self, target):
-        reason = modlogformats.action_format(self.bot.me, reason="Automod triggered")
+        reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
         await target.kick(reason=reason)
-        await self.log_manual_action(target, self.bot.me, "KICK", reason="Member triggered automod")
+        await self.log_manual_action(target, self.bot.user, "KICK", reason="Member triggered automod")
 
     async def _ban_punishment(self, target):
-        reason = modlogformats.action_format(self.bot.me, reason="Automod triggered")
+        reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
         await target.ban(reason=reason)
-        await self.log_manual_action(target, self.bot.me, "BAN", reason=reason)
+        await self.log_manual_action(target, self.bot.user, "BAN", reason=reason)
 
     async def _delete_punishment(self, message):
         try:
