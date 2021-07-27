@@ -823,7 +823,7 @@ class Mod(LightningCog, required=["Configuration"]):
         if record.permissions.levels is None:
             level = CommandLevel.User
         else:
-            roles = message.author._roles or []
+            roles = message.author._roles if hasattr(message.author, "_roles") else []
             level = record.permissions.levels.get_user_level(message.author.id, roles)
 
         if level == CommandLevel.Blocked:  # Blocked to commands, not ignored by automod
