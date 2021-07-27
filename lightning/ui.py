@@ -42,20 +42,25 @@ class BaseView(discord.ui.View):
 class MenuLikeView(BaseView):
     """A view that mimics similar behavior of discord.ext.menus.
 
-
     Parameters
     ----------
     clear_view_after : bool
-        Whether to remove the view from the message after the view is done or timed out. Defaults to True
+        Whether to remove the view from the message after the view is done or timed out. Defaults to False
     delete_message_after : bool
         Whether to delete the message after the view is done or timed out. Defaults to False
+    disable_components_after : bool
+        Disables components after the view is done or has timed out.
+        If the view has other components that cannot be disabled, like selects, they will be removed from the view.
+        Defaults to True
     timeout : Optional[float]
         Defines when the view should stop listening for the interaction event."""
-    def __init__(self, *, clear_view_after=True, delete_message_after=False, timeout=180.0):
+    def __init__(self, *, clear_view_after=False, delete_message_after=False, disable_components_after=True,
+                 timeout=180.0):
         super().__init__(timeout=timeout)
         self.ctx = None
         self.clear_view_after = clear_view_after
         self.delete_message_after = delete_message_after
+        self.disable_components_after = disable_components_after
 
     # Seemed like reasonable naming
     def format_initial_message(self, ctx):
@@ -91,3 +96,12 @@ class MenuLikeView(BaseView):
 
         if self.clear_view_after:
             await self.message.edit(view=None)
+            return
+
+        if self.disable_components_after:
+            for child in self.children:
+                if hasattr(child, "disabled"):
+                    child.disabled = True
+                else:
+                    self.remove_item(child)
+            await self.message.edit(view=self)
