@@ -128,7 +128,7 @@ class Misc(LightningCog):
 
         await ctx.send(file=fp)
 
-    @archive.command(cls=FlagCommand, name="custom", flags=ARCHIVE_FLAGS)
+    @archive.command(cls=FlagCommand, name="custom", flags=ARCHIVE_FLAGS, flag_consume_rest=False)
     @commands.bot_has_permissions(read_message_history=True)
     @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
     async def archive_custom(self, ctx: LightningContext, **flags):
