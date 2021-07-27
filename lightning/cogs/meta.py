@@ -613,7 +613,7 @@ class Meta(LightningCog):
             guild = ctx.guild
 
         embed = discord.Embed(title=guild.name)
-        embed.description = f"**Owner**: {str(guild.owner)}"
+        embed.description = f"**ID**: {guild.id}\n**Owner**: {str(guild.owner)}"
 
         embed.add_field(name="Creation", value=f"{format_timestamp(guild.created_at)} "
                         f"({natural_timedelta(guild.created_at, accuracy=3)})", inline=False)
@@ -666,7 +666,6 @@ class Meta(LightningCog):
                      f"{guild.premium_subscription_count} boosts."
             embed.add_field(name="Server Boost", value=boosts)
 
-        embed.set_footer(text=f"Server ID: {guild.id}")
         await ctx.send(embed=embed)
 
     def message_info_embed(self, msg: discord.Message) -> discord.Embed:
@@ -736,7 +735,7 @@ class Meta(LightningCog):
         if hasattr(guild, 'members'):
             bots = sum(member.bot for member in guild.members)
             humans = guild.member_count - bots
-            embed.add_field(name='Member Count', value=f"Bots: {bots}\nHumans: {humans}")
+            embed.add_field(name='Member Count', value=f"Bots: {bots}\nHumans: {humans}\nTotal: {len(guild.members)}")
 
         owner = getattr(guild, 'owner', guild.owner_id)
         embed.add_field(name='Owner', value=base_user_format(owner), inline=False)
