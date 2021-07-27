@@ -409,7 +409,7 @@ class EmbedFormat(BaseFormat):
             embed.title = "Member Leave"
             embed.color = discord.Color.red()
 
-        embed.set_author(name=member, icon_url=member.avatar_url)
+        embed.set_author(name=member, icon_url=member.avatar.url)
         embed.description = f"**User**: {member.mention} ({member.id}) \n**Created at**: "\
                             f"{natural_timedelta(member.created_at)}"
         return embed
