@@ -232,8 +232,9 @@ class PaginatedHelpCommand(commands.HelpCommand):
         desc = [usage]
 
         if command.description:
-            description = command.description.format(prefix=self.context.clean_prefix)
-            desc.append(description)
+            desc.append(command.description.format(prefix=self.context.clean_prefix))
+            if command.help:
+                desc.append(f"\n\n{command.help.format(prefix=self.context.clean_prefix)}")
         elif command.help:
             desc.append(command.help.format(prefix=self.context.clean_prefix))
         else:
