@@ -468,14 +468,21 @@ class Mod(LightningCog, required=["Configuration"]):
         return await connection.fetchval(query, guild_id, target_id, role_id)
 
     async def update_last_mute(self, guild_id, user_id, *, connection=None):
-        query = """UPDATE infractions
-                   SET active=false
-                   WHERE guild_id=$1 AND user_id=$2 AND action='6'
+        connection = connection or self.bot.pool
+        query = """SELECT id FROM infractions
+                   WHERE guild_id=$1
+                   AND user_id=$2
+                   AND action='6'
                    ORDER BY created_at DESC
                    LIMIT 1;
                 """
-        connection = connection or self.bot.pool
-        return await connection.execute(query, guild_id, user_id)
+        val = await connection.fetchval(query, guild_id, user_id)
+
+        query = """UPDATE infractions
+                   SET active=false
+                   WHERE guild_id=$1 AND id=$2;
+                """
+        return await connection.execute(query, guild_id, val)
 
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(manage_roles=True)
