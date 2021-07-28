@@ -25,6 +25,7 @@ from discord.ext.commands import bot_has_permissions, default
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, group)
 from lightning.converters import TargetMember
+from lightning.errors import LightningError
 from lightning.formatters import truncate_text
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
@@ -63,6 +64,7 @@ class InfractionSource(menus.KeysetPageSource):
 
         self.member = member
         self.moderator = moderator
+        self._has_ran = False
         super().__init__(**kwargs)
 
     def is_paginating(self):
@@ -94,6 +96,12 @@ class InfractionSource(menus.KeysetPageSource):
         sort = 'ASC' if specifier.direction is menus.PageDirection.after else 'DESC'
 
         records = await self.connection.fetch(query.format(where_clause=where_clause, sort=sort), *args)
+
+        if self._has_ran is False and not records:
+            raise LightningError("No infractions matched your critiera")
+
+        if self._has_ran is False:
+            self._has_ran = True
 
         if not records:
             raise ValueError
