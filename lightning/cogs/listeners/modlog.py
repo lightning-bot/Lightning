@@ -118,7 +118,7 @@ class ModLog(LightningCog):
         if not event.action.is_logged():
             await event.action.add_infraction(self.bot.pool)
 
-        event_name = f"MEMBER_{str(event).upper()}"
+        event_name = f"MEMBER_{event.action.event}" if not hasattr(event, "event_name") else f"MEMBER_{str(event)}"
 
         async for emitter, record in self.get_records(event.guild, LoggingType(event_name)):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
