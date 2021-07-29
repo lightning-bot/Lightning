@@ -67,7 +67,7 @@ class ListenerEvents(LightningCog):
                 if check is not None and check(entry):
                     return entry
 
-    async def check_and_wait(self, guild: discord.Guild, *, timeout=0.5):
+    async def check_and_wait(self, guild: discord.Guild, *, timeout=0.5) -> bool:
         """Checks if the bot has permissions to view the audit log and waits if the bot does have permission."""
         await self.bot.wait_until_ready()  # Might make this optional...
 
@@ -79,6 +79,7 @@ class ListenerEvents(LightningCog):
             return False
 
         await asyncio.sleep(timeout)
+        return True
 
     # Moderation Audit Log Integration Events
     @LightningCog.listener('on_member_remove')
@@ -146,10 +147,13 @@ class ListenerEvents(LightningCog):
         if before.nick == after.nick:
             return
 
-        await self.check_and_wait(before.guild)  # We don't care if the check failed, thus no guard
+        check = await self.check_and_wait(before.guild)
 
-        entry = await self.fetch_audit_log_entry(before.guild, discord.AuditLogAction.member_update, target=after,
-                                                 check=match_attribute("nick", before.nick, after.nick))
+        if check is True:
+            entry = await self.fetch_audit_log_entry(before.guild, discord.AuditLogAction.member_update, target=after,
+                                                     check=match_attribute("nick", before.nick, after.nick))
+        else:
+            entry = None
 
         self.bot.dispatch("lightning_member_nick_change", MemberUpdateEvent(before, after, entry))
 
@@ -158,10 +162,13 @@ class ListenerEvents(LightningCog):
         if before.roles == after.roles:
             return
 
-        await self.check_and_wait(before.guild)  # No guard needed
+        check = await self.check_and_wait(before.guild)
 
-        entry = await self.fetch_audit_log_entry(before.guild, discord.AuditLogAction.member_role_update,
-                                                 target=before, check=role_check(before, after))
+        if check is True:
+            entry = await self.fetch_audit_log_entry(before.guild, discord.AuditLogAction.member_role_update,
+                                                     target=before, check=role_check(before, after))
+        else:
+            entry = None
 
         self.bot.dispatch("lightning_member_role_change", MemberRolesUpdateEvent(before, after, entry))
 
@@ -174,10 +181,13 @@ class ListenerEvents(LightningCog):
     # Guild events with Audit Log Integration
     @LightningCog.listener()
     async def on_guild_role_delete(self, role):
-        await self.check_and_wait(role.guild)
+        check = await self.check_and_wait(role.guild)
 
-        entry = await self.fetch_audit_log_entry(role.guild, discord.AuditLogAction.role_delete,
-                                                 target=role, check=guild_role_check(role))
+        if check is True:
+            entry = await self.fetch_audit_log_entry(role.guild, discord.AuditLogAction.role_delete,
+                                                     target=role, check=guild_role_check(role))
+        else:
+            entry = None
 
         self.bot.dispatch("lightning_guild_role_delete", GuildRoleDeleteEvent(role, entry))
 
