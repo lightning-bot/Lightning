@@ -37,7 +37,7 @@ Test Migrations:
     - apk add --update python3 py3-pip openssl-dev python3-dev g++ libffi-dev cargo git
     - pip install poetry wheel
     - poetry --version
-    - poetry config settings.virtualenvs.in-project true
+    - poetry config virtualenvs.in-project true
     - poetry install -vv --no-dev
   script:
     - export PGPASSWORD=$POSTGRES_PASSWORD
