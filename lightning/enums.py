@@ -58,7 +58,7 @@ class ModFlags(BaseFlags):
     delete_stickers = 1 << 3
 
 
-class LoggingType(Flags):
+class LoggingType(BaseFlags):
     __all_flags_name__ = "all"
 
     # Bot Event
