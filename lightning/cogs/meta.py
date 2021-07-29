@@ -608,7 +608,7 @@ class Meta(LightningCog):
     async def serverinfo(self, ctx: LightningContext, guild: discord.Guild = commands.default.CurrentGuild) -> None:
         """Shows information about the server"""
         if await self.bot.is_owner(ctx.author):
-            guild = guild.id
+            guild = guild
         else:
             guild = ctx.guild
 
