@@ -162,13 +162,13 @@ class ModLog(LightningCog):
         guild = member.guild
         async for emitter, record in self.get_records(guild, event):
             if record['format'] == "minimal with timestamp":
-                message = modlogformats.MinimalisticFormat.join_leave(event, member)
+                message = modlogformats.MinimalisticFormat.join_leave(str(event), member)
                 await emitter.put(message)
             elif record['format'] == "emoji":
-                message = modlogformats.EmojiFormat.join_leave(event, member)
+                message = modlogformats.EmojiFormat.join_leave(str(event), member)
                 await emitter.put(message, allowed_mentions=discord.AllowedMentions(users=[member]))
             elif record['format'] == "embed":
-                embed = modlogformats.EmbedFormat.join_leave(event, member)
+                embed = modlogformats.EmbedFormat.join_leave(str(event), member)
                 await emitter.put(embed=embed)
 
     @LightningCog.listener()
