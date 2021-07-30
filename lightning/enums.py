@@ -67,7 +67,9 @@ class LoggingType(BaseFlags):
     # Moderation Events
     MEMBER_KICK = 1 << 1
     MEMBER_BAN = 1 << 2
+    MEMBER_TIMEBAN = 1 << 2
     MEMBER_MUTE = 1 << 3
+    MEMBER_TIMEMUTE = 1 << 3
     MEMBER_UNMUTE = 1 << 4
     MEMBER_WARN = 1 << 5
     MEMBER_UNBAN = 1 << 6
