@@ -310,17 +310,28 @@ class Timer:
 
 
 class GuildBotConfig:
-    def __init__(self, record):
+    def __init__(self, bot, record):
+        self.bot = bot
+
         self.guild_id = record['guild_id']
         self.toggleroles = record['toggleroles']
         self.prefix = record['prefix']
-        self.autorole = record['autorole']
+        self.autorole_id = record['autorole']
         self.flags = ConfigFlags(record['flags'] or 0)
-        self.permissions = GuildPermissionsConfig(record['permissions']) if record['permissions'] is not None else None
+
+        if record['permissions']:
+            self.permissions = GuildPermissionsConfig(record['permissions'])
+        else:
+            self.permissions = None
 
     @property
     def prefixes(self):
         return self.prefix
+
+    @property
+    def autorole(self):
+        guild = self.bot.get_guild(self.guild_id)
+        return guild.get_role(self.autorole_id) if guild else None
 
 
 def to_action(value):

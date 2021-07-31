@@ -103,14 +103,15 @@ class FeaturesListeners(LightningCog):
     async def on_member_join(self, member: discord.Member) -> None:
         record = await self.bot.get_guild_bot_config(member.guild.id)
 
-        if not record or not record.autorole:
+        if not record or not record.autorole_id:
             if hasattr(record, 'flags'):
                 await self.apply_users_roles(member, reapply=bool(record.flags.role_reapply))
             else:
                 await self.apply_users_roles(member)
             return
 
-        role = member.guild.get_role(record.autorole)
+        role = record.autorole
+
         if not role:
             await self.apply_users_roles(member, reapply=record.flags.role_reapply)
             # Role is deleted

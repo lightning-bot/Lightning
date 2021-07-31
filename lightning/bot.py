@@ -131,7 +131,7 @@ class LightningBot(commands.AutoShardedBot):
         """
         query = """SELECT * FROM guild_config WHERE guild_id=$1;"""
         record = await self.pool.fetchrow(query, guild_id)
-        return GuildBotConfig(record) if record else None
+        return GuildBotConfig(self, record) if record else None
 
     def add_cog(self, cls) -> None:
         deps = getattr(cls, "__lightning_cog_deps__", None)
