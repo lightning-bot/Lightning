@@ -26,6 +26,7 @@ from lightning import (Flag, FlagCommand, LightningBot, LightningCog,
                        LightningContext, command, group)
 from lightning.converters import ReadableChannel, Snowflake, SnowflakeDT
 from lightning.utils import helpers
+from lightning.utils.checks import no_threads
 from lightning.utils.time import format_timestamp
 
 
@@ -181,6 +182,7 @@ class Misc(LightningCog):
         await ctx.send(file=discord.File(_bytes, filename="message_archive.txt"))
 
     @command()
+    @no_threads()
     @commands.guild_only()
     async def topic(self, ctx: LightningContext, *,
                     channel: ReadableChannel = commands.default.CurrentChannel) -> None:

@@ -118,3 +118,8 @@ class InvalidLevelArgument(LightningError, commands.UserInputError):
     def __init__(self, levels, arg):
         joined = ", ".join([f"\"{level}\"" for level in levels])
         super().__init__(f"{arg} is not a recognized level. Valid levels are {joined}")
+
+
+class NoThreadChannels(LightningError):
+    def __init__(self):
+        super().__init__("This command cannot be ran in a thread channel.")

@@ -1,5 +1,5 @@
 """
-Lightning.py - A personal Discord bot
+Lightning.py - A Discord bot
 Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
@@ -14,6 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import discord
 from discord.ext import commands
 
 from lightning import errors
@@ -100,5 +101,15 @@ def required_cog(cog_name):
     async def predicate(ctx):
         if not ctx.bot.get_cog(cog_name):
             raise errors.CogNotAvailable(cog_name)
+        return True
+    return commands.check(predicate)
+
+
+def no_threads():
+    """Disallows a command to be ran in a thread channel"""
+    def predicate(ctx):
+        if isinstance(ctx.channel, discord.Thread):
+            raise errors.NoThreadChannels()
+
         return True
     return commands.check(predicate)
