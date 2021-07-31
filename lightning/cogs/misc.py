@@ -20,7 +20,6 @@ from io import StringIO
 
 import discord
 from discord.ext import commands
-from discord.ext import menus as dmenus
 
 from lightning import (Flag, FlagCommand, LightningBot, LightningCog,
                        LightningContext, command, group)
@@ -28,65 +27,6 @@ from lightning.converters import ReadableChannel, Snowflake, SnowflakeDT
 from lightning.utils import helpers
 from lightning.utils.checks import no_threads
 from lightning.utils.time import format_timestamp
-
-
-class EmbedBuilderMenu(dmenus.Menu):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.embed = discord.Embed()
-
-    async def send_initial_message(self, ctx, channel):
-        return await channel.send("Welcome to the interactive embed builder menu. To get started, press the "
-                                  "\N{INFORMATION SOURCE} button.")
-
-    async def wait_for_message(self):
-        def check(m):
-            return m.author.id == self.ctx.author.id and m.channel.id == self.ctx.channel.id
-        try:
-            msg = await self.ctx.bot.wait_for('message', timeout=30.0, check=check)
-        except asyncio.TimeoutError:
-            await self.ctx.send("Timed out waiting for a message.")
-            return
-        return msg
-
-    @dmenus.button("\N{MEMO}")
-    async def set_description(self, payload):
-        """Sets a description for the embed"""
-        await self.message.edit(content="Send the message you want to add as a description")
-        msg = await self.wait_for_message()
-        self.embed.description = msg.content
-
-    @dmenus.button("\N{LABEL}")
-    async def set_title(self, payload):
-        """Sets the title for the embed"""
-        await self.message.edit(content="Send the message you want to add as a title.\n**Limits**: Text can only be 256"
-                                        "characters or less")
-        msg = await self.wait_for_message()
-
-        if len(msg.content) > 256:
-            await self.ctx.send("Title can only be 256 characters or less.")
-            return
-
-        self.embed.title = msg.content
-
-    @dmenus.button("\N{INFORMATION SOURCE}\ufe0f", position=dmenus.Last(3))
-    async def info_page(self, payload) -> None:
-        """shows you this message"""
-        messages = []
-        for emoji, button in self.buttons.items():
-            messages.append(f'{str(emoji)} {button.action.__doc__}')
-
-        embed = discord.Embed(title="Help", color=discord.Color.blurple())
-        embed.clear_fields()
-        embed.description = '\n'.join(messages)
-        await self.message.edit(content=None, embed=embed)
-
-    @dmenus.button("\N{CHEQUERED FLAG}")
-    async def build(self, payload):
-        """Sends the embed"""
-        await self.ctx.send(embed=self.embed)
-        self.stop()
-
 
 ARCHIVE_FLAGS = [Flag("--reverse", "-r", help="Reverses the messages to oldest message first", is_bool_flag=True),
                  Flag("--limit", converter=int, default=50, help="The limit of messages to get"),
@@ -99,12 +39,6 @@ ARCHIVE_FLAGS = [Flag("--reverse", "-r", help="Reverses the messages to oldest m
 
 class Misc(LightningCog):
     """Commands that might be helpful..."""
-
-    @command(enabled=False, hidden=True)
-    async def embedbuilder(self, ctx: LightningContext) -> None:
-        """WIP embed builder command"""
-        em = EmbedBuilderMenu()
-        await em.start(ctx)
 
     @command()
     @commands.bot_has_permissions(add_reactions=True)
