@@ -252,6 +252,8 @@ class LevelConfig:
 
 
 class GuildPermissionsConfig:
+    __slots__ = ('fallback', 'command_overrides', 'levels')
+
     def __init__(self, record):
         self.fallback = record.get('fallback', True)
         self.command_overrides = CommandOverrides(record['COMMAND_OVERRIDES']) if "COMMAND_OVERRIDES" in record else \
@@ -276,6 +278,8 @@ class GuildPermissionsConfig:
 
 
 class PartialGuild:
+    __slots__ = ('id', 'name', 'owner_id', 'left_at')
+
     def __init__(self, record):
         self.id = record['id']
         self.name = record['name']
@@ -310,6 +314,8 @@ class Timer:
 
 
 class GuildBotConfig:
+    __slots__ = ('bot', 'guild_id', 'prefix', 'autorole_id', 'flags', 'permissions')
+
     def __init__(self, bot, record):
         self.bot = bot
 
