@@ -314,7 +314,7 @@ class Timer:
 
 
 class GuildBotConfig:
-    __slots__ = ('bot', 'guild_id', 'prefix', 'autorole_id', 'flags', 'permissions')
+    __slots__ = ('bot', 'guild_id', 'toggleroles', 'prefix', 'autorole_id', 'flags', 'permissions')
 
     def __init__(self, bot, record):
         self.bot = bot
