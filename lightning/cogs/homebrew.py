@@ -27,6 +27,7 @@ import asyncpg
 import dateutil.parser
 import discord
 import feedparser
+from bs4 import BeautifulSoup
 from discord.ext import commands, menus, tasks
 from jishaku.functools import executor_function
 from PIL import Image
@@ -37,6 +38,7 @@ from lightning import (CommandLevel, LightningBot, LightningCog,
 from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
 from lightning.utils.checks import has_channel_permissions
+from lightning.utils.helpers import request as make_request
 from lightning.utils.paginator import InfoMenuPages
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -71,9 +73,20 @@ class FindBMPAttachment(commands.CustomDefault):
         raise commands.BadArgument('Couldn\'t find an attachment that ends with ".bmp"')
 
 
+FAQ_CONVERTER = {"twilightmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
+                 "twlmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
+                 "twl": "https://wiki.ds-homebrew.com/twilightmenu/faq",
+                 "nds-bootstrap": "https://wiki.ds-homebrew.com/nds-bootstrap/faq",
+                 "ndsbootstrap": "https://wiki.ds-homebrew.com/nds-bootstrap/faq",
+                 "gbarunner2": "https://wiki.ds-homebrew.com/gbarunner2/faq"}
+
+
 class Homebrew(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
+
+        # FAQ
+        self.faq_entry_cache = {}
 
         # Nintendo updates related
         self.ninupdates_data = Storage("resources/nindy_data.json")
@@ -299,6 +312,57 @@ class Homebrew(LightningCog):
         if not result:
             return None
         return result
+
+    def get_faq_entries_from(self, content):
+        entries = []
+        soup = BeautifulSoup(content, 'lxml')
+        divs = soup.find_all('div', id="faq-container")
+        for div in divs:
+            for entry in div.find_all("details", class_="accordian-item"):
+                title = entry.find("summary")
+                d = entry.find("div")
+                param = f"?faq={entry['id'][4:]}"
+                entries.append((title.string.strip(), d.text.strip(), param))
+        return entries
+
+    async def fetch_faq_entries(self, site):
+        raw = await make_request(site, self.bot.aiosession)
+        entries = {}
+        for tup in self.get_faq_entries_from(raw):
+            entries[tup[0]] = {"description": tup[1], "link": f"{site}{tup[2]}"}
+        self.faq_entry_cache[site] = entries
+        return self.faq_entry_cache[site]
+
+    async def get_faq_entry(self, site, content):
+        if site not in self.faq_entry_cache:
+            entries = await self.fetch_faq_entries(site)
+        else:
+            entries = self.faq_entry_cache[site]
+
+        match = self.get_match(list(entries.keys()), content, 40)  # 40 should be safe cutoff
+        if not match:
+            return None
+
+        return (match[0], entries[match[0]])
+
+    @mod.command(name='faq')
+    async def mod_faq(self, ctx: LightningContext, type: str, *, question: str) -> None:
+        """Shows a faq entry for an entity.
+
+        Valid entities are "twilightmenu", "nds-bootstrap", or "gbarunnner2".
+        """
+        conv = FAQ_CONVERTER.get(type.lower(), None)
+        if not conv:
+            await ctx.send(f"Failed to convert type parameter. Please see `{ctx.clean_prefix}help mod faq`")
+            return
+
+        entry = await self.get_faq_entry(conv, question)
+        if not entry:
+            await ctx.send("Failed to find a match. Try something more specific(?)")
+            return
+
+        title, entry = entry
+        await ctx.send(f"**{title}**\n> <{entry['link']}>\n{entry['description']}")
 
     @mod.group(name="3ds", aliases=['3d', '3DS', '2DS', '2ds'], invoke_without_command=True)
     async def mod_3ds(self, ctx: LightningContext, *, homebrew=None) -> None:
