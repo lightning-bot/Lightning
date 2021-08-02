@@ -349,7 +349,7 @@ class Homebrew(LightningCog):
     async def mod_faq(self, ctx: LightningContext, type: str, *, question: str) -> None:
         """Shows a faq entry for an entity.
 
-        Valid entities are "twilightmenu", "nds-bootstrap", or "gbarunnner2".
+        Valid entities are "twilightmenu", "nds-bootstrap", or "gbarunner2".
         """
         conv = FAQ_CONVERTER.get(type.lower(), None)
         if not conv:
@@ -358,7 +358,7 @@ class Homebrew(LightningCog):
 
         entry = await self.get_faq_entry(conv, question)
         if not entry:
-            await ctx.send("Failed to find a match. Try something more specific(?)")
+            await ctx.send(conv)
             return
 
         title, entry = entry
