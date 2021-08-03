@@ -15,11 +15,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncio
+from inspect import isawaitable as ins_isawaitable
 
 import discord
 
 __all__ = ("BaseView",
-           "MenuLikeView")
+           "MenuLikeView",
+           "ExitableMenu")
 
 
 class BaseView(discord.ui.View):
@@ -64,6 +66,9 @@ class MenuLikeView(BaseView):
 
     # Seemed like reasonable naming
     def format_initial_message(self, ctx):
+        """Formats the initial message to send with when starting the menu via the start method.
+
+        This can be sync or async."""
         raise NotImplementedError
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -82,7 +87,11 @@ class MenuLikeView(BaseView):
 
         dest = channel or ctx.channel
 
-        kwargs = self._assume_message_kwargs(self.format_initial_message(ctx))
+        fmt = self.format_initial_message(ctx)
+        if ins_isawaitable(fmt):
+            fmt = await fmt
+
+        kwargs = self._assume_message_kwargs(fmt)
         self.message = await dest.send(**kwargs, view=self)
 
         if wait:
@@ -105,3 +114,16 @@ class MenuLikeView(BaseView):
                 else:
                     self.remove_item(child)
             await self.message.edit(view=self)
+
+
+class StopButton(discord.ui.Button):
+    async def callback(self, interaction: discord.Interaction) -> None:
+        assert self.view is not None
+        self.view.stop()
+
+
+class ExitableMenu(MenuLikeView):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.add_item(StopButton(label="Exit"))
