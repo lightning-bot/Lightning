@@ -276,10 +276,7 @@ class Role(commands.RoleConverter):
     async def convert(self, ctx, argument):
         role = await super().convert(ctx, argument)
 
-        if role > ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
-            raise HierarchyException("role")
-
-        if role > ctx.me.top_role:
+        if role.is_assignable() is False:
             raise HierarchyException("role")
 
         return role
