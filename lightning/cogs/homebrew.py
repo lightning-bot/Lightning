@@ -75,9 +75,7 @@ class FindBMPAttachment(commands.CustomDefault):
 
 FAQ_CONVERTER = {"twilightmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
                  "twlmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
-                 "twl": "https://wiki.ds-homebrew.com/twilightmenu/faq",
                  "nds-bootstrap": "https://wiki.ds-homebrew.com/nds-bootstrap/faq",
-                 "ndsbootstrap": "https://wiki.ds-homebrew.com/nds-bootstrap/faq",
                  "gbarunner2": "https://wiki.ds-homebrew.com/gbarunner2/faq"}
 
 
@@ -346,19 +344,21 @@ class Homebrew(LightningCog):
         return (match[0], entries[match[0]])
 
     @mod.command(name='faq')
-    async def mod_faq(self, ctx: LightningContext, type: str, *, question: str) -> None:
+    async def mod_faq(self, ctx: LightningContext, entity: str, *, question: str) -> None:
         """Shows a faq entry for an entity.
 
         Valid entities are "twilightmenu", "nds-bootstrap", or "gbarunner2".
         """
-        conv = FAQ_CONVERTER.get(type.lower(), None)
-        if not conv:
-            await ctx.send(f"Failed to convert type parameter. Please see `{ctx.clean_prefix}help mod faq`")
+        match = self.get_match(list(FAQ_CONVERTER.keys()), entity, 65)
+        if not match:
+            await ctx.send(f"Failed to convert entity parameter. Please see `{ctx.clean_prefix}help mod faq`")
             return
 
-        entry = await self.get_faq_entry(conv, question)
+        entity = FAQ_CONVERTER[match[0]]
+
+        entry = await self.get_faq_entry(entity, question)
         if not entry:
-            await ctx.send(conv)
+            await ctx.send(entity)
             return
 
         title, entry = entry
