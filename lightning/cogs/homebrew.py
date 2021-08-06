@@ -349,7 +349,7 @@ class Homebrew(LightningCog):
 
         Valid entities are "twilightmenu", "nds-bootstrap", or "gbarunner2".
         """
-        match = self.get_match(list(FAQ_CONVERTER.keys()), entity, 65)
+        match = self.get_match(list(FAQ_CONVERTER.keys()), entity, 50)
         if not match:
             await ctx.send(f"Failed to convert entity parameter. Please see `{ctx.clean_prefix}help mod faq`")
             return
