@@ -87,7 +87,7 @@ class Mod(LightningCog, required=["Configuration"]):
         # We need this for bulk actions
         connection = kwargs.pop('connection', self.bot.pool)
 
-        timestamp = timestamp or datetime.utcnow()
+        timestamp = timestamp or discord.utils.utcnow()
 
         event = InfractionEvent(action, member=target, guild=target.guild, moderator=moderator, reason=reason, **kwargs)
         await event.action.add_infraction(connection)

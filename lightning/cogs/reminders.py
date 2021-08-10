@@ -25,10 +25,10 @@ import asyncpg
 import discord
 from discord.ext.commands import clean_content
 
-import lightning.utils.time
 from lightning import LightningBot, LightningCog, LightningContext, group
 from lightning.formatters import plural
 from lightning.models import Timer
+from lightning.utils import time as ltime
 from lightning.utils.helpers import BetterUserObject, dm_user
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -92,8 +92,8 @@ class Reminders(LightningCog):
         **kwargs
             Keyword arguments about the event that are passed to the database
         """
-        created = lightning.utils.time.strip_tzinfo(created)
-        expiry = lightning.utils.time.strip_tzinfo(expiry)  # Just in case
+        created = ltime.strip_tzinfo(created)
+        expiry = ltime.strip_tzinfo(expiry)  # Just in case
 
         delta = (expiry - created).total_seconds()
         if delta <= 60 and force_insert is False:
@@ -141,14 +141,12 @@ class Reminders(LightningCog):
             self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
         except Exception:
             log.error(traceback.format_exc())
-            adp = discord.AsyncWebhookAdapter(self.bot.aiosession)
-            webhook = discord.Webhook.from_url(self.bot.config['logging']['timer_errors'], adapter=adp)
+            webhook = discord.Webhook.from_url(self.bot.config['logging']['timer_errors'], session=self.bot.aiosession)
             await webhook.execute(f"Timers has Errored!\n```{traceback.format_exc()}```")
 
     @group(usage="<when>", aliases=["reminder"], invoke_without_command=True)
     async def remind(self, ctx: LightningContext, *,
-                     when: lightning.utils.time.UserFriendlyTime(clean_content,
-                                                                 default='something')) -> None:  # noqa: F821
+                     when: ltime.UserFriendlyTime(clean_content, default='something')) -> None:  # noqa: F821
         """Reminds you of something after a certain date.
 
         The input can be any direct date (e.g. YYYY-MM-DD) or a human readable offset.
@@ -163,7 +161,7 @@ class Reminders(LightningCog):
         await self.add_job("reminder", ctx.message.created_at, when.dt, reminder_text=when.arg,
                            author=ctx.author.id, channel=ctx.channel.id, message_id=ctx.message.id)
 
-        duration_text = lightning.utils.time.natural_timedelta(when.dt, source=ctx.message.created_at)
+        duration_text = ltime.natural_timedelta(when.dt, source=ctx.message.created_at)
         await ctx.send(f"Ok {ctx.author.mention}, I'll remind you in {duration_text} about {when.arg}.")
 
     # remind hide/show
@@ -206,14 +204,14 @@ class Reminders(LightningCog):
     def format_list(self, records, *, guild=False) -> discord.Embed:
         embed = discord.Embed(title="Reminders", color=0xf74b06)
         for record in records:
-            timed_txt = lightning.utils.time.natural_timedelta(record['expiry'], suffix=True)
             secret = record['extra'].get("secret", False)
             if guild is True and secret is True:
                 text = "This reminder is explicitly marked as secret"
             else:
                 text = textwrap.shorten(record['extra']['reminder_text'], width=512)
 
-            embed.add_field(name=f"{record['id']}: In {timed_txt}", value=text, inline=False)
+            embed.add_field(name=f"{record['id']}: {ltime.format_relative(record['expiry'])}", value=text,
+                            inline=False)
 
         return embed
 
@@ -305,9 +303,7 @@ class Reminders(LightningCog):
             # rip
             return
 
-        timed_txt = lightning.utils.time.natural_timedelta(timer.created,
-                                                           source=timer.expiry,
-                                                           suffix=True)
+        timed_txt = ltime.natural_timedelta(timer.created, source=timer.expiry, suffix=True)
         message = f"<@!{user.id}> You asked to be reminded {timed_txt} about {timer.extra['reminder_text']}"
         secret = timer.extra.pop("secret", False)
 

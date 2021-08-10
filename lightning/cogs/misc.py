@@ -15,7 +15,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncio
-from datetime import datetime
 from io import StringIO
 
 import discord
@@ -106,7 +105,7 @@ class Misc(LightningCog):
         if flags['reverse']:
             messages.reverse()
 
-        text = f"Archive of {channel} (ID: {channel.id}) made at {datetime.utcnow()}\nConditions: {dict(flags)}"\
+        text = f"Archive of {channel} (ID: {channel.id}) made at {discord.utils.utcnow()}\nConditions: {dict(flags)}"\
                f"\n\n\n{''.join(messages)}"
 
         _bytes = StringIO()

@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import collections
 import logging
-from datetime import datetime
 from typing import Union
 
 import discord
@@ -136,8 +135,8 @@ class Stats(LightningCog):
                    WHERE guild_id=$1;"""
         res = await self.bot.pool.fetchrow(query, ctx.guild.id)
         em.description = f"{res[0]} commands used so far."
-        em.set_footer(text='Lightning has been tracking command usage since')
-        em.timestamp = res[1] or datetime.utcnow()
+        em.set_footer(text='Tracking command usage since')
+        em.timestamp = res[1] or discord.utils.utcnow()
         query = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
                    FROM commands_usage
@@ -198,7 +197,7 @@ class Stats(LightningCog):
         em.description = f"{res['count']} commands used so far in {ctx.guild.name}."
         # Default to utcnow() if no value
         em.set_footer(text='First command usage on')
-        em.timestamp = res[1] or datetime.utcnow()
+        em.timestamp = res[1] or discord.utils.utcnow()
         query2 = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
                    FROM commands_usage

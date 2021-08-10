@@ -26,6 +26,7 @@ import re
 import parsedatetime as pdt
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
+from discord.utils import format_dt
 
 from lightning.formatters import human_join, plural
 
@@ -46,7 +47,9 @@ class ShortTime:
             raise commands.BadArgument('Invalid time provided')
 
         data = {k: int(v) for k, v in match.groupdict(default=0).items()}
-        now = now or datetime.datetime.utcnow()
+        now = now or datetime.datetime.now(datetime.timezone.utc)
+        # Expose relativedelta as we may need this
+        self.delta = relativedelta(**data)
         self.dt = now + relativedelta(**data)
 
     @classmethod
@@ -58,7 +61,7 @@ class HumanTime:
     calendar = pdt.Calendar(version=pdt.VERSION_CONTEXT_STYLE)
 
     def __init__(self, argument, *, now=None):
-        now = now or datetime.datetime.utcnow()
+        now = now or datetime.datetime.now(datetime.timezone.utc)
         dt, status = self.calendar.parseDT(argument, sourceTime=now)
         if not status.hasDateOrTime:
             raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow" or "3 days"')
@@ -209,9 +212,12 @@ class UserFriendlyTime(commands.Converter):
 
 
 def natural_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True) -> str:
-    now = source or datetime.datetime.utcnow()
+    now = source or datetime.datetime.now(datetime.timezone.utc)
+    # We're just going to add tzinfo to both if we have to
+    if dt.tzinfo is None:
+        dt = add_tzinfo(dt)
 
-    if dt.tzinfo is not None:
+    if now.tzinfo is None:
         now = add_tzinfo(now)
 
     # Microsecond free zone
@@ -275,9 +281,7 @@ def natural_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True) 
 
 
 def strip_tzinfo(dt: datetime.datetime):
-    """Removes tzinfo from a datetime
-
-    This really just removes tzinfo"""
+    """Removes tzinfo from a datetime"""
     return dt.replace(tzinfo=None)
 
 
@@ -294,3 +298,8 @@ def format_timestamp(timestamp, *, timezone="UTC") -> str:
 
 def get_utc_timestamp(timestamp) -> str:
     return format_timestamp(timestamp)
+
+
+def format_relative(dt):
+    """Returns the discord markdown for a relative timestamp"""
+    return format_dt(dt, style="R")
