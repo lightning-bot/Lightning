@@ -34,13 +34,13 @@ class CommandBug:
     def __init__(self, record: asyncpg.Record):
         self.token = record['token']
         self.traceback = record['traceback']
-        self.created_at = record['created_at']
+        self.created_at = ltime.add_tzinfo(record['created_at'])
 
     def __int__(self):
         return self.token
 
     def __repr__(self):
-        return f"<CommandBug token={int(self)}>"
+        return f"<CommandBug token={self.token}>"
 
 
 class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
