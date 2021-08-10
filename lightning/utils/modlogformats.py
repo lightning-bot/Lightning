@@ -143,6 +143,11 @@ class EmojiFormat(BaseFormat):
                f"{escape_markdown_and_mentions(str(bot))}"
 
     @staticmethod
+    def completed_screening(member):
+        return f"\N{PASSPORT CONTROL} **Member Completed Screening** {member.mention} | "\
+               f"({escape_markdown_and_mentions(str(member))}"
+
+    @staticmethod
     def role_change(added, removed, after, *, entry=None):
         mod = None
         if entry:
@@ -267,6 +272,10 @@ def base_user_format(user, unknown_text="Unknown user with ID: ") -> str:
         return f"{unknown_text}{user.id if hasattr(user, 'id') else user}"
 
 
+def format_timestamp(dt: datetime):
+    return discord.utils.format_dt(dt, style="T")
+
+
 class MinimalisticFormat(BaseFormat):
     @staticmethod
     def format_user(user) -> str:
@@ -335,9 +344,21 @@ class MinimalisticFormat(BaseFormat):
                   "__Account Creation Date__: "\
                   f"{get_utc_timestamp(member.created_at)}"
         else:
-            msg = f"`[{datetime.utcnow().strftime('%H:%M:%S UTC')}]`"\
+            msg = f"`[{discord.utils.utcnow().strftime('%H:%M:%S UTC')}]`"\
                   f" **Member Leave**: {discord.utils.escape_markdown(str(member))} ({member.id})"
         return msg
+
+    @staticmethod
+    def completed_screening(member, *, with_timestamp: bool = True):
+        timestamp = discord.utils.utcnow()
+
+        if with_timestamp:
+            base = [f"`[{timestamp.strftime('%H:%M:%S UTC')}]` "]
+        else:
+            base = []
+
+        base.append(f"**Member Passed Screening**: {discord.utils.escape_markdown(str(member))} ({member.id})")
+        return ''.join(base)
 
     @staticmethod
     def command_ran(ctx, *, with_timestamp: bool = True) -> str:
@@ -491,3 +512,8 @@ class EmbedFormat(BaseFormat):
             embed.add_field(name="Moderator", value=base_user_format(moderator))
 
         return embed
+
+    @staticmethod
+    def completed_screening(member):
+        return discord.Embed(title="Member Passed Screening", description=f"**Member**: {base_user_format(member)}",
+                             color=discord.Color.blurple(), timestamp=discord.utils.utcnow())

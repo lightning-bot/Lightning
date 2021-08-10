@@ -179,6 +179,20 @@ class ModLog(LightningCog):
     async def on_member_remove(self, member):
         await self._log_member_join_leave(member, LoggingType.MEMBER_LEAVE)
 
+    @LightningCog.listener()
+    async def on_lightning_member_passed_screening(self, member):
+        async for emitter, record in self.get_records(member.guild, LoggingType.MEMBER_SCREENING_COMPLETE):
+            if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
+                arg = False if record['format'] == "minimal without timestamp" else True
+                message = modlogformats.MinimalisticFormat.completed_screening(member, with_timestamp=arg)
+                await emitter.put(message)
+            elif record['format'] == "emoji":
+                message = modlogformats.EmojiFormat.completed_screening(member)
+                await emitter.put(message, allowed_mentions=discord.AllowedMentions(users=[member]))
+            elif record['format'] == "embed":
+                embed = modlogformats.EmbedFormat.completed_screening(member)
+                await emitter.put(embed=embed)
+
     async def _log_role_changes(self, ltype: LoggingType, guild, member, *, added=None, removed=None,
                                 entry=None) -> None:
         async for emitter, record in self.get_records(guild, ltype):
