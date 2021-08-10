@@ -206,8 +206,8 @@ class Homebrew(LightningCog):
             except KeyError:
                 pass
 
-            hook_text = f"`[{timestamp.strftime('%H:%M:%S')}]` 🚨 **System update detected for {console}: {version}**\n"\
-                        f"More information at <{link}>"
+            hook_text = f"[{discord.utils.format_dt(timestamp, style='T')}] 🚨 **System update detected for {console}:"\
+                        f" {version}**\nMore information at <{link}>"
             await data.add(console, {"version": version,
                                      "last_updated": timestamp.isoformat()})
             await self.dispatch_message_to_guilds(console, hook_text)
