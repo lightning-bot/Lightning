@@ -50,7 +50,7 @@ class BaseFormat:
         self.moderator = moderator
         self.infraction_id = infraction_id
         self.reason = reason or "no reason given"
-        self.timestamp = kwargs.pop("timestamp", datetime.utcnow())
+        self.timestamp = kwargs.pop("timestamp", discord.utils.utcnow())
         self.expiry = expiry
         self.kwargs = kwargs
 
@@ -277,7 +277,7 @@ class MinimalisticFormat(BaseFormat):
 
     @staticmethod
     def role_change(user, added, removed, *, entry=None, with_timestamp=True) -> str:
-        time = datetime.utcnow()
+        time = discord.utils.utcnow()
         mod = None
         reason = None
 
@@ -356,7 +356,7 @@ class MinimalisticFormat(BaseFormat):
 
     @staticmethod
     def nick_change(member, previous: str, current: Optional[str], moderator=None, *, with_timestamp: bool = True):
-        timestamp = datetime.utcnow()
+        timestamp = discord.utils.utcnow()
 
         if with_timestamp:
             base = [f"`[{timestamp.strftime('%H:%M:%S UTC')}]`"]
@@ -444,7 +444,7 @@ class EmbedFormat(BaseFormat):
         embed = discord.Embed(title="Role Change", color=discord.Color.dark_gold(),
                               description=f"User: {user.mention} ({user.id})")
 
-        time = datetime.utcnow()
+        time = discord.utils.utcnow()
         if entry:
             removed = entry.changes.before.roles
             added = entry.changes.after.roles
@@ -473,7 +473,7 @@ class EmbedFormat(BaseFormat):
 
     @staticmethod
     def nick_change(member, previous: str, current: Optional[str], moderator=None) -> discord.Embed:
-        embed = discord.Embed(color=discord.Color.blurple(), timestamp=datetime.utcnow())
+        embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
 
         if current and previous:
             embed.title = "Member Nickname Update"

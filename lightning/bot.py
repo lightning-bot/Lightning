@@ -38,6 +38,7 @@ from lightning.models import GuildBotConfig
 from lightning.storage import Storage
 from lightning.utils.emitters import WebhookEmbedEmitter
 
+__all__ = ("LightningBot")
 log = logging.getLogger(__name__)
 
 
@@ -78,7 +79,7 @@ class LightningBot(commands.AutoShardedBot):
                          allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False),
                          intents=intents, **kwargs)
 
-        self.launch_time = datetime.utcnow()
+        self.launch_time = discord.utils.utcnow()
 
         self.command_spammers = collections.Counter()
         # This should be good enough
@@ -88,7 +89,7 @@ class LightningBot(commands.AutoShardedBot):
         self.version = version
         self._pending_cogs = {}
 
-        headers = {"User-Agent": self.config['bot'].pop("user_agent", f"Lightning Bot {self.version}")}
+        headers = {"User-Agent": self.config['bot'].pop("user_agent", f"Lightning Bot/{self.version}")}
         self.aiosession = aiohttp.ClientSession(headers=headers)
         self.pool: Optional[asyncpg.Pool] = None
         self.redis_pool = cache.start_redis_client()
@@ -175,7 +176,7 @@ class LightningBot(commands.AutoShardedBot):
             donefmt = f'{donefmt}\n__Guild__: {guild} (ID: {guild.id})'
         e.add_field(name="Location", value=donefmt)
         e.add_field(name="User", value=f"{str(member)} (ID: {member.id})")
-        e.timestamp = datetime.utcnow()
+        e.timestamp = discord.utils.utcnow()
         await webhook.execute(embed=e)
 
     async def auto_blacklist_check(self, message) -> None:
@@ -240,7 +241,7 @@ class LightningBot(commands.AutoShardedBot):
 
         embed = discord.Embed(title="Event Error", description=f"```py\n{traceback.format_exc()}```",
                               color=discord.Color.gold(),
-                              timestamp=datetime.utcnow())
+                              timestamp=discord.utils.utcnow())
         embed.add_field(name="Event", value=event)
         await self._error_logger.put(embed)
 
@@ -336,7 +337,7 @@ class LightningBot(commands.AutoShardedBot):
         # log.error(err_msg)
 
         embed = discord.Embed(title='Command Error', color=0xff0000,
-                              timestamp=datetime.utcnow())
+                              timestamp=discord.utils.utcnow())
         embed.add_field(name='Name', value=ctx.command.qualified_name)
         embed.add_field(name='Author', value=f'{ctx.author} (ID: {ctx.author.id})')
 
