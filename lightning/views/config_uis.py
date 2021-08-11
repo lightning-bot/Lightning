@@ -107,13 +107,15 @@ class Logging(ExitableMenu):
         query = "SELECT * FROM logging WHERE guild_id=$1 AND channel_id=$2;"
         record = await self.ctx.bot.pool.fetchrow(query, self.ctx.guild.id, self.log_channel.id)
         if not record:
-            await interaction.response.edit_message(content="No configuration exists for this channel yet!")
+            content = "No configuration exists for this channel yet!"
         else:
             types = LoggingType(record['types'])
-            await interaction.response.edit_message(content=f"Configuration for {self.log_channel.mention}:\n\n"
-                                                            f"Events: {types.to_simple_str().replace('|', ', ')}\n"
-                                                            f"Log Format: {record['format'].title()}")
-        self.stop()
+            content = f"Configuration for {self.log_channel.mention}:\n\n"\
+                      f"Events: {types.to_simple_str().replace('|', ', ')}\n"\
+                      f"Log Format: {record['format'].title()}"
+        # Disable this button after being pressed.
+        self.view_config.disabled = True
+        await interaction.response.edit_message(content=content, view=self)
 
     @discord.ui.button(label="Remove logging", style=discord.ButtonStyle.red, emoji="\N{CLOSED BOOK}")
     async def remove_logging_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
