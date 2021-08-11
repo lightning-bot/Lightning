@@ -21,118 +21,18 @@ import discord
 from discord.ext import commands, menus
 
 from lightning import (CommandLevel, ConfigFlags, LightningBot, LightningCog,
-                       LightningContext, LoggingType, MenuLikeView, ModFlags,
-                       cache, command)
+                       LightningContext, ModFlags, cache, command)
 from lightning import flags as lflags
 from lightning import group
 from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
-from lightning.events import ChannelConfigInvalidateEvent
 from lightning.formatters import plural
 from lightning.models import GuildModConfig
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
+from lightning.views import config_uis
 
 log = logging.getLogger(__name__)
-
-
-class LoggingTypeSelects(discord.ui.Select):
-    def __init__(self):
-        super().__init__(max_values=len(LoggingType.all),
-                         options=[discord.SelectOption(label=x.name) for x in LoggingType.all])
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        assert self.view is not None
-        ctx = self.view.ctx
-        values = LoggingType.from_simple_str("|".join(self.values))
-        query = """INSERT INTO logging (guild_id, channel_id, types)
-                   VALUES ($1, $2, $3)
-                   ON CONFLICT (channel_id)
-                   DO UPDATE SET types = EXCLUDED.types;"""
-        await ctx.bot.pool.execute(query, ctx.guild.id, self.view.log_channel.id, int(values))
-        self.view.invalidate()
-        await interaction.response.send_message(f"Successfully set up logging for {self.view.log_channel.mention}! "
-                                                f"({values.to_simple_str().replace('|', ' ')})")
-        self.view.stop()
-
-
-class LogFormatButton(discord.ui.Button):
-    def __init__(self, format_type):
-        self.format_type = format_type
-        super().__init__(label=format_type.title())
-
-    async def callback(self, interaction: discord.Interaction) -> None:
-        assert self.view is not None
-        connection = self.view.ctx.bot.pool
-        query = """UPDATE logging SET format=$1 WHERE guild_id=$2 and channel_id=$3;"""
-        resp = await connection.execute(query, self.format_type, self.view.log_channel.guild.id,
-                                        self.view.log_channel.id)
-
-        if resp == "UPDATE 0":
-            await interaction.response.send_message(f"{self.view.log_channel.mention} is not setup as a logging "
-                                                    "channel!")
-            self.view.stop()
-            return
-
-        await interaction.response.send_message(f"Successfully changed the log format to {self.label}!")
-        self.view.invalidate()
-        self.view.stop()
-
-
-class LoggingConfigView(MenuLikeView):
-    def __init__(self, log_channel: discord.TextChannel, **kwargs):
-        super().__init__(**kwargs)
-        self.log_channel = log_channel
-
-    def invalidate(self):
-        self.ctx.bot.dispatch("lightning_channel_config_remove",
-                              ChannelConfigInvalidateEvent(self.log_channel))
-
-    def format_initial_message(self, ctx):
-        content = "Welcome to the interactive logging configuration setup, please select a button below to continue."\
-                  "\n\nIf you want to cancel setup, press the button with \N{BLACK SQUARE FOR STOP}."
-        return content
-
-    @discord.ui.button(label="Log all events", style=discord.ButtonStyle.primary, emoji="\N{LEDGER}")
-    async def log_all_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
-        query = """INSERT INTO logging (guild_id, channel_id, types)
-                   VALUES ($1, $2, $3)
-                   ON CONFLICT (channel_id)
-                   DO UPDATE SET types = EXCLUDED.types;"""
-        await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(LoggingType.all))
-        self.invalidate()
-        await interaction.response.send_message(f"Successfully set up logging for {self.log_channel.mention}! "
-                                                f"({LoggingType.all.to_simple_str().replace('|', ', ')})")
-        self.stop()
-
-    @discord.ui.button(label="Setup specific logging events", style=discord.ButtonStyle.primary, emoji="\N{OPEN BOOK}")
-    async def specific_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
-        self.clear_items()
-        self.add_item(LoggingTypeSelects())
-        await interaction.response.edit_message(content='Select the events you wish to log', view=self)
-
-    @discord.ui.button(label="Change logging format", style=discord.ButtonStyle.primary, emoji="\N{NOTEBOOK}")
-    async def change_format_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
-        self.clear_items()
-        for log_format in ['emoji', 'minimal with timestamp', 'minimal without timestamp', 'embed']:
-            self.add_item(LogFormatButton(log_format))
-        await interaction.response.edit_message(content="Select the type of log format to change to", view=self)
-
-    @discord.ui.button(label="Remove logging", style=discord.ButtonStyle.red, emoji="\N{CLOSED BOOK}")
-    async def remove_logging_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
-        query = """DELETE FROM logging
-                   WHERE guild_id=$1
-                   AND channel_id=$2;"""
-        await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id)
-
-        await interaction.response.send_message(f"Removed logging from {self.log_channel.mention}!")
-        self.invalidate()
-        self.stop()
-
-    @discord.ui.button(emoji="\N{BLACK SQUARE FOR STOP}")
-    async def stop_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
-        await interaction.response.edit_message(content="Cancelled.")
-        self.stop()
 
 
 class ConfigViewerMenu(menus.Menu):
@@ -367,11 +267,8 @@ class Configuration(LightningCog):
     @commands.bot_has_permissions(manage_messages=True, view_audit_log=True, send_messages=True)
     @has_guild_permissions(manage_guild=True)
     async def logging(self, ctx, *, channel: discord.TextChannel = commands.default.CurrentChannel):
-        """Sets up logging for the server.
-
-        This handles changing the log format for the server, removing logging from a channel, and setting up \
-        logging for a channel."""
-        await LoggingConfigView(channel, timeout=180.0).start(ctx)
+        """Sets up logging for the server via a menu"""
+        await config_uis.Logging(channel, timeout=180.0).start(ctx)
 
     async def toggle_feature_flag(self, guild_id: int, flag: ConfigFlags) -> ConfigFlags:
         """Toggles a feature flag for a guild
