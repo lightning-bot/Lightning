@@ -152,6 +152,9 @@ class Fun(LightningCog):
     @commands.cooldown(2, 60.0, commands.BucketType.guild)
     async def screwedup(self, ctx: LightningContext, member: discord.Member = commands.default.Author) -> None:
         """Miko Iino tells you that you are screwed up in the head"""
+        if member.id == 376012343777427457 or member.id == self.bot.user.id:
+            return  # :mystery:
+
         async with ctx.typing():
             avy = await self.get_user_avatar(member)
             image_buffer = await self.make_circle_related_meme(avy, "resources/templates/inthehead.png", (64, 64),
@@ -162,6 +165,9 @@ class Fun(LightningCog):
     @commands.cooldown(2, 60.0, commands.BucketType.guild)
     async def iq(self, ctx: LightningContext, member: discord.Member = commands.default.Author) -> None:
         """Your iq is 3"""
+        if member.id == 376012343777427457 or member.id == self.bot.user.id:
+            return  # :mystery:
+
         async with ctx.typing():
             avy = await self.get_user_avatar(member)
             image_buffer = await self.make_circle_related_meme(avy, "resources/templates/fujiwara-iq.png", (165, 165),
