@@ -127,3 +127,35 @@ class ExitableMenu(MenuLikeView):
         super().__init__(**kwargs)
 
         self.add_item(StopButton(label="Exit"))
+
+
+class UpdateableMenu(MenuLikeView):
+    async def update(self) -> None:
+        await self.update_components()
+
+        fmt = self.format_initial_message(self.ctx)
+        if ins_isawaitable(fmt):
+            fmt = await fmt
+
+        kwargs = self._assume_message_kwargs(fmt)
+        await self.message.edit(**kwargs, view=self)
+
+    async def update_components(self) -> None:
+        ...
+
+    async def start(self, ctx, *, channel=None, wait=True) -> None:
+        self.ctx = ctx
+
+        dest = channel or ctx.channel
+
+        await self.update_components()
+
+        fmt = self.format_initial_message(ctx)
+        if ins_isawaitable(fmt):
+            fmt = await fmt
+
+        kwargs = self._assume_message_kwargs(fmt)
+        self.message = await dest.send(**kwargs, view=self)
+
+        if wait:
+            await self.wait()
