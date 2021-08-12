@@ -245,9 +245,7 @@ class API(LightningCog):
 
     @command()
     async def rtfs(self, ctx: LightningContext, *, entity: str) -> None:
-        """Shows source for an entity in discord.py
-
-        Read the fucking source nerd"""
+        """Shows source for an entity in discord.py"""
         data = await ctx.request(f"https://rtfs.eviee.me/dpy?search={urllib.parse.quote(entity)}")
 
         if not data:
@@ -267,9 +265,7 @@ class API(LightningCog):
 
     @group(invoke_without_command=True)
     async def crate(self, ctx: LightningContext) -> None:
-        """Crate related commands.
-
-        Rewrite it in rust"""
+        """Crate related commands"""
         await ctx.send_help('crate')
 
     @crate.command(name='browse', aliases=['search'])
