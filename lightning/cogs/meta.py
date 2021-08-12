@@ -275,18 +275,6 @@ class PaginatedHelpCommand(commands.HelpCommand):
         await pages.paginate()
 
 
-class ClientID(commands.MemberConverter):
-    async def convert(self, ctx: LightningContext, argument) -> int:
-        try:
-            member = await super().convert(ctx, argument)
-            return member.id
-        except commands.BadArgument:
-            if argument.isdigit() is True:
-                return argument
-            else:
-                raise commands.BadArgument(f"Failed to convert \"{argument}\" to Client ID.")
-
-
 class Meta(LightningCog):
     """Commands related to Discord or the bot"""
 
@@ -494,7 +482,7 @@ class Meta(LightningCog):
         await ctx.send(embed=embed)
 
     @lcommand(aliases=['invite'])
-    async def join(self, ctx: LightningContext, *ids: ClientID) -> None:
+    async def join(self, ctx: LightningContext, *ids: discord.Object) -> None:
         """Gives you a link to add the bot to your server or generates an invite link for a client id."""
         perms = discord.Permissions.none()
 
@@ -515,10 +503,11 @@ class Meta(LightningCog):
             perms.read_message_history = True
             perms.manage_webhooks = True
             perms.embed_links = True
+            perms.manage_threads = True
             msg = "You can use this link to invite me to your server. (Select permissions as needed) "\
-                  f"<{discord.utils.oauth_url(self.bot.user.id, perms)}>"
+                  f"<{discord.utils.oauth_url(self.bot.user.id, permissions=perms)}>"
         else:
-            msg = "\n".join("<{}>".format(discord.utils.oauth_url(_id, perms)) for _id in ids)
+            msg = "\n".join("<{}>".format(discord.utils.oauth_url(o.id, permissions=perms)) for o in ids)
 
         await ctx.send(msg)
 
