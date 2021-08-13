@@ -135,7 +135,7 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
     @Feature.Command()
     async def exit(self, ctx: LightningContext) -> None:
         """Stops the bot"""
-        shutdown_messages = ['Shutting Down...', "See ya!", "RIP", "Turning off...."]
+        shutdown_messages = ["Shutting Down...", "See ya!", "RIP", "Turning off...."]
         await ctx.send(f"{helpers.Emoji.greentick} {random.choice(shutdown_messages)}")
         await self.bot.close()
 
@@ -161,11 +161,12 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             multi_statement = True
 
         if multi_statement is False:
-            table = tabulate.tabulate(output, headers=list(output[0].keys()), tablefmt="psql")
-            to_send = f"Took {round(dt)}ms\n{formatters.codeblock(table, language='')}"
+            table = tabulate.tabulate(output, headers="keys", tablefmt="psql")
+            content = f"Took {round(dt)}ms\n{formatters.codeblock(table, language='')}"
         else:
-            to_send = f"Took {round(dt)}ms\n{formatters.codeblock(output, language='')}"
-        await ctx.send(to_send)
+            content = f"Took {round(dt)}ms\n{formatters.codeblock(output, language='')}"
+
+        await ctx.send(content)
 
     @Feature.Command(invoke_without_command=True)
     async def bug(self, ctx: LightningContext) -> None:
