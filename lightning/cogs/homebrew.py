@@ -73,10 +73,10 @@ class FindBMPAttachment(commands.CustomDefault):
         raise commands.BadArgument('Couldn\'t find an attachment that ends with ".bmp"')
 
 
-FAQ_CONVERTER = {"twilightmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
-                 "twlmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
-                 "nds-bootstrap": "https://wiki.ds-homebrew.com/nds-bootstrap/faq",
-                 "gbarunner2": "https://wiki.ds-homebrew.com/gbarunner2/faq"}
+FAQ_MAPPING = {"twilightmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
+               "twlmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
+               "nds-bootstrap": "https://wiki.ds-homebrew.com/nds-bootstrap/faq",
+               "gbarunner2": "https://wiki.ds-homebrew.com/gbarunner2/faq"}
 
 
 class Homebrew(LightningCog):
@@ -349,12 +349,12 @@ class Homebrew(LightningCog):
 
         Valid entities are "twilightmenu", "nds-bootstrap", or "gbarunner2".
         """
-        match = self.get_match(list(FAQ_CONVERTER.keys()), entity, 50)
+        match = self.get_match(list(FAQ_MAPPING.keys()), entity, 50)
         if not match:
             await ctx.send(f"Failed to convert entity parameter. Please see `{ctx.clean_prefix}help mod faq`")
             return
 
-        entity = FAQ_CONVERTER[match[0]]
+        entity = FAQ_MAPPING[match[0]]
 
         entry = await self.get_faq_entry(entity, question)
         if not entry:
@@ -400,7 +400,7 @@ class Homebrew(LightningCog):
         await ctx.send(embed=em)
 
     # For the sake of reducing the code down a bit, mod_embed exists
-    def mod_embed(self, title: str, description, social_links, color, separator="\U00002022") -> discord.Embed:
+    def mod_embed(self, title: str, description, social_links, color, separator="\N{BULLET}") -> discord.Embed:
         """Creates an embed for console modding information
 
         Parameters
