@@ -57,8 +57,8 @@ async def _callable_prefix(bot, message):
 
     prefixes = [f'<@!{bot.user.id}> ', f'<@{bot.user.id}> ']
     if message.guild is None:
-        prefixes.append(".")
-        return prefixes
+        generic_defaults = ['!', '.', '?']
+        return prefixes + generic_defaults
 
     record = await bot.get_guild_bot_config(message.guild.id)
     prefix = getattr(record, "prefix", None)
