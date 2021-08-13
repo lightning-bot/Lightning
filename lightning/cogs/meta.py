@@ -21,7 +21,6 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
 from typing import Union
 
 import discord
@@ -401,25 +400,39 @@ class Meta(LightningCog):
         embed.add_field(name="Album", value=activity.album, inline=False)
 
         duration_m, duration_s = divmod(activity.duration.total_seconds(), 60)
-        current_m, current_s = divmod((datetime.utcnow() - activity.start).seconds, 60)
+        current_m, current_s = divmod((discord.utils.utcnow() - activity.start).seconds, 60)
         embed.description = f"{'%d:%02d' % (current_m, current_s)} - {'%d:%02d' % (duration_m, duration_s)}"
 
         await ctx.send(embed=embed)
+
+    async def get_bot_author(self):
+        user = self.bot.get_user(376012343777427457)
+        if user:
+            return user
+        else:
+            return await self.bot.fetch_user(376012343777427457)
 
     @lcommand()
     async def about(self, ctx: LightningContext) -> None:
         """Gives information about the bot."""
         embed = discord.Embed(title="Lightning", color=0xf74b06)
-        bot_owner = self.bot.get_user(self.bot.owner_id)
-        if not bot_owner:
-            bot_owner = await self.bot.fetch_user(376012343777427457)
+        if self.bot.owner_id:
+            owners = [self.bot.get_user(self.bot.owner_id)]
+        elif self.bot.owner_ids:
+            owners = [self.bot.get_user(u) for u in self.bot.owner_ids]
+        else:
+            owners = []
 
-        embed.set_author(name=str(bot_owner), icon_url=bot_owner.avatar.with_static_format('png'))
+        author = await self.get_bot_author()
+        embed.set_author(name=str(author), icon_url=author.avatar.with_static_format('png'))
+
+        embed.description = f"This bot instance is owned by {', '.join(str(o) for o in owners)}\n"
+
         embed.url = self.bot.config['bot'].get("git_repo_url", "https://gitlab.com/lightning-bot/Lightning")
         embed.set_thumbnail(url=ctx.me.avatar.url)
 
         if self.bot.config['bot']['description']:
-            embed.description = self.bot.config['bot']['description']
+            embed.description += self.bot.config['bot']['description']
 
         # Channels
         text = 0
@@ -641,7 +654,8 @@ class Meta(LightningCog):
                     "VANITY_URL": "Vanity Invite URL",
                     "NEWS": "News Channels",
                     "MEMBER_VERIFICATION_GATE_ENABLED": "Membership Screening",
-                    "THREADS_ENABLED": "Threads"}
+                    "THREADS_ENABLED": "Threads",
+                    "PRIVATE_THREADS": "Private Threads"}
         guild_features = []
         for key, value in features.items():
             if key in guild.features:
