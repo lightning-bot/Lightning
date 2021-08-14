@@ -15,6 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import inspect
+from types import SimpleNamespace
 from typing import Any, List, Optional
 
 import discord
@@ -127,16 +128,9 @@ def add_flag(*names, **kwargs):
     return deco
 
 
-class Namespace:
-    def __init__(self, **kwargs):
-        for kwarg in kwargs:
-            setattr(self, kwarg, kwargs[kwarg])
-
+class Namespace(SimpleNamespace):
     def __contains__(self, key):
         return key in self.__dict__
-
-    def __repr__(self):
-        return "<Namespace {}>".format(' '.join(f'{name}={value}' for name, value in list(self.__dict__.items())))
 
 
 class Parser:
