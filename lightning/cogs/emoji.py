@@ -207,20 +207,35 @@ class Emoji(LightningCog):
         elif isinstance(error, commands.BadArgument):
             await ctx.send(error)
 
-    @commands.command()
+    @command(aliases=['listrooemojis'])
     @is_one_of_guilds(*ROO_EMOTES)
-    @commands.has_permissions(manage_guild=True)
-    async def listrooemojis(self, ctx: LightningContext) -> None:
+    @commands.has_permissions(manage_emojis=True)
+    async def refreshemojilist(self, ctx: LightningContext) -> None:
+        """Refreshes the emoji list channel.
+
+        This purges 25 messages from the emoji-list channel and sends a new list of emojis
+        """
         if len(ctx.guild.emojis) == 0:
             await ctx.send("This server has no emotes!")
             return
+
+        channel = discord.utils.get(ctx.guild.channels, name="emoji-list")
+        if not channel:
+            return
+
+        # We shouldn't have more than 25 messages in the emoji-list channel
+        try:
+            await channel.purge(25)
+        except Exception as e:
+            # Notify that we tried
+            await ctx.send(f"Somehow failed to purge messages: `{e}`")
 
         paginator = commands.Paginator(suffix='', prefix='')
         for emoji in ctx.guild.emojis:
             paginator.add_line(f'{emoji} -- `{emoji}`')
 
         for page in paginator.pages:
-            await ctx.send(page)
+            await channel.send(page)
 
     @LightningCog.listener()
     async def on_guild_emojis_update(self, guild, before, after) -> None:
