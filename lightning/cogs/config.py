@@ -355,10 +355,6 @@ class Configuration(LightningCog):
             await ctx.send(f"The current mute role is set to {mute.name} ({mute.id})")
             return
 
-        if role.is_default():
-            await ctx.send('You cannot use the @\u200beveryone role.')
-            return
-
         await self.add_config_key(ctx.guild.id, "mute_role_id", role.id, table="guild_mod_config")
         await self.invalidate_config(ctx)
         await ctx.send(f"Successfully set the mute role to {role.name}")
@@ -374,10 +370,6 @@ class Configuration(LightningCog):
 
             mute = ret.get_temp_mute_role(ctx, fallback=False)
             await ctx.send(f"The current temporary mute role is set to {mute.name} ({mute.id})")
-            return
-
-        if role.is_default():
-            await ctx.send('You cannot use the @\u200beveryone role.')
             return
 
         await self.add_config_key(ctx.guild.id, "temp_mute_role_id", role.id, table="guild_mod_config")
