@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 
 
 class Emoji(LightningCog):
-
+    """Emoji related commands"""
     @property
     def apne(self):
         return self.bot.config['bot']['nitro_emoji_guilds'] or []
@@ -225,7 +225,7 @@ class Emoji(LightningCog):
 
         # We shouldn't have more than 25 messages in the emoji-list channel
         try:
-            await channel.purge(25)
+            await channel.purge(limit=25)
         except Exception as e:
             # Notify that we tried
             await ctx.send(f"Somehow failed to purge messages: `{e}`")
