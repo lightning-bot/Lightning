@@ -39,7 +39,7 @@ confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
                  "timeban": "{target} was banned. \N{THUMBS UP SIGN} It will expire in {expiry}.",
                  "kick": "{target} was kicked. \N{OK HAND SIGN}",
                  "warn": "{target} was warned. ({count})",
-                 "mute": "{target} can no longer speak",
+                 "mute": "{target} can no longer speak.",
                  "timemute": "{target} can no longer speak. It will expire in {expiry}.",
                  "unmute": "{target} can now speak again.",
                  "unban": "\N{OK HAND SIGN} {target} is now unbanned."}
