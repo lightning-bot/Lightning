@@ -56,6 +56,12 @@ class FlagView(StringView):
             result.append(current)
 
 
+# Sentinel for flag defaults
+class MISSING:
+    def __repr__(self):
+        return "..."
+
+
 class Flag:
     """Represents a flag
 
@@ -72,9 +78,9 @@ class Flag:
     attr_name : Optional[str], optional
         Attribute name in the namespace. If no attribute name is given, defaults to the first flag name.
     default : Optional[Any], optional
-        A default argument for a flag, by default None
+        A default argument for a flag, by default MISSING
     required : bool, optional
-        Whether the flag requires an argument, by default False
+        Whether the flag requires an argument and is required to be passed, by default False
     is_bool_flag : bool, optional
         Whether the flag should be marked as a boolean flag, by default False
 
@@ -89,7 +95,7 @@ class Flag:
     __slots__ = ('names', 'help', 'converter', 'attr_name', 'default', 'required', 'is_bool_flag')
 
     def __init__(self, *names, help: Optional[str] = None, converter: Any = str, attr_name: Optional[str] = None,
-                 default: Optional[Any] = None, required: bool = False, is_bool_flag: bool = False):
+                 default: Optional[Any] = MISSING, required: bool = False, is_bool_flag: bool = False):
         for name in names:
             if name[0] != "-":
                 raise TypeError("A flag name must start with \"-\"")
@@ -133,7 +139,7 @@ class Namespace(SimpleNamespace):
         return key in self.__dict__
 
 
-class Parser:
+class FlagParser:
     def __init__(self, flag_options: List[Flag] = [], *, raise_on_bad_flag: bool = True, consume_rest: bool = True,
                  rest_converter=None, rest_attribute_name: Optional[str] = None):
         self.raise_on_bad_flag = raise_on_bad_flag
@@ -168,10 +174,9 @@ class Parser:
     async def convert_flag_type(self, flag: Flag, ctx: commands.Context, argument: Optional[str], passed_flag: str):
         converter = flag.converter
         if argument is None or argument.strip() == "":
-            if flag.default is None:
-                raise MissingRequiredFlagArgument(passed_flag)
-            else:
-                argument = flag.default
+            # We don't need to worry about bool flags here since it is handled before this.
+            # Flag requirements are handled after all the parsing
+            return flag.default
 
         argument = argument.strip()
 
@@ -255,7 +260,8 @@ class Parser:
                 continue
 
         for flag in self.get_all_unique_flags():
-            if ns[flag.attr_name] is None and flag.required is True:
+            if ns[flag.attr_name] is MISSING and flag.required is True:
+                # This is where we are actually requiring flags
                 raise MissingRequiredFlagArgument(flag.names[0])
 
         if self.consume_rest:
@@ -264,7 +270,7 @@ class Parser:
         return Namespace(**ns)
 
 
-FlagParser = Parser
+Parser = FlagParser
 
 
 class FlagCommand(LightningCommand):
