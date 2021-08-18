@@ -19,6 +19,7 @@ import io
 import logging
 import random
 import re
+import unicodedata
 
 import discord
 from discord.ext import commands
@@ -184,7 +185,7 @@ class Emoji(LightningCog):
     async def info(self, ctx: LightningContext, emote: EmojiRE) -> None:
         """Gives some info on an emote.
 
-        Unicode emoji are not supported."""
+        For unicode emoji: use `charinfo`"""
         embed = discord.Embed(title=emote.name, color=0xFFFF00)
         embed.description = f"[Emoji Link]({emote.url})"
         embed.add_field(name="ID", value=emote.id)
@@ -236,6 +237,18 @@ class Emoji(LightningCog):
 
         for page in paginator.pages:
             await channel.send(page)
+
+    @command()
+    async def charinfo(self, ctx: LightningContext, *, characters: str) -> None:
+        """Shows information for a character"""
+        def repr_unicode(c):
+            name = unicodedata.name(c, 'Name not found.')
+            return f'`{name}` - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{f"{ord(c):x}"}>'
+        content = '\n'.join(map(repr_unicode, characters))
+        if len(content) > 2000:
+            await ctx.send('Output too long to display.')
+            return
+        await ctx.send(content)
 
     @LightningCog.listener()
     async def on_guild_emojis_update(self, guild, before, after) -> None:
