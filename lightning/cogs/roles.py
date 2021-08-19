@@ -49,6 +49,17 @@ class RoleView(StringView):
             result.append(current)
 
 
+# These are dangerous permissions, self assignable roles are meant to only give roles with basic permissions.
+# i.e. send_messages, read_message_history
+# This is used for permission checking when adding a new role to the list or toggling one.
+# I don't think anyone has used the bot yet to raid communities, but this is a safeguard for the future.
+DANGEROUS_PERMISSIONS = discord.Permissions(manage_threads=True, ban_members=True, manage_roles=True,
+                                            manage_guild=True, manage_messages=True, manage_channels=True,
+                                            administrator=True, kick_members=True, deafen_members=True,
+                                            manage_webhooks=True, manage_nicknames=True, mention_everyone=True,
+                                            move_members=True)
+
+
 class Roles(LightningCog):
     """Role based commands"""
 
@@ -99,6 +110,12 @@ class Roles(LightningCog):
             resolved.append(role)
         return resolved, unresolved
 
+    async def _has_dangerous_permissions(self, permissions):
+        if permissions.value & DANGEROUS_PERMISSIONS.value != 0:
+            # has dangerous permissions
+            return True
+        return False
+
     @group(aliases=['selfrole'], invoke_without_command=True, require_var_positional=True)
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
@@ -120,8 +137,13 @@ class Roles(LightningCog):
 
         paginator = commands.Paginator(prefix='', suffix='')
         for role in resolved:
-            if role > ctx.me.top_role:
-                paginator.add_line(f'{role.name} is higher than my highest role.')
+            check = await self._has_dangerous_permissions(role.permissions)
+            if check is True:
+                paginator.add_line(f"Refusing to give {role.name} because it contains permissions that are deemed"
+                                   " dangerous")
+
+            if role.is_assignable() is False:
+                paginator.add_line(f"Unable to assign {role.name}")
 
             if role in member.roles and role.id in record.toggleroles:
                 diff_roles[0].append(role)
