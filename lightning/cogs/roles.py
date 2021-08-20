@@ -141,9 +141,11 @@ class Roles(LightningCog):
             if check is True:
                 paginator.add_line(f"Refusing to give {role.name} because it contains permissions that are deemed"
                                    " dangerous")
+                continue
 
             if role.is_assignable() is False:
                 paginator.add_line(f"Unable to assign {role.name}")
+                continue
 
             if role in member.roles and role.id in record.toggleroles:
                 diff_roles[0].append(role)
