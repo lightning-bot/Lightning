@@ -286,7 +286,8 @@ class FlagCommand(LightningCommand):
         flag_consume_rest = kwargs.pop('flag_consume_rest', True)
 
         parser.consume_rest = flag_consume_rest
-        parser.rest_attribute_name = rest_usage_name
+        if parser.rest_attribute_name is None:
+            parser.rest_attribute_name = rest_usage_name
         parser.raise_on_bad_flag = raise_bad_flag
 
         # Add additional flags to the parser and prevents us from stacking a bunch of decorators.
