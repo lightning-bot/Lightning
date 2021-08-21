@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import inspect
 from types import SimpleNamespace
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import discord
 from discord.ext import commands
@@ -140,11 +140,18 @@ class Parser:
         self.rest_attribute_name = rest_attribute_name
         self.rest_converter = rest_converter
         self.consume_rest = consume_rest
-        self._flags: dict = {}
+        self._flags: Dict[str, Flag] = {}
 
         self._register_flags(flag_options)
 
     def add_flag(self, flag: Flag) -> None:
+        """Adds a flag to the parser
+
+        Parameters
+        ----------
+        flag : Flag
+            A :class:`Flag` instance
+        """
         for idx, name in enumerate(flag.names):
             if idx == 0:
                 if self.rest_attribute_name == name:
@@ -160,9 +167,16 @@ class Parser:
             self.add_flag(flag)
 
     def get_flag(self, flag_name: str) -> Optional[Flag]:
+        """Gets a flag
+
+        Parameters
+        ----------
+        flag_name : str
+            The name of the flag to get"""
         return self._flags.get(flag_name, None)
 
     def get_all_unique_flags(self) -> set:
+        """Gets all unique flags"""
         return set(self._flags.values())
 
     async def convert_flag_type(self, flag: Flag, ctx: commands.Context, argument: Optional[str], passed_flag: str):
