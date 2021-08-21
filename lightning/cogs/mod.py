@@ -27,13 +27,13 @@ from lightning import flags as dflags
 from lightning import group
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
 from lightning.events import InfractionEvent
-from lightning.formatters import truncate_text
+from lightning.formatters import plural, truncate_text
 from lightning.models import GuildModConfig, PartialGuild
 from lightning.utils import helpers, modlogformats
 from lightning.utils.checks import (has_channel_permissions,
                                     has_guild_permissions)
 from lightning.utils.time import (FutureTime, get_utc_timestamp,
-                                  natural_timedelta, plural)
+                                  natural_timedelta)
 
 confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
                  "timeban": "{target} was banned. \N{THUMBS UP SIGN} It will expire in {expiry}.",
@@ -153,7 +153,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @has_guild_permissions(kick_members=True)
     async def kick(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
         """Kicks a user from the server"""
-        if not flags['nodm']:
+        if not flags['nodm']:  # No check is done here since we don't fetch users
             await helpers.dm_user(target, modlogformats.construct_dm_message(target, "kicked", "from",
                                   reason=flags['reason']))
 
@@ -420,19 +420,15 @@ class Mod(LightningCog, required=["Configuration"]):
                                      duration.dt, guild_id=ctx.guild.id, user_id=target.id, role_id=role.id,
                                      mod_id=ctx.author.id, force_insert=True)
 
-        if dm_user:
-            dm_message = f"You were muted in {ctx.guild.name}!"
-            if reason:
-                dm_message += f" The given reason is: \"{reason}\"."
-            dm_message += f"\n\nThis mute will expire in {duration_text}."
-            await helpers.dm_user(target, dm_message)
-
-        if reason:
-            opt_reason = f"{reason} (Timemute expires in {duration_text})"
-        else:
-            opt_reason = f" (Timemute expires in {duration_text})"
-
         if isinstance(target, discord.Member):
+            msg = modlogformats.construct_dm_message(target, "muted", "in", reason=reason,
+                                                     ending=f"\n\nThis mute will expire in {duration_text}.")
+            await helpers.dm_user(target, msg)
+
+            if reason:
+                opt_reason = f"{reason} (Timemute expires in {duration_text})"
+            else:
+                opt_reason = f" (Timemute expires in {duration_text})"
             await target.add_roles(role, reason=self.format_reason(ctx.author, opt_reason))
 
         await self.add_punishment_role(ctx.guild.id, target.id, role.id)
