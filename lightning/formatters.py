@@ -25,11 +25,10 @@ def truncate_text(text: str, limit: int, *, suffix: str = "...") -> str:
         return text
     return text[:limit - len(suffix)] + suffix
 
-# plural, natural_join use code provided by Rapptz under the MIT License
+
+# plural, human_join use code provided by Rapptz under the MIT License
 # © 2015 Rapptz
 # https://github.com/Rapptz/RoboDanny/blob/6fd16002e0cbd3ed68bf5a8db10d61658b0b9d51/cogs/utils/formats.py
-
-
 class plural:  # noqa
     def __init__(self, value):
         self.value = value
