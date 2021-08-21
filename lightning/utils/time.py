@@ -85,6 +85,7 @@ class Time(HumanTime):
         except Exception:
             super().__init__(argument)
         else:
+            self.delta = o.delta
             self.dt = o.dt
             self._past = False
 
