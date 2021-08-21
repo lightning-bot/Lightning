@@ -135,7 +135,7 @@ class Namespace(SimpleNamespace):
 
 class Parser:
     def __init__(self, flag_options: List[Flag] = [], *, raise_on_bad_flag: bool = True, consume_rest: bool = True,
-                 rest_converter=None, rest_attribute_name: Optional[str] = None):
+                 rest_converter=None, rest_attribute_name: str = "rest"):
         self.raise_on_bad_flag = raise_on_bad_flag
         self.rest_attribute_name = rest_attribute_name
         self.rest_converter = rest_converter
@@ -282,11 +282,11 @@ class FlagCommand(LightningCommand):
             parser = self.callback.__lightning_argparser__ = kwargs['parser']
 
         raise_bad_flag = kwargs.pop('raise_bad_flag', True)
-        rest_usage_name = kwargs.pop('rest_attribute_name', "rest")
+        rest_usage_name = kwargs.pop('rest_attribute_name', None)
         flag_consume_rest = kwargs.pop('flag_consume_rest', True)
 
         parser.consume_rest = flag_consume_rest
-        if parser.rest_attribute_name is None:
+        if rest_usage_name:
             parser.rest_attribute_name = rest_usage_name
         parser.raise_on_bad_flag = raise_bad_flag
 
