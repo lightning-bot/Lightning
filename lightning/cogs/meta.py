@@ -426,13 +426,13 @@ class Meta(LightningCog):
         author = await self.get_bot_author()
         embed.set_author(name=str(author), icon_url=author.avatar.with_static_format('png'))
 
-        embed.description = f"This bot instance is owned by {', '.join(str(o) for o in owners)}\n"
+        description = [f"This bot instance is owned by {', '.join(str(o) for o in owners)}"]
 
         embed.url = self.bot.config['bot'].get("git_repo_url", "https://gitlab.com/lightning-bot/Lightning")
         embed.set_thumbnail(url=ctx.me.avatar.url)
 
         if self.bot.config['bot']['description']:
-            embed.description += self.bot.config['bot']['description']
+            description.append(f"**Description**: {self.bot.config['bot']['description']}")
 
         # Channels
         text = 0
@@ -457,18 +457,16 @@ class Meta(LightningCog):
         embed.add_field(name="Members", value=all_members)
 
         memory = self.process.memory_full_info().uss / 1024**2
-        embed.add_field(name="Process", value=f"{memory:.2f} MiB")
-
-        embed.add_field(name="Commit", value=f"[{self.bot.commit_hash[:8]}]({embed.url}/commit/{self.bot.commit_hash})")
+        description.append(f"**Process**: {memory:.2f} MiB\n**Commit**: [{self.bot.commit_hash[:8]}]"
+                           f"({embed.url}/commit/{self.bot.commit_hash})")
 
         embed.add_field(name="Servers", value=f"{len(self.bot.guilds):,}\nShards: {self.bot.shard_count}")
 
         query = """SELECT COUNT(*) AS total_commands, (SELECT sum(count) FROM socket_stats) AS total_socket_stats
                    FROM commands_usage;"""
         amounts = await self.bot.pool.fetchrow(query)
-        embed.add_field(name="Misc Stats",
-                        value=f"{amounts['total_commands']} commands ran.\n{amounts['total_socket_stats']} "
-                              "socket events recorded.")
+        description.append(f"{amounts['total_commands']} commands ran.\n{amounts['total_socket_stats']} "
+                           "socket events recorded.")
 
         embed.add_field(name="Links", value="[Support Server]"
                                             f"({self.bot.config['bot']['support_server_invite']}) | "
@@ -476,6 +474,9 @@ class Meta(LightningCog):
                                             inline=False)
         embed.set_footer(text=f"Lightning v{self.bot.version} | Made with "
                               f"discord.py {discord.__version__}")
+
+        embed.description = '\n'.join(description)
+
         await ctx.send(embed=embed)
 
     @lcommand(name='copyright', aliases=['license'])
