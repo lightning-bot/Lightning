@@ -448,7 +448,7 @@ class Mod(LightningCog, required=["Configuration"]):
             await self.time_mute_user(ctx, target, flags['reason'], flags['duration'], dm_user=not flags['nodm'])
             return
 
-        if not flags['nodm']:
+        if not flags['nodm'] and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "muted", "in", reason=flags['reason'])
             await helpers.dm_user(target, dm_message)
 
