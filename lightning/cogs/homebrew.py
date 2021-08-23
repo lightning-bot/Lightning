@@ -21,7 +21,7 @@ import secrets
 import urllib.parse
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
+from typing import List, Optional, Union
 
 import asyncpg
 import dateutil.parser
@@ -79,7 +79,8 @@ FAQ_MAPPING = {"twilightmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
                "gbarunner2": "https://wiki.ds-homebrew.com/gbarunner2/faq"}
 
 
-def mod_embed(title: str, description, social_links, color, separator="\N{BULLET}") -> discord.Embed:
+def mod_embed(title: str, description: str, social_links: List[str], color: Union[int, discord.Color],
+              *, separator="\N{BULLET}") -> discord.Embed:
     """Creates an embed for console modding information
 
     Parameters
@@ -90,7 +91,7 @@ def mod_embed(title: str, description, social_links, color, separator="\N{BULLET
         The description for the embed
     social_links : list
         A list of social links
-    color : discord.Color
+    color : Union[int, discord.Color]
         A color hex
     separator : str, Optional
         Separator for social_links
