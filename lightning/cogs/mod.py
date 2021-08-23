@@ -47,7 +47,7 @@ confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
 
 BaseModParser = dflags.FlagParser([dflags.Flag("--nodm", "--no-dm", is_bool_flag=True,
                                    help="Bot does not DM the user the reason for the action.")],
-                                  rest_attribute_name="reason")
+                                  rest_attribute_name="reason", raise_on_bad_flag=False)
 
 
 class Mod(LightningCog, required=["Configuration"]):
@@ -196,7 +196,8 @@ class Mod(LightningCog, required=["Configuration"]):
                      help="Delete message history from a specified amount of days (Max 7)")
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason")
+    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason",
+             raise_bad_flag=False)
     async def ban(self, ctx: LightningContext, target: converters.TargetMember, **flags) -> None:
         """Bans a user from the server."""
         if flags['delete_messages'] < 0:
@@ -440,7 +441,7 @@ class Mod(LightningCog, required=["Configuration"]):
                      help="Bot does not DM the user the reason for the action.")
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason")
+    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason", raise_bad_flag=False)
     async def mute(self, ctx: LightningContext, target: converters.TargetMember, **flags) -> None:
         """Mutes a user"""
         role = await self.get_mute_role(ctx)
