@@ -79,6 +79,33 @@ FAQ_MAPPING = {"twilightmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
                "gbarunner2": "https://wiki.ds-homebrew.com/gbarunner2/faq"}
 
 
+def mod_embed(title: str, description, social_links, color, separator="\N{BULLET}") -> discord.Embed:
+    """Creates an embed for console modding information
+
+    Parameters
+    ----------
+    title : str
+        The title for the embed
+    description : str
+        The description for the embed
+    social_links : list
+        A list of social links
+    color : discord.Color
+        A color hex
+    separator : str, Optional
+        Separator for social_links
+
+    Returns
+    -------
+    :class:discord.Embed
+        Returns the created embed
+    """
+    em = discord.Embed(title=title, description=description, color=color)
+    links = f'\n{separator} '.join(social_links)
+    em.add_field(name="Social Links", value=f'{separator} {links}')
+    return em
+
+
 class Homebrew(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
@@ -399,47 +426,19 @@ class Homebrew(LightningCog):
                       'wTDlD5rA_400x400.png')
         await ctx.send(embed=em)
 
-    # For the sake of reducing the code down a bit, mod_embed exists
-    def mod_embed(self, title: str, description, social_links, color, separator="\N{BULLET}") -> discord.Embed:
-        """Creates an embed for console modding information
-
-        Parameters
-        ----------
-        title : str
-            The title for the embed
-        description : str
-            The description for the embed
-        social_links : list
-            A list of social links
-        color : discord.Color
-            A color hex
-        separator : str, Optional
-            Separator for social_links
-
-        Returns
-        -------
-        :class:discord.Embed
-            Returns the created embed
-        """
-        em = discord.Embed(title=title, description=description, color=color)
-        links = f'\n{separator} '.join(social_links)
-        em.add_field(name="Social Links", value=f'{separator} {links}')
-        return em
-
     @mod_3ds.command(name='universal-updater', aliases=['uu', 'universalupdater'])
     async def mod_3ds_uu(self, ctx: LightningContext) -> None:
         """Gives information about Universal Updater"""
         social_links = ["[Github Repository](https://github.com/Universal-Team/Universal-Updater)",
                         "[Discord Server](https://discord.gg/KDJCfGF)"]
-        description = "A 3DS homebrew that allows easy "\
-                      "installation and updating of other 3DS homebrew"
-        em = self.mod_embed("Universal-Updater",
-                            description, social_links, discord.Color.green())
+        description = "A 3DS homebrew that allows easy installation and updating of other 3DS homebrew"
+        em = mod_embed("Universal-Updater", description, social_links, discord.Color.green())
         em.set_thumbnail(url="https://btw.i-use-ar.ch/i/7rj8.png")
         em.set_footer(text="Made by Universal-Team")
         await ctx.send(embed=em)
 
-    @mod.group(name="ds", aliases=['DS', 'dsi', 'DSi'], invoke_without_command=True)
+    @mod.group(name="ds", aliases=['dsi'], invoke_without_command=True,
+               case_insensitive=False)
     async def mod_ds(self, ctx: LightningContext, *, homebrew=None) -> None:
         """Gives information on DS modding"""
         if homebrew:
@@ -501,7 +500,7 @@ class Homebrew(LightningCog):
                       "emulator made for the Nintendo DS using a flashcard."
         links = ["[Website](http://lolsnes.kuribo64.net/)",
                  "[Github Repository](https://github.com/Arisotura/lolSnes)"]
-        em = self.mod_embed("lolSnes", description, links, 0xF8E800)
+        em = mod_embed("lolSnes", description, links, 0xF8E800)
         em.set_thumbnail(url="https://btw.i-use-ar.ch/i/ed1q.png")
         em.set_footer(text="Made by Arisotura",
                       icon_url="https://btw.i-use-ar.ch/i/yo0w.png")
@@ -519,7 +518,7 @@ class Homebrew(LightningCog):
                  "bootstrap-loader-run-commercial-nds-backups-from-an-sd-card.454323/)",
                  "[Discord Server](https://discord.gg/yqSut8c)",
                  "[Github Repository](https://github.com/ahezard/nds-bootstrap)"]
-        em = self.mod_embed("nds-bootstrap", description, links, 0x999A9D)
+        em = mod_embed("nds-bootstrap", description, links, 0x999A9D)
         em.set_thumbnail(url="https://btw.i-use-ar.ch/i/uroq.png")
         em.set_footer(text="Made by ahezard", icon_url="https://btw.i-use-ar.ch/i/0983.png")
         await ctx.send(embed=em)
@@ -532,7 +531,7 @@ class Homebrew(LightningCog):
                       "DS flashcard or a DSi/3DS SD card."
         links = ["[Github Repository](https://github.com/RocketRobz/NesDS)",
                  "([DSi Edition](https://github.com/ApacheThunder/NesDS))"]
-        em = self.mod_embed("nesDS", description, links, discord.Color.red())
+        em = mod_embed("nesDS", description, links, discord.Color.red())
         em.set_footer(text="Made by loopy, FluBBa, Dwedit, tepples, "
                            "kuwanger, chishm, Mamiya, minitroopa, "
                            "huiminghao, CotoDev & ApacheThunder")
@@ -545,7 +544,7 @@ class Homebrew(LightningCog):
         links = ["[Github Repository](https://github.com/RocketRobz/NesDS)",
                  "[GBAtemp thread](https://gbatemp.net/threads/gbarunner2.451970/)",
                  "[GBAtemp compatibility list](https://wiki.gbatemp.net/wiki/GBARunner2)"]
-        em = self.mod_embed("GBARunner2", description, links, discord.Color.blue())
+        em = mod_embed("GBARunner2", description, links, discord.Color.blue())
         em.set_footer(text="Made by Gericom")
         await ctx.send(embed=em)
 
@@ -560,7 +559,7 @@ class Homebrew(LightningCog):
                  "[GBAtemp Thread](https://gbatemp.net/threads/release-"
                  "pkmn-chest-a-pokemon-bank-for-the-nintendo-ds-i.549249/)",
                  "[Website](https://universal-team.net/projects/pkmn-chest)"]
-        em = self.mod_embed("pkmn-chest", description, links, 0xBF0300)
+        em = mod_embed("pkmn-chest", description, links, 0xBF0300)
         em.set_thumbnail(url="https://elixi.re/i/1ve4.png")
         em.set_footer(text="Made by Universal Team (Mainly by Pk11)")
         await ctx.send(embed=em)
@@ -573,7 +572,7 @@ class Homebrew(LightningCog):
                       " you have pressed, similar to NoCash's Unlaunch."
         links = ["[Github Repository](https://github.com/Universal-Team/Relaunch)",
                  "[Discord Server](https://discord.gg/KDJCfGF)"]
-        em = self.mod_embed("Relaunch", description, links, discord.Color.green())
+        em = mod_embed("Relaunch", description, links, discord.Color.green())
         em.set_thumbnail(url="https://elixi.re/i/e2kb.png")
         em.set_footer(text="Made by Universal Team (Mainly by Flame)")
         await ctx.send(embed=em)
@@ -589,7 +588,7 @@ class Homebrew(LightningCog):
                  "-rocket-video-player-play-videos-with-the-ultimate-in-picture-quality.539163/)",
                  "[Github Repository](https://github.com/RocketRobz/RocketVideoPlayer/releases)",
                  "[Discord Server](https://discord.gg/yqSut8c)"]
-        em = self.mod_embed("Rocket Video Player", description, links, 0xA701E9)
+        em = mod_embed("Rocket Video Player", description, links, 0xA701E9)
         em.set_thumbnail(url="https://elixi.re/i/jm7f.png")
         em.set_footer(text="Made by RocketRobz",
                       icon_url="https://elixi.re/i/7lh1.png")
@@ -621,7 +620,7 @@ class Homebrew(LightningCog):
                   "Acekard/akMenu",
                   "SEGA Saturn",
                   "Homebrew Launcher"]
-        em = self.mod_embed("TWiLight Menu++", description, links, 0xA701E9)
+        em = mod_embed("TWiLight Menu++", description, links, 0xA701E9)
         em.add_field(name="Supported Formats", value=', '.join(formats), inline=False)
         stylesformat = '\n\U00002022 '.join(styles)
         em.add_field(name="Styles", value=f"\U00002022 {stylesformat}")
