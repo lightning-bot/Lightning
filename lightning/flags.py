@@ -28,6 +28,7 @@ from lightning.commands import (LightningCommand, LightningGroupCommand,
                                 command, group)
 from lightning.errors import (FlagError, FlagInputError,
                               MissingRequiredFlagArgument)
+from lightning.utils.helpers import deprecated
 
 __all__ = ("Flag",
            "add_flag",
@@ -133,7 +134,7 @@ class Namespace(SimpleNamespace):
         return key in self.__dict__
 
 
-class Parser:
+class FlagParser:
     def __init__(self, flag_options: List[Flag] = [], *, raise_on_bad_flag: bool = True, consume_rest: bool = True,
                  rest_converter=None, rest_attribute_name: str = "rest"):
         self.raise_on_bad_flag = raise_on_bad_flag
@@ -278,7 +279,10 @@ class Parser:
         return Namespace(**ns)
 
 
-FlagParser = Parser
+# This is just an alias that needs to be removed in v4
+@deprecated("3.3.0", "4.0.0", "Use lightning.FlagParser instead.")
+class Parser(FlagParser):
+    ...
 
 
 class FlagCommand(LightningCommand):
