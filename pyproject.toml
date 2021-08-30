@@ -32,7 +32,7 @@ migra = {extras = ["pg"], version = "^1.0.1597915807", optional = true}
 py-flags = "^1.1.4"
 jishaku = "2.1.0"
 rapidfuzz = "^0.14.2"
-typer = "^0.3.2"
+typer = "^0.4.0"
 yoyo-migrations = "^7.3.1"
 psycopg2 = "^2.8.6"
 tomlkit = "^0.7.0"
