@@ -185,7 +185,7 @@ resolved_reference = "ef77c9f3491f1790b0557dfdad8a9393175adbb4"
 
 [[package]]
 name = "discord.py"
-version = "2.0.0a3544+gbaea8eab"
+version = "2.0.0a3581+gc1231d48"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -203,8 +203,8 @@ voice = ["PyNaCl (>=1.3.0,<1.5)"]
 [package.source]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
-reference = "v2/defaults-patch"
-resolved_reference = "baea8eabe70dd721fd96687d34b6689426474a24"
+reference = "master"
+resolved_reference = "c1231d48c10471c8bb3f34297fa28a320b1e949b"
 
 [[package]]
 name = "distlib"
@@ -784,7 +784,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "ff34b960ef63e7cfc800039752b70b80b1af7c8118e92b00045340c4708bf52a"
+content-hash = "77a28f4fa5891a9d509ac3820d021b04af95e139092833343765d6bbf746f636"
 
 [metadata.files]
 aiohttp = [
