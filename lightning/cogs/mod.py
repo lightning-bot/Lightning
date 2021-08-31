@@ -23,7 +23,7 @@ from discord.ext import commands
 
 from lightning import (CommandLevel, LightningCog, LightningContext, ModFlags,
                        PunishmentType, cache, command, converters)
-from lightning import flags as dflags
+from lightning import flags as lflags
 from lightning import group
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
 from lightning.events import InfractionEvent
@@ -45,7 +45,7 @@ confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
                  "unban": "\N{OK HAND SIGN} {target} is now unbanned."}
 
 
-BaseModParser = dflags.FlagParser([dflags.Flag("--nodm", "--no-dm", is_bool_flag=True,
+BaseModParser = lflags.FlagParser([lflags.Flag("--nodm", "--no-dm", is_bool_flag=True,
                                    help="Bot does not DM the user the reason for the action.")],
                                   rest_attribute_name="reason", raise_on_bad_flag=False)
 
@@ -148,7 +148,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
         await self.log_action(ctx, target, action, **kwargs)
 
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
+    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
     @commands.bot_has_guild_permissions(kick_members=True)
     @has_guild_permissions(kick_members=True)
     async def kick(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
@@ -188,15 +188,15 @@ class Mod(LightningCog, required=["Configuration"]):
         await self.confirm_and_log_action(ctx, target, "TIMEBAN", duration_text=duration_text,
                                           expiry=duration.dt, timer_id=job_id)
 
-    @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
+    @lflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
                      help="Bot does not DM the user the reason for the action.")
-    @dflags.add_flag("--duration", "--time", "-t", converter=FutureTime, help="Duration for the ban",
+    @lflags.add_flag("--duration", "--time", "-t", converter=FutureTime, help="Duration for the ban",
                      required=False)
-    @dflags.add_flag("--delete-messages", converter=int, default=0,
+    @lflags.add_flag("--delete-messages", converter=int, default=0,
                      help="Delete message history from a specified amount of days (Max 7)")
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason",
+    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason",
              raise_bad_flag=False)
     async def ban(self, ctx: LightningContext, target: converters.TargetMember, **flags) -> None:
         """Bans a user from the server."""
@@ -220,7 +220,7 @@ class Mod(LightningCog, required=["Configuration"]):
         await self.confirm_and_log_action(ctx, target, "BAN")
 
     @has_guild_permissions(manage_messages=True)
-    @group(cls=dflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod, parser=BaseModParser)
+    @group(cls=lflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod, parser=BaseModParser)
     async def warn(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
         """Warns a user"""
         if not flags['nodm'] and isinstance(target, discord.Member):
@@ -436,12 +436,12 @@ class Mod(LightningCog, required=["Configuration"]):
         await self.confirm_and_log_action(ctx, target, "TIMEMUTE", duration_text=duration_text, expiry=duration.dt,
                                           timer_id=job_id)
 
-    @dflags.add_flag("--duration", "-D", converter=FutureTime, help="Duration for the mute", required=False)
-    @dflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
+    @lflags.add_flag("--duration", "-D", converter=FutureTime, help="Duration for the mute", required=False)
+    @lflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
                      help="Bot does not DM the user the reason for the action.")
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
-    @command(cls=dflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason", raise_bad_flag=False)
+    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason", raise_bad_flag=False)
     async def mute(self, ctx: LightningContext, target: converters.TargetMember, **flags) -> None:
         """Mutes a user"""
         role = await self.get_mute_role(ctx)
@@ -533,7 +533,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    @command(cls=dflags.FlagCommand, aliases=['tempban'], level=CommandLevel.Mod, parser=BaseModParser)
+    @command(cls=lflags.FlagCommand, aliases=['tempban'], level=CommandLevel.Mod, parser=BaseModParser)
     async def timeban(self, ctx: LightningContext, target: converters.TargetMember,
                       duration: FutureTime, **flags) -> None:
         """Bans a user for a specified amount of time.
@@ -545,7 +545,7 @@ class Mod(LightningCog, required=["Configuration"]):
         Note that duration time is in UTC."""
         await self.time_ban_user(ctx, target, ctx.author, flags['reason'], duration, dm_user=not flags['nodm'])
 
-    @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=dflags.FlagCommand, parser=BaseModParser)
+    @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=lflags.FlagCommand, parser=BaseModParser)
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
     async def timemute(self, ctx: LightningContext, target: converters.TargetMember,
@@ -577,7 +577,24 @@ class Mod(LightningCog, required=["Configuration"]):
         await channel.set_permissions(ctx.guild.default_role, reason=reason, send_messages=False,
                                       add_reactions=False)
         await channel.set_permissions(ctx.me, reason=reason, send_messages=True, manage_channels=True)
-        await ctx.send(f"🔒 {channel.mention} is now locked.")
+        await ctx.send(f"\N{LOCK} {channel.mention} is now locked.")
+
+    @lock.command(name="thread", level=CommandLevel.Mod)
+    @has_channel_permissions(manage_threads=True)
+    @commands.bot_has_permissions(manage_threads=True)
+    async def lock_thread(self, ctx: LightningContext, thread: discord.Thread = commands.default.CurrentChannel):
+        if not isinstance(thread, discord.Thread):
+            raise commands.BadArgument("This doesn't seem to be a thread.")
+
+        if thread.locked and thread.archived is True:
+            await ctx.send("This thread is already locked.")
+            return
+
+        await thread.edit(archived=True, locked=True)
+
+        # If we send a message or do anything else, we undo the lock state of the thread.
+        if ctx.channel != thread:
+            await ctx.message.add_reaction("\N{LOCK}")
 
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
