@@ -23,7 +23,7 @@ import typing
 from datetime import datetime
 
 import discord
-import uwuify
+import slowo
 from discord.ext import commands
 from jishaku.functools import executor_function
 from PIL import Image, ImageDraw, ImageFont
@@ -240,7 +240,7 @@ class Fun(LightningCog):
         if not text:
             raise commands.BadArgument("Missing text to translate into owo")
 
-        fmt = uwuify.uwu(text, flags=(uwuify.SMILEY | uwuify.YU))
+        fmt = slowo.UwU.ify(text)
         await ctx.send(fmt)
 
     @command()
