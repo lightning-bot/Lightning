@@ -40,6 +40,7 @@ orjson = "^3.6.0"
 beautifulsoup4 = "^4.9.3"
 lxml = "^4.6.3"
 slowo = "^0.3"
+bottomify = "^1.1.1"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"

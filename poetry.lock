@@ -107,6 +107,14 @@ html5lib = ["html5lib"]
 lxml = ["lxml"]
 
 [[package]]
+name = "bottomify"
+version = "1.1.1"
+description = ""
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "braceexpand"
 version = "0.1.7"
 description = "Bash-style brace expansion for Python"
@@ -781,7 +789,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "d82a142edf44e4db6968f7d94f3f37bceade916e0778d4692b103e0172c0adf2"
+content-hash = "757bace92ac572cfb908cecea8983ecef5e55cb7470898a15608addabe7b8983"
 
 [metadata.files]
 aiohttp = [
@@ -865,6 +873,17 @@ beautifulsoup4 = [
     {file = "beautifulsoup4-4.9.3-py2-none-any.whl", hash = "sha256:4c98143716ef1cb40bf7f39a8e3eec8f8b009509e74904ba3a7b315431577e35"},
     {file = "beautifulsoup4-4.9.3-py3-none-any.whl", hash = "sha256:fff47e031e34ec82bf17e00da8f592fe7de69aeea38be00523c04623c04fb666"},
     {file = "beautifulsoup4-4.9.3.tar.gz", hash = "sha256:84729e322ad1d5b4d25f805bfa05b902dd96450f43842c4e99067d5e1369eb25"},
+]
+bottomify = [
+    {file = "bottomify-1.1.1-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:242895ded0f1a62b679828e3466491c0d04aa7e07b89d1b9de688e5ad1a14a87"},
+    {file = "bottomify-1.1.1-cp36-none-win_amd64.whl", hash = "sha256:206a8b5adcd70f21faf385cd36ca522b5d158d1cc8c4cf16ed93c32132e5cf5b"},
+    {file = "bottomify-1.1.1-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:64f2e319defe126b06d8fd9f7264408b0cf58b4cd30f562d521e3f71e719176f"},
+    {file = "bottomify-1.1.1-cp37-none-win_amd64.whl", hash = "sha256:e9120ff7debffeb7b9c9c992d328f918fac0bb5f59ff289afe0f7d8fda54dfc3"},
+    {file = "bottomify-1.1.1-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:fd8e7dc5787b71b12d7ab39f39f673d07d4548fe2aea829a0dbd686344e0044d"},
+    {file = "bottomify-1.1.1-cp38-none-win_amd64.whl", hash = "sha256:1f68cab1c2e4b732d04609a828f9d16f52b2f67846c1278389bed1a6b8bc0be7"},
+    {file = "bottomify-1.1.1-cp39-cp39-macosx_10_7_x86_64.whl", hash = "sha256:982f4ce9aa398fd458c1e853d51969b3541487a3ef96c412e170e94c063e68b1"},
+    {file = "bottomify-1.1.1-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:5d3f3d00eb598592d1d897c5204a84d9d721b3a79a5fd3534fd2671f161c2102"},
+    {file = "bottomify-1.1.1-cp39-none-win_amd64.whl", hash = "sha256:24ac5cd64880a18030a7c3a03ca7b7f9a27835d59db096d7a8ca4082b39e9dc5"},
 ]
 braceexpand = [
     {file = "braceexpand-0.1.7-py2.py3-none-any.whl", hash = "sha256:91332d53de7828103dcae5773fb43bc34950b0c8160e35e0f44c4427a3b85014"},

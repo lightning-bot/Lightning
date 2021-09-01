@@ -22,6 +22,7 @@ import textwrap
 import typing
 from datetime import datetime
 
+import bottom
 import discord
 import slowo
 from discord.ext import commands
@@ -215,7 +216,7 @@ class Fun(LightningCog):
     @flags.add_flag("--lastmessage", "--lm", is_bool_flag=True,
                     help="Owoifies the last message sent in the channel")
     @command(cls=flags.FlagCommand, aliases=['owo', 'uwuify'], raise_bad_flag=False)
-    @commands.cooldown(rate=1, per=5, type=commands.BucketType.channel)
+    @commands.cooldown(rate=3, per=5, type=commands.BucketType.channel)
     async def owoify(self, ctx: LightningContext, **args) -> None:
         """Turns a message into owo-speak"""
         if args['random'] is True and args['lastmessage'] is True:
@@ -242,6 +243,46 @@ class Fun(LightningCog):
 
         fmt = slowo.UwU.ify(text)
         await ctx.send(fmt)
+
+    @flags.add_flag("--random", "-R", is_bool_flag=True,
+                    help="Bottomifies random text from the last 20 messages in this channel")
+    @flags.add_flag("--lastmessage", "--lm", is_bool_flag=True,
+                    help="Bottomifies the last message sent in the channel")
+    @flags.add_flag("--regress", "--decode", is_bool_flag=True,
+                    help="Decodes instead of encodes")
+    @command(cls=flags.FlagCommand, aliases=['bottom'], raise_bad_flag=False)
+    @commands.cooldown(rate=3, per=5, type=commands.BucketType.channel)
+    async def bottomify(self, ctx: LightningContext, *, flags):
+        """Turns a message into bottom"""
+        if flags.random is True and flags.lastmessage is True:
+            raise commands.BadArgument("--lastmessage and --random cannot be mixed together.")
+
+        if flags.random is True:
+            message = await self.get_previous_messages(ctx, ctx.channel, 35)
+            if message.content:
+                text = message.content
+            else:
+                raise LightningError('Failed to find any message content.')
+        elif flags.lastmessage is True:
+            messages = await self.get_previous_messages(ctx, ctx.channel, 1, False)
+            message = messages[0]
+            if message.content:
+                text = message.content
+            else:
+                raise LightningError('Failed to find message content in the previous message.')
+        else:
+            text = flags.rest
+
+        if not text:
+            raise commands.BadArgument("Missing text to translate into bottom")
+
+        if flags.regress:
+            try:
+                await ctx.send(bottom.decode(text))
+            except ValueError:
+                await ctx.send("Failed to decode message.")
+        else:
+            await ctx.send(bottom.encode(text))
 
     @command()
     async def lolice(self, ctx: LightningContext, *, user: discord.Member = commands.default.Author) -> None:
