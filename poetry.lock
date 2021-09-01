@@ -185,7 +185,7 @@ resolved_reference = "ef77c9f3491f1790b0557dfdad8a9393175adbb4"
 
 [[package]]
 name = "discord.py"
-version = "2.0.0a3581+gc1231d48"
+version = "2.0.0a3585+g82b0a4ad"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -204,7 +204,7 @@ voice = ["PyNaCl (>=1.3.0,<1.5)"]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
 reference = "master"
-resolved_reference = "c1231d48c10471c8bb3f34297fa28a320b1e949b"
+resolved_reference = "82b0a4adfd143e516f43a913c35fa25281372059"
 
 [[package]]
 name = "distlib"
@@ -581,6 +581,14 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
+name = "slowo"
+version = "0.3"
+description = "A python implentación of advanced uwuification."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "soupsieve"
 version = "2.2.1"
 description = "A modern CSS selector implementation for Beautiful Soup."
@@ -724,17 +732,6 @@ docs = ["Sphinx (>=1.7.3,<1.8.0)", "sphinxcontrib-asyncio (>=0.2.0,<0.3.0)", "sp
 test = ["aiohttp", "flake8 (>=3.8.4,<3.9.0)", "psutil", "pycodestyle (>=2.6.0,<2.7.0)", "pyOpenSSL (>=19.0.0,<19.1.0)", "mypy (>=0.800)"]
 
 [[package]]
-name = "uwuify"
-version = "1.0.1"
-description = "uwuifys text"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-click = "*"
-
-[[package]]
 name = "virtualenv"
 version = "20.4.7"
 description = "Virtual Python Environment builder"
@@ -784,7 +781,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "77a28f4fa5891a9d509ac3820d021b04af95e139092833343765d6bbf746f636"
+content-hash = "d82a142edf44e4db6968f7d94f3f37bceade916e0778d4692b103e0172c0adf2"
 
 [metadata.files]
 aiohttp = [
@@ -1418,6 +1415,10 @@ six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
+slowo = [
+    {file = "slowo-0.3-py3-none-any.whl", hash = "sha256:2e97580a80d38baeb65605a4f2c13ef227cf177602b4e579bc0720ccce10b400"},
+    {file = "slowo-0.3.tar.gz", hash = "sha256:b438eef85e348a2840ab2d5762bda35f3695e812b3895dbc02faa828d259d51a"},
+]
 soupsieve = [
     {file = "soupsieve-2.2.1-py3-none-any.whl", hash = "sha256:c2c1c2d44f158cdbddab7824a9af8c4f83c76b1e23e049479aa432feb6c4c23b"},
     {file = "soupsieve-2.2.1.tar.gz", hash = "sha256:052774848f448cf19c7e959adf5566904d525f33a3f8b6ba6f6f8f26ec7de0cc"},
@@ -1498,10 +1499,6 @@ uvloop = [
     {file = "uvloop-0.15.3-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:5cda65fc60a645470b8525ce014516b120b7057b576fa876cdfdd5e60ab1efbb"},
     {file = "uvloop-0.15.3-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1ff05116ede1ebdd81802df339e5b1d4cab1dfbd99295bf27e90b4cec64d70e9"},
     {file = "uvloop-0.15.3.tar.gz", hash = "sha256:905f0adb0c09c9f44222ee02f6b96fd88b493478fffb7a345287f9444e926030"},
-]
-uwuify = [
-    {file = "uwuify-1.0.1-py3-none-any.whl", hash = "sha256:3d74b972e84314484c74a041a8beb0b3445d7c620825ebf50b78822232c6420c"},
-    {file = "uwuify-1.0.1.tar.gz", hash = "sha256:c2a76ab339301199a6568ef0805e61ad9f72e6af6728e19f9627dc8f5a6fc242"},
 ]
 virtualenv = [
     {file = "virtualenv-20.4.7-py2.py3-none-any.whl", hash = "sha256:2b0126166ea7c9c3661f5b8e06773d28f83322de7a3ff7d06f0aed18c9de6a76"},
