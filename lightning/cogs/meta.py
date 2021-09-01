@@ -313,7 +313,11 @@ class Meta(LightningCog):
                         f"({natural_timedelta(member.created_at, accuracy=3)})",
                         inline=False)
 
-        embed.add_field(name="Shared Servers", value=len(member.mutual_guilds))
+        if member == self.bot.user:
+            embed.add_field(name="Shared Servers", value=len(self.bot.guilds))
+        else:
+            embed.add_field(name="Shared Servers", value=len(member.mutual_guilds))
+
         if not isinstance(member, discord.Member):
             embed.set_footer(text='This member is not in this server.')
 
