@@ -594,7 +594,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
         # If we send a message or do anything else, we undo the lock state of the thread.
         if ctx.channel != thread:
-            await ctx.message.add_reaction("\N{LOCK}")
+            await ctx.send(f"\N{LOCK} {thread.mention} is now locked!")
 
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
