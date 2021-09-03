@@ -120,11 +120,9 @@ class Stats(LightningCog):
             await self.bulk_socket_stats_insert()
 
     @LightningCog.listener()
-    async def on_socket_response(self, msg):
-        v = msg.get('t')
-        if v:
-            async with self._socket_lock:
-                self._socket_stats[v] += 1
+    async def on_socket_event_type(self, event):
+        async with self._socket_lock:
+            self._socket_stats[event] += 1
 
     async def commands_stats_guild(self, ctx: LightningContext):
         em = discord.Embed(title="Command Stats", color=0xf74b06)
@@ -305,7 +303,7 @@ class Stats(LightningCog):
     async def socketstats(self, ctx):
         """Shows a count of all tracked socket events"""
         records = await self.bot.pool.fetch("SELECT * FROM socket_stats ORDER BY count DESC;")
-        table = tabulate.tabulate(records, headers=("Event", "Count"), tablefmt="psql")
+        table = tabulate.tabulate(records, headers='keys', tablefmt="psql")
         total = sum(x['count'] for x in records)
         await ctx.send(f"{total} socket events recorded.```\n{table}```")
 
