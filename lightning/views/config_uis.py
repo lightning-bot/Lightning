@@ -77,6 +77,7 @@ class Logging(UpdateableMenu, ExitableMenu):
             await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(values))
             await interaction.followup.send(f"Successfully set up logging for {self.log_channel.mention}! "
                                             f"({values.to_simple_str().replace('|', ', ')})")
+            self.invalidate()
 
     @discord.ui.button(label="Change logging format", style=discord.ButtonStyle.primary, emoji="\N{NOTEBOOK}")
     async def change_format_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
