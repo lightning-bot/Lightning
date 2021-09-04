@@ -1,6 +1,6 @@
 """
-Lightning.py - A personal Discord bot
-Copyright (C) 2020 - LightSage
+Lightning.py - A Discord bot
+Copyright (C) 2019-2021 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -20,6 +20,7 @@ import inspect
 
 import discord
 from discord.ext import menus
+from discord.ext.menus.views import ViewMenuPages
 
 
 class BasicEmbedMenu(menus.ListPageSource):
@@ -37,7 +38,7 @@ class BasicEmbedMenu(menus.ListPageSource):
         return embed
 
 
-class InfoMenuPages(menus.MenuPages):
+class InfoMenuPages(ViewMenuPages):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
