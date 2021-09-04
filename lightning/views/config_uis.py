@@ -92,7 +92,7 @@ class Logging(UpdateableMenu, ExitableMenu):
             await connection.execute(query, format_type, self.log_channel.guild.id,
                                      self.log_channel.id)
 
-        await interaction.response.send_message(f"Successfully changed the log format to {format_type}!")
+        await interaction.followup.send(f"Successfully changed the log format to {format_type}!")
         self.invalidate()
 
     @discord.ui.button(label="Remove logging", style=discord.ButtonStyle.red, emoji="\N{CLOSED BOOK}")
