@@ -89,8 +89,8 @@ log_actions = {
 }
 
 
-def construct_dm_message(member, action, location, *, middle=None, reason=None, ending=None):
-    msg = [f"You were {action} {location} {member.guild.name}"]
+def construct_dm_message(member, action_verb, location, *, middle=None, reason=None, ending=None):
+    msg = [f"You were {action_verb} {location} {member.guild.name}"]
     if middle:
         msg.append(middle)
     if reason:
@@ -489,7 +489,7 @@ class EmbedFormat(BaseFormat):
         embed = discord.Embed(title="Command Ran", color=0xf74b06, timestamp=ctx.message.created_at)
         user = ctx.author
         embed.description = f"**Command**: {ctx.command.qualified_name}\n**User**: {user.mention} ({user.id})"\
-                            f"**Channel**: {ctx.channel.mention} ({ctx.channel.id})"
+                            f"\n**Channel**: {ctx.channel.mention} ({ctx.channel.id})"
         return embed
 
     @staticmethod
