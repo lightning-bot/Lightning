@@ -108,7 +108,7 @@ class HelpMenu(menus.ListPageSource):
             cmds = []
             for cmd in c:
                 cmds.append(f"`{cmd.qualified_name}`")
-            return " ".join(cmds)
+            return " | ".join(cmds)
 
         for entry in entries:
             cmds = sorted(self.data.get(entry, []), key=lambda d: d.qualified_name)
