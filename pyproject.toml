@@ -41,6 +41,7 @@ beautifulsoup4 = "^4.9.3"
 lxml = "^4.6.3"
 slowo = "^0.3"
 bottomify = "^1.1.1"
+discord-ext-menus-views = {git = "https://github.com/LightSage/discord-ext-menus-views"}
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"

@@ -192,6 +192,21 @@ reference = "master"
 resolved_reference = "ef77c9f3491f1790b0557dfdad8a9393175adbb4"
 
 [[package]]
+name = "discord-ext-menus-views"
+version = "0.1.0"
+description = "A discord.ext.menus Menu backed by Views and Buttons instead of reactions."
+category = "main"
+optional = false
+python-versions = "^3.8"
+develop = false
+
+[package.source]
+type = "git"
+url = "https://github.com/LightSage/discord-ext-menus-views"
+reference = "master"
+resolved_reference = "59b657c52ea7ae9a3aba5948dcc4c940cf2a6c99"
+
+[[package]]
 name = "discord.py"
 version = "2.0.0a3587+g2e26f37d"
 description = "A Python wrapper for the Discord API"
@@ -789,7 +804,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "757bace92ac572cfb908cecea8983ecef5e55cb7470898a15608addabe7b8983"
+content-hash = "0ff3a9ef112a2f7718e61c2f1fe4eec3f21658bab6498391cbbe935b35298bfe"
 
 [metadata.files]
 aiohttp = [
@@ -914,6 +929,7 @@ dictionaries = [
     {file = "dictionaries-0.0.2.tar.gz", hash = "sha256:8fa92745eb7c707b8588888875234f2f0a61b67936d8deb91b2b7b4c32366112"},
 ]
 discord-ext-menus = []
+discord-ext-menus-views = []
 "discord.py" = []
 distlib = [
     {file = "distlib-0.3.2-py2.py3-none-any.whl", hash = "sha256:23e223426b28491b1ced97dc3bbe183027419dfc7982b4fa2f05d5f3ff10711c"},
