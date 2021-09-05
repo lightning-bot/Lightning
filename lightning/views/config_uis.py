@@ -56,18 +56,24 @@ class Logging(UpdateableMenu, ExitableMenu):
                    DO UPDATE SET types = EXCLUDED.types;"""
         await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(LoggingType.all))
         self.invalidate()
-        await interaction.response.defer()
-        await interaction.followup.send(f"Successfully set up logging for {self.log_channel.mention}! "
-                                        f"({LoggingType.all.to_simple_str().replace('|', ', ')})")
+        # await interaction.response.defer()
+        # await interaction.followup.send(f"Successfully set up logging for {self.log_channel.mention}! "
+        #                                f"({LoggingType.all.to_simple_str().replace('|', ', ')})")
         await self.update()
 
     @discord.ui.button(label="Setup specific logging events", style=discord.ButtonStyle.primary, emoji="\N{OPEN BOOK}")
     async def specific_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         async with self.sub_menu(view=SelectSubMenu(*[x.name for x in LoggingType.all],
                                  max_options=len(LoggingType.all))) as view:
+            view.add_item(discord.ui.Button(label="Documentation",
+                                            url="https://lightning-bot.gitlab.io/bot-configuration/#events"))
             await interaction.response.defer()
-            await interaction.edit_original_message(content='Select the events you wish to log', view=view)
+            msg = await interaction.followup.send(content='Select the events you wish to log', view=view, wait=True)
             await view.wait()
+
+            if not view.values:
+                await msg.delete()
+                return
 
             values = LoggingType.from_simple_str("|".join(view.values))
             query = """INSERT INTO logging (guild_id, channel_id, types)
@@ -75,8 +81,9 @@ class Logging(UpdateableMenu, ExitableMenu):
                        ON CONFLICT (channel_id)
                        DO UPDATE SET types = EXCLUDED.types;"""
             await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(values))
-            await interaction.followup.send(f"Successfully set up logging for {self.log_channel.mention}! "
-                                            f"({values.to_simple_str().replace('|', ', ')})")
+            await msg.delete()
+            # await interaction.followup.send(f"Successfully set up logging for {self.log_channel.mention}! "
+            #                                f"({values.to_simple_str().replace('|', ', ')})", ephemeral=True)
             self.invalidate()
 
     @discord.ui.button(label="Change logging format", style=discord.ButtonStyle.primary, emoji="\N{NOTEBOOK}")
@@ -84,15 +91,22 @@ class Logging(UpdateableMenu, ExitableMenu):
         fmts = ['emoji', 'minimal with timestamp', 'minimal without timestamp', 'embed']
         async with self.sub_menu(view=SelectSubMenu(*fmts)) as view:
             await interaction.response.defer()
-            await interaction.edit_original_message(content="Select the type of log format to change to", view=view)
+            message = await interaction.followup.send("Select the type of log format to change to", view=view,
+                                                      wait=True)
             await view.wait()
+
+            if not view.values:
+                await message.delete()
+                return
+
             format_type = view.values[0].lower()
             connection = self.ctx.bot.pool
             query = """UPDATE logging SET format=$1 WHERE guild_id=$2 and channel_id=$3;"""
             await connection.execute(query, format_type, self.log_channel.guild.id,
                                      self.log_channel.id)
+            await message.delete()
 
-        await interaction.followup.send(f"Successfully changed the log format to {format_type}!")
+        # await interaction.followup.send(f"Successfully changed the log format to {format_type}!")
         self.invalidate()
 
     @discord.ui.button(label="Remove logging", style=discord.ButtonStyle.red, emoji="\N{CLOSED BOOK}")
@@ -101,7 +115,7 @@ class Logging(UpdateableMenu, ExitableMenu):
                    WHERE guild_id=$1
                    AND channel_id=$2;"""
         await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id)
-        await interaction.response.defer()
-        await interaction.followup.send(content=f"Removed logging from {self.log_channel.mention}!")
+        # await interaction.response.defer()
+        # await interaction.followup.send(content=f"Removed logging from {self.log_channel.mention}!")
         self.invalidate()
         await self.update()
