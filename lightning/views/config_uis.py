@@ -29,20 +29,26 @@ class Logging(UpdateableMenu, ExitableMenu):
         self.ctx.bot.dispatch("lightning_channel_config_remove",
                               ChannelConfigInvalidateEvent(self.log_channel))
 
-    async def format_initial_message(self, ctx):
+    async def fetch_record(self):
         query = "SELECT * FROM logging WHERE guild_id=$1 AND channel_id=$2;"
-        record = await ctx.bot.pool.fetchrow(query, ctx.guild.id, self.log_channel.id)
+        record = await self.ctx.bot.pool.fetchrow(query, self.ctx.guild.id, self.log_channel.id)
+        return record
+
+    async def update_components(self):
+        record = await self.fetch_record()
         if not record:
-            content = f"No configuration exists for {self.log_channel.mention} yet!"
-            # Disable certain buttons
             self.remove_logging_button.disabled = True
             self.change_format_button.disabled = True
         else:
+            self.remove_logging_button.disabled = False
+            self.change_format_button.disabled = False
+
+    async def format_initial_message(self, ctx):
+        record = await self.fetch_record()
+        if not record:
+            content = f"No configuration exists for {self.log_channel.mention} yet!"
+        else:
             types = LoggingType(record['types'])
-            if self.remove_logging_button.disabled is True:
-                self.remove_logging_button.disabled = False
-            if self.change_format_button.disabled is True:
-                self.change_format_button.disabled = False
             content = f"Configuration for {self.log_channel.mention}:\n\n"\
                       f"Events: {types.to_simple_str().replace('|', ', ')}\n"\
                       f"Log Format: {record['format'].title()}"
