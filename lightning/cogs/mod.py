@@ -83,13 +83,14 @@ class Mod(LightningCog, required=["Configuration"]):
         connection = connection or self.bot.pool
         await connection.execute(query, role_id, guild_id, user_id)
 
-    async def log_manual_action(self, target, moderator, action, *, timestamp=None, reason=None, **kwargs) -> None:
+    async def log_manual_action(self, guild: discord.Guild, target, moderator, action, *, timestamp=None, reason=None,
+                                **kwargs) -> None:
         # We need this for bulk actions
         connection = kwargs.pop('connection', self.bot.pool)
 
         timestamp = timestamp or discord.utils.utcnow()
 
-        event = InfractionEvent(action, member=target, guild=target.guild, moderator=moderator, reason=reason, **kwargs)
+        event = InfractionEvent(action, member=target, guild=guild, moderator=moderator, reason=reason, **kwargs)
         await event.action.add_infraction(connection)
 
         if not isinstance(action, modlogformats.ActionType):
@@ -109,8 +110,8 @@ class Mod(LightningCog, required=["Configuration"]):
     async def log_action(self, ctx: LightningContext, target, action: str, **kwargs) -> None:
         reason = ctx.kwargs.get('rest') or ctx.kwargs.get('reason')
 
-        await self.log_manual_action(target, ctx.author, action, timestamp=ctx.message.created_at, reason=reason,
-                                     **kwargs)
+        await self.log_manual_action(ctx.guild, target, ctx.author, action, timestamp=ctx.message.created_at,
+                                     reason=reason, **kwargs)
 
     async def log_bulk_actions(self, ctx: LightningContext, targets: list, action: str, **kwargs) -> None:
         """Logs a bunch of actions"""
@@ -811,7 +812,7 @@ class Mod(LightningCog, required=["Configuration"]):
                 else:
                     reason = "Mute role manually removed"
 
-                await self.log_manual_action(event.after, event.moderator, "UNMUTE", reason=reason,
+                await self.log_manual_action(event.guild, event.after, event.moderator, "UNMUTE", reason=reason,
                                              connection=conn)
 
         if currently_muted is True and previously_muted is False:  # Role was added
@@ -823,7 +824,7 @@ class Mod(LightningCog, required=["Configuration"]):
                 else:
                     reason = "Mute role manually added"
 
-                await self.log_manual_action(event.after, event.moderator, "MUTE", reason=reason,
+                await self.log_manual_action(event.guild, event.after, event.moderator, "MUTE", reason=reason,
                                              connection=conn)
 
     # Automod
