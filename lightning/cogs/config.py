@@ -487,9 +487,10 @@ class Configuration(LightningCog):
         return toggle
 
     @automod.command(name="toggle", level=CommandLevel.Admin)
+    @has_guild_permissions(manage_guild=True)
     async def toggle_auto(self, ctx: LightningContext, feature: convert_to_automod_feature) -> None:
         flag, msg = feature
-        toggle = await self.toggle_automod_feature_flag(flag)
+        toggle = await self.toggle_automod_feature_flag(ctx.guild.id, flag)
 
         if flag in toggle:
             await ctx.send(f"Now {msg}")
