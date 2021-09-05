@@ -26,7 +26,8 @@ __all__ = ("BaseView",
            "MenuLikeView",
            "ExitableMenu",
            "UpdateableMenu",
-           "SelectSubMenu")
+           "SelectSubMenu",
+           "ButtonSubMenu")
 log = logging.getLogger(__name__)
 
 
@@ -74,6 +75,7 @@ class MenuLikeView(BaseView):
     def __init__(self, *, clear_view_after=False, delete_message_after=False, disable_components_after=True,
                  timeout=180.0):
         super().__init__(timeout=timeout)
+        self.locked = False
         self.ctx = None
         self.clear_view_after = clear_view_after
         self.delete_message_after = delete_message_after
@@ -87,7 +89,13 @@ class MenuLikeView(BaseView):
         raise NotImplementedError
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return self.ctx.author.id == interaction.user.id
+        check = self.ctx.author.id == interaction.user.id
+        if self.locked is True and check is True:
+            await interaction.response.defer()
+            await interaction.followup.send(content="You have not finished a prompt yet", ephemeral=True)
+            return False
+        else:
+            return check
 
     def _assume_message_kwargs(self, value) -> dict:  # "Assumes" kwargs that are passed to message.send
         if isinstance(value, dict):
@@ -111,6 +119,12 @@ class MenuLikeView(BaseView):
 
         if wait:
             await self.wait()
+
+    def lock_components(self) -> None:
+        self.locked = True
+
+    def unlock_components(self) -> None:
+        self.locked = False
 
     @contextlib.contextmanager
     def sub_menu(self, view):
@@ -183,11 +197,14 @@ class UpdateableMenu(MenuLikeView):
         view
             A view. Ideally, this should be SelectSubMenu or ButtonSubMenu.
         """
-        # There might need to be more involvement, but this is simple atm.
         view.ctx = self.ctx
+        self.lock_components()
         try:
+            # await interaction.response.defer()
+            # message = await interaction.followup.send(view=view, wait=True)
             yield view
         finally:
+            self.unlock_components()
             await self.update()
 
     async def start(self, ctx, *, channel=None, wait=True) -> None:
@@ -218,7 +235,7 @@ class SelectSubMenu(BaseView):
     """
     A view designed to work for submenus.
 
-    To retrieve the values after the view has stopped, use the result attribute.
+    To retrieve the values after the view has stopped, use the values attribute.
     """
     def __init__(self, *options, max_options: int = 1, exitable: bool = True, **kwargs):
         super().__init__(**kwargs)
@@ -233,7 +250,8 @@ class SelectSubMenu(BaseView):
         self.add_item(select)
 
         if exitable:
-            self.add_item(StopButton(label="Exit"))
+            stop_buttton = StopButton(label="Exit")
+            self.add_item(stop_buttton)
 
         self._select = select
 
@@ -245,7 +263,7 @@ class SelectSubMenu(BaseView):
 class _ButtonSM(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction) -> None:
         self.view.stop()
-        self.result = self.label
+        self.view.result = self.label
 
 
 class ButtonSubMenu(BaseView):
@@ -262,6 +280,7 @@ class ButtonSubMenu(BaseView):
         A style to use for the buttons. Defaults to discord.ButtonStyle.primary.
     """
     def __init__(self, *choices, style: discord.ButtonStyle = discord.ButtonStyle.primary):
+        super().__init__()
         self.result = None
 
         for x in choices:
