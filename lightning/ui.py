@@ -226,7 +226,7 @@ class UpdateableMenu(MenuLikeView):
 
 
 # classes for easy-to-use submenus!
-class _SelectSM(discord.ui.Select):
+class _SelectSM(discord.ui.Select['SelectSubMenu']):
     async def callback(self, interaction: discord.Interaction) -> None:
         self.view.stop()
 
@@ -260,7 +260,7 @@ class SelectSubMenu(BaseView):
         return self._select.values or []
 
 
-class _ButtonSM(discord.ui.Button):
+class _ButtonSM(discord.ui.Button['ButtonSubMenu']):
     async def callback(self, interaction: discord.Interaction) -> None:
         self.view.stop()
         self.view.result = self.label
