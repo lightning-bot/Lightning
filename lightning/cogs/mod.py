@@ -83,8 +83,9 @@ class Mod(LightningCog, required=["Configuration"]):
         connection = connection or self.bot.pool
         await connection.execute(query, role_id, guild_id, user_id)
 
-    async def log_manual_action(self, guild: discord.Guild, target, moderator, action, *, timestamp=None, reason=None,
-                                **kwargs) -> None:
+    async def log_manual_action(self, guild: discord.Guild, target, moderator,
+                                action: Union[modlogformats.ActionType, str], *, timestamp=None,
+                                reason: Optional[str] = None, **kwargs) -> None:
         # We need this for bulk actions
         connection = kwargs.pop('connection', self.bot.pool)
 
