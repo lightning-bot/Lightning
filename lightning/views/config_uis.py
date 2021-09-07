@@ -69,8 +69,9 @@ class Logging(UpdateableMenu, ExitableMenu):
 
     @discord.ui.button(label="Setup specific logging events", style=discord.ButtonStyle.primary, emoji="\N{OPEN BOOK}")
     async def specific_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
-        async with self.sub_menu(view=SelectSubMenu(*[x.name for x in LoggingType.all],
-                                 max_options=len(LoggingType.all))) as view:
+        async with self.lock():
+            view = SelectSubMenu(*[x.name for x in LoggingType.all], max_options=len(LoggingType.all))
+            view.ctx = self.ctx
             view.add_item(discord.ui.Button(label="Documentation",
                                             url="https://lightning-bot.gitlab.io/bot-configuration/#events"))
             await interaction.response.defer()
@@ -95,7 +96,9 @@ class Logging(UpdateableMenu, ExitableMenu):
     @discord.ui.button(label="Change logging format", style=discord.ButtonStyle.primary, emoji="\N{NOTEBOOK}")
     async def change_format_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         fmts = ['emoji', 'minimal with timestamp', 'minimal without timestamp', 'embed']
-        async with self.sub_menu(view=SelectSubMenu(*fmts)) as view:
+        async with self.lock():
+            view = SelectSubMenu(*fmts)
+            view.ctx = self.ctx
             await interaction.response.defer()
             message = await interaction.followup.send("Select the type of log format to change to", view=view,
                                                       wait=True)
