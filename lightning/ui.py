@@ -207,6 +207,15 @@ class UpdateableMenu(MenuLikeView):
             self.unlock_components()
             await self.update()
 
+    @contextlib.asynccontextmanager
+    async def lock(self):
+        self.lock_components()
+        try:
+            yield
+        finally:
+            self.unlock_components()
+            await self.update()
+
     async def start(self, ctx, *, channel=None, wait=True) -> None:
         self.ctx = ctx
 
