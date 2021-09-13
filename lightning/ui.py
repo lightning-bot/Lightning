@@ -18,6 +18,7 @@ import asyncio
 import contextlib
 import logging
 from inspect import isawaitable
+from typing import Any, Optional
 
 import discord
 import sentry_sdk
@@ -141,6 +142,34 @@ class MenuLikeView(BaseView):
             yield view
         finally:
             pass
+
+    async def prompt_convert(self, interaction: discord.Interaction, content: str, converter: Any) -> Optional[Any]:
+        pmsg = await interaction.followup.send(content=content, wait=True)
+
+        def check(m):
+            return m.channel == self.ctx.channel and m.author == self.ctx.author
+
+        try:
+            message = await self.ctx.bot.wait_for("message", check=check, timeout=60.0)
+        except asyncio.TimeoutError:
+            await interaction.followup.send(content="Timed out while waiting for a response from you.", ephemeral=True)
+
+            with contextlib.suppress(discord.HTTPException):
+                await pmsg.delete()
+
+            return
+
+        try:
+            conv = await converter.convert(self.ctx, message.content)
+        except Exception as e:
+            conv = None
+            await interaction.followup.send(content=e, ephemeral=True)
+
+        with contextlib.suppress(discord.HTTPException):
+            await pmsg.delete()
+            await message.delete()
+
+        return conv
 
     async def cleanup(self) -> None:
         # This is first for obvious reasons
