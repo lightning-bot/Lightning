@@ -14,6 +14,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import contextlib
+
 import discord
 from discord.ext.commands import Cooldown, CooldownMapping
 
@@ -55,6 +57,9 @@ class TWLSpam(LightningCog):
 
         try:
             await message.author.ban(reason="Auto-banned for message spam")
+            with contextlib.suppress(discord.HTTPException):
+                await message.channel.send(f"Auto banned {str(message.author)} | {message.author.id} "
+                                           "for message content spam")
             cog = self.bot.get_cog("Mod")
             await cog.log_manual_action(message.guild, message.author, self.bot.user, "BAN",
                                         timestamp=message.created_at, reason="Auto-banned for message spam")
