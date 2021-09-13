@@ -310,8 +310,10 @@ class Configuration(LightningCog):
     @commands.bot_has_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
     async def autorole(self, ctx: LightningContext) -> None:
-        """Manages the server's autorole"""
-        await ctx.send_help('config autorole')
+        """Manages the server's autorole
+
+        If this command is called alone, an interactive menu will start."""
+        await config_uis.AutoRole(timeout=180.0).start(ctx)
 
     @autorole.command(name="set", aliases=['add'], level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_roles=True)
