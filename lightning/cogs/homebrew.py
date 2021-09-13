@@ -40,6 +40,7 @@ from lightning.errors import LightningError
 from lightning.utils.checks import has_channel_permissions
 from lightning.utils.helpers import request as make_request
 from lightning.utils.paginator import InfoMenuPages
+from lightning.views import homebrew_uis
 
 log: logging.Logger = logging.getLogger(__name__)
 
@@ -128,24 +129,8 @@ class Homebrew(LightningCog):
     async def nintendoupdatesfeed(self, ctx: LightningContext) -> None:
         """Manages the guild's configuration for Nintendo console update alerts.
 
-        If invoked with no subcommands, this will show the current configuration."""
-        query = "SELECT id FROM nin_updates WHERE guild_id=$1;"
-        record = await self.bot.pool.fetchval(query, ctx.guild.id)
-        if record is None:
-            await ctx.send("Nintendo console updates are currently not configured!")
-            return
-
-        webhook = discord.utils.get(await ctx.guild.webhooks(), id=record)
-        if webhook is None:
-            query = 'DELETE FROM nin_updates WHERE guild_id=$1'
-            await self.bot.pool.execute(query, ctx.guild.id)
-            await ctx.send("The webhook that sent Nintendo console update notifications seems to "
-                           "be deleted. Please re-configure with "
-                           f"`{ctx.clean_prefix}nintendoupdatesfeed setup`.")
-            return
-
-        await ctx.send("Nintendo console updates are currently "
-                       f"configured to send to {webhook.channel.mention}.")
+        If invoked with no subcommands, this will start an interactive menu."""
+        await homebrew_uis.NinUpdates().start(ctx)
 
     @nintendoupdatesfeed.command(name="setup", level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
@@ -234,8 +219,8 @@ class Homebrew(LightningCog):
             except KeyError:
                 pass
 
-            hook_text = f"[{discord.utils.format_dt(timestamp, style='T')}] 🚨 **System update detected for {console}:"\
-                        f" {version}**\nMore information at <{link}>"
+            hook_text = f"[{discord.utils.format_dt(timestamp, style='T')}] \N{POLICE CARS REVOLVING LIGHT} **System"\
+                        f" update detected for {console}: {version}**\nMore information at <{link}>"
             await data.add(console, {"version": version,
                                      "last_updated": timestamp.isoformat()})
             await self.dispatch_message_to_guilds(console, hook_text)
