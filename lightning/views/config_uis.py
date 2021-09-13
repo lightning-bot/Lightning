@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import discord
 
 from lightning import ExitableMenu, LoggingType, SelectSubMenu, UpdateableMenu
+from lightning.converters import Role
 from lightning.events import ChannelConfigInvalidateEvent
 
 
@@ -127,4 +128,48 @@ class Logging(UpdateableMenu, ExitableMenu):
         # await interaction.response.defer()
         # await interaction.followup.send(content=f"Removed logging from {self.log_channel.mention}!")
         self.invalidate()
+        await self.update()
+
+
+class AutoRole(UpdateableMenu, ExitableMenu):
+    async def format_initial_message(self, ctx):
+        record = await ctx.bot.get_guild_bot_config(ctx.guild.id)
+        embed = discord.Embed(title="Auto Role Configuration", color=0xf74b06)
+
+        if record.autorole:
+            self.add_autorole_button.label = "Change autorole"
+            self.remove_autorole_button.disabled = False
+            embed.description = f"Members will be assigned {record.autorole.mention} ({record.autorole.id}) when they"\
+                " join this server."
+        elif record.autorole_id is None:  # has not been configured
+            self.remove_autorole_button.disabled = True
+            self.add_autorole_button.label = "Add an autorole"
+            embed.description = "This server has not setup an autorole yet."
+        else:
+            self.remove_autorole_button.disabled = False
+            self.add_autorole_button.label = "Change autorole"
+            embed.description = "The autorole that was configured seems to be deleted! You can set another up by"\
+                                " pressing the \"Change autorole\" button."
+
+        return embed
+
+    @discord.ui.button(label="Add an autorole")
+    async def add_autorole_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        async with self.lock():
+            await interaction.response.defer()
+            content = "What role would you like to setup? You can send the ID, name, or mention of a role."
+            role = await self.prompt_convert(interaction, content, Role())
+
+            if not role:
+                return
+
+            cog = self.ctx.cog
+            await cog.add_config_key(self.ctx.guild.id, "autorole", role.id)
+            await self.ctx.bot.get_guild_bot_config.invalidate(self.ctx.guild.id)
+
+    @discord.ui.button(label="Remove autorole", style=discord.ButtonStyle.red)
+    async def remove_autorole_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        await self.ctx.cog.remove_config_key(self.ctx.guild.id, "autorole")
+        await self.ctx.bot.get_guild_bot_config.invalidate(self.ctx.guild.id)
+        await interaction.response.send_message(content="Successfully removed the server's autorole")
         await self.update()
