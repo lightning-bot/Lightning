@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import discord
-from discord.ext.commands import BucketType, CooldownMapping
+from discord.ext.commands import Cooldown, CooldownMapping
 
 from lightning import LightningBot, LightningCog
 
@@ -23,16 +23,15 @@ TWL_HACKING = 283769550611152897
 BOT_COMMANDS_STAFF = 873321784064233492
 
 
-class CooldownContent(CooldownMapping):
-    def _bucket_key(self, message):
-        # Additionally we'd check guild id but not needed for a one guild thing
-        return (message.author.id, message.content)
+def content_bucket_key(message):
+    # Additionally we'd check guild id but not needed for a one guild thing
+    return (message.author.id, message.content)
 
 
 class TWLSpam(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
-        self.spam_bucket = CooldownContent.from_cooldown(14.0, 15.0, BucketType.member)
+        self.spam_bucket = CooldownMapping(Cooldown(9.0, 15.0), content_bucket_key)
 
     @LightningCog.listener()
     async def on_message(self, message):
