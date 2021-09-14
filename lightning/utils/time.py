@@ -188,6 +188,9 @@ class UserFriendlyTime(commands.Converter):
             if status.accuracy == pdt.pdtContext.ACU_HALFDAY:
                 dt = dt.replace(day=now.day + 1)
 
+            if dt.tzinfo is None:
+                dt = add_tzinfo(dt)
+
             result.dt = dt
 
             if begin in (0, 1):
