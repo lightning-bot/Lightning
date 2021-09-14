@@ -53,7 +53,8 @@ class NinUpdates(UpdateableMenu, ExitableMenu):
     @discord.ui.button(label="Configure", style=discord.ButtonStyle.primary)
     async def configure_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
-        channel = await self.prompt_convert(interaction, "What channel would you like to use?", SendableChannel())
+        content = "What channel would you like to use? You can send the ID, name, or mention of a channel."
+        channel = await self.prompt_convert(interaction, content, SendableChannel())
 
         if not channel:
             return
@@ -61,7 +62,7 @@ class NinUpdates(UpdateableMenu, ExitableMenu):
         try:
             webhook = await channel.create_webhook(name="Nintendo Console Updates")
         except discord.HTTPException as e:
-            await interaction.followup.send(f"Failed to create webhook. `{e}`")
+            await interaction.followup.send(f"Failed to create webhook. `{e}`", ephemeral=True)
             return
 
         query = """INSERT INTO nin_updates (guild_id, id, webhook_token)
@@ -69,9 +70,8 @@ class NinUpdates(UpdateableMenu, ExitableMenu):
         try:
             await self.ctx.bot.pool.execute(query, self.ctx.guild.id, webhook.id, webhook.token)
         except asyncpg.UniqueViolationError:
-            await interaction.followup.send("This server has already configured Nintendo console updates!")
-        else:
-            await interaction.followup.send(f"Successfully created webhook in {channel.mention}")
+            await interaction.followup.send("This server has already configured Nintendo console updates!",
+                                            ephemeral=True)
 
         await self.update()
 
