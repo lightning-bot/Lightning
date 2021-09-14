@@ -153,7 +153,7 @@ class AutoRole(UpdateableMenu, ExitableMenu):
 
         return embed
 
-    @discord.ui.button(label="Add an autorole")
+    @discord.ui.button(label="Add an autorole", style=discord.ButtonStyle.primary)
     async def add_autorole_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         async with self.lock():
             await interaction.response.defer()
