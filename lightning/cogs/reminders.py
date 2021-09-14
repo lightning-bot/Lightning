@@ -158,11 +158,17 @@ class Reminders(LightningCog):
 
         Times are in UTC.
         """
-        await self.add_job("reminder", ctx.message.created_at, when.dt, reminder_text=when.arg,
-                           author=ctx.author.id, channel=ctx.channel.id, message_id=ctx.message.id)
+        _id = await self.add_job("reminder", ctx.message.created_at, when.dt, reminder_text=when.arg,
+                                 author=ctx.author.id, channel=ctx.channel.id, message_id=ctx.message.id)
 
         duration_text = ltime.natural_timedelta(when.dt, source=ctx.message.created_at)
-        await ctx.send(f"Ok {ctx.author.mention}, I'll remind you in {duration_text} about {when.arg}.")
+
+        if type(_id) == int:
+            content = f"Ok {ctx.author.mention}, I'll remind you in {duration_text} about {when.arg}. (#{_id})"
+        else:
+            content = f"Ok {ctx.author.mention}, I'll remind you in {duration_text} about {when.arg}."
+
+        await ctx.send(content)
 
     # remind hide/show
     async def reminder_toggler(self, ctx: LightningContext, reminder_id: int, secret: bool) -> None:
