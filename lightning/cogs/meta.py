@@ -309,7 +309,7 @@ class Meta(LightningCog):
         if member.bot:
             embed.description += "\nThis user is a bot."
 
-        embed.add_field(name="Account Created On", value=f"{format_timestamp(member.created_at)} "
+        embed.add_field(name="Account Created On", value=f"{discord.utils.format_dt(member.created_at)} "
                         f"({natural_timedelta(member.created_at, accuracy=3)})",
                         inline=False)
 
@@ -344,7 +344,7 @@ class Meta(LightningCog):
                 embed.add_field(name="Activity", value=member.activity.name, inline=False)
 
         if hasattr(member, 'joined_at'):
-            embed.add_field(name="Joined", value=f"{format_timestamp(member.joined_at)} "
+            embed.add_field(name="Joined", value=f"{discord.utils.format_dt(member.joined_at)} "
                             f"({natural_timedelta(member.joined_at, accuracy=3)})",
                             inline=False)
 
