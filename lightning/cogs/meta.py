@@ -37,7 +37,7 @@ from lightning.models import PartialGuild
 from lightning.utils import helpers
 from lightning.utils.modlogformats import base_user_format
 from lightning.utils.paginator import InfoMenuPages
-from lightning.utils.time import format_timestamp, natural_timedelta
+from lightning.utils.time import natural_timedelta
 
 log = logging.getLogger(__name__)
 flag_name_lookup = {"HumanTime": "Time", "FutureTime": "Time"}
@@ -622,7 +622,7 @@ class Meta(LightningCog):
         embed = discord.Embed(title=guild.name)
         embed.description = f"**ID**: {guild.id}\n**Owner**: {str(guild.owner)}"
 
-        embed.add_field(name="Creation", value=f"{format_timestamp(guild.created_at)} "
+        embed.add_field(name="Creation", value=f"{discord.utils.format_dt(guild.created_at)} "
                         f"({natural_timedelta(guild.created_at, accuracy=3)})", inline=False)
 
         if guild.icon:
