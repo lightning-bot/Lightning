@@ -373,3 +373,19 @@ def deprecated(deprecated_in: str = None, removed_in: str = None, details: str =
 @deprecated("3.2.0", "4.0.0", "Use lightning.utils.emitters.WebhookEmbedEmitter instead")
 class WebhookEmbedBulker(WebhookEmbedEmitter):
     ...
+
+
+async def safe_delete(message) -> bool:
+    """Helper function to safely delete a message.
+
+    This is just a try/except.
+
+    Returns
+    -------
+    bool
+        An indicator whether the message was successfully deleted or not."""
+    try:
+        await message.delete()
+        return True
+    except discord.HTTPException:
+        return False
