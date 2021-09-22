@@ -22,7 +22,7 @@ psutil = "^5.7.2"
 tabulate = "^0.8.7"
 hiredis = "^1.1.0"
 aredis = "^1.1.8"
-feedparser = "^5.2.1"
+feedparser = "^6.0.8"
 asyncpg = "^0.24.0"
 discord-ext-menus = {git = "https://github.com/LightSage/discord-ext-menus.git"}
 lru_dict = "^1.1.6"
