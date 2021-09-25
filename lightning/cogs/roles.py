@@ -110,7 +110,7 @@ class Roles(LightningCog):
             resolved.append(role)
         return resolved, unresolved
 
-    async def _has_dangerous_permissions(self, permissions):
+    def _has_dangerous_permissions(self, permissions: discord.Permissions):
         if permissions.value & DANGEROUS_PERMISSIONS.value != 0:
             # has dangerous permissions
             return True
@@ -137,7 +137,7 @@ class Roles(LightningCog):
 
         paginator = commands.Paginator(prefix='', suffix='')
         for role in resolved:
-            check = await self._has_dangerous_permissions(role.permissions)
+            check = self._has_dangerous_permissions(role.permissions)
             if check is True:
                 paginator.add_line(f"Refusing to give {role.name} because it contains permissions that are deemed"
                                    " dangerous")
