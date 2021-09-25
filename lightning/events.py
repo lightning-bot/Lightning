@@ -52,14 +52,14 @@ class MemberUpdateEvent(BaseAuditLogEvent):
 # lightning_member_role_change
 class MemberRolesUpdateEvent(MemberUpdateEvent):
     @property
-    def added_roles(self):
+    def added_roles(self) -> list:
         added = [role for role in self.after.roles if role not in self.before.roles]
-        return added
+        return added or []
 
     @property
-    def removed_roles(self):
+    def removed_roles(self) -> list:
         removed = [role for role in self.before.roles if role not in self.after.roles]
-        return removed
+        return removed or []
 
 
 # lightning_member_role_add
