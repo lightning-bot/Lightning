@@ -247,7 +247,7 @@ class GuildID(commands.Converter):
         return guild
 
 
-WHITELISTED_HOSTS = ["cdn.discordapp.com", "i.imgur.com", "images.discordapp.net"]
+WHITELISTED_HOSTS = ["cdn.discordapp.com", "i.imgur.com", "images.discordapp.net", "media.discordapp.net"]
 
 
 class Whitelisted_URL:
