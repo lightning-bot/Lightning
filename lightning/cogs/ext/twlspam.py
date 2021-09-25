@@ -22,7 +22,7 @@ from discord.ext.commands import Cooldown, CooldownMapping
 from lightning import LightningBot, LightningCog
 
 TWL_HACKING = 283769550611152897
-BOT_COMMANDS_STAFF = 873321784064233492
+MODERATION_LOGS = 689178510086111237
 
 
 def content_bucket_key(message):
@@ -64,7 +64,7 @@ class TWLSpam(LightningCog):
             await cog.log_manual_action(message.guild, message.author, self.bot.user, "BAN",
                                         timestamp=message.created_at, reason="Auto-banned for message spam")
         except discord.HTTPException:
-            ch = message.guild.get_channel(BOT_COMMANDS_STAFF)
+            ch = message.guild.get_channel(MODERATION_LOGS)
             if not ch:
                 return
             await ch.send(f"Failed to auto ban {str(message.author)} | {message.author.id}")
