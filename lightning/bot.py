@@ -296,7 +296,7 @@ class LightningBot(commands.AutoShardedBot):
             return
 
         if isinstance(error, commands.BotMissingPermissions):
-            p = ', '.join(error.missing_perms).replace('_', ' ').replace('guild', 'server').title()
+            p = ', '.join(error.missing_permissions).replace('_', ' ').replace('guild', 'server').title()
             await ctx.send("I don't have the right permissions to run this command. "
                            f"I need: {p}")
             return
