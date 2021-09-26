@@ -686,7 +686,7 @@ class Meta(LightningCog):
         else:
             author_name = msg.author
 
-        embed.set_author(name=author_name, icon_url=msg.author.avatar.url)
+        embed.set_author(name=author_name, icon_url=msg.author.display_avatar.url)
 
         if msg.guild:
             embed.set_footer(text=f"\N{NUMBER SIGN}{msg.channel}")
