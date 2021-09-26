@@ -26,12 +26,12 @@ You can check the command pages on our website to see all the commands!
 ---
 ## Invite
 
-The invite is no longer displayed here as Discord's verification requirements have forced the public instance to be semi-private.
+You can add the official instance of this bot to your server with https://discord.com/oauth2/authorize?client_id=532220480577470464&scope=bot&permissions=19193523414.
 
 ---
 ## Self Hosting
 
-If you want to run your own instance, https://lightning.lightsage.dev/config/self-hosting/ contains some general instructions.
+If you want to run your own instance, https://lightning.lightsage.dev/self-hosting/ contains some general instructions.
 
 ---
 ## Versioning
