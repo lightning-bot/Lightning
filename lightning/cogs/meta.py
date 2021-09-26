@@ -474,7 +474,8 @@ class Meta(LightningCog):
 
         embed.add_field(name="Links", value="[Support Server]"
                                             f"({self.bot.config['bot']['support_server_invite']}) | "
-                                            "[Website](https://lightning-bot.gitlab.io)",
+                                            "[Website](https://lightning.lightsage.dev) | [Ko-Fi]"
+                                            "(https://ko-fi.com/lightsage)",
                                             inline=False)
         embed.set_footer(text=f"Lightning v{self.bot.version} | Made with "
                               f"discord.py {discord.__version__}")

@@ -31,7 +31,7 @@ The invite is no longer displayed here as Discord's verification requirements ha
 ---
 ## Self Hosting
 
-If you want to run your own instance, https://lightning-bot.gitlab.io/config/self-hosting/ contains some general instructions.
+If you want to run your own instance, https://lightning.lightsage.dev/config/self-hosting/ contains some general instructions.
 
 ---
 ## Versioning
