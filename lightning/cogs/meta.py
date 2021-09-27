@@ -489,6 +489,11 @@ class Meta(LightningCog):
         """Tells you about the copyright license for the bot"""
         await ctx.send("AGPLv3: https://gitlab.com/lightning-bot/Lightning/-/blob/master/LICENSE")
 
+    @lcommand()
+    async def donate(self, ctx: LightningContext) -> None:
+        """Gives you a link to my donation page"""
+        await ctx.send("**__Ko-Fi__**: <https://ko-fi.com/lightsage>")
+
     @lcommand(aliases=['prefixes'])
     async def prefix(self, ctx: LightningContext) -> None:
         """Shows prefixes the bot is listening for"""
