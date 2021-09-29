@@ -294,10 +294,16 @@ class Meta(LightningCog):
     @lcommand(aliases=['avy'])
     async def avatar(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
         """Displays a user's avatar"""
-        embed = discord.Embed(color=discord.Color.blue(),
-                              description=f"[Link to Avatar]({member.avatar.with_static_format('png')})")
+        parts = []
+        if hasattr(member, 'guild_avatar'):
+            parts.append(f"[Link to guild avatar]({member.guild_avatar.with_static_format('png')})")
+        if member.avatar:
+            parts.append(f"[Link to avatar]({member.avatar.with_static_format('png')})")
+        if member.default_avatar:
+            parts.append(f"[Link to default avatar]({member.default_avatar.url})")
+        embed = discord.Embed(color=discord.Color.blue(), description='\n'.join(parts))
         embed.set_author(name=f"{member.name}\'s Avatar")
-        embed.set_image(url=member.avatar.url)
+        embed.set_image(url=member.display_avatar.url)
         await ctx.send(embed=embed)
 
     @lcommand(aliases=['ui'])
