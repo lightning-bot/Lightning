@@ -295,7 +295,7 @@ class Meta(LightningCog):
     async def avatar(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
         """Displays a user's avatar"""
         parts = []
-        if hasattr(member, 'guild_avatar'):
+        if hasattr(member, 'guild_avatar') and member.guild_avatar:
             parts.append(f"[Link to guild avatar]({member.guild_avatar.with_static_format('png')})")
         if member.avatar:
             parts.append(f"[Link to avatar]({member.avatar.with_static_format('png')})")
