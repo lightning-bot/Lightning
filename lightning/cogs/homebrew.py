@@ -63,10 +63,15 @@ class TinyDBPageSource(menus.ListPageSource):
 class UniversalDBPageSource(TinyDBPageSource):
     async def format_page(self, menu, entry):
         embed = discord.Embed(title=entry['title'], color=discord.Color.blurple(), description=entry['description'])
-        downloads = [f"[{k}]({v['url']})" for k, v in entry['downloads'].items()]
-        embed.add_field(name="Latest Downloads", value="\n".join(downloads))
+
+        if entry['downloads']:
+            downloads = [f"[{k}]({v['url']})" for k, v in entry['downloads'].items()]
+            embed.add_field(name="Latest Downloads", value="\n".join(downloads))
+        # We probably don't have a qr if there's no downloads but whatever
+        if entry['qr']:
+            embed.set_image(url=list(entry['qr'].values())[0])
+
         embed.set_author(name=entry['author'])
-        embed.set_image(url=list(entry['qr'].values())[0])
         return embed
 
 
