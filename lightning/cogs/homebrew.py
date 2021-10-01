@@ -43,6 +43,7 @@ from lightning.utils.paginator import InfoMenuPages
 from lightning.views import homebrew_uis
 
 log: logging.Logger = logging.getLogger(__name__)
+SERVICES_CHANNEL = 893508863712690207
 
 
 class TinyDBPageSource(menus.ListPageSource):
@@ -330,7 +331,7 @@ class Homebrew(LightningCog):
             if self._api_error_dispatched:
                 return
 
-            channel = self.bot.get_channel(625474940342370324)
+            channel = self.bot.get_channel(SERVICES_CHANNEL)
             await channel.send(f"\N{WARNING SIGN} Got `{e.status}` with reason `{e.reason}` while trying to ping "
                                "UDB-API.")
             self._api_error_dispatched = True
@@ -338,7 +339,7 @@ class Homebrew(LightningCog):
             # we recovered
             if self._api_error_dispatched:
                 self._api_error_dispatched = False
-                channel = self.bot.get_channel(625474940342370324)
+                channel = self.bot.get_channel(SERVICES_CHANNEL)
                 await channel.send("\N{PARTY POPPER} UDB-API has recovered!")
 
     @ping_task.before_loop
