@@ -64,11 +64,11 @@ class UniversalDBPageSource(TinyDBPageSource):
     async def format_page(self, menu, entry):
         embed = discord.Embed(title=entry['title'], color=discord.Color.blurple(), description=entry['description'])
 
-        if entry['downloads']:
+        if 'downloads' in entry:
             downloads = [f"[{k}]({v['url']})" for k, v in entry['downloads'].items()]
             embed.add_field(name="Latest Downloads", value="\n".join(downloads))
         # We probably don't have a qr if there's no downloads but whatever
-        if entry['qr']:
+        if 'qr' in entry:
             embed.set_image(url=list(entry['qr'].values())[0])
 
         embed.set_author(name=entry['author'])
