@@ -60,6 +60,16 @@ class TinyDBPageSource(menus.ListPageSource):
         return embed
 
 
+class UniversalDBPageSource(TinyDBPageSource):
+    async def format_page(self, menu, entry):
+        embed = discord.Embed(title=entry['title'], color=discord.Color.blurple(), description=entry['description'])
+        downloads = [f"[{k}]({v['url']})" for k, v in entry['downloads'].items()]
+        embed.add_field(name="Latest Downloads", value="\n".join(downloads))
+        embed.set_author(name=entry['author'])
+        embed.set_image(url=list(entry['qr'].values())[0])
+        return embed
+
+
 class FindBMPAttachment(commands.CustomDefault):
     async def default(self, ctx, param) -> str:
         limit = 15
@@ -120,8 +130,13 @@ class Homebrew(LightningCog):
         self.ninupdates_feed_digest = None
         self.do_ninupdates.start()
 
+        # UDB-API
+        self.ping_task.start()
+        self._api_error_dispatched = False
+
     def cog_unload(self) -> None:
         self.do_ninupdates.cancel()
+        self.ping_task.cancel()
 
     @group(aliases=['nuf', 'stability'], invoke_without_command=True, level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
@@ -288,6 +303,42 @@ class Homebrew(LightningCog):
 
         menu = InfoMenuPages(source=TinyDBPageSource(data), clear_reactions_after=True)
         await menu.start(ctx)
+
+    @command(aliases=['udb'])
+    async def universaldb(self, ctx: LightningContext, *, application: str) -> None:
+        resp = await ctx.request(f"https://udb-api.lightsage.dev/search/{urllib.parse.quote(application)}")
+        results = resp['results']
+
+        if not results:
+            await ctx.send("No results found!")
+            return
+
+        menu = InfoMenuPages(source=UniversalDBPageSource(results), clear_reactions_after=True)
+        await menu.start(ctx)
+
+    @tasks.loop(seconds=60.0)
+    async def ping_task(self) -> None:
+        try:
+            await make_request("https://udb-api.lightsage.dev/stats", self.bot.aiosession)
+        except Exception as e:
+            # We only need one warning message
+            if self._api_error_dispatched:
+                return
+
+            channel = self.bot.get_channel(625474940342370324)
+            await channel.send(f"\N{WARNING SIGN} Got `{e.status}` with reason `{e.reason}` while trying to ping "
+                               "UDB-API.")
+            self._api_error_dispatched = True
+        else:
+            # we recovered
+            if self._api_error_dispatched:
+                self._api_error_dispatched = False
+                channel = self.bot.get_channel(625474940342370324)
+                await channel.send("\N{PARTY POPPER} UDB-API has recovered!")
+
+    @ping_task.before_loop
+    async def before_ping_task(self):
+        await self.bot.wait_until_ready()
 
     @tinydb.error
     async def tiny_db_error(self, ctx, error) -> None:
