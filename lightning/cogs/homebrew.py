@@ -67,7 +67,14 @@ class UniversalDBPageSource(TinyDBPageSource):
 
         if 'downloads' in entry:
             downloads = [f"[{k}]({v['url']})" for k, v in entry['downloads'].items()]
-            embed.add_field(name="Latest Downloads", value="\n".join(downloads))
+            joined = "\n".join(downloads)
+
+            if len(joined) > 1024:
+                # We might shorten this and throw it on a paste site if we have to.
+                embed.description += f"\n**Latest Downloads**\n{joined}"
+            else:
+                embed.add_field(name="Latest Downloads", value=joined)
+
         # We probably don't have a qr if there's no downloads but whatever
         if 'qr' in entry:
             embed.set_image(url=list(entry['qr'].values())[0])
