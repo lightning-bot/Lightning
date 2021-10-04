@@ -620,7 +620,7 @@ class Meta(LightningCog):
         after = time.monotonic()
         rtt_ms = round((after - before) * 1000)
 
-        await tmpmsg.edit(content=f"Pong!\nshard {ctx.guild.shard_id}: `{shard_latency} ms`\nrtt: `{rtt_ms} ms`")
+        await tmpmsg.edit(content=f"Pong!\nshard {shard_id}: `{shard_latency} ms`\nrtt: `{rtt_ms} ms`")
 
     @lcommand()
     async def uptime(self, ctx: LightningContext) -> None:
