@@ -608,7 +608,12 @@ class Meta(LightningCog):
     @lcommand()
     async def ping(self, ctx: LightningContext) -> None:
         """Tells you the ping."""
-        shard_latency = round(self.bot.get_shard(ctx.guild.shard_id).latency * 1000)
+        if ctx.guild:
+            shard_id = ctx.guild.shard_id
+        else:
+            shard_id = 0
+
+        shard_latency = round(self.bot.get_shard(shard_id).latency * 1000)
 
         before = time.monotonic()
         tmpmsg = await ctx.send('Calculating...')
