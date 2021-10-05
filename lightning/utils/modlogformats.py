@@ -293,8 +293,8 @@ class MinimalisticFormat(BaseFormat):
         if entry:
             mod = entry.user
             time = entry.created_at
-            removed = entry.changes.before.roles
-            added = entry.changes.after.roles
+            removed = entry.changes.before.roles or []
+            added = entry.changes.after.roles or []
             reason = entry.reason
 
         if with_timestamp:
