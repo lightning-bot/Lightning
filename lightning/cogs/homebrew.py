@@ -63,7 +63,8 @@ class TinyDBPageSource(menus.ListPageSource):
 
 class UniversalDBPageSource(TinyDBPageSource):
     async def format_page(self, menu, entry):
-        embed = discord.Embed(title=entry['title'], color=discord.Color.blurple(), description=entry['description'])
+        desc: str = entry['description'] if 'description' in entry else "No description found..."
+        embed = discord.Embed(title=entry['title'], color=discord.Color.blurple(), description=desc)
 
         if 'downloads' in entry:
             downloads = [f"[{k}]({v['url']})" for k, v in entry['downloads'].items()]
@@ -71,7 +72,7 @@ class UniversalDBPageSource(TinyDBPageSource):
 
             if len(joined) > 1024:
                 # We might shorten this and throw it on a paste site if we have to.
-                embed.description += f"\n**Latest Downloads**\n{joined}"
+                embed.description += f"\n\n**Latest Downloads**\n{joined}"
             else:
                 embed.add_field(name="Latest Downloads", value=joined)
 
