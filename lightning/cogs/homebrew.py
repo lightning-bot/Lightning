@@ -78,7 +78,7 @@ class UniversalDBPageSource(TinyDBPageSource):
 
         # We probably don't have a qr if there's no downloads but whatever
         if 'qr' in entry:
-            embed.set_image(url=list(entry['qr'].values())[0])
+            embed.set_thumbnail(url=list(entry['qr'].values())[0])
 
         embed.set_author(name=entry['author'])
         return embed
