@@ -51,7 +51,7 @@ guild_alerts = ""
 level = ""
 
 # Console logger handler
-console = True
+console = true
 
 
 
@@ -73,7 +73,7 @@ support_server_invite = "https://discord.gg/SpFjsy3"
 
 # Git Repository URL.
 # By default this will link to the main project's repository unless a different one was specified.
-git_repo_url = "https://gitlab.com/lightning-bot/Lightning""
+git_repo_url = "https://gitlab.com/lightning-bot/Lightning"
 
 # User-Agent
 user_agent = ""
