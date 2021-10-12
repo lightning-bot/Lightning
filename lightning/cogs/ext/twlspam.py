@@ -33,7 +33,7 @@ def content_bucket_key(message):
 class TWLSpam(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
-        self.spam_bucket = CooldownMapping(Cooldown(9.0, 15.0), content_bucket_key)
+        self.spam_bucket = CooldownMapping(Cooldown(7.0, 13.0), content_bucket_key)
 
     @LightningCog.listener()
     async def on_message(self, message):
