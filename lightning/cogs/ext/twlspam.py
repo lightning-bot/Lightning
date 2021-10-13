@@ -33,7 +33,21 @@ def content_bucket_key(message):
 class TWLSpam(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
-        self.spam_bucket = CooldownMapping(Cooldown(7.0, 20.0), content_bucket_key)
+        # Spammers seem to hit every channel
+        self.spam_bucket = CooldownMapping(Cooldown(7.0, 17.0), content_bucket_key)
+        # R.Danny spam bucket
+        self.rd_spam_bucket = CooldownMapping(Cooldown(10.0, 12.0), lambda m: m.author.id)
+
+    def is_spamming(self, message: discord.Message):
+        buckets = [self.spam_bucket, self.rd_spam_bucket]
+        for bucket in buckets:
+            b = bucket.get_bucket(message)
+            ratelimited = b.update_rate_limit(message.created_at.timestamp())
+
+            if ratelimited:
+                return True
+
+        return False
 
     @LightningCog.listener()
     async def on_message(self, message: discord.Message):
@@ -49,10 +63,7 @@ class TWLSpam(LightningCog):
         if message.author.bot:
             return
 
-        bucket = self.spam_bucket.get_bucket(message)
-        ratelimited = bucket.update_rate_limit(message.created_at.timestamp())
-
-        if not ratelimited:
+        if not self.is_spamming(message):
             return
 
         try:
