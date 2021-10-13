@@ -33,10 +33,10 @@ def content_bucket_key(message):
 class TWLSpam(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
-        self.spam_bucket = CooldownMapping(Cooldown(7.0, 13.0), content_bucket_key)
+        self.spam_bucket = CooldownMapping(Cooldown(7.0, 20.0), content_bucket_key)
 
     @LightningCog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         # Ignore DMs
         if not message.guild:
             return
