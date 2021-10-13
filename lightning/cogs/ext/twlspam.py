@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import contextlib
 
 import discord
-from discord.ext.commands import Cooldown, CooldownMapping
+from discord.ext.commands import BucketType, Cooldown, CooldownMapping
 
 from lightning import LightningBot, LightningCog
 
@@ -36,7 +36,7 @@ class TWLSpam(LightningCog):
         # Spammers seem to hit every channel
         self.spam_bucket = CooldownMapping(Cooldown(7.0, 17.0), content_bucket_key)
         # R.Danny spam bucket
-        self.rd_spam_bucket = CooldownMapping(Cooldown(10.0, 12.0), lambda m: m.author.id)
+        self.rd_spam_bucket = CooldownMapping(Cooldown(10.0, 12.0), BucketType.member)
 
     def is_spamming(self, message: discord.Message):
         buckets = [self.spam_bucket, self.rd_spam_bucket]
