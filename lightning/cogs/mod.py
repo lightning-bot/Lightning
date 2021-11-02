@@ -875,7 +875,7 @@ class Mod(LightningCog, required=["Configuration"]):
     async def _ban_punishment(self, target):
         reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
         await target.ban(reason=reason)
-        await self.log_manual_action(target, self.bot.user, "BAN", reason=reason)
+        await self.log_manual_action(target.guild, target, self.bot.user, "BAN", reason=reason)
 
     async def _delete_punishment(self, message):
         try:
