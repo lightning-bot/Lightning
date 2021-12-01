@@ -50,6 +50,9 @@ BaseModParser = lflags.FlagParser([lflags.Flag("--nodm", "--no-dm", is_bool_flag
                                   rest_attribute_name="reason", raise_on_bad_flag=False)
 
 
+COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")"]
+
+
 class Mod(LightningCog, required=["Configuration"]):
     """Moderation and server management commands."""
 
@@ -716,6 +719,51 @@ class Mod(LightningCog, required=["Configuration"]):
                             bulk=has_perms)
 
         await ctx.send("\N{OK HAND SIGN}", delete_after=15)
+
+    async def dehoist_member(self, member: discord.Member, moderator, characters: list):
+        old_nick = member.display_name
+        new_nick = old_nick
+
+        for _, char in enumerate(old_nick):
+            if char in characters:
+                new_nick = new_nick[1:]
+                continue
+            else:
+                break
+
+        if len(new_nick) == 0:
+            new_nick = "don't hoist"
+
+        if old_nick == new_nick:
+            return False
+
+        await member.edit(nick=new_nick, reason=self.format_reason(moderator, None, action_text="Dehoist done by"))
+
+        if old_nick != new_nick:
+            return True
+
+    @has_guild_permissions(manage_guild=True)
+    @commands.bot_has_guild_permissions(manage_nicknames=True)
+    @commands.cooldown(1, 300.0, commands.BucketType.guild)
+    @command(level=CommandLevel.Mod)
+    async def dehoist(self, ctx: LightningContext, character: Optional[str]):
+        """Dehoists members with an optional specified character in the beginning of their name"""
+        character = [character] if character else COMMON_HOIST_CHARACTERS
+        dehoists = []
+        failed_dehoist = []
+
+        for member in ctx.guild.members:
+
+            try:
+                i = await self.dehoist_member(member, ctx.author, character)
+            except discord.HTTPException:
+                failed_dehoist.append(member)
+                continue
+
+            if i:
+                dehoists.append(member)
+
+        await ctx.send(f"Dehoisted {len(dehoists)}/{len(ctx.guild.members)}\n{len(failed_dehoist)} failed.")
 
     @LightningCog.listener()
     async def on_lightning_timeban_complete(self, timer):
