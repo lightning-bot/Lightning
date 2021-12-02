@@ -50,7 +50,7 @@ BaseModParser = lflags.FlagParser([lflags.Flag("--nodm", "--no-dm", is_bool_flag
                                   rest_attribute_name="reason", raise_on_bad_flag=False)
 
 
-COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">"]
+COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">", "_"]
 
 
 class Mod(LightningCog, required=["Configuration"]):
@@ -68,7 +68,7 @@ class Mod(LightningCog, required=["Configuration"]):
         return True
 
     def format_reason(self, author, reason: str, *, action_text=None) -> str:
-        return truncate_text(modlogformats.action_format(author, reason=reason), 512)
+        return truncate_text(modlogformats.action_format(author, action_text, reason=reason), 512)
 
     async def add_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection=None) -> str:
         query = """INSERT INTO roles (guild_id, user_id, punishment_roles)
