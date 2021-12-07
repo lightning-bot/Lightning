@@ -162,7 +162,8 @@ class Stats(LightningCog):
                    LIMIT 5;
                 """
         records = await self.bot.pool.fetch(query, ctx.guild.id)
-        usage = self.format_stat_description(records, none_msg="")
+        usage = '\n'.join(f'{self.number_places[index]}: <@!{user}> ({uses} times)'
+                          for (index, (user, uses)) in enumerate(records))
         if len(usage) != 0:
             em.add_field(name="Top Command Users", value=usage)
 
@@ -192,7 +193,9 @@ class Stats(LightningCog):
         for (index, (channel_id, _)) in enumerate(records):
             channel = getattr(ctx.guild.get_channel(channel_id), "mention", "Deleted channel")
             fmt.append(f"{self.number_places[index]}: {channel}")
-        em.add_field(name="Top Channels Used", value="\n".join(fmt) or "Nothing yet...", inline=False)
+        fmt = "\n".join(fmt)
+        if len(fmt) != 0:
+            em.add_field(name="Top Channels Used", value=fmt, inline=False)
 
         if ctx.guild.icon:
             em.set_thumbnail(url=ctx.guild.icon.url)
