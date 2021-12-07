@@ -124,6 +124,15 @@ class Stats(LightningCog):
         async with self._socket_lock:
             self._socket_stats[event] += 1
 
+    def format_stat_description(self, records, *, none_msg: str = "Nothing found yet."):
+        x = '\n'.join(f'{self.number_places[index]}: {command_name} ({cmd_uses} times)'
+                      for (index, (command_name, cmd_uses)) in enumerate(records))
+
+        if len(x) == 0:
+            return none_msg
+
+        return x
+
     async def commands_stats_guild(self, ctx: LightningContext):
         em = discord.Embed(title="Command Stats", color=0xf74b06)
         query = """SELECT COUNT(*), MIN(used_at)
@@ -142,11 +151,7 @@ class Stats(LightningCog):
                    LIMIT 5;
                 """
         records = await self.bot.pool.fetch(query, ctx.guild.id)
-        commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} ({cmd_uses} times)'
-                                      for (index, (command_name, cmd_uses)) in enumerate(records))
-        if len(commands_used_des) == 0:
-            commands_used_des = 'No commands used yet'
-        em.add_field(name="Top Commands", value=commands_used_des)
+        em.add_field(name="Top Commands", value=self.format_stat_description(records, none_msg="No commands used yet."))
 
         query = """SELECT user_id,
                         COUNT(*) as "uses"
@@ -157,13 +162,10 @@ class Stats(LightningCog):
                    LIMIT 5;
                 """
         records = await self.bot.pool.fetch(query, ctx.guild.id)
-        usage = '\n'.join(f'{self.number_places[index]}: <@!{user}> ({uses} times)'
-                          for (index, (user, uses)) in enumerate(records))
+        usage = self.format_stat_description(records, none_msg="")
         if len(usage) != 0:
             em.add_field(name="Top Command Users", value=usage)
 
-        # Limit 5 commands as I don't want to hit the max on embed field
-        # (and also makes it look ugly)
         query = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
                    FROM commands_usage
@@ -174,13 +176,23 @@ class Stats(LightningCog):
                    LIMIT 5;
                 """
         records = await self.bot.pool.fetch(query, ctx.guild.id)
-        commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} ({cmd_uses} times)'
-                                      for (index, (command_name, cmd_uses)) in enumerate(records))
+        em.add_field(name="Top Commands Today",
+                     value=self.format_stat_description(records, none_msg="No commands used yet."), inline=False)
 
-        if len(commands_used_des) == 0:
-            commands_used_des = 'No commands used yet for today!'
-
-        em.add_field(name="Top Commands Today", value=commands_used_des, inline=False)
+        query = """SELECT channel_id,
+                        COUNT(*) as "uses"
+                   FROM commands_usage
+                   WHERE guild_id=$1
+                   GROUP BY channel_id
+                   ORDER BY "uses" DESC
+                   LIMIT 5;
+                """
+        records = await self.bot.pool.fetch(query, ctx.guild.id)
+        fmt = []
+        for (index, (channel_id, _)) in enumerate(records):
+            channel = getattr(ctx.guild.get_channel(channel_id), "mention", "Deleted channel")
+            fmt.append(f"{self.number_places[index]}: {channel}")
+        em.add_field(name="Top Channels Used", value="\n".join(fmt) or "Nothing yet...", inline=False)
 
         if ctx.guild.icon:
             em.set_thumbnail(url=ctx.guild.icon.url)
@@ -191,7 +203,7 @@ class Stats(LightningCog):
         query = "SELECT COUNT(*), MIN(used_at) FROM commands_usage WHERE guild_id=$1 AND user_id=$2;"
         res = await self.bot.pool.fetchrow(query, ctx.guild.id, member.id)
         em.description = f"{res['count']} commands used so far in {ctx.guild.name}."
-        # Default to utcnow() if no value
+
         em.set_footer(text='First command usage on')
         em.timestamp = res[1] or discord.utils.utcnow()
         query2 = """SELECT command_name,
@@ -204,11 +216,7 @@ class Stats(LightningCog):
                    LIMIT 10;
                 """
         cmds = await self.bot.pool.fetch(query2, ctx.guild.id, member.id)
-        commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} ({cmd_uses} times)'
-                                      for (index, (command_name, cmd_uses)) in enumerate(cmds))
-        if len(commands_used_des) == 0:
-            commands_used_des = 'No commands used yet'
-        em.add_field(name="Top Commands", value=commands_used_des)
+        em.add_field(name="Top Commands", value=self.format_stat_description(cmds, none_msg="No commands used yet."))
 
         query = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
@@ -220,12 +228,9 @@ class Stats(LightningCog):
                    ORDER BY "cmd_uses" DESC
                    LIMIT 5;
                 """
-        fetched = await self.bot.pool.fetch(query, ctx.guild.id, member.id)
-        commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} ({cmd_uses} times)'
-                                      for (index, (command_name, cmd_uses)) in enumerate(fetched))
-        if len(commands_used_des) == 0:
-            commands_used_des = 'No commands used yet for today'
-        em.add_field(name="Top Commands Today", value=commands_used_des, inline=False)
+        records = await self.bot.pool.fetch(query, ctx.guild.id, member.id)
+        em.add_field(name="Top Commands Today",
+                     value=self.format_stat_description(records, none_msg="No commands used yet."), inline=False)
 
         em.set_thumbnail(url=member.avatar.url)
         await ctx.send(embed=em)
