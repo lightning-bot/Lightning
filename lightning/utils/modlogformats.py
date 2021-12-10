@@ -205,7 +205,7 @@ class EmojiFormat(BaseFormat):
             msg = f"{Emoji.member_join}"\
                   f" **Member Join**: {member.mention} | "\
                   f"{safe_name}\n"\
-                  f"\N{CLOCK FACE FOUR OCLOCK} __Account Creation__: {member.created_at}\n"\
+                  f"\N{CLOCK FACE FOUR OCLOCK} __Account Creation__: {discord.utils.format_dt(member.created_at)}\n"\
                   f"\N{LABEL} __User ID__: {member.id}"
         else:
             msg = f"{Emoji.member_leave} "\
@@ -298,7 +298,7 @@ class MinimalisticFormat(BaseFormat):
             reason = entry.reason
 
         if with_timestamp:
-            base = [f"`[{time.strftime('%H:%M:%S UTC')}]` **Role Change**\n"
+            base = [f"[{format_timestamp(time)} **Role Change**\n"
                     f"**User**: {escape_markdown_and_mentions(str(user))} ({user.id})\n"]
         else:
             base = ["**Role Change**\n**User**:"
@@ -321,39 +321,37 @@ class MinimalisticFormat(BaseFormat):
 
     @staticmethod
     def timed_action_expired(action, user, mod, creation, expiry, *, with_timestamp: bool = True) -> str:
-        text = [f"`[{expiry.strftime('%H:%M:%S UTC')}]` "] if with_timestamp else []
+        text = [f"[{format_timestamp(expiry)}] "] if with_timestamp else []
 
         text.append(f"**{action.capitalize()} expired**\n**User**: "
                     f"{MinimalisticFormat.format_user(user)}\n**Moderator**: {MinimalisticFormat.format_user(mod)}"
-                    f"\n**Created at**: {get_utc_timestamp(creation)}")
+                    f"\n**Created at**: {discord.utils.format_dt(creation)}")
         return ''.join(text)
 
     @staticmethod
     def bot_addition(bot, mod, time) -> str:
         safe_name = escape_markdown_and_mentions(str(bot))
         safe_mod_name = escape_markdown_and_mentions(str(mod))
-        return f"`[{time.strftime('%H:%M:%S UTC')}]` **Bot Add**"\
+        return f"[{format_timestamp(time)}] **Bot Add**"\
                f"\n**Bot**: {safe_name} ({bot.id})\n"\
                f"**Moderator**: {safe_mod_name} ({mod.id})"
 
     @staticmethod
     def join_leave(log_type: str, member) -> str:
         if log_type == "MEMBER_JOIN":
-            msg = f"`[{member.joined_at.strftime('%H:%M:%S UTC')}]`"\
+            msg = f"[{format_timestamp(member.joined_at)}]"\
                   f" **Member Join**: {discord.utils.escape_markdown(str(member))} ({member.id})\n"\
                   "__Account Creation Date__: "\
-                  f"{get_utc_timestamp(member.created_at)}"
+                  f"{discord.utils.format_dt(member.created_at)}"
         else:
-            msg = f"`[{discord.utils.utcnow().strftime('%H:%M:%S UTC')}]`"\
+            msg = f"[{format_timestamp(discord.utils.utcnow())}]"\
                   f" **Member Leave**: {discord.utils.escape_markdown(str(member))} ({member.id})"
         return msg
 
     @staticmethod
     def completed_screening(member, *, with_timestamp: bool = True):
-        timestamp = discord.utils.utcnow()
-
         if with_timestamp:
-            base = [f"`[{timestamp.strftime('%H:%M:%S UTC')}]` "]
+            base = [f"[{format_timestamp(discord.utils.utcnow())}] "]
         else:
             base = []
 
@@ -362,10 +360,8 @@ class MinimalisticFormat(BaseFormat):
 
     @staticmethod
     def command_ran(ctx, *, with_timestamp: bool = True) -> str:
-        timestamp = ctx.message.created_at
-
         if with_timestamp:
-            base = [f"`[{timestamp.strftime('%H:%M:%S UTC')}]` "]
+            base = [f"[{format_timestamp(ctx.message.created_at)}] "]
         else:
             base = []
 
@@ -377,10 +373,8 @@ class MinimalisticFormat(BaseFormat):
 
     @staticmethod
     def nick_change(member, previous: str, current: Optional[str], moderator=None, *, with_timestamp: bool = True):
-        timestamp = discord.utils.utcnow()
-
         if with_timestamp:
-            base = [f"`[{timestamp.strftime('%H:%M:%S UTC')}]`"]
+            base = [f"[{format_timestamp(discord.utils.utcnow())}]"]
         else:
             base = []
 
@@ -400,11 +394,10 @@ class MinimalisticFormat(BaseFormat):
 
     def format_message(self, *, with_timestamp: bool = True) -> str:
         """Formats a log entry."""
-        entry_time = self.timestamp
         log_action = log_actions[str(self.log_action).lower()]
 
         if with_timestamp:
-            base = [f"`[{entry_time.strftime('%H:%M:%S UTC')}]` "]
+            base = [f"[{format_timestamp(self.timestamp)}] "]
         else:
             base = []
 
