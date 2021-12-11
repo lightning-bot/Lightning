@@ -184,6 +184,7 @@ class Stats(LightningCog):
                         COUNT(*) as "uses"
                    FROM commands_usage
                    WHERE guild_id=$1
+                   AND channel_id IS NOT NULL
                    GROUP BY channel_id
                    ORDER BY "uses" DESC
                    LIMIT 5;
