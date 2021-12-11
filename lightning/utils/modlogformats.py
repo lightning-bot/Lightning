@@ -298,7 +298,7 @@ class MinimalisticFormat(BaseFormat):
             reason = entry.reason
 
         if with_timestamp:
-            base = [f"[{format_timestamp(time)} **Role Change**\n"
+            base = [f"[{format_timestamp(time)}] **Role Change**\n"
                     f"**User**: {escape_markdown_and_mentions(str(user))} ({user.id})\n"]
         else:
             base = ["**Role Change**\n**User**:"
