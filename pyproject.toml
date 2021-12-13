@@ -38,7 +38,7 @@ tomlkit = "^0.7.0"
 uvloop = {version = "^0.15.3", optional = true}
 orjson = "^3.6.0"
 beautifulsoup4 = "^4.9.3"
-lxml = "^4.6.3"
+lxml = "^4.6.5"
 slowo = "^0.3"
 bottomify = "^1.1.1"
 discord-ext-menus-views = {git = "https://github.com/LightSage/discord-ext-menus-views"}
