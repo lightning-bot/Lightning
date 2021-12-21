@@ -752,16 +752,16 @@ class Mod(LightningCog, required=["Configuration"]):
         dehoists = []
         failed_dehoist = []
 
-        for member in ctx.guild.members:
+        async with ctx.typing():
+            for member in ctx.guild.members:
+                try:
+                    i = await self.dehoist_member(member, ctx.author, character)
+                except discord.HTTPException:
+                    failed_dehoist.append(member)
+                    continue
 
-            try:
-                i = await self.dehoist_member(member, ctx.author, character)
-            except discord.HTTPException:
-                failed_dehoist.append(member)
-                continue
-
-            if i:
-                dehoists.append(member)
+                if i:
+                    dehoists.append(member)
 
         await ctx.send(f"Dehoisted {len(dehoists)}/{len(ctx.guild.members)}\n{len(failed_dehoist)} failed.")
 
