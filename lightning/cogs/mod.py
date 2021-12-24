@@ -22,7 +22,7 @@ import discord
 from discord.ext import commands
 
 from lightning import (CommandLevel, LightningCog, LightningContext, ModFlags,
-                       PunishmentType, cache, command, converters)
+                       cache, command, converters)
 from lightning import flags as lflags
 from lightning import group
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
@@ -911,10 +911,6 @@ class Mod(LightningCog, required=["Configuration"]):
                                            modlogformats.ActionType.WARN.value)
         return rev or 0
 
-    async def _warn_punishment(self, target):
-        reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
-        await self.log_manual_action(target, self.bot.user, "WARN", reason=reason)
-
     async def _kick_punishment(self, target):
         reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
         await target.kick(reason=reason)
@@ -928,15 +924,8 @@ class Mod(LightningCog, required=["Configuration"]):
     async def _delete_punishment(self, message):
         try:
             await message.delete()
-        except (discord.Forbidden, discord.HTTPException):
+        except discord.HTTPException:
             pass
-
-    punishments = {PunishmentType.WARN: _warn_punishment,
-                   PunishmentType.KICK: _kick_punishment,
-                   PunishmentType.BAN: _ban_punishment,
-                   PunishmentType.DELETE: _delete_punishment
-                   # PunishmentType.MUTE: self._mute_punishment
-                   }
 
     @LightningCog.listener("on_lightning_member_warn")
     async def handle_warn_punishments(self, event):
@@ -975,12 +964,6 @@ class Mod(LightningCog, required=["Configuration"]):
         # Apparently some guilds are banning usage of stickers so this might be helpful for them.
         if len(message.stickers) != 0 and ModFlags.delete_stickers in record.flags:
             await self._delete_punishment(message)
-
-        # Mentions per message, we need to add a cooldown for mentions in general. Completely configurable obviously.
-        if record.automod and record.automod.mention_count:
-            if len(message.mentions) >= record.automod.mention_count:
-                meth = self.punishments[PunishmentType.DELETE]
-                await meth(message)
 
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:

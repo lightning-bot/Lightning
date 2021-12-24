@@ -42,6 +42,7 @@ lxml = "^4.6.3"
 slowo = "^0.3"
 bottomify = "^1.1.1"
 discord-ext-menus-views = {git = "https://github.com/LightSage/discord-ext-menus-views"}
+pydantic = "^1.8.2"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
