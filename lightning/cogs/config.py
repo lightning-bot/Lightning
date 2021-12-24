@@ -15,10 +15,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import logging
+from io import StringIO
 from typing import Optional, Union
 
 import discord
 from discord.ext import commands, menus
+from discord.ext.menus.views import ViewMenu
 
 from lightning import (CommandLevel, ConfigFlags, LightningBot, LightningCog,
                        LightningContext, ModFlags, cache, command)
@@ -28,6 +30,7 @@ from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
 from lightning.formatters import plural
 from lightning.models import GuildModConfig
+from lightning.utils.automod_parser import from_attachment
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
 from lightning.views import config_uis
@@ -35,13 +38,16 @@ from lightning.views import config_uis
 log = logging.getLogger(__name__)
 
 
-class ConfigViewerMenu(menus.Menu):
+class ConfigViewerMenu(ViewMenu):
     def give_help(self) -> discord.Embed:
-        messages = ['Welcome to the interactive config viewer!\n']
-        messages.append('This interactively allows you to see configuration settings of the bot by navigating with '
-                        'reactions. They are as follows:\n')
+        messages = [
+            'Welcome to the interactive config viewer!\n',
+            'This interactively allows you to see configuration settings of the bot by navigating with reactions. ',
+            'They are as follows:\n',
+        ]
+
         for emoji, button in self.buttons.items():
-            messages.append(f'{str(emoji)} {button.action.__doc__}')
+            messages.append(f'{emoji} {button.action.__doc__}')
 
         embed = discord.Embed(color=discord.Color.blurple())
         embed.description = '\n'.join(messages)
@@ -499,12 +505,52 @@ class Configuration(LightningCog):
         else:
             await ctx.send(f"No longer {msg}")
 
-    @automod.command(level=CommandLevel.Admin, enabled=False)
-    async def jointhreshold(self, ctx: LightningContext, joins: Optional[int] = 3, seconds: Optional[int] = 6) -> None:
-        if not joins and not seconds:
-            await self.remove_config_key(ctx.guild.id, "automod_jointhreshold", table="guild_mod_config")
-            await ctx.send("Reset join threshold.")
-        ...
+    @automod.command(level=CommandLevel.Admin, aliases=['upload'])
+    @has_guild_permissions(manage_guild=True)
+    async def uploadconfig(self, ctx: LightningContext):
+        """Adds an attached .toml file to the automod settings"""
+        if not ctx.message.attachments:
+            await ctx.send("Attach a TOML file.")
+            return
+
+        raw_cfg = None
+        for attachment in ctx.message.attachments:
+            if attachment.filename.endswith(".toml"):
+                raw_cfg = attachment
+
+        if not raw_cfg:
+            await ctx.send("Could not find an .TOML file attached to this message...")
+            return
+
+        try:
+            await from_attachment(attachment)
+        except Exception as e:
+            await ctx.send(e)
+            return
+
+        query = """INSERT INTO automod (guild_id, config)
+                   VALUES ($1, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET config=EXCLUDED.config;"""
+        await self.bot.pool.execute(query, ctx.guild.id, str(await attachment.read(), "UTF-8"))
+
+        await ctx.send("Configured automod according to your settings.")
+        c = self.bot.get_cog("AutoMod")
+        await c.get_automod_config.invalidate(ctx.guild.id)
+
+    @automod.command(level=CommandLevel.Admin, aliases=['download'])
+    @has_guild_permissions(manage_guild=True)
+    async def downloadconfig(self, ctx: LightningContext):
+        """Sends you the current configuration for automoderation"""
+        query = """SELECT config FROM automod WHERE guild_id=$1;"""
+        record = await self.bot.pool.fetchval(query, ctx.guild.id)
+        if not record:
+            await ctx.send("This server doesn't have automod setup.")
+            return
+
+        fp = StringIO(record)
+        fp.seek(0)
+        await ctx.send(file=discord.File(fp, "config.toml"))
 
     # COMMAND OVERRIDES
 
@@ -720,7 +766,7 @@ class Configuration(LightningCog):
         else:
             perms = record.permissions.raw()
 
-        uids = set(r.id for r in ids)
+        uids = {r.id for r in ids}
 
         if command in perms["COMMAND_OVERRIDES"]:
             overrides = perms['COMMAND_OVERRIDES'][command].get("ID_OVERRIDES", [])
