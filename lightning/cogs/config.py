@@ -141,7 +141,7 @@ class Configuration(LightningCog):
         return True
 
     async def get_mod_config(self, ctx, *, connection=None) -> Optional[GuildModConfig]:
-        connection = connection if connection else self.bot.pool
+        connection = connection or self.bot.pool
         query = """SELECT * FROM guild_mod_config WHERE guild_id=$1"""
         ret = await connection.fetchrow(query, ctx.guild.id)
         if not ret:
@@ -197,7 +197,7 @@ class Configuration(LightningCog):
 
     async def delete_prefix(self, guild_id: int, prefixes: list) -> str:
         """Deletes a prefix"""
-        if len(prefixes) == 0:
+        if not prefixes:
             query = "UPDATE guild_config SET prefix = NULL WHERE guild_id = $1;"
             args = [guild_id]
         else:
