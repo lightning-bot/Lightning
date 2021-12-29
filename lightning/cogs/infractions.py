@@ -93,6 +93,11 @@ class InfractionSource(menus.KeysetPageSource):
             where_clause += f' AND user_id=${last_arg + 1}'
             args.append(self.member.id)
 
+        if self.moderator:
+            last_arg = int(re.findall(r"\$\d+", where_clause)[-1].strip("$"))
+            where_clause += f' AND moderator_id=${last_arg + 1}'
+            args.append(self.moderator.id)
+
         sort = 'ASC' if specifier.direction is menus.PageDirection.after else 'DESC'
 
         records = await self.connection.fetch(query.format(where_clause=where_clause, sort=sort), *args)
