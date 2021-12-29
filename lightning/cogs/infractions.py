@@ -117,15 +117,17 @@ class InfractionSource(menus.KeysetPageSource):
         if self.member:
             for entry in entries:
                 moderator = self.bot.get_user(entry['moderator_id']) or entry['moderator_id']
+                reason = entry['reason'] or 'No reason provided.'
                 embed.add_field(name=f"{entry['id']}: {natural_timedelta(entry['created_at'])}",
                                 value=f"**Moderator**: {base_user_format(moderator)}\n"
-                                      f"**Reason**: {truncate_text(entry['reason'], 45)}", inline=False)
+                                      f"**Reason**: {truncate_text(reason, 45)}", inline=False)
         elif self.moderator:
             for entry in entries:
                 user = self.bot.get_user(entry['user_id']) or entry['user_id']
+                reason = entry['reason'] or 'No reason provided.'
                 embed.add_field(name=f"{entry['id']}: {natural_timedelta(entry['created_at'])}",
                                 value=f"**User**: {base_user_format(user)}\n"
-                                      f"**Reason**: {truncate_text(entry['reason'], 45)}", inline=False)
+                                      f"**Reason**: {truncate_text(reason, 45)}", inline=False)
         else:
             for entry in entries:
                 user = self.bot.get_user(entry['user_id']) or entry['user_id']
