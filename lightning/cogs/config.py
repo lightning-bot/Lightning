@@ -525,7 +525,7 @@ class Configuration(LightningCog):
         try:
             await from_attachment(attachment)
         except Exception as e:
-            await ctx.send(e)
+            await ctx.send(str(e))
             return
 
         query = """INSERT INTO automod (guild_id, config)
