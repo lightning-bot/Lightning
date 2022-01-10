@@ -37,10 +37,10 @@ log: logging.Logger = logging.getLogger(__name__)
 class Reminders(LightningCog):
     """Commands that remind you something"""
 
-    def __init__(self, bot: LightningBot):
+    def __init__(self, bot: LightningBot) -> None:
         super().__init__(bot)
 
-        self.task_available = asyncio.Event(loop=bot.loop)
+        self.task_available = asyncio.Event()
         self._current_task = None
         self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
 
