@@ -158,10 +158,7 @@ def serialize_infraction(record) -> dict:
     data = dict(record)
 
     data['created_at'] = record['created_at'].isoformat()
-    if record['expiry']:
-        data['expiry'] = record['expiry'].isoformat()
-    else:
-        data['expiry'] = None
+    data['expiry'] = record['expiry'].isoformat() if record['expiry'] else None
 
     return data
 
