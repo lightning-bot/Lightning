@@ -1,8 +1,24 @@
+"""
+Lightning.py - A Discord bot
+Copyright (C) 2019-2022 LightSage
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation at version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
 from enum import IntEnum
 from typing import Literal, Optional
 
 import discord
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ValidationError, validator
 from tomlkit import loads as toml_loads
 from tomlkit.items import Table
 from tomlkit.toml_document import TOMLDocument
@@ -20,20 +36,13 @@ class AutomodPunishmentEnum(IntEnum):
     BAN = 5
 
 
-def convert_to_automod_punishment(value: str):
-    try:
-        return AutomodPunishmentEnum(value)
-    except Exception:
-        raise ConfigurationError("Invalid automod punishment supplied")
-
-
 class AutomodPunishmentModel(BaseModel):
     type: AutomodPunishmentEnum
     seconds: Optional[float]
 
 
 class BaseTableModel(BaseModel):
-    type: Literal["message-spam", "mass-mentions"]
+    type: Literal["message-spam", "mass-mentions", "message-content-spam"]
     count: int
     punishment: AutomodPunishmentModel
 
@@ -44,7 +53,7 @@ class MessageSpamModel(BaseTableModel):
     @validator('punishment')
     def validate_punishment(cls, value):
         if value.type is AutomodPunishmentEnum.DELETE:
-            raise ConfigurationError("DELETE punishment is not a valid type")
+            raise ValueError("DELETE punishment is not a valid type")
         return value
 
 
@@ -62,8 +71,8 @@ def parse_config(key: str, value):
 
     try:
         return MessageSpamModel(type=key, **value)
-    except Exception as e:
-        raise ConfigurationError(e)
+    except ValidationError as e:
+        raise ConfigurationError(f'Unable to parse key "{key}".\n{" ".join([e["msg"] for e in e.errors()])}')
 
 
 def read_file(file: TOMLDocument):
