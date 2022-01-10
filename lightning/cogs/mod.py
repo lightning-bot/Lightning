@@ -268,12 +268,11 @@ class Mod(LightningCog, required=["Configuration"]):
                    FROM guild_mod_config
                    WHERE guild_id=$1;"""
         ban_count = await self.bot.pool.fetchval(query, ctx.guild.id)
-        if ban_count:
-            if number >= ban_count:
-                await ctx.send("You cannot set the same or a higher value "
-                               "for warn kick punishment "
-                               "as the warn ban punishment.")
-                return
+        if ban_count and number >= ban_count:
+            await ctx.send("You cannot set the same or a higher value "
+                           "for warn kick punishment "
+                           "as the warn ban punishment.")
+            return
 
         query = """INSERT INTO guild_mod_config (guild_id, warn_kick)
                    VALUES ($1, $2)
@@ -296,11 +295,10 @@ class Mod(LightningCog, required=["Configuration"]):
                    FROM guild_mod_config
                    WHERE guild_id=$1;"""
         kick_count = await self.bot.pool.fetchval(query, ctx.guild.id)
-        if kick_count:
-            if number <= kick_count:
-                await ctx.send("You cannot set the same or a lesser value for warn ban punishment "
-                               "as the warn kick punishment.")
-                return
+        if kick_count and number <= kick_count:
+            await ctx.send("You cannot set the same or a lesser value for warn ban punishment "
+                           "as the warn kick punishment.")
+            return
 
         query = """INSERT INTO guild_mod_config (guild_id, warn_ban)
                    VALUES ($1, $2)
@@ -463,9 +461,16 @@ class Mod(LightningCog, required=["Configuration"]):
         await self.confirm_and_log_action(ctx, target, "MUTE")
 
     async def punishment_role_check(self, guild_id, target_id, role_id, *, connection=None):
+        """Checks if a role is currently attached to a user.
+
+        Returns
+        -------
+        bool
+            True if the role is currently attached. False is the role is not attached."""
         query = """SELECT $3 = ANY(punishment_roles) FROM roles WHERE guild_id=$1 AND user_id=$2"""
         connection = connection or self.bot.pool
-        return await connection.fetchval(query, guild_id, target_id, role_id)
+        val = await connection.fetchval(query, guild_id, target_id, role_id)
+        return bool(val)
 
     async def update_last_mute(self, guild_id, user_id, *, connection=None):
         connection = connection or self.bot.pool
@@ -492,7 +497,7 @@ class Mod(LightningCog, required=["Configuration"]):
         """Unmutes a user"""
         role = await self.get_mute_role(ctx)
         check = await self.punishment_role_check(ctx.guild.id, target.id, role.id)
-        if role not in target.roles or check is None:
+        if role not in target.roles or check is False:
             await ctx.send('This user is not muted!')
             return
 
@@ -792,7 +797,7 @@ class Mod(LightningCog, required=["Configuration"]):
         async with self.bot.pool.acquire() as connection:
             if await self.punishment_role_check(timer.extra['guild_id'],
                                                 timer.extra['user_id'],
-                                                timer.extra['role_id'], connection=connection) is None:
+                                                timer.extra['role_id'], connection=connection) is False:
                 return
 
             await self.remove_punishment_role(timer.extra['guild_id'], timer.extra['user_id'],
@@ -849,7 +854,7 @@ class Mod(LightningCog, required=["Configuration"]):
             async with self.bot.pool.acquire() as conn:
                 check = await self.punishment_role_check(event.guild.id,
                                                          event.after.id, record.mute_role_id, connection=conn)
-                if check is None:
+                if check is False:  # we are already unmuted
                     return
 
                 await self.remove_punishment_role(event.guild.id, event.after.id, record.mute_role_id,
@@ -866,6 +871,11 @@ class Mod(LightningCog, required=["Configuration"]):
 
         if currently_muted is True and previously_muted is False:  # Role was added
             async with self.bot.pool.acquire() as conn:
+                check = await self.punishment_role_check(event.guild.id,
+                                                         event.after.id, record.mute_role_id, connection=conn)
+                if check:  # we are already muted
+                    return
+
                 await self.add_punishment_role(event.guild.id, event.after.id, record.mute_role_id, connection=conn)
 
                 if event.moderator.id != self.bot.user.id:
@@ -900,10 +910,7 @@ class Mod(LightningCog, required=["Configuration"]):
         if level == CommandLevel.Blocked:  # Blocked to commands, not ignored by automod
             return False
 
-        if level.value >= CommandLevel.Trusted.value:
-            return True
-        else:
-            return False
+        return level.value >= CommandLevel.Trusted.value
 
     async def get_warn_count(self, guild_id: int, user_id: int) -> int:
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
