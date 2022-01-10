@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -35,24 +35,36 @@ class AutomodConfig:
         records = read_file(toml_loads(record))
         self.message_spam: Optional[MessageConfigBase] = None
         self.mass_mentions: Optional[BaseTableModel] = None
+        self.message_content_spam: Optional[MessageConfigBase] = None
         for record in records:
-            if record.type == "message-spam":
-                self.message_spam = MessageConfigBase.from_model(record, BucketType.member)
             if record.type == "mass-mentions":
                 self.mass_mentions = record
+            if record.type == "message-spam":
+                self.message_spam = MessageConfigBase.from_model(record, BucketType.member)
+            if record.type == "message-content-spam":
+                self.message_content_spam = MessageConfigBase.from_model(record,
+                                                                         lambda m: (m.author.id, len(m.content)))
 
 
 class MessageConfigBase:
     """A class to make interacting with a message spam config easier..."""
-    def __init__(self, rate, seconds, punishment_config, bucket_type) -> None:
+    def __init__(self, rate, seconds, punishment_config, bucket_type, *, check=None) -> None:
         self.cooldown_bucket = CooldownMapping(Cooldown(rate, seconds), bucket_type)
         self.punishment: AutomodPunishmentModel = punishment_config
+
+        if check and not callable(check):
+            raise Exception("check must be a callable")
+
+        self.check = check
 
     @classmethod
     def from_model(cls, record: MessageSpamModel, bucket_type):
         return cls(record.count, record.seconds, record.punishment, bucket_type)
 
     def update_bucket(self, message: discord.Message) -> bool:
+        if self.check and self.check(message) is False:
+            return
+
         b = self.cooldown_bucket.get_bucket(message)
         ratelimited = b.update_rate_limit(message.created_at.timestamp())
         return bool(ratelimited)
@@ -89,7 +101,7 @@ class AutoMod(LightningCog, required=["Mod"]):
         # TODO: Check against a generic set of moderator permissions.
         record = await self.bot.get_guild_bot_config(message.guild.id)
         if not record or record.permissions is None:
-            return None
+            return False
 
         if record.permissions.levels is None:
             level = CommandLevel.User
@@ -152,6 +164,11 @@ class AutoMod(LightningCog, required=["Mod"]):
         if record.message_spam and record.message_spam.update_bucket(message) is True:
             record.message_spam.reset_bucket(message)  # Reset our bucket
             meth = self.punishments[record.message_spam.punishment.type]
+            await meth(self, message)
+
+        if record.message_content_spam and record.message_content_spam.update_bucket(message) is True:
+            record.message_content_spam.reset_bucket(message)  # Reset our bucket
+            meth = self.punishments[record.message_content_spam.punishment.type]
             await meth(self, message)
 
     @LightningCog.listener()
