@@ -89,12 +89,11 @@ class FindBMPAttachment(commands.CustomDefault):
         limit = 15
         async for message in ctx.channel.history(limit=limit):
             for attachment in message.attachments:
-                if attachment.url:
-                    if attachment.url.endswith(".bmp"):
-                        try:
-                            return Whitelisted_URL(attachment.url)
-                        except LightningError:
-                            continue
+                if attachment.url and attachment.url.endswith(".bmp"):
+                    try:
+                        return Whitelisted_URL(attachment.url)
+                    except LightningError:
+                        continue
         raise commands.BadArgument('Couldn\'t find an attachment that ends with ".bmp"')
 
 
@@ -374,9 +373,11 @@ class Homebrew(LightningCog):
 
     async def fetch_faq_entries(self, site):
         raw = await make_request(site, self.bot.aiosession)
-        entries = {}
-        for tup in self.get_faq_entries_from(raw):
-            entries[tup[0]] = {"description": tup[1], "link": f"{site}{tup[2]}"}
+        entries = {
+            tup[0]: {"description": tup[1], "link": f"{site}{tup[2]}"}
+            for tup in self.get_faq_entries_from(raw)
+        }
+
         self.faq_entry_cache[site] = entries
         return self.faq_entry_cache[site]
 
