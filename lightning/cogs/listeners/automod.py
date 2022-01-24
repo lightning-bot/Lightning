@@ -14,6 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import re
 from typing import Optional, Union
 
 import discord
@@ -29,6 +30,19 @@ from lightning.utils.automod_parser import (AutomodPunishmentEnum,
                                             BaseTableModel, MessageSpamModel,
                                             read_file)
 
+INVITE_REGEX = re.compile(r"(?:https?://)?discord(?:app)?\.(?:com/invite|gg)/[a-zA-Z0-9]+/?")
+URL_REGEX = re.compile(r"https?:\/\/.*?$")
+
+
+def invite_check(message):
+    match = INVITE_REGEX.match(message.content)
+    return bool(match)
+
+
+def url_check(message):
+    match = URL_REGEX.match(message.content)
+    return bool(match)
+
 
 class AutomodConfig:
     def __init__(self, record) -> None:
@@ -36,6 +50,8 @@ class AutomodConfig:
         self.message_spam: Optional[MessageConfigBase] = None
         self.mass_mentions: Optional[BaseTableModel] = None
         self.message_content_spam: Optional[MessageConfigBase] = None
+        self.invite_spam: Optional[MessageConfigBase] = None
+        self.url_spam: Optional[MessageConfigBase] = None
         for record in records:
             if record.type == "mass-mentions":
                 self.mass_mentions = record
@@ -44,6 +60,10 @@ class AutomodConfig:
             if record.type == "message-content-spam":
                 self.message_content_spam = MessageConfigBase.from_model(record,
                                                                          lambda m: (m.author.id, len(m.content)))
+            if record.type == "invite-spam":
+                self.invite_spam = MessageConfigBase.from_model(record, BucketType.member, check=invite_check)
+            if record.type == "url-spam":
+                self.url_spam = MessageConfigBase.from_model(record, BucketType.member, check=url_check)
 
 
 class MessageConfigBase:
@@ -58,8 +78,8 @@ class MessageConfigBase:
         self.check = check
 
     @classmethod
-    def from_model(cls, record: MessageSpamModel, bucket_type):
-        return cls(record.count, record.seconds, record.punishment, bucket_type)
+    def from_model(cls, record: MessageSpamModel, bucket_type, *, check=None):
+        return cls(record.count, record.seconds, record.punishment, bucket_type, check=check)
 
     def update_bucket(self, message: discord.Message) -> bool:
         if self.check and self.check(message) is False:
@@ -166,9 +186,14 @@ class AutoMod(LightningCog, required=["Mod"]):
             meth = self.punishments[record.message_spam.punishment.type]
             await meth(self, message)
 
-        if record.message_content_spam and record.message_content_spam.update_bucket(message) is True:
-            record.message_content_spam.reset_bucket(message)  # Reset our bucket
-            meth = self.punishments[record.message_content_spam.punishment.type]
+        if record.invite_spam and record.invite_spam.update_bucket(message) is True:
+            record.invite_spam.reset_bucket(message)  # Reset our bucket
+            meth = self.punishments[record.invite_spam.punishment.type]
+            await meth(self, message)
+
+        if record.url_spam and record.url_spam.update_bucket(message) is True:
+            record.url_spam.reset_bucket(message)  # Reset our bucket
+            meth = self.punishments[record.url_spam.punishment.type]
             await meth(self, message)
 
     @LightningCog.listener()
