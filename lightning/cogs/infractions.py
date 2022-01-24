@@ -260,7 +260,7 @@ class Infractions(LightningCog, required=['Mod']):
         """Exports the server's infractions to a JSON"""
         records = await self.bot.pool.fetch("SELECT * FROM infractions WHERE guild_id=$1;", ctx.guild.id)
 
-        raw_bytes = StringIO(json_dumps(list(map(records, serialize_infraction))))
+        raw_bytes = StringIO(json_dumps(list(map(serialize_infraction, records))))
         raw_bytes.seek(0)
         await ctx.send(file=discord.File(raw_bytes, filename="infractions.json"))
 
