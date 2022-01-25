@@ -367,23 +367,23 @@ class Meta(LightningCog):
     @commands.guild_only()
     async def roleinfo(self, ctx: LightningContext, *, role: discord.Role) -> None:
         """Gives information for a role"""
-        em = discord.Embed(title=f"Info for {role.name}")
-        em.add_field(name="Creation", value=natural_timedelta(role.created_at, accuracy=3))
-        # Permissions
+        em = discord.Embed(title=role.name, color=role.color)
+        desc = [f"**Creation**: {natural_timedelta(role.created_at, accuracy=3)}",
+                f"**Color**: {role.color}", f"**ID**: {role.id}", f"{len(role.members)} members have this role."]
+
         allowed = []
         for name, value in role.permissions:
             name = name.replace('_', ' ').replace('guild', 'server').title()
             if value:
                 allowed.append(name)
         em.add_field(name="Permissions",
-                     value=f"Value: {role.permissions.value}\n\n" + ", ".join(allowed),
+                     value=f"**Value**: {role.permissions.value}\n\n" + ", ".join(allowed),
                      inline=False)
 
-        em.add_field(name="Role Members", value=len(role.members))
-
         if role.managed:
-            em.description = ("This role is managed by an integration of some sort.")
-        em.set_footer(text=f"Role ID: {role.id}")
+            desc.append("This role is managed by an integration of some sort.")
+
+        em.description = "\n".join(desc)
         await ctx.send(embed=em)
 
     @lcommand()
