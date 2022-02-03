@@ -60,7 +60,7 @@ class Mod(LightningCog, required=["Configuration"]):
     async def get_mod_config(self, guild_id: int) -> Optional[GuildModConfig]:
         query = "SELECT * FROM guild_mod_config WHERE guild_id=$1;"
         record = await self.bot.pool.fetchrow(query, guild_id)
-        return GuildModConfig(record) if record else None
+        return GuildModConfig(record, self.bot) if record else None
 
     async def cog_check(self, ctx: LightningContext) -> bool:
         if ctx.guild is None:
@@ -404,9 +404,9 @@ class Mod(LightningCog, required=["Configuration"]):
             raise MuteRoleError("You do not have a mute role set.")
 
         if temporary_role is False:
-            return config.get_mute_role(ctx)
+            return config.get_mute_role()
         else:
-            return config.get_temp_mute_role(ctx)
+            return config.get_temp_mute_role()
 
     async def time_mute_user(self, ctx, target, reason, duration, *, dm_user=False):
         role = await self.get_mute_role(ctx, temporary_role=True)
