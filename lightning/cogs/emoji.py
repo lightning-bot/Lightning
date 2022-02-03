@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -27,11 +27,10 @@ from discord.ext import commands
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, errors, group)
 from lightning.converters import EmojiRE, Whitelisted_URL
-from lightning.utils.checks import has_guild_permissions, is_one_of_guilds
+from lightning.utils.checks import has_guild_permissions
 from lightning.utils.modlogformats import action_format
 from lightning.utils.paginator import BasicEmbedMenu, InfoMenuPages
 
-ROO_EMOTES = [604331487583535124, 604446987844190228, 606517600167526498, 610921560068456448]
 log = logging.getLogger(__name__)
 
 
@@ -171,9 +170,7 @@ class Emoji(LightningCog):
             return
 
         server_emotes = sorted([emoji for emoji in ctx.guild.emojis if emoji.is_usable()], key=lambda x: x.name)
-        emotes = []
-        for emoji in server_emotes:
-            emotes.append(f'{emoji} -- `{emoji}`')
+        emotes = [f'{emoji} -- `{emoji}`' for emoji in server_emotes]
         if not emotes:
             await ctx.send("This server has no emojis that are usable by me.")
             return
@@ -208,36 +205,6 @@ class Emoji(LightningCog):
         elif isinstance(error, commands.BadArgument):
             await ctx.send(error)
 
-    @command(aliases=['listrooemojis'])
-    @is_one_of_guilds(*ROO_EMOTES)
-    @commands.has_permissions(manage_emojis=True)
-    async def refreshemojilist(self, ctx: LightningContext) -> None:
-        """Refreshes the emoji list channel.
-
-        This purges 25 messages from the emoji-list channel and sends a new list of emojis
-        """
-        if len(ctx.guild.emojis) == 0:
-            await ctx.send("This server has no emotes!")
-            return
-
-        channel = discord.utils.get(ctx.guild.channels, name="emoji-list")
-        if not channel:
-            return
-
-        # We shouldn't have more than 25 messages in the emoji-list channel
-        try:
-            await channel.purge(limit=25)
-        except Exception as e:
-            # Notify that we tried
-            await ctx.send(f"Somehow failed to purge messages: `{e}`")
-
-        paginator = commands.Paginator(suffix='', prefix='')
-        for emoji in ctx.guild.emojis:
-            paginator.add_line(f'{emoji} -- `{emoji}`')
-
-        for page in paginator.pages:
-            await channel.send(page)
-
     @command()
     async def charinfo(self, ctx: LightningContext, *, characters: str) -> None:
         """Shows information for a character"""
@@ -249,26 +216,6 @@ class Emoji(LightningCog):
             await ctx.send('Output too long to display.')
             return
         await ctx.send(content)
-
-    @LightningCog.listener()
-    async def on_guild_emojis_update(self, guild, before, after) -> None:
-        if guild.id not in ROO_EMOTES:
-            return
-
-        channel = discord.utils.get(guild.channels, name="emoji-list")
-        if not channel:
-            return
-
-        rm_emoji = [f"{emoji} -- `{emoji.id}`" for emoji in before if emoji not in after]
-        mk_emoji = [f"{emoji} -- `{emoji}`" for emoji in after if emoji not in before]
-        if len(rm_emoji) != 0:
-            msg = "⚠ Emoji Removed: "
-            msg += ", ".join(rm_emoji)
-            await channel.send(msg)
-        if len(mk_emoji) != 0:
-            msg = "✅ Emoji Added: "
-            msg += ", ".join(mk_emoji)
-            await channel.send(msg)
 
 
 def setup(bot: LightningBot) -> None:
