@@ -22,7 +22,7 @@ from lightning import errors
 from lightning.commands import CommandLevel
 from lightning.context import LightningContext
 from lightning.enums import ConfigFlags as ConfigBFlags
-from lightning.enums import LoggingType, ModFlags, PunishmentType
+from lightning.enums import LoggingType, ModFlags
 from lightning.utils import modlogformats
 from lightning.utils.time import natural_timedelta, strip_tzinfo
 
@@ -32,30 +32,32 @@ ConfigFlags = ConfigBFlags
 
 class GuildModConfig:
     __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "temp_mute_role_id", "flags",
-                 "automod")
+                 "bot")
 
-    def __init__(self, record):
+    def __init__(self, record, bot):
         self.guild_id = record['guild_id']
         self.mute_role_id = record['mute_role_id']
         self.warn_kick = record['warn_kick']
         self.warn_ban = record['warn_ban']
         self.temp_mute_role_id = record['temp_mute_role_id']
         self.flags = ModFlags(record['flags'] or 0)
-        self.automod = None
+        self.bot = bot
         # self.automod = AutoModConfig(record)
         # self.raid_mode = record['raid_mode']
 
-    def get_mute_role(self, ctx: LightningContext) -> discord.Role:
+    def get_mute_role(self) -> discord.Role:
         if not self.mute_role_id:
             raise errors.MuteRoleError("This server has not setup a mute role")
 
-        role = discord.utils.get(ctx.guild.roles, id=self.mute_role_id)
+        guild = self.bot.get_guild(self.guild_id)
+
+        role = discord.utils.get(guild.roles, id=self.mute_role_id)
         if not role:
             raise errors.MuteRoleError('The mute role that was set seems to be deleted.'
                                        ' Please set a new mute role.')
         return role
 
-    def get_temp_mute_role(self, ctx: LightningContext, *, fallback=True) -> discord.Role:
+    def get_temp_mute_role(self, *, fallback=True) -> discord.Role:
         if not self.temp_mute_role_id and not self.mute_role_id:
             raise errors.MuteRoleError("This server has not setup a mute role.")
 
@@ -63,46 +65,16 @@ class GuildModConfig:
             raise errors.MuteRoleError("This server has not setup a temporary mute role.")
 
         if not self.temp_mute_role_id:
-            return self.get_mute_role(ctx)
+            return self.get_mute_role()
 
-        role = discord.utils.get(ctx.guild.roles, id=self.temp_mute_role_id)
+        guild = self.bot.get_guild(self.guild_id)
+
+        role = discord.utils.get(guild.roles, id=self.temp_mute_role_id)
         if not role:
             raise errors.MuteRoleError("The temporary mute role that was set seems to be deleted. Please set a new "
                                        "temporary mute role.")
 
         return role
-
-
-class AutoModConfig:
-    def __init__(self, bot, record):
-        self.mention_spam = AutoModMentionConfig(record['automod_mention_spam'])
-        self.warnings = AutoModPunishmentConfig()
-        self.join_thresholds = AutoModRaidModeConfig()
-
-
-class AutoModRaidModeConfig:
-    def __init__(self, record):
-        self.config = AutoModPunishmentConfig(record['punishments_config'])
-        # X amount of users can join in Y seconds, if more than act.
-        self.users = record['automod_join_threshold_users']
-        self.seconds = record['automod_join_threshold_seconds']
-
-
-class AutoModMentionConfig:
-    __slots__ = ("config", "count")
-
-    def __init__(self, record):
-        self.config = AutoModPunishmentConfig(record['punishments_config'])  # Punishment config
-        self.count = record['count']
-
-
-class AutoModPunishmentConfig:
-    __slots__ = ("punishment_type", "event", "interval")
-
-    def __init__(self, record):
-        self.punishment_type = PunishmentType(record['type'])
-        self.event = record['event']
-        self.interval = record['interval']
 
 
 class LoggingConfig:
