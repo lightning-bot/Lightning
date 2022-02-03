@@ -146,7 +146,7 @@ class Configuration(LightningCog):
         ret = await connection.fetchrow(query, ctx.guild.id)
         if not ret:
             return None
-        return GuildModConfig(ret)
+        return GuildModConfig(ret, self.bot)
 
     async def invalidate_config(self, ctx: LightningContext, *, config_name="mod_config") -> bool:
         """Function to reduce duplication for invalidating a cached guild mod config"""
@@ -438,7 +438,7 @@ class Configuration(LightningCog):
                            f"`{ctx.prefix}config muterole <role>`.")
             return
 
-        role = config.get_mute_role(ctx) if flags['temp'] is False else config.get_temp_mute_role(ctx, fallback=False)
+        role = config.get_mute_role() if flags['temp'] is False else config.get_temp_mute_role(fallback=False)
 
         success, failed, skipped = await self.update_mute_role_permissions(role,
                                                                            ctx.guild, ctx.author)
