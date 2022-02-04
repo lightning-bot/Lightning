@@ -14,6 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import datetime
 import re
 from typing import Optional, Union
 
@@ -29,6 +30,7 @@ from lightning.utils.automod_parser import (AutomodPunishmentEnum,
                                             AutomodPunishmentModel,
                                             BaseTableModel, MessageSpamModel,
                                             read_file)
+from lightning.utils.time import ShortTime
 
 INVITE_REGEX = re.compile(r"(?:https?://)?discord(?:app)?\.(?:com/invite|gg)/[a-zA-Z0-9]+/?")
 URL_REGEX = re.compile(r"https?:\/\/.*?$")
@@ -145,9 +147,21 @@ class AutoMod(LightningCog, required=["Mod"]):
         await self.log_manual_action(message.guild, message.author, self.bot.user, "KICK",
                                      reason="Member triggered automod")
 
-    async def _ban_punishment(self, message: discord.Message):
+    async def _time_ban_member(self, message: discord.Message, duration: str):
+        reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
+        duration = ShortTime(duration, now=message.created_at)
+        cog = self.bot.get_cog("Reminders")
+        timer_id = await cog.add_job("timeban", message.created_at, duration.dt, guild_id=message.guild.id,
+                                     user_id=message.author.id, mod_id=self.bot.user.id, force_insert=True)
+        await self.log_manual_action(message.guild, message.author, self.bot.user, "TIMEBAN", expiry=duration.dt,
+                                     timer_id=timer_id, reason=reason)
+
+    async def _ban_punishment(self, message: discord.Message, duration=None):
         reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
         await message.author.ban(reason=reason)
+        if duration:
+            await self._time_ban_member(message, duration)
+            return
         await self.log_manual_action(message.guild, message.author, self.bot.user, "BAN", reason=reason)
 
     async def _delete_punishment(self, message: discord.Message):
@@ -156,15 +170,104 @@ class AutoMod(LightningCog, required=["Mod"]):
         except discord.HTTPException:
             pass
 
+    async def get_mute_role(self, guild_id: int, *, temp=False):
+        cog = self.bot.get_cog("Mod")
+        cfg = await cog.get_mod_config(guild_id)
+        if not cfg:
+            # No mute role... Perhaps a bot log channel would be helpful to guilds...
+            return
+        guild = self.bot.get_guild(guild_id)
+        if not cfg.temp_mute_role_id and not cfg.mute_role_id:
+            return
+
+        role = guild.get_role(cfg.temp_mute_role_id) if temp is True else None
+        if role is None:
+            role = guild.get_role(cfg.mute_role_id)
+        return role
+
+    def can_timeout(self, message: discord.Message, duration: ShortTime):
+        """Determines whether the bot can timeout a member.
+
+        Parameters
+        ----------
+        message : discord.Message
+            The message
+        duration : ShortTime
+            An instance of ShortTime
+
+        Returns
+        -------
+        bool
+            Returns True if the bot can timeout a member
+        """
+        me = message.guild.get_member(self.bot.user.id)
+        if message.channel.permissions_for(me).moderate_members:
+            if duration.dt <= (message.created_at + datetime.timedelta(days=29)):
+                return True
+        return False
+
+    async def _temp_mute_user(self, message: discord.Message, duration):
+        reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
+        duration = ShortTime(duration, now=message.created_at)
+
+        if self.can_timeout(message, duration):
+            await message.author.edit(timed_out_until=duration.dt, reason=reason)
+            return
+
+        role = await self.get_mute_role(message.guild.id, temp=True)
+        if not role:
+            # Report something went wrong...
+            return
+
+        if not message.channel.permissions_for(message.guild.get_member(self.bot.user.id)).manage_roles:
+            return
+
+        cog = self.bot.get_cog('Reminders')
+        job_id = await cog.add_job("timemute", message.created_at, duration.dt,
+                                   guild_id=message.guild.id, user_id=message.author.id, role_id=role.id,
+                                   mod_id=self.bot.user.id, force_insert=True)
+        await message.author.add_roles(role, reason=reason)
+
+        await self.add_punishment_role(message.guild.id, message.author.id, role.id)
+        await self.log_manual_action(message.guild, message.author, self.bot.user, "TIMEMUTE",
+                                     reason="Member triggered automod", expiry=duration.dt, timer_id=job_id,
+                                     timestamp=message.created_at)
+
+    async def _mute_punishment(self, message: discord.Message, duration=None):
+        reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
+        if duration:
+            return await self._temp_mute_user(message, duration)
+
+        if not message.channel.permissions_for(message.guild.get_member(self.bot.user.id)).manage_roles:
+            return
+
+        role = await self.get_mute_role(message.guild.id)
+        if not role:
+            return
+
+        await message.author.add_roles(role, reason=reason)
+        await self.add_punishment_role(message.guild.id, message.author.id, role.id)
+        await self.log_manual_action(message.guild, message.author, self.bot.user, "MUTE",
+                                     reason="Member triggered automod", timestamp=message.created_at)
+
     punishments = {AutomodPunishmentEnum.WARN: _warn_punishment,
                    AutomodPunishmentEnum.KICK: _kick_punishment,
                    AutomodPunishmentEnum.BAN: _ban_punishment,
-                   AutomodPunishmentEnum.DELETE: _delete_punishment
-                   # PunishmentType.MUTE: self._mute_punishment
+                   AutomodPunishmentEnum.DELETE: _delete_punishment,
+                   AutomodPunishmentEnum.MUTE: _mute_punishment
                    }
 
+    async def _handle_punishment(self, options: AutomodPunishmentModel, message: discord.Message):
+        meth = self.punishments[options.type]
+
+        if options.type not in (AutomodPunishmentEnum.MUTE, AutomodPunishmentEnum.BAN):
+            await meth(self, message)
+            return
+
+        await meth(self, message, options.duration)
+
     @LightningCog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         if message.guild is None:  # DM Channels are exempt.
             return
 
@@ -178,23 +281,19 @@ class AutoMod(LightningCog, required=["Mod"]):
             return
 
         if record.mass_mentions and len(message.mentions) >= record.mass_mentions.count:
-            meth = self.punishments[record.mass_mentions.punishment.type]
-            await meth(self, message)
+            await self._handle_punishment(record.mass_mentions.punishment, message)
 
         if record.message_spam and record.message_spam.update_bucket(message) is True:
             record.message_spam.reset_bucket(message)  # Reset our bucket
-            meth = self.punishments[record.message_spam.punishment.type]
-            await meth(self, message)
+            await self._handle_punishment(record.message_spam.punishment, message)
 
         if record.invite_spam and record.invite_spam.update_bucket(message) is True:
             record.invite_spam.reset_bucket(message)  # Reset our bucket
-            meth = self.punishments[record.invite_spam.punishment.type]
-            await meth(self, message)
+            await self._handle_punishment(record.invite_spam.punishment, message)
 
         if record.url_spam and record.url_spam.update_bucket(message) is True:
             record.url_spam.reset_bucket(message)  # Reset our bucket
-            meth = self.punishments[record.url_spam.punishment.type]
-            await meth(self, message)
+            await self._handle_punishment(record.url_spam.punishment, message)
 
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:

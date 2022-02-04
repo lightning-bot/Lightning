@@ -18,10 +18,13 @@ from enum import IntEnum
 from typing import Literal, Optional
 
 import discord
-from pydantic import BaseModel, ValidationError, validator
+from discord.ext.commands import BadArgument
+from pydantic import BaseModel, ValidationError, root_validator, validator
 from tomlkit import loads as toml_loads
 from tomlkit.items import Table
 from tomlkit.toml_document import TOMLDocument
+
+from lightning.utils.time import ShortTime
 
 
 class ConfigurationError(Exception):
@@ -38,7 +41,27 @@ class AutomodPunishmentEnum(IntEnum):
 
 class AutomodPunishmentModel(BaseModel):
     type: AutomodPunishmentEnum
-    seconds: Optional[float]
+    duration: Optional[str]
+
+    @validator('duration')
+    def transform_duration(cls, value):
+        return value.replace(" ", "")
+
+    @root_validator
+    def validate_punishment(cls, values):
+        _type = values.get("type")
+        duration = values.get("duration")
+        if _type in (AutomodPunishmentEnum.MUTE, AutomodPunishmentEnum.BAN):
+            # Having no duration is a permanent action
+            if duration is None:
+                return values
+
+            try:
+                ShortTime(duration)
+            except BadArgument:
+                raise ValueError("invalid duration provided.")
+
+        return values
 
 
 class BaseTableModel(BaseModel):
@@ -54,6 +77,7 @@ class MessageSpamModel(BaseTableModel):
     def validate_punishment(cls, value):
         if value.type is AutomodPunishmentEnum.DELETE:
             raise ValueError("DELETE punishment is not a valid type")
+
         return value
 
 
