@@ -334,10 +334,7 @@ class Mod(LightningCog, required=["Configuration"]):
                 await ctx.send("Cancelled")
                 return
 
-        if before is None:
-            before = ctx.message
-        else:
-            before = discord.Object(id=before)
+        before = ctx.message if before is None else discord.Object(id=before)
         if after is not None:
             after = discord.Object(id=after)
 

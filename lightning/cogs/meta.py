@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -341,10 +341,7 @@ class Meta(LightningCog):
                                                        f"({member.activity.url})", inline=False)
             elif isinstance(member.activity, discord.CustomActivity):
                 act_name = activity.name if activity.name is not None else ""
-                if activity.emoji:
-                    activity = f"{activity.emoji} {act_name}"
-                else:
-                    activity = act_name
+                activity = f"{activity.emoji} {act_name}" if activity.emoji else act_name
                 embed.add_field(name="Activity", value=activity, inline=False)
             else:
                 embed.add_field(name="Activity", value=member.activity.name, inline=False)
@@ -417,10 +414,7 @@ class Meta(LightningCog):
 
     async def get_bot_author(self):
         user = self.bot.get_user(376012343777427457)
-        if user:
-            return user
-        else:
-            return await self.bot.fetch_user(376012343777427457)
+        return user or await self.bot.fetch_user(376012343777427457)
 
     @lcommand()
     async def about(self, ctx: LightningContext) -> None:
@@ -534,6 +528,7 @@ class Meta(LightningCog):
             perms.manage_webhooks = True
             perms.embed_links = True
             perms.manage_threads = True
+            perms.moderate_members = True
             msg = "You can use this link to invite me to your server. (Select permissions as needed) "\
                   f"<{discord.utils.oauth_url(self.bot.user.id, permissions=perms)}>"
         else:
