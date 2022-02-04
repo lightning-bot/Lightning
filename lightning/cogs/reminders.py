@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -42,10 +42,10 @@ class Reminders(LightningCog):
 
         self.task_available = asyncio.Event()
         self._current_task = None
-        self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
+        self._task = self.bot.loop.create_task(self.handle_timers())
 
     def cog_unload(self) -> None:
-        self.dispatch_jobs.cancel()
+        self._task.cancel()
 
     async def get_next_timer(self) -> Optional[Timer]:
         query = """SELECT * FROM timers
@@ -75,9 +75,14 @@ class Reminders(LightningCog):
         self.task_available.set()
         return record
 
-    async def add_job(self, event: str, created, expiry, *, force_insert=False,
-                      **kwargs) -> Union[asyncpg.Record, asyncio.Task]:
-        """Adds a job/pending timer to the timer system
+    def restart_timer_task(self):
+        """Cancels the timer task and recreates the task again"""
+        self._task.cancel()
+        self._task = self.bot.loop.create_task(self.handle_timers())
+
+    async def add_timer(self, event: str, created, expiry, *, force_insert=False,
+                        **kwargs) -> Union[asyncpg.Record, asyncio.Task]:
+        """Adds a pending timer to the timer system
 
         Parameters
         ----------
@@ -118,12 +123,11 @@ class Reminders(LightningCog):
 
         if self._current_task and expiry < self._current_task.expiry:
             # Cancel the task and re-run it
-            self.dispatch_jobs.cancel()
-            self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
+            self.restart_timer_task()
 
         return record
 
-    async def do_jobs(self) -> None:
+    async def handle_timers(self) -> None:
         await self.bot.wait_until_ready()
         try:
             while not self.bot.is_closed():
@@ -137,8 +141,7 @@ class Reminders(LightningCog):
         except asyncio.CancelledError:
             raise
         except (discord.ConnectionClosed, asyncpg.PostgresConnectionError):
-            self.dispatch_jobs.cancel()
-            self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
+            self.restart_timer_task()
         except Exception:
             log.error(traceback.format_exc())
             webhook = discord.Webhook.from_url(self.bot.config['logging']['timer_errors'], session=self.bot.aiosession)
@@ -261,8 +264,7 @@ class Reminders(LightningCog):
 
         if self._current_task and self._current_task.id == reminder_id:
             # Matches current timer, re-run loop as it's gone
-            self.dispatch_jobs.cancel()
-            self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
+            self.restart_timer_task()
 
         await ctx.send(f"Successfully deleted reminder (ID: {reminder_id})")
 
@@ -295,8 +297,7 @@ class Reminders(LightningCog):
 
         if self._current_task.event == 'reminder' and self._current_task.id in ids:
             # cancel task
-            self.dispatch_jobs.cancel()
-            self.dispatch_jobs = self.bot.loop.create_task(self.do_jobs())
+            self.restart_timer_task()
 
         await ctx.send("Cleared all of your reminders.")
 
