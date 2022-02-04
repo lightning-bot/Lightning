@@ -314,6 +314,7 @@ class Homebrew(LightningCog):
 
     @command(aliases=['udb'])
     async def universaldb(self, ctx: LightningContext, *, application: str) -> None:
+        """Searches for homebrew on Universal-DB"""
         resp = await ctx.request(f"https://udb-api.lightsage.dev/search/{urllib.parse.quote(application)}")
         results = resp['results']
 
