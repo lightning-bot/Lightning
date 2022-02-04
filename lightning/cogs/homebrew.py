@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import asyncio
 import hashlib
 import logging
 import secrets
@@ -43,25 +42,12 @@ from lightning.utils.paginator import InfoMenuPages
 from lightning.views import homebrew_uis
 
 log: logging.Logger = logging.getLogger(__name__)
-SERVICES_CHANNEL = 893508863712690207
 
 
-class TinyDBPageSource(menus.ListPageSource):
+class UniversalDBPageSource(menus.ListPageSource):
     def __init__(self, entries):
         super().__init__(entries, per_page=1)
 
-    async def format_page(self, menu, entry):
-        embed = discord.Embed(title=entry['name'], color=discord.Color.blurple(), description=entry['description'])
-        embed.add_field(name="Latest Release",
-                        value=f"**Name**: {entry['latestRelease']['name']}\n"
-                              f"**Link**: [{entry['latestRelease']['3ds_release_files'][0]['download_url']}]"
-                              f"({entry['latestRelease']['3ds_release_files'][0]['download_url']})")
-        embed.set_author(name=entry['github_owner'])
-        embed.set_image(url=f"https://api.homebrew.space/qr/{entry['id']}")
-        return embed
-
-
-class UniversalDBPageSource(TinyDBPageSource):
     async def format_page(self, menu, entry):
         desc: str = entry['description'] if 'description' in entry else "No description found..."
         embed = discord.Embed(title=entry['title'], color=discord.Color.blurple(), description=desc)
@@ -290,28 +276,6 @@ class Homebrew(LightningCog):
         img_final = await self.convert_to_png(img_bytes)
         await ctx.send(file=discord.File(img_final, filename=f"{secrets.token_urlsafe()}.png"))
 
-    @command()
-    @commands.cooldown(1, 5.0, commands.BucketType.member)
-    async def tinydb(self, ctx: LightningContext, *, search: str) -> None:
-        """Searches for 3DS homebrew on tinydb"""
-        if len(search) <= 3:
-            raise LightningError("Search term cannot be 3 characters or less!")
-        if len(search) >= 50:
-            raise LightningError("Search term cannot be 50 characters or more!")
-
-        url = f"https://api.homebrew.space/search/{urllib.parse.quote(search)}"
-        async with self.bot.aiosession.get(url, timeout=30.0) as resp:
-            if resp.status == 200:
-                data = await resp.json()
-            else:
-                raise LightningError("Tinydb api not available. Try again later?")
-
-        if not data:
-            raise LightningError("Failed to find that search term!")
-
-        menu = InfoMenuPages(source=TinyDBPageSource(data), clear_reactions_after=True)
-        await menu.start(ctx)
-
     @command(aliases=['udb'])
     async def universaldb(self, ctx: LightningContext, *, application: str) -> None:
         """Searches for homebrew on Universal-DB"""
@@ -324,20 +288,6 @@ class Homebrew(LightningCog):
 
         menu = InfoMenuPages(source=UniversalDBPageSource(results), clear_reactions_after=True)
         await menu.start(ctx)
-
-    @tinydb.error
-    async def tiny_db_error(self, ctx, error) -> None:
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(str(error))
-        elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(str(error))
-        elif isinstance(error, LightningError):
-            await ctx.send(str(error))
-
-        if isinstance(error, commands.CommandInvokeError):
-            if isinstance(error.original, asyncio.TimeoutError):
-                return await ctx.send('Timed out while making the request.')
-            await self.bot.log_command_error(ctx, error)
 
     @group(invoke_without_command=True)
     async def mod(self, ctx: LightningContext) -> None:
