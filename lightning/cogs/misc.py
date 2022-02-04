@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -132,8 +132,7 @@ class Misc(LightningCog):
     @command()
     async def snowflake(self, ctx: LightningContext, snowflake: SnowflakeDT) -> None:
         """Tells you when a snowflake was created"""
-        fmt = f"{discord.utils.format_dt(snowflake, style='f')}\n{format_timestamp(snowflake)}"
-        await ctx.send(fmt)
+        await ctx.send(f"{discord.utils.format_dt(snowflake, style='f')}\n{format_timestamp(snowflake)}")
 
 
 def setup(bot: LightningBot):
