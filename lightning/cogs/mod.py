@@ -726,12 +726,11 @@ class Mod(LightningCog, required=["Configuration"]):
         old_nick = member.display_name
         new_nick = old_nick
 
-        for _, char in enumerate(old_nick):
-            if char in characters:
-                new_nick = new_nick[1:]
-                continue
-            else:
+        for char in old_nick:
+            if char not in characters:
                 break
+
+            new_nick = new_nick[1:]
 
         if len(new_nick) == 0:
             new_nick = "don't hoist"
