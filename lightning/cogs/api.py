@@ -244,21 +244,6 @@ class API(LightningCog):
         await ctx.send(embed=embed)
 
     @command()
-    async def rtfs(self, ctx: LightningContext, *, entity: str) -> None:
-        """Shows source for an entity in discord.py"""
-        data = await ctx.request(f"https://rtfs.eviee.me/dpy?search={urllib.parse.quote(entity)}")
-
-        if not data:
-            await ctx.send("Couldn't find anything...")
-            return
-
-        embed = discord.Embed(title=f"RTFS: {entity}", description="", color=discord.Color.blurple())
-        data = data[:12]
-        embed.description = '\n'.join(data)
-        embed.set_footer(text="Thanks Myst for the API")
-        await ctx.send(embed=embed)
-
-    @command()
     async def qr(self, ctx: LightningContext, *, text: str) -> None:
         """Generates a QR code"""
         await ctx.send(f"https://api.qrserver.com/v1/create-qr-code/?data={text.replace(' ', '+')}")
