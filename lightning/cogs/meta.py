@@ -105,10 +105,7 @@ class HelpMenu(menus.ListPageSource):
 
         def format_commands(c):
             # TODO: Handle if embed length is too long
-            cmds = []
-            for cmd in c:
-                cmds.append(f"`{cmd.qualified_name}`")
-            return " | ".join(cmds)
+            return " | ".join([f"`{cmd.qualified_name}`" for cmd in c])
 
         for entry in entries:
             cmds = sorted(self.data.get(entry, []), key=lambda d: d.qualified_name)
@@ -205,7 +202,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             else:
                 name = flag.converter.__name__
                 arg = flag_name_lookup[name] if name in flag_name_lookup else name
-            fhelp = flag.help if flag.help else "No help found..."
+            fhelp = flag.help or "No help found..."
             flagopts.append(f'`{", ".join(flag.names)}` ({arg}): {fhelp}')
         return flagopts
 
