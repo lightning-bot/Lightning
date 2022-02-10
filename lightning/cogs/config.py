@@ -573,7 +573,7 @@ class Configuration(LightningCog):
             role_id = False
 
         record = await self.bot.get_guild_bot_config(guild_id)
-        if record.permissions is None or record.permissions.levels is None:
+        if record is None or record.permissions is None or record.permissions.levels is None:
             perms = {"LEVELS": {}}
         else:
             perms = record.permissions.raw()

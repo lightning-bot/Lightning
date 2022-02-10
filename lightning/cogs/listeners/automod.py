@@ -42,7 +42,7 @@ def invite_check(message):
 
 
 def url_check(message):
-    match = URL_REGEX.match(message.content)
+    match = URL_REGEX.findall(message.content)
     return bool(match)
 
 
