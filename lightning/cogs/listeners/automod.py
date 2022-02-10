@@ -37,7 +37,7 @@ URL_REGEX = re.compile(r"https?:\/\/.*?$")
 
 
 def invite_check(message):
-    match = INVITE_REGEX.match(message.content)
+    match = INVITE_REGEX.findall(message.content)
     return bool(match)
 
 
