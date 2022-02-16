@@ -14,13 +14,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import colorsys
 import io
 import math
 import random
 import textwrap
 import typing
-from datetime import datetime
 
 import bottom
 import discord
@@ -175,34 +173,6 @@ class Fun(LightningCog):
                                                                (140, 26))
             await ctx.send(file=discord.File(image_buffer, "huh_my_iq_is.png"))
 
-    @command()
-    async def bam(self, ctx: LightningContext, target: discord.Member) -> None:
-        """Bams a user"""
-        # :idontfeelsogood:
-        random_bams = ["n̟̤͙̠̤̖ǫ̺̻ͅw̴͍͎̱̟ ̷̭̖̫͙̱̪b͏͈͇̬̠̥ͅ&̻̬.̶̜͍̬͇̬ ҉̜̪̘̞👍̡̫͙͚͕ͅͅ", "n͢ow̢ ͜b&͢. ̷👍̷",
-                       "n҉̺o̧̖̱w̯̬̜̺̘̮̯ ͉͈͎̱̰͎͡b&̪̗̮̣̻͉.͍͖̪͕̤͔ ͢👍̵͙̯͍̫̬",
-                       "ńo̶̡͜w͘͟͏ ҉̶b̧&̧.̡͝ ̕👍̡͟", "n҉o̢͘͞w̢͢ ̢͏̢b͠&̴̛.̵̶ ̢́👍̴",
-                       "n̶̵̵̷̡̲̝̺o̵̶̷̴̜͚̥͓w̶̶̶̴͔̲͢͝ ḇ̶̷̶̵̡̨͜&̷̴̶̵̢̗̻͝.̷̵̴̶̮̫̰͆ 👍̵̶̵̶̡̡̹̹",
-                       "n̸̶̵̵̷̴̷̵̷̒̊̽ò̷̷̷̶̶̶̶̴̝ͥ̄w̶̶̷̶̵̴̷̶̴̤̑ͨ b̷̵̶̵̶̷̵̴̶̧͌̓&̵̶̵̶̷̴̵̴̻̺̓̑.̵̴̷̵̶̶̶̷̷̹̓̉ 👍",
-                       "no̥̊w ͜͠b̹̑&̛͕.̡̉ 👍̡̌",
-                       "n̐̆ow͘ ̌̑b͛͗&͗̂̍̒.̄ ͊👍͂̿͘",
-                       "ₙₒw b&. 👍", "n҉o҉w҉ b҉&. 👍"]
-
-        await ctx.send(f"{target} is {random.choice(random_bams)}")
-
-    @command()
-    async def warm(self, ctx: LightningContext, user: discord.Member) -> None:
-        """Warms a user"""
-        celsius = random.randint(15, 100)
-        await ctx.send(f"{user} warmed. User is now {celsius}°C ({self.c_to_f(celsius)}°F).")
-
-    @command(aliases=['cool'])
-    async def chill(self, ctx: LightningContext, user: discord.Member) -> None:
-        """Chills a user"""
-        celsius = random.randint(-50, 15)
-        fahrenheit = self.c_to_f(celsius)
-        await ctx.send(f"{user} chilled. User is now {celsius}°C ({fahrenheit}°F).")
-
     async def get_previous_messages(self, ctx, channel, limit: int = 10,
                                     randomize=True) -> typing.Union[typing.List[discord.Message], discord.Message]:
         messages = await channel.history(limit=limit, before=ctx.message).flatten()
@@ -330,65 +300,6 @@ class Fun(LightningCog):
         embed = discord.Embed(color=discord.Color.blurple())
         embed.set_image(url=data['message'])
         embed.set_footer(text="Powered by dog.ceo", icon_url="https://dog.ceo/img/favicon.png")
-        await ctx.send(embed=embed)
-
-    @command()
-    async def xkcd(self, ctx: LightningContext, value: int = None) -> None:
-        """Shows an xkcd comic.
-
-        If no value is supplied or the value isn't found, it gives the latest xkcd instead."""
-        xkcd_latest = await helpers.request("https://xkcd.com/info.0.json", self.bot.aiosession)
-        xkcd_max = xkcd_latest.get("num")
-
-        if value is not None and int(value) > 0 and int(value) < xkcd_max:
-            entry = int(value)
-        else:
-            entry = xkcd_max
-
-        xkcd = await helpers.request(f"https://xkcd.com/{entry}/info.0.json", self.bot.aiosession)
-        if xkcd is False:
-            await ctx.send("Something went wrong grabbing that XKCD!")
-            return
-
-        timestamp = datetime.strptime(f"{xkcd['year']}-{xkcd['month']}-{xkcd['day']}",
-                                      "%Y-%m-%d")
-        embed = discord.Embed(title=f"xkcd {xkcd['num']}: {xkcd['safe_title']}",
-                              url=f"https://xkcd.com/{xkcd['num']}",
-                              timestamp=timestamp, color=discord.Color(0x96A8C8))
-        embed.set_image(url=xkcd["img"])
-        embed.set_footer(text=xkcd["alt"])
-        await ctx.send(embed=embed)
-
-    @command(aliases=['pat'])
-    @commands.bot_has_permissions(embed_links=True)
-    async def headpat(self, ctx: LightningContext) -> None:
-        """Pat someone"""
-        data = await ctx.request("https://nekos.life/api/pat")
-        color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
-        embed = discord.Embed(colour=discord.Color.from_rgb(*color_random))
-        embed.set_image(url=data['url'])
-        await ctx.send(embed=embed)
-
-    @command()
-    @commands.bot_has_permissions(embed_links=True)
-    async def hug(self, ctx: LightningContext, *,
-                  member: converters.WeebActionConverter("hugged") = None) -> None:  # noqa: F821
-        """Hugs someone"""
-        data = await ctx.request("https://nekos.life/api/v2/img/hug")
-        color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
-        embed = discord.Embed(title=member, color=discord.Color.from_rgb(*color_random))
-        embed.set_image(url=data['url'])
-        await ctx.send(embed=embed)
-
-    @command()
-    @commands.bot_has_permissions(embed_links=True)
-    async def slap(self, ctx: LightningContext, *,
-                   person: converters.WeebActionConverter("slapped") = None) -> None:  # noqa: F821
-        """Slap yourself or someone."""
-        data = await ctx.request("https://nekos.life/api/v2/img/slap")
-        color_random = [int(x * 255) for x in colorsys.hsv_to_rgb(random.random(), 1, 1)]
-        embed = discord.Embed(title=person, colour=discord.Color.from_rgb(*color_random))
-        embed.set_image(url=data['url'])
         await ctx.send(embed=embed)
 
     @flags.add_flag("--message", converter=discord.Message)
