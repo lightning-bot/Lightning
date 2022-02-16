@@ -190,22 +190,6 @@ class InbetweenNumber(commands.Converter):
         return val
 
 
-class WeebActionConverter(commands.Converter):
-    def __init__(self, action):
-        self.action = action
-
-    async def convert(self, ctx, argument):
-        try:
-            argument = await commands.MemberConverter().convert(ctx, argument)
-        except commands.BadArgument:
-            pass
-        if isinstance(argument, discord.Member):
-            name = argument.name
-        else:
-            name = argument[:30]
-        return f"*{ctx.author.name} {self.action} {name}*"
-
-
 class Message(commands.Converter):
     async def convert(self, ctx, argument):
         if len(argument) == 2:
