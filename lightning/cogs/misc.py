@@ -130,9 +130,10 @@ class Misc(LightningCog):
         await ctx.send(embed=embed)
 
     @command()
-    async def snowflake(self, ctx: LightningContext, snowflake: SnowflakeDT) -> None:
-        """Tells you when a snowflake was created"""
-        await ctx.send(f"{discord.utils.format_dt(snowflake, style='f')}\n{format_timestamp(snowflake)}")
+    async def snowflake(self, ctx: LightningContext, *snowflakes: SnowflakeDT) -> None:
+        """Tells you when a snowflake(s) was created"""
+        await ctx.send("\n".join([f"{discord.utils.format_dt(snowflake)}\n{format_timestamp(snowflake)}"
+                                  for snowflake in snowflakes]))
 
 
 def setup(bot: LightningBot):
