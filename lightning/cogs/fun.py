@@ -15,9 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import io
-import math
 import random
-import textwrap
 import typing
 
 import bottom
@@ -25,7 +23,7 @@ import discord
 import slowo
 from discord.ext import commands
 from jishaku.functools import executor_function
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from lightning import (LightningBot, LightningCog, LightningContext, command,
                        converters, flags)
@@ -34,42 +32,6 @@ from lightning.utils import helpers
 
 
 class Fun(LightningCog):
-
-    def c_to_f(self, c) -> int:
-        """stolen from Robocop-ng. """
-        return math.floor(9.0 / 5.0 * c + 32)
-
-    @executor_function
-    def make_kcdt(self, text: str) -> io.BytesIO:
-        img = Image.open("resources/templates/kurisudraw.png")
-        dafont = ImageFont.truetype(font="resources/fonts/Montserrat-Regular.ttf",
-                                    size=42, encoding="unic")
-        draw = ImageDraw.Draw(img)
-        # Shoutouts to that person on stackoverflow that I don't remember
-        y_text = 228
-        wdmax = 560
-        lines = textwrap.wrap(text, width=20)
-        for line in lines:
-            if y_text >= 390:
-                break
-            line_width, line_height = draw.textsize(line, font=dafont)
-            draw.multiline_text(((wdmax - line_width) / 2, y_text),
-                                line, font=dafont,
-                                fill="black")  # align="center")
-            y_text += line_height
-        finalbuffer = io.BytesIO()
-        img.save(finalbuffer, 'png')
-        finalbuffer.seek(0)
-        return finalbuffer
-
-    @command(aliases=['kurisudraw'])
-    @commands.cooldown(2, 60.0, commands.BucketType.guild)
-    @commands.has_permissions(attach_files=True)
-    async def kurisuwhiteboard(self, ctx: LightningContext, *, text: str) -> None:
-        """Kurisu can solve this, can you?"""
-        async with ctx.typing():
-            img_buff = await self.make_kcdt(text)
-            await ctx.send(file=discord.File(img_buff, filename="kurisudraw.png"))
 
     @executor_function
     def make_jpegify(self, _bytes: bytes) -> io.BytesIO:
@@ -91,37 +53,6 @@ class Fun(LightningCog):
             byte_data = await helpers.request(image.url, self.bot.aiosession)
             image_buffer = await self.make_jpegify(byte_data)
             await ctx.send(file=discord.File(image_buffer, filename="jpegify.jpeg"))
-
-    @executor_function
-    def make_lakitu(self, text: str) -> io.BytesIO:
-        img = Image.open("resources/templates/fyi.png")
-        font = ImageFont.truetype(font="resources/fonts/Heebo-Regular.ttf",
-                                  size=86, encoding="unic")
-        draw = ImageDraw.Draw(img)
-        text = textwrap.wrap(text, width=19)
-        y_text = 200
-        wdmax = 1150
-        for line in text:
-            if y_text >= 706:
-                break
-            line_width, line_height = draw.textsize(line, font=font)
-            draw.multiline_text(((wdmax - line_width) / 2, y_text),
-                                line, font=font,
-                                fill="black")  # align="center")
-            y_text += line_height
-        finalbuffer = io.BytesIO()
-        img.save(finalbuffer, 'png')
-        finalbuffer.seek(0)
-        return finalbuffer
-
-    @command()
-    @commands.cooldown(2, 60.0, commands.BucketType.guild)
-    @commands.has_permissions(attach_files=True)
-    async def lakitufyi(self, ctx: LightningContext, *, text: str) -> None:
-        """Makes a Lakitu FYI meme with your own text"""
-        async with ctx.typing():
-            image_buffer = await self.make_lakitu(text)
-            await ctx.send(file=discord.File(image_buffer, filename="fyi.png"))
 
     async def get_user_avatar(self, user: typing.Union[discord.User, discord.Member]) -> bytes:
         async with self.bot.aiosession.get(user.avatar.with_format("png").url) as resp:
