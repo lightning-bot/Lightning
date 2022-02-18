@@ -33,7 +33,7 @@ from lightning.utils.emitters import WebhookEmbedEmitter
 from lightning.utils.modlogformats import base_user_format
 
 if TYPE_CHECKING:
-    from typing import Union
+    from typing import Tuple, Union
 
     from lightning import LightningBot
     from lightning.models import PartialGuild
@@ -55,7 +55,7 @@ class Stats(LightningCog):
         self._socket_lock = asyncio.Lock()
         self.bulk_socket_stats_loop.start()
 
-        self.number_places = (
+        self.number_places: Tuple[str, ...] = (
             '\N{FIRST PLACE MEDAL}',
             '\N{SECOND PLACE MEDAL}',
             '\N{THIRD PLACE MEDAL}',
