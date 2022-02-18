@@ -14,6 +14,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import asyncio
 import collections
 import inspect
@@ -21,13 +23,14 @@ import json
 import logging
 import os
 import time
+from typing import TYPE_CHECKING
 
 import discord
 import psutil
 from discord.ext import commands, menus
 from rapidfuzz.process import extractOne
 
-from lightning import LightningBot, LightningCog, LightningContext
+from lightning import LightningCog, LightningContext
 from lightning import command as lcommand
 from lightning import group as lgroup
 from lightning.converters import GuildorNonGuildUser, Message, ReadableChannel
@@ -35,6 +38,9 @@ from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from lightning.utils import helpers
 from lightning.utils.paginator import InfoMenuPages
 from lightning.utils.time import natural_timedelta
+
+if TYPE_CHECKING:
+    from lightning import LightningBot
 
 log = logging.getLogger(__name__)
 flag_name_lookup = {"HumanTime": "Time", "FutureTime": "Time"}
@@ -151,8 +157,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
     async def command_not_found(self, string) -> str:
         output = f"No command called \"{string}\" found."
         commands = [c.qualified_name for c in await self.filter_commands(self.context.bot.commands)]
-        fuzzymatches = extractOne(string, commands, score_cutoff=70)
-        if fuzzymatches:
+        if fuzzymatches := extractOne(string, commands, score_cutoff=70):
             output += f" Did you mean \"{fuzzymatches[0]}\"?"
         return output
 
@@ -236,8 +241,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
         if hasattr(command, 'level'):
             desc.append(f"\n\n**Default Level Required**: {command.level.name}")
 
-        cflags = self.flag_help_formatting(command)
-        if cflags:
+        if cflags := self.flag_help_formatting(command):
             page_or_embed.add_field(name="Flag options", value="\n".join(cflags))
 
         channel, guild = self.permissions_required_format(command)
