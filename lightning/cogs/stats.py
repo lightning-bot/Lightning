@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,18 +14,29 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import asyncio
 import collections
 import logging
+from typing import TYPE_CHECKING
 
 import discord
 import tabulate
 from discord.ext import commands, tasks
 
-from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, command, group)
+from lightning import (CommandLevel, LightningCog, LightningContext, command,
+                       group)
 from lightning.converters import InbetweenNumber
 from lightning.utils.checks import has_guild_permissions
+from lightning.utils.emitters import WebhookEmbedEmitter
+from lightning.utils.modlogformats import base_user_format
+
+if TYPE_CHECKING:
+    from typing import Union
+
+    from lightning import LightningBot
+    from lightning.models import PartialGuild
 
 log: logging.Logger = logging.getLogger(__name__)
 
@@ -59,6 +70,9 @@ class Stats(LightningCog):
     def cog_unload(self) -> None:
         self.bulk_command_insertion.stop()
         self.bulk_socket_stats_loop.stop()
+
+        if hasattr(self, 'guild_stats_bulker'):
+            self.guild_stats_bulker.close()
 
     async def insert_command(self, ctx) -> None:
         if ctx.guild is None:
@@ -315,6 +329,37 @@ class Stats(LightningCog):
         table = tabulate.tabulate(records, headers='keys', tablefmt="psql")
         total = sum(x['count'] for x in records)
         await ctx.send(f"{total} socket events recorded.```\n{table}```")
+
+    async def put_guild_info(self, embed: discord.Embed, guild: Union[PartialGuild, discord.Guild]) -> None:
+        embed.add_field(name='Guild Name', value=guild.name)
+        embed.add_field(name='Guild ID', value=guild.id)
+
+        if hasattr(guild, 'members'):
+            bots = sum(member.bot for member in guild.members)
+            humans = guild.member_count - bots
+            embed.add_field(name='Member Count', value=f"Bots: {bots}\nHumans: {humans}\nTotal: {len(guild.members)}")
+
+        owner = getattr(guild, 'owner', guild.owner_id)
+        embed.add_field(name='Owner', value=base_user_format(owner), inline=False)
+
+        if not hasattr(self, "guild_stats_bulker"):
+            self.guild_stats_bulker = WebhookEmbedEmitter(self.bot.config['logging']['guild_alerts'],
+                                                          session=self.bot.aiosession, loop=self.bot.loop)
+            self.guild_stats_bulker.start()
+
+        await self.guild_stats_bulker.put(embed)
+
+    @LightningCog.listener()
+    async def on_lightning_guild_add(self, guild: Union[PartialGuild, discord.Guild]):
+        embed = discord.Embed(title="Joined New Guild", color=discord.Color.blue())
+        log.info(f"Joined Guild | {guild.name} | {guild.id}")
+        await self.put_guild_info(embed, guild)
+
+    @LightningCog.listener()
+    async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]):
+        embed = discord.Embed(title="Left Guild", color=discord.Color.red())
+        log.info(f"Left Guild | {guild.name} | {guild.id}")
+        await self.put_guild_info(embed, guild)
 
 
 def setup(bot: LightningBot) -> None:

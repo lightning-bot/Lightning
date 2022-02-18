@@ -21,7 +21,6 @@ import json
 import logging
 import os
 import time
-from typing import Union
 
 import discord
 import psutil
@@ -33,9 +32,7 @@ from lightning import command as lcommand
 from lightning import group as lgroup
 from lightning.converters import GuildorNonGuildUser, Message, ReadableChannel
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
-from lightning.models import PartialGuild
 from lightning.utils import helpers
-from lightning.utils.modlogformats import base_user_format
 from lightning.utils.paginator import InfoMenuPages
 from lightning.utils.time import natural_timedelta
 
@@ -284,9 +281,6 @@ class Meta(LightningCog):
 
     def cog_unload(self):
         self.bot.help_command = self.original_help_command
-
-        if hasattr(self, 'webhook_bulker'):
-            self.webhook_bulker.close()
 
     @lcommand(aliases=['avy'])
     async def avatar(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
@@ -746,37 +740,6 @@ class Meta(LightningCog):
             raise MessageNotFoundInChannel(message_id, channel)
 
         await ctx.send(f"```json\n{json.dumps(message, indent=2, sort_keys=True)}```")
-
-    async def send_guild_info(self, embed: discord.Embed, guild: Union[PartialGuild, discord.Guild]) -> None:
-        embed.add_field(name='Guild Name', value=guild.name)
-        embed.add_field(name='Guild ID', value=guild.id)
-
-        if hasattr(guild, 'members'):
-            bots = sum(member.bot for member in guild.members)
-            humans = guild.member_count - bots
-            embed.add_field(name='Member Count', value=f"Bots: {bots}\nHumans: {humans}\nTotal: {len(guild.members)}")
-
-        owner = getattr(guild, 'owner', guild.owner_id)
-        embed.add_field(name='Owner', value=base_user_format(owner), inline=False)
-
-        if not hasattr(self, "webhook_bulker"):
-            self.webhook_bulker = helpers.WebhookEmbedBulker(self.bot.config['logging']['guild_alerts'],
-                                                             session=self.bot.aiosession, loop=self.bot.loop)
-            self.webhook_bulker.start()
-
-        await self.webhook_bulker.put(embed)
-
-    @LightningCog.listener()
-    async def on_lightning_guild_add(self, guild: Union[PartialGuild, discord.Guild]):
-        embed = discord.Embed(title="Joined New Guild", color=discord.Color.blue())
-        log.info(f"Joined Guild | {guild.name} | {guild.id}")
-        await self.send_guild_info(embed, guild)
-
-    @LightningCog.listener()
-    async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]):
-        embed = discord.Embed(title="Left Guild", color=discord.Color.red())
-        log.info(f"Left Guild | {guild.name} | {guild.id}")
-        await self.send_guild_info(embed, guild)
 
 
 def setup(bot: LightningBot):
