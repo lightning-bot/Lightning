@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,14 +14,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import logging
 from inspect import isawaitable
-from typing import Any, Optional
+from typing import TYPE_CHECKING
 
 import discord
 import sentry_sdk
+
+if TYPE_CHECKING:
+    from typing import Any, Optional
 
 __all__ = ("BaseView",
            "MenuLikeView",
