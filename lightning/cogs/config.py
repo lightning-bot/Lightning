@@ -720,8 +720,8 @@ class Configuration(LightningCog):
             raw = ovr.get_overrides(command.qualified_name)
 
             level_overriden = raw.get("LEVEL", None) if raw else None
-
-            embed.add_field(name="Level Overriden", value=ticker((user_level.value >= level_overriden)), inline=False)
+            value = (user_level.value >= level_overriden) if level_overriden else False
+            embed.add_field(name="Level Overriden", value=ticker(value), inline=False)
 
         user_perms = await command._resolve_permissions(ctx, user_level)
         embed.add_field(name="Default Permission Checks", value=ticker(user_perms), inline=False)
