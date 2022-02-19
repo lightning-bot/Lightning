@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,12 +14,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from typing import Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import discord
 
-from lightning import LightningBot, LightningCog
+from lightning import LightningCog
 from lightning.models import PartialGuild
+
+if TYPE_CHECKING:
+    from typing import Union
+
+    from lightning import LightningBot
 
 
 class State(LightningCog):
@@ -33,12 +40,10 @@ class State(LightningCog):
 
         for record in records:
             guild = self.bot.get_guild(record['id'])
-            if guild is not None and record['whitelisted'] is False:
-                await guild.leave()
+            if guild is not None:
+                if record['whitelisted'] is False:
+                    await guild.leave()
                 continue
-            elif guild is not None:
-                continue
-
             await self.remove_guild(record['id'])
 
     async def get_guild_record(self, guild_id: int) -> PartialGuild:
