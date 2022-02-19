@@ -707,7 +707,7 @@ class Configuration(LightningCog):
 
         ovr = record.permissions.command_overrides
         if ovr is not None:
-            ids = ctx.author._roles.copy()
+            ids = ctx.author._roles.tolist()
             ids.append(ctx.author.id)
 
             embed.add_field(name="ID Overriden",
