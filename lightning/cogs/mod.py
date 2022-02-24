@@ -942,7 +942,7 @@ class Mod(LightningCog, required=["Configuration"]):
         if record.warn_kick and record.warn_kick == count:
             await self._kick_punishment(event.member)
 
-        if record.warn_ban and record.warn_ban >= count:
+        if record.warn_ban and record.warn_ban <= count:
             await self._ban_punishment(event.member)
 
     @LightningCog.listener()
