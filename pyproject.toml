@@ -43,6 +43,7 @@ slowo = "^0.3"
 bottomify = "^1.2.0"
 discord-ext-menus-views = {git = "https://github.com/LightSage/discord-ext-menus-views"}
 pydantic = "^1.8.2"
+sanctum-tc = {git = "https://gitlab.com/lightning-bot/sanctum-tc.git", rev = "main"}
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
