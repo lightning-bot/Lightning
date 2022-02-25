@@ -30,7 +30,6 @@ import discord
 from discord.ext import menus
 
 from lightning import errors
-from lightning.utils.emitters import WebhookEmbedEmitter
 
 log = logging.getLogger(__name__)
 
@@ -368,11 +367,6 @@ def deprecated(deprecated_in: str = None, removed_in: str = None, details: str =
             return func(*args, **kwargs)
         return wrapper
     return decorator
-
-
-@deprecated("3.2.0", "4.0.0", "Use lightning.utils.emitters.WebhookEmbedEmitter instead")
-class WebhookEmbedBulker(WebhookEmbedEmitter):
-    ...
 
 
 async def safe_delete(message) -> bool:
