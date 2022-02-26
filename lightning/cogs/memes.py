@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,30 +14,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
-import random
-
-import discord
-from discord.ext.commands import default
-
 from lightning import (LightningBot, LightningCog, LightningCommand,
                        LightningContext, group)
-
-BAIT = ["https://i.imgur.com/5VKDzO6.png",
-        "https://i.imgur.com/28hcpAL.png",
-        "https://i.imgur.com/bb2QhRT.png",
-        "https://i.imgur.com/coTPufb.png",
-        "https://i.imgur.com/AXnYOuW.png",
-        "https://i.imgur.com/QcxVJGB.png",
-        "https://i.imgur.com/yedHnzp.png",
-        "https://i.imgur.com/j98dUfd.jpg",
-        "https://i.imgur.com/UKiDbzb.png",
-        "https://i.imgur.com/TJuk44x.jpg",
-        "https://i.imgur.com/3jIgvE6.png",
-        "https://i.imgur.com/sYxJqfg.png",
-        "https://i.imgur.com/oz4rlRj.png",
-        "https://garfield-is-a.lasagna.cat/i/5kx4.png",
-        "https://i.imgur.com/QsL2mQM.png"]
 
 
 class TextMeme(LightningCommand):
@@ -89,40 +67,6 @@ class Memes(LightningCog):
 
         If no meme is given, it sends a list of memes."""
         await ctx.send(f"Available Memes:\n{', '.join(x.name for x in self.memes.commands)}")
-
-    @memes.command(aliases=['discordcopypasta'], hidden=True)
-    async def discordcopypaste(self, ctx: LightningContext, member: discord.Member = default.Author) -> None:
-        """Generates a discord copypaste
-
-        If no arguments are passed, it uses the author of the command.
-
-        If you fall for this, you should give yourself a solid facepalm."""
-        org_msg = f"Look out for a Discord user by the name of \"{member.name}\" with"\
-                  f" the tag #{member.discriminator}. "\
-                  "He is going around sending friend requests to random Discord users,"\
-                  " and those who accept his friend requests will have their accounts "\
-                  "DDoSed and their groups exposed with the members inside it "\
-                  "becoming a victim aswell. Spread the word and send "\
-                  "this to as many discord servers as you can. "\
-                  "If you see this user, DO NOT accept his friend "\
-                  "request and immediately block him. Our team is "\
-                  "currently working very hard to remove this user from our database,"\
-                  " please stay safe."
-
-        await ctx.send(org_msg)
-
-    @memes.command(name="bait", hidden=True)
-    async def memes_bait(self, ctx: LightningContext) -> None:
-        link = random.choice(BAIT)
-        await ctx.send(str(link))
-
-    @memes.command(hidden=True)
-    async def catto(self, ctx: LightningContext) -> None:
-        """polite catto"""
-        embed = discord.Embed(title=f"{ctx.author} says hello", color=discord.Color.blurple())
-        embed.set_image(url="https://i.imgur.com/1nQSMLM.png")
-        embed.set_footer(text="powered by cattos love", icon_url="https://i.imgur.com/1nQSMLM.png")
-        await ctx.send(embed=embed)
 
 
 def setup(bot: LightningBot) -> None:
