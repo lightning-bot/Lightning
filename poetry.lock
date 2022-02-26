@@ -612,7 +612,7 @@ full = ["numpy"]
 
 [[package]]
 name = "sanctum-tc"
-version = "0.1.0"
+version = "0.2.0"
 description = "Library for interacting with the Sanctum API"
 category = "main"
 optional = false
@@ -626,7 +626,7 @@ aiohttp = "^3.8.1"
 type = "git"
 url = "https://gitlab.com/lightning-bot/sanctum-tc.git"
 reference = "main"
-resolved_reference = "f02a47be25518550f83206f93f381bcb052add68"
+resolved_reference = "7e13ae0f7c779e2a44ee02f48ebf60c3d8d65c13"
 
 [[package]]
 name = "schemainspect"
@@ -888,7 +888,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "727f98bdcf14545dca7267b8a70afa4a2aca0100195615045618a27fbbcc971d"
+content-hash = "3c7bf8b775908497183348d1b8c8ffd1009e67bfb0c6584a13dbc770b0113a25"
 
 [metadata.files]
 aiohttp = [
