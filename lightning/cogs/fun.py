@@ -23,7 +23,7 @@ import discord
 import slowo
 from discord.ext import commands
 from jishaku.functools import executor_function
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from lightning import (LightningBot, LightningCog, LightningContext, command,
                        converters, flags)
@@ -53,56 +53,6 @@ class Fun(LightningCog):
             byte_data = await helpers.request(image.url, self.bot.aiosession)
             image_buffer = await self.make_jpegify(byte_data)
             await ctx.send(file=discord.File(image_buffer, filename="jpegify.jpeg"))
-
-    async def get_user_avatar(self, user: typing.Union[discord.User, discord.Member]) -> bytes:
-        async with self.bot.aiosession.get(user.avatar.with_format("png").url) as resp:
-            avy_bytes = await resp.read()
-        return avy_bytes
-
-    @executor_function
-    def make_circle_related_meme(self, avatar_bytes: bytes, path: str, resize_amount: tuple,
-                                 paste: tuple) -> io.BytesIO:
-        base_image = Image.open(path)
-        avatar = Image.open(io.BytesIO(avatar_bytes)).resize(resize_amount).convert("RGB")
-
-        mask = Image.new("L", avatar.size, 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.ellipse([(0, 0), avatar.size], fill=255)
-        mask = mask.resize(resize_amount, Image.ANTIALIAS)
-
-        base_image.paste(avatar, paste, mask=mask)
-
-        buffer = io.BytesIO()
-        base_image.save(buffer, "png")
-        buffer.seek(0)
-
-        return buffer
-
-    @command()
-    @commands.cooldown(2, 60.0, commands.BucketType.guild)
-    async def screwedup(self, ctx: LightningContext, member: discord.Member = commands.default.Author) -> None:
-        """Miko Iino tells you that you are screwed up in the head"""
-        if member.id == 376012343777427457 or member.id == self.bot.user.id:
-            return  # :mystery:
-
-        async with ctx.typing():
-            avy = await self.get_user_avatar(member)
-            image_buffer = await self.make_circle_related_meme(avy, "resources/templates/inthehead.png", (64, 64),
-                                                               (14, 43))
-            await ctx.send(file=discord.File(image_buffer, "screwedupinthehead.png"))
-
-    @command()
-    @commands.cooldown(2, 60.0, commands.BucketType.guild)
-    async def iq(self, ctx: LightningContext, member: discord.Member = commands.default.Author) -> None:
-        """Your iq is 3"""
-        if member.id == 376012343777427457 or member.id == self.bot.user.id:
-            return  # :mystery:
-
-        async with ctx.typing():
-            avy = await self.get_user_avatar(member)
-            image_buffer = await self.make_circle_related_meme(avy, "resources/templates/fujiwara-iq.png", (165, 165),
-                                                               (140, 26))
-            await ctx.send(file=discord.File(image_buffer, "huh_my_iq_is.png"))
 
     async def get_previous_messages(self, ctx, channel, limit: int = 10,
                                     randomize=True) -> typing.Union[typing.List[discord.Message], discord.Message]:
