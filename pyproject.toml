@@ -41,7 +41,7 @@ beautifulsoup4 = "^4.9.3"
 lxml = "^4.6.3"
 slowo = "^0.3"
 bottomify = "^1.2.0"
-discord-ext-menus-views = {git = "https://github.com/LightSage/discord-ext-menus-views"}
+discord-ext-menus-views = {git = "https://github.com/oliver-ni/discord-ext-menus-views"}
 pydantic = "^1.8.2"
 sanctum-tc = "^0.3.0"
 
