@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,13 +14,15 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import hashlib
 import logging
 import secrets
 import urllib.parse
 from datetime import datetime
 from io import BytesIO
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING
 
 import asyncpg
 import dateutil.parser
@@ -32,8 +34,8 @@ from jishaku.functools import executor_function
 from PIL import Image
 from rapidfuzz import fuzz, process
 
-from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, Storage, command, group)
+from lightning import (CommandLevel, LightningCog, LightningContext, Storage,
+                       command, group)
 from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
 from lightning.utils.checks import has_channel_permissions
@@ -42,6 +44,11 @@ from lightning.utils.paginator import InfoMenuPages
 from lightning.views import homebrew_uis
 
 log: logging.Logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from typing import List, Optional, Union
+
+    from lightning import LightningBot
 
 
 class UniversalDBPageSource(menus.ListPageSource):
@@ -365,17 +372,9 @@ class Homebrew(LightningCog):
         title, entry = entry
         await ctx.send(f"**{title}**\n> <{entry['link']}>\n{entry['description']}")
 
-    @mod.group(name="3ds", aliases=['3d', '3DS', '2DS', '2ds'], invoke_without_command=True)
-    async def mod_3ds(self, ctx: LightningContext, *, homebrew=None) -> None:
+    @mod.command(name="3ds", aliases=['3d', '3DS', '2DS', '2ds'])
+    async def mod_3ds(self, ctx: LightningContext) -> None:
         """Gives information on 3DS modding."""
-        if homebrew:
-            commands = list(self.mod_3ds.all_commands.keys())
-            match = self.get_match(commands, homebrew, 75)
-            if match is not None:
-                # log.info(f"Command match found {match}")
-                await ctx.invoke(self.mod_3ds.get_command(match[0]))
-                return
-
         featurelist = ["Redirect your NAND to the SD card",
                        "Run any software compatible, regardless "
                        "of if Nintendo signed it or if it was made for your region",
@@ -400,29 +399,10 @@ class Homebrew(LightningCog):
                       'wTDlD5rA_400x400.png')
         await ctx.send(embed=em)
 
-    @mod_3ds.command(name='universal-updater', aliases=['uu', 'universalupdater'])
-    async def mod_3ds_uu(self, ctx: LightningContext) -> None:
-        """Gives information about Universal Updater"""
-        social_links = ["[Github Repository](https://github.com/Universal-Team/Universal-Updater)",
-                        "[Discord Server](https://discord.gg/KDJCfGF)"]
-        description = "A 3DS homebrew that allows easy installation and updating of other 3DS homebrew"
-        em = mod_embed("Universal-Updater", description, social_links, discord.Color.green())
-        em.set_thumbnail(url="https://btw.i-use-ar.ch/i/7rj8.png")
-        em.set_footer(text="Made by Universal-Team")
-        await ctx.send(embed=em)
-
     @mod.group(name="ds", aliases=['dsi'], invoke_without_command=True,
                case_insensitive=False)
-    async def mod_ds(self, ctx: LightningContext, *, homebrew=None) -> None:
+    async def mod_ds(self, ctx: LightningContext) -> None:
         """Gives information on DS modding"""
-        if homebrew:
-            commands = list(self.mod_ds.all_commands.keys())
-            match = self.get_match(commands, homebrew, 75)
-            if match is not None:
-                # log.debug(f"Command match found {match}")
-                await ctx.invoke(self.mod_ds.get_command(match[0]))
-                return
-
         features = ["Redirect your NAND to the SD card",
                     "Use normally incompatible flashcards",
                     "Boot into different homebrew applications by holding different buttons when turning on your "
@@ -467,141 +447,6 @@ class Homebrew(LightningCog):
                          icon_url="https://btw.i-use-ar.ch/i/pglx.png")
         await ctx.send(embed=embed)
 
-    @mod_ds.command(name='lolsnes')
-    async def mod_ds_lolsnes(self, ctx: LightningContext) -> None:
-        description = "An open-source Super Nintendo "\
-                      "Entertainment System (SNES for short) "\
-                      "emulator made for the Nintendo DS using a flashcard."
-        links = ["[Website](http://lolsnes.kuribo64.net/)",
-                 "[Github Repository](https://github.com/Arisotura/lolSnes)"]
-        em = mod_embed("lolSnes", description, links, 0xF8E800)
-        em.set_thumbnail(url="https://btw.i-use-ar.ch/i/ed1q.png")
-        em.set_footer(text="Made by Arisotura",
-                      icon_url="https://btw.i-use-ar.ch/i/yo0w.png")
-        await ctx.send(embed=em)
-
-    @mod_ds.command(name="nds-bootstrap", aliases=['ndsbp'])
-    async def mod_ds_nds_bootstrap(self, ctx: LightningContext) -> None:
-        """Gives information on nds-bootstrap"""
-        description = "An open-source application that allows Nintendo DS"\
-                      "/DSi ROMs and homebrew to be natively utilised "\
-                      "rather than using an emulator. nds-bootstrap works "\
-                      "on Nintendo DSi/3DS SD cards through CFW and on "\
-                      "Nintendo DS through flashcarts."
-        links = ["[GBATemp Thread](https://gbatemp.net/threads/nds-"
-                 "bootstrap-loader-run-commercial-nds-backups-from-an-sd-card.454323/)",
-                 "[Discord Server](https://discord.gg/yqSut8c)",
-                 "[Github Repository](https://github.com/ahezard/nds-bootstrap)"]
-        em = mod_embed("nds-bootstrap", description, links, 0x999A9D)
-        em.set_thumbnail(url="https://btw.i-use-ar.ch/i/uroq.png")
-        em.set_footer(text="Made by ahezard", icon_url="https://btw.i-use-ar.ch/i/0983.png")
-        await ctx.send(embed=em)
-
-    @mod_ds.command(name="nesDS")
-    async def mod_ds_nesds(self, ctx: LightningContext) -> None:
-        """Gives information on nesDS"""
-        description = "An open-source Nintendo Entertainment "\
-                      "System (NES for short) emulator for a Nintendo "\
-                      "DS flashcard or a DSi/3DS SD card."
-        links = ["[Github Repository](https://github.com/RocketRobz/NesDS)",
-                 "([DSi Edition](https://github.com/ApacheThunder/NesDS))"]
-        em = mod_embed("nesDS", description, links, discord.Color.red())
-        em.set_footer(text="Made by loopy, FluBBa, Dwedit, tepples, "
-                           "kuwanger, chishm, Mamiya, minitroopa, "
-                           "huiminghao, CotoDev & ApacheThunder")
-        await ctx.send(embed=em)
-
-    @mod_ds.command(name="gba")
-    async def mod_ds_gba(self, ctx: LightningContext) -> None:
-        """Gives information on GBARunner2"""
-        description = "An open-source Gameboy Advance hypervisor."
-        links = ["[Github Repository](https://github.com/RocketRobz/NesDS)",
-                 "[GBAtemp thread](https://gbatemp.net/threads/gbarunner2.451970/)",
-                 "[GBAtemp compatibility list](https://wiki.gbatemp.net/wiki/GBARunner2)"]
-        em = mod_embed("GBARunner2", description, links, discord.Color.blue())
-        em.set_footer(text="Made by Gericom")
-        await ctx.send(embed=em)
-
-    @mod_ds.command(name="pkmn-chest")
-    async def mod_ds_pkmn_chest(self, ctx: LightningContext) -> None:
-        """Gives information on pkmn-chest"""
-        description = "A Pokémon Bank style app that lets you store and "\
-                      "edit Pokémon from the 3rd through 5th generation "\
-                      "games on your DS(i)."
-        links = ["[Github Repository](https://github.com/Universal-Team/pkmn-chest)",
-                 "[Discord Server](https://discord.gg/KDJCfGF)",
-                 "[GBAtemp Thread](https://gbatemp.net/threads/release-"
-                 "pkmn-chest-a-pokemon-bank-for-the-nintendo-ds-i.549249/)",
-                 "[Website](https://universal-team.net/projects/pkmn-chest)"]
-        em = mod_embed("pkmn-chest", description, links, 0xBF0300)
-        em.set_thumbnail(url="https://elixi.re/i/1ve4.png")
-        em.set_footer(text="Made by Universal Team (Mainly by Pk11)")
-        await ctx.send(embed=em)
-
-    @mod_ds.command(name='relaunch', aliases=['buttonboot'])
-    async def mod_ds_relaunch(self, ctx: LightningContext) -> None:
-        """Gives information on Relaunch"""
-        description = "A Nintendo DS(i) homebrew that allows the ability"\
-                      " to launch an `.nds` file depending on which button"\
-                      " you have pressed, similar to NoCash's Unlaunch."
-        links = ["[Github Repository](https://github.com/Universal-Team/Relaunch)",
-                 "[Discord Server](https://discord.gg/KDJCfGF)"]
-        em = mod_embed("Relaunch", description, links, discord.Color.green())
-        em.set_thumbnail(url="https://elixi.re/i/e2kb.png")
-        em.set_footer(text="Made by Universal Team (Mainly by Flame)")
-        await ctx.send(embed=em)
-
-    @mod_ds.command(name='rocketvideoplayer', aliases=['rvp'])
-    async def mod_ds_rocketvideoplayer(self, ctx: LightningContext) -> None:
-        """Gives information on Rocket Video Player"""
-        description = "An open-source video player powered by Rocket "\
-                      "Video Technology. It can be used on a Nintendo DSi"\
-                      ", a Nintendo 3DS or a Nintendo DS Flashcart by "\
-                      "playing a .rvid video file from your SD card."
-        links = ["[GBAtemp Thread](https://gbatemp.net/threads/release"
-                 "-rocket-video-player-play-videos-with-the-ultimate-in-picture-quality.539163/)",
-                 "[Github Repository](https://github.com/RocketRobz/RocketVideoPlayer/releases)",
-                 "[Discord Server](https://discord.gg/yqSut8c)"]
-        em = mod_embed("Rocket Video Player", description, links, 0xA701E9)
-        em.set_thumbnail(url="https://elixi.re/i/jm7f.png")
-        em.set_footer(text="Made by RocketRobz",
-                      icon_url="https://elixi.re/i/7lh1.png")
-        await ctx.send(embed=em)
-
-    @mod_ds.command(name='twilightmenu++', aliases=['twlmenu', 'twilight'])
-    async def mod_ds_twlmenu(self, ctx: LightningContext) -> None:
-        """Gives information on TWiLightMenu++"""
-        description = "An open-source DSi Menu upgrade/replacement allowing "\
-                      "you to navigate your SD card and launch a variety of"\
-                      " different applications."
-        links = ["[GBATemp Thread](https://gbatemp.net/threads/"
-                 "ds-i-3ds-twilight-menu-gui-for-ds-i-games-and"
-                 "-ds-i-menu-replacement.472200/)",
-                 "[Github Repository](https://github.com/DS-Homebrew/TWiLightMenu/releases)",
-                 "[Discord Server](https://discord.gg/yqSut8c)"]
-        formats = ["Nintendo DS titles",
-                   "Sega Game Gear/Master System titles",
-                   "NES/Famicom titles",
-                   "Super NES/Famicom titles",
-                   "Sega Genesis titles",
-                   "(Super) Gameboy (Color/Advance) Titles",
-                   "Atari 2600 Titles",
-                   "DSTWO plugins (requires you to have a DSTWO)",
-                   "RocketVideoPlayer & MPEG4 videos"]
-        styles = ["Nintendo DSi",
-                  "Nintendo 3DS",
-                  "R4",
-                  "Acekard/akMenu",
-                  "SEGA Saturn",
-                  "Homebrew Launcher"]
-        em = mod_embed("TWiLight Menu++", description, links, 0xA701E9)
-        em.add_field(name="Supported Formats", value=', '.join(formats), inline=False)
-        stylesformat = '\n\U00002022 '.join(styles)
-        em.add_field(name="Styles", value=f"\U00002022 {stylesformat}")
-        em.set_footer(text="Made by RocketRobz", icon_url="https://elixi.re/i/7lh1.png")
-        await ctx.send(embed=em)
-
-    # Only one command, useless to make it a group
     @mod.command(name='switch', aliases=['nx'])
     async def mod_switch_guide(self, ctx: LightningContext) -> None:
         """Gives information on Switch modding"""
