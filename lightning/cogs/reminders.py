@@ -243,14 +243,10 @@ class Reminders(LightningCog):
         You can get the ID of a reminder with {prefix}remind list
 
         You must own the reminder to remove it"""
-        query = """DELETE FROM timers
-                   WHERE id = $1
-                   AND event = 'reminder'
-                   AND extra ->> 'author' = $2;
-                """
-        result = await self.bot.pool.execute(query, reminder_id, str(ctx.author.id))
-        if result == "DELETE 0":
-            await ctx.send("I couldn't delete a reminder with that ID!")
+        try:
+            await self.bot.api.delete_user_reminder(ctx.author.id, reminder_id)
+        except NotFound:
+            await ctx.send("I couldn't find a reminder with that ID!")
             return
 
         if self._current_task and self._current_task.id == reminder_id:
