@@ -14,22 +14,30 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import asyncio
 import logging
 import textwrap
 import traceback
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import TYPE_CHECKING
 
 import asyncpg
 import discord
 from discord.ext.commands import clean_content
+from sanctum.exceptions import NotFound
 
-from lightning import LightningBot, LightningCog, LightningContext, group
+from lightning import LightningCog, LightningContext, group
 from lightning.formatters import plural
 from lightning.models import Timer
 from lightning.utils import time as ltime
 from lightning.utils.helpers import BetterUserObject, dm_user
+
+if TYPE_CHECKING:
+    from typing import Optional, Union
+
+    from lightning import LightningBot
 
 log: logging.Logger = logging.getLogger(__name__)
 
@@ -61,7 +69,7 @@ class Reminders(LightningCog):
 
     async def execute_timer(self, record: Timer) -> None:
         self.bot.dispatch(f'lightning_{record.event}_complete', record)
-        await self.bot.pool.execute("DELETE FROM timers WHERE id=$1;", record.id)
+        await self.bot.api.delete_timer(record.id)
 
     async def wait_for_timers(self) -> Optional[Timer]:
         record = await self.get_next_timer()
@@ -80,7 +88,7 @@ class Reminders(LightningCog):
         self._task.cancel()
         self._task = self.bot.loop.create_task(self.handle_timers())
 
-    async def add_timer(self, event: str, created, expiry, *, force_insert=False,
+    async def add_timer(self, event: str, created: datetime, expiry: datetime, *, force_insert: bool = False,
                         **kwargs) -> Union[asyncpg.Record, asyncio.Task]:
         """Adds a pending timer to the timer system
 
@@ -105,18 +113,8 @@ class Reminders(LightningCog):
             # A loop for small timers
             return self.bot.loop.create_task(self.short_timers(delta, Timer(None, event, created, expiry, kwargs)))
 
-        if kwargs:
-            query = """INSERT INTO timers (event, created, expiry, extra)
-                       VALUES ($1, $2, $3, $4::jsonb)
-                       RETURNING id;"""
-            args = [event, created, expiry, kwargs]
-        else:
-            query = """INSERT INTO timers (event, created, expiry)
-                       VALUES ($1, $2, $3)
-                       RETURNING id;"""
-            args = [event, created, expiry]
-
-        record = await self.bot.pool.fetchval(query, *args)
+        payload = {"event": event, "created": created.isoformat(), "expiry": expiry.isoformat(), "extra": dict(kwargs)}
+        record = await self.bot.api.create_timer(payload)
 
         if delta <= (86400 * 24):  # 24 days
             self.task_available.set()
@@ -125,7 +123,7 @@ class Reminders(LightningCog):
             # Cancel the task and re-run it
             self.restart_timer_task()
 
-        return record
+        return record['id']
 
     async def handle_timers(self) -> None:
         await self.bot.wait_until_ready()
@@ -161,8 +159,8 @@ class Reminders(LightningCog):
 
         Times are in UTC.
         """
-        _id = await self.add_job("reminder", ctx.message.created_at, when.dt, reminder_text=when.arg,
-                                 author=ctx.author.id, channel=ctx.channel.id, message_id=ctx.message.id)
+        _id = await self.add_timer("reminder", ctx.message.created_at, when.dt, reminder_text=when.arg,
+                                   author=ctx.author.id, channel=ctx.channel.id, message_id=ctx.message.id)
 
         duration_text = ltime.natural_timedelta(when.dt, source=ctx.message.created_at)
 
@@ -219,8 +217,8 @@ class Reminders(LightningCog):
             else:
                 text = textwrap.shorten(record['extra']['reminder_text'], width=512)
 
-            embed.add_field(name=f"{record['id']}: {ltime.format_relative(record['expiry'])}", value=text,
-                            inline=False)
+            embed.add_field(name=f"{record['id']}: {ltime.format_relative(datetime.fromisoformat(record['expiry']))}",
+                            value=text, inline=False)
 
         return embed
 
@@ -229,16 +227,9 @@ class Reminders(LightningCog):
         """Lists up to 10 of your reminders
 
         This will only show reminders that are longer than one minute."""
-        query = """SELECT id, expiry, extra
-                   FROM timers
-                   WHERE event = 'reminder'
-                   AND extra ->> 'author' = $1
-                   ORDER BY expiry
-                   LIMIT 10;
-                """
-        records = await self.bot.pool.fetch(query, str(ctx.author.id))
-
-        if len(records) == 0:
+        try:
+            records = await self.bot.api.get_user_reminders(ctx.author.id)
+        except NotFound:
             await ctx.send("Seems you haven't set a reminder yet...")
             return
 
