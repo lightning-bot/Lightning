@@ -215,7 +215,7 @@ resolved_reference = "59b657c52ea7ae9a3aba5948dcc4c940cf2a6c99"
 
 [[package]]
 name = "discord.py"
-version = "2.0.0a3602+ge33b45d5"
+version = "2.0.0a3604+gcc53c91a"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -234,7 +234,7 @@ voice = ["PyNaCl (>=1.3.0,<1.5)"]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
 reference = "master"
-resolved_reference = "e33b45d500ab6d2b787fd88131fe2d299ae49f9e"
+resolved_reference = "cc53c91a2bd46e0c8749849f7e9e349ad524a640"
 
 [[package]]
 name = "distlib"
@@ -612,21 +612,14 @@ full = ["numpy"]
 
 [[package]]
 name = "sanctum-tc"
-version = "0.2.0"
+version = "0.3.0"
 description = "Library for interacting with the Sanctum API"
 category = "main"
 optional = false
-python-versions = "^3.8"
-develop = false
+python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-aiohttp = "^3.8.1"
-
-[package.source]
-type = "git"
-url = "https://gitlab.com/lightning-bot/sanctum-tc.git"
-reference = "main"
-resolved_reference = "7e13ae0f7c779e2a44ee02f48ebf60c3d8d65c13"
+aiohttp = ">=3.8.1,<4.0.0"
 
 [[package]]
 name = "schemainspect"
@@ -888,7 +881,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "3c7bf8b775908497183348d1b8c8ffd1009e67bfb0c6584a13dbc770b0113a25"
+content-hash = "a4dd5192c7056e9ea744a1ebbac2a22c14add63220a2593652cbfa5bdd9b2cf3"
 
 [metadata.files]
 aiohttp = [
@@ -1743,7 +1736,10 @@ rapidfuzz = [
     {file = "rapidfuzz-1.9.1-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:af991cb333ec526d894923163050931b3a870b7694bf7687aaa6154d341a98f5"},
     {file = "rapidfuzz-1.9.1.tar.gz", hash = "sha256:bd7a4fe33ba49db3417f0f57a8af02462554f1296dedcf35b026cd3525efef74"},
 ]
-sanctum-tc = []
+sanctum-tc = [
+    {file = "sanctum-tc-0.3.0.tar.gz", hash = "sha256:94505f6413a343c84465893346c3ac32b733c86f2475e0acf4466aa2b0417e57"},
+    {file = "sanctum_tc-0.3.0-py3-none-any.whl", hash = "sha256:9541066135f25ce6c66280cf36851cb5b874d9b9e0e6cca0a7910f7d835fc9d5"},
+]
 schemainspect = [
     {file = "schemainspect-3.0.1616029793-py3-none-any.whl", hash = "sha256:68f5b0184a527a0e45405d07fd3bc762e3e879f9ba1af216ee9166f6cb6dc5ed"},
     {file = "schemainspect-3.0.1616029793.tar.gz", hash = "sha256:b81f0482e0df338032eda30ee6e41f69df7d15a21b03688fd1128cdbcb409e6c"},
