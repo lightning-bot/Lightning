@@ -209,9 +209,9 @@ develop = false
 
 [package.source]
 type = "git"
-url = "https://github.com/LightSage/discord-ext-menus-views"
+url = "https://github.com/oliver-ni/discord-ext-menus-views"
 reference = "master"
-resolved_reference = "59b657c52ea7ae9a3aba5948dcc4c940cf2a6c99"
+resolved_reference = "ebe27e606fbacedfd472a65275bcaa197bf30666"
 
 [[package]]
 name = "discord.py"
@@ -881,7 +881,7 @@ pyodbc = ["pyodbc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "a4dd5192c7056e9ea744a1ebbac2a22c14add63220a2593652cbfa5bdd9b2cf3"
+content-hash = "e83917ac3639df984df757aea26e0cf75d1f206212a6275189e16aa9538f3999"
 
 [metadata.files]
 aiohttp = [
