@@ -99,12 +99,17 @@ class LightningBot(commands.AutoShardedBot):
                                                  loop=self.loop)
         self._error_logger.start()
 
+        def _transform_path(p):
+            return str(p).replace("/", ".").replace("\\", ".")
+
         path = pathlib.Path("lightning/cogs/")
-        files = path.glob("**/*.py")
         cog_list = []
-        for name in files:
-            name = name.with_suffix("")
-            cog_list.append(str(name).replace("/", ".").replace("\\", "."))
+        for name in path.glob("**/*.py"):
+            qual_name = _transform_path(name.with_suffix(""))
+            if f'{_transform_path(name.parent)}.__init__' in cog_list:
+                log.debug(f"Skipping over {str(name)}...")
+                continue
+            cog_list.append(qual_name)
 
         for cog in cog_list:
             if cog in self.config['bot']['disabled_cogs']:
