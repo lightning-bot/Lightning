@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -22,10 +22,11 @@ import discord
 from discord.ext import commands, menus
 from discord.ext.menus.views import ViewMenu
 
-from lightning import (CommandLevel, ConfigFlags, LightningBot, LightningCog,
+from lightning import (CommandLevel, ConfigFlags, LightningCog,
                        LightningContext, ModFlags, cache, command)
 from lightning import flags as lflags
 from lightning import group
+from lightning.cogs.config import ui
 from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
 from lightning.formatters import plural
@@ -33,7 +34,6 @@ from lightning.models import GuildModConfig
 from lightning.utils.automod_parser import from_attachment
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
-from lightning.views import config_uis
 
 log = logging.getLogger(__name__)
 
@@ -274,7 +274,7 @@ class Configuration(LightningCog):
     @has_guild_permissions(manage_guild=True)
     async def logging(self, ctx, *, channel: discord.TextChannel = commands.default.CurrentChannel):
         """Sets up logging for the server via a menu"""
-        await config_uis.Logging(channel, timeout=180.0).start(ctx)
+        await ui.Logging(channel, timeout=180.0).start(ctx)
 
     async def toggle_feature_flag(self, guild_id: int, flag: ConfigFlags) -> ConfigFlags:
         """Toggles a feature flag for a guild
@@ -319,7 +319,7 @@ class Configuration(LightningCog):
         """Manages the server's autorole
 
         If this command is called alone, an interactive menu will start."""
-        await config_uis.AutoRole(timeout=180.0).start(ctx)
+        await ui.AutoRole(timeout=180.0).start(ctx)
 
     @autorole.command(name="set", aliases=['add'], level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_roles=True)
@@ -825,10 +825,3 @@ class Configuration(LightningCog):
         await self.bot.pool.execute(query, ctx.guild.id)
         await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.tick(True)
-
-
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(Configuration(bot))
-
-    if "beta_prefix" in bot.config['bot']:
-        bot.remove_command("config prefix")
