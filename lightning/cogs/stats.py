@@ -19,9 +19,11 @@ from __future__ import annotations
 import asyncio
 import collections
 import logging
+import time
 from typing import TYPE_CHECKING
 
 import discord
+import psutil
 import tabulate
 from discord.ext import commands, tasks
 
@@ -31,6 +33,7 @@ from lightning.converters import InbetweenNumber
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.emitters import WebhookEmbedEmitter
 from lightning.utils.modlogformats import base_user_format
+from lightning.utils.time import natural_timedelta
 
 if TYPE_CHECKING:
     from typing import Tuple, Union
@@ -66,6 +69,8 @@ class Stats(LightningCog):
             '8\N{combining enclosing keycap}',
             '9\N{combining enclosing keycap}',
             '\N{KEYCAP TEN}')
+
+        self.process = psutil.Process()
 
     def cog_unload(self) -> None:
         self.bulk_command_insertion.stop()
@@ -360,6 +365,100 @@ class Stats(LightningCog):
         embed = discord.Embed(title="Left Guild", color=discord.Color.red())
         log.info(f"Left Guild | {guild.name} | {guild.id}")
         await self.put_guild_info(embed, guild)
+
+    @command()
+    async def ping(self, ctx: LightningContext) -> None:
+        """Tells you the ping."""
+        if ctx.guild:
+            shard_id = ctx.guild.shard_id
+        else:
+            shard_id = 0
+
+        shard_latency = round(self.bot.get_shard(shard_id).latency * 1000)
+
+        before = time.monotonic()
+        tmpmsg = await ctx.send('Calculating...')
+        after = time.monotonic()
+        rtt_ms = round((after - before) * 1000)
+
+        await tmpmsg.edit(content=f"Pong!\nshard {shard_id}: `{shard_latency} ms`\nrtt: `{rtt_ms} ms`")
+
+    @command()
+    async def uptime(self, ctx: LightningContext) -> None:
+        """Displays my uptime"""
+        await ctx.send(f"Uptime: **{natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}**")
+
+    async def get_bot_author(self):
+        user = self.bot.get_user(376012343777427457)
+        return user or await self.bot.fetch_user(376012343777427457)
+
+    @command()
+    async def about(self, ctx: LightningContext) -> None:
+        """Gives information about the bot."""
+        embed = discord.Embed(title="Lightning", color=0xf74b06)
+        if self.bot.owner_id:
+            owners = [self.bot.get_user(self.bot.owner_id)]
+        elif self.bot.owner_ids:
+            owners = [self.bot.get_user(u) for u in self.bot.owner_ids]
+        else:
+            owners = []
+
+        author = await self.get_bot_author()
+        embed.set_author(name=str(author), icon_url=author.avatar.with_static_format('png'))
+
+        description = [f"This bot instance is owned by {', '.join(str(o) for o in owners)}"]
+
+        embed.url = self.bot.config['bot'].get("git_repo_url", "https://gitlab.com/lightning-bot/Lightning")
+        embed.set_thumbnail(url=ctx.me.avatar.url)
+
+        if self.bot.config['bot']['description']:
+            description.append(f"**Description**: {self.bot.config['bot']['description']}")
+
+        # Channels
+        text = 0
+        voice = 0
+        for guild in self.bot.guilds:
+            for channel in guild.channels:
+                if isinstance(channel, discord.TextChannel):
+                    text += 1
+                elif isinstance(channel, discord.VoiceChannel):
+                    voice += 1
+        embed.add_field(name="Channels", value=f"{text:,} text channels\n{voice:,} voice channels")
+
+        # Members
+        membertotal = 0
+        membertotal_online = 0
+        for member in self.bot.get_all_members():
+            membertotal += 1
+            if member.status is not discord.Status.offline:
+                membertotal_online += 1
+        all_members = f"Total: {membertotal:,}\nUnique: {len(self.bot.users):,}\n"\
+                      f"Unique Members Online: {membertotal_online:,}"
+        embed.add_field(name="Members", value=all_members)
+
+        memory = self.process.memory_full_info().uss / 1024**2
+        description.append(f"**Process**: {memory:.2f} MiB\n**Commit**: [{self.bot.commit_hash[:8]}]"
+                           f"({embed.url}/commit/{self.bot.commit_hash})")
+
+        embed.add_field(name="Servers", value=f"{len(self.bot.guilds):,}\nShards: {self.bot.shard_count}")
+
+        query = """SELECT COUNT(*) AS total_commands, (SELECT sum(count) FROM socket_stats) AS total_socket_stats
+                   FROM commands_usage;"""
+        amounts = await self.bot.pool.fetchrow(query)
+        description.append(f"{amounts['total_commands']} commands ran.\n{amounts['total_socket_stats']} "
+                           "socket events recorded.")
+
+        embed.add_field(name="Links", value="[Support Server]"
+                                            f"({self.bot.config['bot']['support_server_invite']}) | "
+                                            "[Website](https://lightning.lightsage.dev) | [Ko-Fi]"
+                                            "(https://ko-fi.com/lightsage)",
+                                            inline=False)
+        embed.set_footer(text=f"Lightning v{self.bot.version} | Made with "
+                              f"discord.py {discord.__version__}")
+
+        embed.description = '\n'.join(description)
+
+        await ctx.send(embed=embed)
 
 
 def setup(bot: LightningBot) -> None:
