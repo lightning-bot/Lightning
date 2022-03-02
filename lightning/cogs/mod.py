@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,9 +14,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 from collections import Counter
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import discord
 from discord.ext import commands
@@ -34,6 +36,9 @@ from lightning.utils.checks import (has_channel_permissions,
                                     has_guild_permissions)
 from lightning.utils.time import (FutureTime, get_utc_timestamp,
                                   natural_timedelta)
+
+if TYPE_CHECKING:
+    from lightning.cogs.reminders import Reminders
 
 confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
                  "timeban": "{target} was banned. \N{THUMBS UP SIGN} It will expire in {expiry}.",
@@ -167,16 +172,15 @@ class Mod(LightningCog, required=["Configuration"]):
 
     async def time_ban_user(self, ctx, target, moderator, reason, duration, *, dm_user=False,
                             delete_message_days=0) -> None:
-        dt = get_utc_timestamp(duration.dt)
-        timed_txt = natural_timedelta(duration.dt, source=ctx.message.created_at)
-        duration_text = f"{timed_txt} ({dt})"
+        duration_text = f"{natural_timedelta(duration.dt, source=ctx.message.created_at)} ("\
+                        f"{discord.utils.format_dt(duration.dt)})"
 
-        cog = self.bot.get_cog('Reminders')
+        cog: Optional[Reminders] = self.bot.get_cog('Reminders')
         if not cog:
             raise TimersUnavailable
 
-        job_id = await cog.add_job("timeban", ctx.message.created_at, duration.dt, guild_id=ctx.guild.id,
-                                   user_id=target.id, mod_id=moderator.id, force_insert=True)
+        job_id = await cog.add_timer("timeban", ctx.message.created_at, duration.dt, guild_id=ctx.guild.id,
+                                     user_id=target.id, mod_id=moderator.id, force_insert=True)
 
         if dm_user and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason,
@@ -410,16 +414,16 @@ class Mod(LightningCog, required=["Configuration"]):
 
     async def time_mute_user(self, ctx, target, reason, duration, *, dm_user=False):
         role = await self.get_mute_role(ctx, temporary_role=True)
-        duration_text = get_utc_timestamp(duration.dt)
-        timed_txt = natural_timedelta(duration.dt, source=ctx.message.created_at)
-        duration_text = f"{timed_txt} ({duration_text})"
-        timer = self.bot.get_cog('Reminders')
+        duration_text = f"{natural_timedelta(duration.dt, source=ctx.message.created_at)} ("\
+                        f"{discord.utils.format_dt(duration.dt)})"
+
+        timer: Optional[Reminders] = self.bot.get_cog('Reminders')
         if not timer:
             raise TimersUnavailable
 
-        job_id = await timer.add_job("timemute", ctx.message.created_at,
-                                     duration.dt, guild_id=ctx.guild.id, user_id=target.id, role_id=role.id,
-                                     mod_id=ctx.author.id, force_insert=True)
+        job_id = await timer.add_timer("timemute", ctx.message.created_at,
+                                       duration.dt, guild_id=ctx.guild.id, user_id=target.id, role_id=role.id,
+                                       mod_id=ctx.author.id, force_insert=True)
 
         if isinstance(target, discord.Member):
             msg = modlogformats.construct_dm_message(target, "muted", "in", reason=reason,
