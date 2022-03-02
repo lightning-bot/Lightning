@@ -36,12 +36,12 @@ from rapidfuzz import fuzz, process
 
 from lightning import (CommandLevel, LightningCog, LightningContext, Storage,
                        command, group)
+from lightning.cogs.homebrew import ui
 from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
 from lightning.utils.checks import has_channel_permissions
 from lightning.utils.helpers import request as make_request
 from lightning.utils.paginator import InfoMenuPages
-from lightning.views import homebrew_uis
 
 log: logging.Logger = logging.getLogger(__name__)
 
@@ -146,7 +146,7 @@ class Homebrew(LightningCog):
         """Manages the guild's configuration for Nintendo console update alerts.
 
         If invoked with no subcommands, this will start an interactive menu."""
-        await homebrew_uis.NinUpdates().start(ctx)
+        await ui.NinUpdates().start(ctx)
 
     @nintendoupdatesfeed.command(name="setup", level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
@@ -491,7 +491,3 @@ class Homebrew(LightningCog):
                      value=f"\U00002022 {featuresformat}")
         em.set_footer(text="Guide made by the RiiConnect24 team and others")
         await ctx.send(embed=em)
-
-
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(Homebrew(bot))
