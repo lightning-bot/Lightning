@@ -43,6 +43,19 @@ class DiscordMeta(LightningCog):
         embed.set_image(url=member.display_avatar.url)
         await ctx.send(embed=embed)
 
+    def _determine_activity(self, activity: discord.ActivityType) -> str:
+        if isinstance(activity, discord.Spotify):
+            artists = ', '.join(activity.artists)
+            return f"Listening to [{activity.title}]"\
+                f"(https://open.spotify.com/track/{activity.track_id}) by {artists}"
+        elif isinstance(activity, discord.Streaming):
+            return f"Streaming [{activity.name}]({activity.url})"
+        elif isinstance(activity, discord.CustomActivity):
+            act_name = activity.name if activity.name is not None else ""
+            return f"{activity.emoji} {act_name}" if activity.emoji else act_name
+        else:
+            return activity.name
+
     @command(aliases=['ui'])
     async def userinfo(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
         """Gives information about a member or a user"""
@@ -61,22 +74,10 @@ class DiscordMeta(LightningCog):
             embed.set_footer(text='This member is not in this server.')
 
         # TODO: Support multiple activities
-        activity = getattr(member, 'activity', None)
-        if activity is not None:
-            if isinstance(member.activity, discord.Spotify):
-                artists = ', '.join(member.activity.artists)
-                spotifyact = f"Listening to [{member.activity.title}]"\
-                             f"(https://open.spotify.com/track/{member.activity.track_id})"\
-                             f" by {artists}"
-                desc.append(f"**Activity**: {spotifyact}")
-            elif isinstance(member.activity, discord.Streaming):
-                desc.append(f"**Activity**: Streaming [{member.activity.name}]({member.activity.url})")
-            elif isinstance(member.activity, discord.CustomActivity):
-                act_name = activity.name if activity.name is not None else ""
-                activity = f"{activity.emoji} {act_name}" if activity.emoji else act_name
-                desc.append(f"**Activity**: {activity}")
-            else:
-                desc.append(f"**Activity**: {member.activity.name}")
+        activities = getattr(member, 'activities', None)
+        if activities is not None:
+            activities_fmt = '\N{BULLET} '.join([f"{self._determine_activity(a)}\n" for a in activities])
+            desc.append(f"**Activities**: {activities_fmt.strip()}")
 
         if hasattr(member, 'joined_at'):
             desc.append(f"**Joined**: {discord.utils.format_dt(member.joined_at)} "
