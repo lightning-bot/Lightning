@@ -73,7 +73,6 @@ class DiscordMeta(LightningCog):
         if not isinstance(member, discord.Member):
             embed.set_footer(text='This member is not in this server.')
 
-        # TODO: Support multiple activities
         activities = getattr(member, 'activities', None)
         if activities is not None:
             activities_fmt = '\N{BULLET} '.join([f"{self._determine_activity(a)}\n" for a in activities])
@@ -156,10 +155,9 @@ class DiscordMeta(LightningCog):
         guild = guild if await self.bot.is_owner(ctx.author) else ctx.guild
 
         embed = discord.Embed(title=guild.name)
-        embed.description = f"**ID**: {guild.id}\n**Owner**: {str(guild.owner)}"
-
-        embed.add_field(name="Creation", value=f"{discord.utils.format_dt(guild.created_at)} "
-                        f"({natural_timedelta(guild.created_at, accuracy=3)})", inline=False)
+        embed.description = f"**ID**: {guild.id}\n**Owner**: {str(guild.owner)}\n**Creation**: "\
+                            f"{discord.utils.format_dt(guild.created_at)} ("\
+                            f"{natural_timedelta(guild.created_at, accuracy=3)})"
 
         if guild.icon:
             if guild.icon.is_animated():
@@ -212,7 +210,8 @@ class DiscordMeta(LightningCog):
 
         await ctx.send(embed=embed)
 
-    async def show_channel_permissions(self, channel: discord.TextChannel, member, ctx: LightningContext) -> None:
+    async def show_channel_permissions(self, channel: discord.TextChannel, member: discord.Member,
+                                       ctx: LightningContext) -> None:
         perms = channel.permissions_for(member)
         embed = discord.Embed(title="Channel Permissions", color=member.color)
         allowed = []
