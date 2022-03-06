@@ -104,11 +104,17 @@ class LightningBot(commands.AutoShardedBot):
 
         path = pathlib.Path("lightning/cogs/")
         cog_list = []
+
+        # "Plugin" handling
+        for plugin in path.glob("*/__init__.py"):
+            cog_list.append(_transform_path(plugin.parent))
+
         for name in path.glob("**/*.py"):
             qual_name = _transform_path(name.with_suffix(""))
-            if f'{_transform_path(name.parent)}.__init__' in cog_list:
+            if _transform_path(name.parent) in cog_list:
                 log.debug(f"Skipping over {str(name)}...")
                 continue
+
             cog_list.append(qual_name)
 
         for cog in cog_list:
