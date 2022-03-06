@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -16,15 +16,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import TYPE_CHECKING
 
 import discord
 
-from lightning import LightningBot, LightningCog, LoggingType
+from lightning import LightningCog, LoggingType
 from lightning.cache import Strategy, cached
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils import modlogformats
 from lightning.utils.emitters import TextChannelEmitter
+
+if TYPE_CHECKING:
+    from typing import Optional, Union
+
+    from lightning import LightningBot, LightningContext
+    from lightning.events import (AuditLogModAction, InfractionEvent,
+                                  MemberRolesUpdateEvent, MemberUpdateEvent)
 
 
 class ModLog(LightningCog):
@@ -91,7 +98,7 @@ class ModLog(LightningCog):
 
     # Bot events
     @LightningCog.listener()
-    async def on_command_completion(self, ctx) -> None:
+    async def on_command_completion(self, ctx: LightningContext) -> None:
         if ctx.guild is None:
             return
 
@@ -114,7 +121,7 @@ class ModLog(LightningCog):
     @LightningCog.listener('on_lightning_member_unban')
     @LightningCog.listener('on_lightning_member_mute')
     @LightningCog.listener('on_lightning_member_unmute')
-    async def on_lightning_member_action(self, event):
+    async def on_lightning_member_action(self, event: Union[AuditLogModAction, InfractionEvent]):
         if not event.action.is_logged():
             await event.action.add_infraction(self.bot.pool)
 
@@ -209,7 +216,7 @@ class ModLog(LightningCog):
                 await emitter.put(embed=embed)
 
     @LightningCog.listener()
-    async def on_lightning_member_role_change(self, event):
+    async def on_lightning_member_role_change(self, event: MemberRolesUpdateEvent):
         if event.added_roles:
             await self._log_role_changes(LoggingType.MEMBER_ROLE_ADD, event.guild, event.after, added=event.added_roles,
                                          entry=event.entry)
@@ -219,7 +226,7 @@ class ModLog(LightningCog):
                                          removed=event.removed_roles, entry=event.entry)
 
     @LightningCog.listener()
-    async def on_lightning_member_nick_change(self, event):
+    async def on_lightning_member_nick_change(self, event: MemberUpdateEvent):
         guild = event.guild
         async for emitter, record in self.get_records(guild, LoggingType.MEMBER_NICK_CHANGE):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
