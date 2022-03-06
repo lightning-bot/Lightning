@@ -21,7 +21,8 @@ import json
 import discord
 
 from lightning import LightningCog, LightningContext, group
-from lightning.converters import Message, ReadableChannel
+from lightning.cogs.info.converters import Message
+from lightning.converters import ReadableChannel
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from lightning.utils.helpers import message_id_lookup
 
