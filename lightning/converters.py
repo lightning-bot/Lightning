@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -188,37 +188,6 @@ class InbetweenNumber(commands.Converter):
         elif val > self.maximum:
             raise commands.BadArgument(f"You can\'t use a number higher than {self.maximum}")
         return val
-
-
-class Message(commands.Converter):
-    async def convert(self, ctx, argument):
-        if len(argument) == 2:
-            try:
-                message = int(argument[0])
-            except ValueError:
-                raise LightningError("Not a valid message ID.")
-            channel = await ReadableChannel().convert(ctx, argument[1])
-            return message, channel
-        # regex from d.py
-        argument = argument[0]
-        link_regex = re.compile(
-            r'^https?://(?:(ptb|canary)\.)?discord(?:app)?\.com/channels/'
-            r'(?:([0-9]{15,21})|(@me))'
-            r'/(?P<channel_id>[0-9]{15,21})/(?P<message_id>[0-9]{15,21})/?$'
-        )
-        match = link_regex.match(argument)
-        if not match:
-            # Same message from channel...
-            try:
-                message = int(argument)
-            except ValueError:
-                raise LightningError("Not a valid message ID.")
-            channel = ctx.channel
-            return message, channel
-        message_id = int(match.group("message_id"))
-        channel_id = match.group("channel_id")
-        channel = await ReadableChannel().convert(ctx, channel_id)
-        return message_id, channel
 
 
 class GuildID(commands.Converter):
