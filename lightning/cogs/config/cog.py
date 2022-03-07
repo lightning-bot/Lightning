@@ -23,9 +23,7 @@ from discord.ext import commands, menus
 from discord.ext.menus.views import ViewMenu
 
 from lightning import (CommandLevel, ConfigFlags, LightningCog,
-                       LightningContext, ModFlags, cache, command)
-from lightning import flags as lflags
-from lightning import group
+                       LightningContext, ModFlags, cache, command, group)
 from lightning.cogs.config import ui
 from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
@@ -179,7 +177,7 @@ class Configuration(LightningCog):
 
     async def add_prefix(self, guild: discord.Guild, prefix: list, *, connection=None) -> None:
         """Adds a prefix to the guild's config"""
-        query = """INSERT INTO guild_config (guild_id, prefix)
+        query = """INSERT INTO guild_config (guild_id, prefixes)
                    VALUES ($1, $2::text[]) ON CONFLICT (guild_id)
                    DO UPDATE SET
                         prefix = EXCLUDED.prefix;
@@ -189,7 +187,7 @@ class Configuration(LightningCog):
 
     async def get_guild_prefixes(self, guild_id: int, connection=None) -> list:
         connection = connection or self.bot.pool
-        query = """SELECT prefix
+        query = """SELECT prefixes
                    FROM guild_config
                    WHERE guild_id=$1;"""
         val = await connection.fetchval(query, guild_id)
@@ -198,10 +196,10 @@ class Configuration(LightningCog):
     async def delete_prefix(self, guild_id: int, prefixes: list) -> str:
         """Deletes a prefix"""
         if not prefixes:
-            query = "UPDATE guild_config SET prefix = NULL WHERE guild_id = $1;"
+            query = "UPDATE guild_config SET prefixes = NULL WHERE guild_id = $1;"
             args = [guild_id]
         else:
-            query = "UPDATE guild_config SET prefix = $1 WHERE guild_id = $2;"
+            query = "UPDATE guild_config SET prefixes = $1 WHERE guild_id = $2;"
             args = [prefixes, guild_id]
 
         return await self.bot.pool.execute(query, *args)
@@ -367,36 +365,13 @@ class Configuration(LightningCog):
         await self.invalidate_config(ctx)
         await ctx.send(f"Successfully set the mute role to {role.name}")
 
-    @muterole.command(name="temp", level=CommandLevel.Admin)
+    @muterole.command(name="reset", aliases=['delete', 'remove'], level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True, manage_roles=True)
-    async def set_temp_mute_role(self, ctx: LightningContext, *, role: Role = None) -> None:
-        if not role:
-            ret = await self.get_mod_config(ctx)
-            if not ret:
-                await ctx.send("There is no mute role setup!")
-                return
-
-            mute = ret.get_temp_mute_role(ctx, fallback=False)
-            await ctx.send(f"The current temporary mute role is set to {mute.name} ({mute.id})")
-            return
-
-        await self.add_config_key(ctx.guild.id, "temp_mute_role_id", role.id, table="guild_mod_config")
-        await self.invalidate_config(ctx)
-        await ctx.send(f"Successfully set the temporary mute role to {role.name}")
-
-    @lflags.add_flag("--temp", "-T", is_bool_flag=True, help="Whether to remove the temp mute role")
-    @muterole.command(name="reset", aliases=['delete', 'remove'], level=CommandLevel.Admin, cls=lflags.FlagCommand)
-    @has_guild_permissions(manage_guild=True, manage_roles=True)
-    async def delete_mute_role(self, ctx: LightningContext, **flags) -> None:
+    async def delete_mute_role(self, ctx: LightningContext) -> None:
         """Deletes the configured mute role."""
-        if flags['temp'] is False:
-            query = """UPDATE guild_mod_config SET mute_role_id=NULL
-                       WHERE guild_id=$1;
-                    """
-        else:
-            query = """UPDATE guild_mod_config SET temp_mute_role_id=NULL
-                       WHERE guild_id=$1;
-                    """
+        query = """UPDATE guild_mod_config SET mute_role_id=NULL
+                   WHERE guild_id=$1;
+                """
         await self.bot.pool.execute(query, ctx.guild.id)
         await self.invalidate_config(ctx)
         await ctx.send("Successfully removed the configured mute role.")
@@ -424,10 +399,9 @@ class Configuration(LightningCog):
                 skipped += 1
         return success, failure, skipped
 
-    @lflags.add_flag("--temp", "-T", is_bool_flag=True, help="Whether to use the temp mute role")
-    @muterole.command(name="update", level=CommandLevel.Admin, cls=lflags.FlagCommand)
+    @muterole.command(name="update", level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True, manage_roles=True)
-    async def mute_role_perm_update(self, ctx: LightningContext, **flags) -> None:
+    async def mute_role_perm_update(self, ctx: LightningContext) -> None:
         """Updates the permission overwrites of the mute role.
 
         This sets the permissions to Send Messages and Add Reactions as False
@@ -438,7 +412,7 @@ class Configuration(LightningCog):
                            f"`{ctx.prefix}config muterole <role>`.")
             return
 
-        role = config.get_mute_role() if flags['temp'] is False else config.get_temp_mute_role(fallback=False)
+        role = config.get_mute_role()
 
         success, failed, skipped = await self.update_mute_role_permissions(role,
                                                                            ctx.guild, ctx.author)
