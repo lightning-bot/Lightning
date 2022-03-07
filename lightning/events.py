@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,7 +14,16 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from lightning.models import Action
+
+if TYPE_CHECKING:
+    from typing import List, Optional
+
+    import discord
 
 # These are event models that'll be passed for listeners cog
 
@@ -22,7 +31,7 @@ from lightning.models import Action
 class BaseAuditLogEvent:
     __slots__ = ("moderator", "reason")
 
-    def __init__(self, entry=None):
+    def __init__(self, entry: Optional[discord.AuditLogEntry] = None):
         # We can probably get the guild.id from the entry itself...
         if entry is not None:
             self.moderator = entry.user
@@ -37,14 +46,14 @@ class MemberUpdateEvent(BaseAuditLogEvent):
     """Represents a member update with optional audit log information"""
     __slots__ = ("before", "after", "entry")
 
-    def __init__(self, before, after, entry):
+    def __init__(self, before: discord.Member, after: discord.Member, entry: Optional[discord.AuditLogEntry]):
         super().__init__(entry)
         self.before = before
         self.after = after
         self.entry = entry
 
     @property
-    def guild(self):
+    def guild(self) -> discord.Guild:
         """A shortcut for MemberUpdateEvent.after.guild"""
         return self.after.guild
 
@@ -52,11 +61,11 @@ class MemberUpdateEvent(BaseAuditLogEvent):
 # lightning_member_role_change
 class MemberRolesUpdateEvent(MemberUpdateEvent):
     @property
-    def added_roles(self):
+    def added_roles(self) -> List[discord.Role]:
         return [role for role in self.after.roles if role not in self.before.roles]
 
     @property
-    def removed_roles(self):
+    def removed_roles(self) -> List[discord.Role]:
         return [role for role in self.before.roles if role not in self.after.roles]
 
 
@@ -65,7 +74,7 @@ class MemberRolesUpdateEvent(MemberUpdateEvent):
 class MemberRoleUpdateEvent(BaseAuditLogEvent):
     __slots__ = ("role")
 
-    def __init__(self, role, entry):
+    def __init__(self, role: discord.Role, entry: Optional[discord.AuditLogEntry]):
         super().__init__(entry)
         self.role = role
 
