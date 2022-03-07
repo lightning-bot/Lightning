@@ -294,14 +294,14 @@ class Timer:
 
 
 class GuildBotConfig:
-    __slots__ = ('bot', 'guild_id', 'toggleroles', 'prefix', 'autorole_id', 'flags', 'permissions')
+    __slots__ = ('bot', 'guild_id', 'toggleroles', 'prefixes', 'autorole_id', 'flags', 'permissions')
 
     def __init__(self, bot: LightningBot, record):
         self.bot: LightningBot = bot
 
         self.guild_id: int = record['guild_id']
         self.toggleroles: Optional[List[int]] = record['toggleroles']
-        self.prefix: Optional[List[str]] = record['prefix']
+        self.prefixes: Optional[List[str]] = record['prefixes']
         self.autorole_id: Optional[int] = record['autorole']
         self.flags: ConfigFlags = ConfigFlags(record['flags'] or 0)
 
@@ -309,10 +309,6 @@ class GuildBotConfig:
             self.permissions = GuildPermissionsConfig(record['permissions'])
         else:
             self.permissions = None
-
-    @property
-    def prefixes(self):
-        return self.prefix
 
     @property
     def autorole(self) -> Optional[discord.Role]:
