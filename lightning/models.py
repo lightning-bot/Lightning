@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,20 +14,24 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from typing import Optional, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import discord
 
 from lightning import errors
 from lightning.commands import CommandLevel
 from lightning.context import LightningContext
-from lightning.enums import ConfigFlags as ConfigBFlags
-from lightning.enums import LoggingType, ModFlags
+from lightning.enums import ConfigFlags, LoggingType, ModFlags
 from lightning.utils import modlogformats
 from lightning.utils.time import natural_timedelta, strip_tzinfo
 
-# Alias
-ConfigFlags = ConfigBFlags
+if TYPE_CHECKING:
+    import datetime
+    from typing import Any, Dict, List, Optional, Union
+
+    from lightning import LightningBot
 
 
 class GuildModConfig:
@@ -35,13 +39,13 @@ class GuildModConfig:
                  "bot")
 
     def __init__(self, record, bot):
-        self.guild_id = record['guild_id']
-        self.mute_role_id = record['mute_role_id']
-        self.warn_kick = record['warn_kick']
-        self.warn_ban = record['warn_ban']
-        self.temp_mute_role_id = record['temp_mute_role_id']
-        self.flags = ModFlags(record['flags'] or 0)
-        self.bot = bot
+        self.guild_id: int = record['guild_id']
+        self.mute_role_id: Optional[int] = record['mute_role_id']
+        self.warn_kick: Optional[int] = record['warn_kick']
+        self.warn_ban: Optional[int] = record['warn_ban']
+        self.temp_mute_role_id: Optional[int] = record['temp_mute_role_id']
+        self.flags: ModFlags = ModFlags(record['flags'] or 0)
+        self.bot: LightningBot = bot
         # self.automod = AutoModConfig(record)
         # self.raid_mode = record['raid_mode']
 
@@ -86,7 +90,7 @@ class LoggingConfig:
             self.logging[record['channel_id']] = {"types": LoggingType(record['types']),
                                                   "format": record['format']}
 
-    def get_channels_with_feature(self, feature) -> list:
+    def get_channels_with_feature(self, feature) -> List[int]:
         channels = []
         for key, value in list(self.logging.items()):
             if feature in value['types']:
@@ -110,10 +114,14 @@ class CommandOverrides:
             overrides = record.get("ID_OVERRIDES", None)
             self.overrides[command] = {"LEVEL": level, "ID_OVERRIDES": overrides}
 
-    def get_overrides(self, command: str):
+    def get_overrides(self, command: str) -> Optional[dict]:
+        """Gets overrides for a command
+
+        command : str
+            The command to get overrides for"""
         return self.overrides.get(command, None)
 
-    def is_command_level_blocked(self, command: str):
+    def is_command_level_blocked(self, command: str) -> bool:
         override = self.overrides.get(command, {}).get("LEVEL", None)
         if override is None:
             return False
@@ -261,7 +269,8 @@ class PartialGuild:
 class Timer:
     __slots__ = ('extra', 'event', 'id', 'created_at', 'expiry')
 
-    def __init__(self, id, event, created_at, expiry, extra):
+    def __init__(self, id: int, event: str, created_at: datetime.datetime, expiry: datetime.datetime,
+                 extra: Optional[Dict[str, Any]]):
         self.id = id
         self.event = event
         self.created_at = created_at
@@ -269,11 +278,11 @@ class Timer:
         self.extra = extra
 
     @classmethod
-    def from_record(cls, record):
+    def from_record(cls, record: dict):
         return cls(record['id'], record['event'], record['created'], record['expiry'], record['extra'])
 
     @property
-    def created(self):
+    def created(self) -> datetime.datetime:
         return self.created_at
 
     @property
@@ -287,14 +296,14 @@ class Timer:
 class GuildBotConfig:
     __slots__ = ('bot', 'guild_id', 'toggleroles', 'prefix', 'autorole_id', 'flags', 'permissions')
 
-    def __init__(self, bot, record):
-        self.bot = bot
+    def __init__(self, bot: LightningBot, record):
+        self.bot: LightningBot = bot
 
-        self.guild_id = record['guild_id']
-        self.toggleroles = record['toggleroles']
-        self.prefix = record['prefix']
-        self.autorole_id = record['autorole']
-        self.flags = ConfigFlags(record['flags'] or 0)
+        self.guild_id: int = record['guild_id']
+        self.toggleroles: Optional[List[int]] = record['toggleroles']
+        self.prefix: Optional[List[str]] = record['prefix']
+        self.autorole_id: Optional[int] = record['autorole']
+        self.flags: ConfigFlags = ConfigFlags(record['flags'] or 0)
 
         if record['permissions']:
             self.permissions = GuildPermissionsConfig(record['permissions'])
@@ -306,7 +315,7 @@ class GuildBotConfig:
         return self.prefix
 
     @property
-    def autorole(self):
+    def autorole(self) -> Optional[discord.Role]:
         guild = self.bot.get_guild(self.guild_id)
         return guild.get_role(self.autorole_id) if guild else None
 
@@ -325,17 +334,18 @@ def to_action(value):
 class Action:
     def __init__(self, guild_id: int, action: Union[modlogformats.ActionType, str],
                  target: Union[discord.Member, discord.User, int],
-                 moderator: Union[discord.Member, discord.User, int], reason: str = None, *, expiry=None, **kwargs):
+                 moderator: Union[discord.Member, discord.User, int], reason: Optional[str] = None, *,
+                 expiry: Optional[datetime.datetime] = None, **kwargs):
         self.guild_id = guild_id
-        self.action = to_action(action)
+        self.action: modlogformats.ActionType = to_action(action)
         self.target = target
         self.moderator = moderator
         self.reason = reason
         self.expiry = expiry
         self.kwargs = kwargs
-        self.timestamp = self.kwargs.pop("timestamp", discord.utils.utcnow())
+        self.timestamp: datetime.datetime = self.kwargs.pop("timestamp", discord.utils.utcnow())
 
-        self.infraction_id = None
+        self.infraction_id: Optional[int] = None
 
     async def add_infraction(self, connection) -> int:
         """Inserts an infraction into the database.
@@ -362,9 +372,9 @@ class Action:
         self.infraction_id = r
         return r
 
-    def is_logged(self):
+    def is_logged(self) -> bool:
         return bool(self.infraction_id)
 
     @property
-    def event(self):
+    def event(self) -> str:
         return self.action.upper()
