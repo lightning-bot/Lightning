@@ -47,12 +47,12 @@ class State(LightningCog):
             await self.remove_guild(record['id'])
 
     async def get_guild_record(self, guild_id: int) -> PartialGuild:
-        record = await self.bot.pool.fetchrow("SELECT * FROM guilds WHERE id=$1", guild_id)
+        record = await self.bot.api.get_guild(guild_id)
         return PartialGuild(record)
 
     async def remove_guild(self, guild: Union[int, discord.Guild, PartialGuild]) -> None:
         guild_id = getattr(guild, 'id', guild)
-        await self.bot.pool.execute("UPDATE guilds SET left_at=(NOW() AT TIME ZONE 'utc') WHERE id=$1", guild_id)
+        await self.bot.api.leave_guild(guild_id)
 
         if not isinstance(guild, discord.Guild):
             guild = await self.get_guild_record(guild_id)
