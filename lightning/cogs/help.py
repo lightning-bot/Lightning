@@ -104,8 +104,8 @@ class HelpMenu(menus.ListPageSource):
             value = f"{cog.description}\n{format_commands(cmds)}" if cog.description else format_commands(cmds)
             embed.add_field(name=entry, value=value, inline=False)
 
-        embed.set_footer(text=f"Page {menu.current_page + 1} of {self.get_max_pages()} ({self.total} categories)",
-                         icon_url=menu.ctx.bot.user.avatar.url)
+        embed.set_footer(text=f"Page {menu.current_page + 1} of {self.get_max_pages() or 1} ({self.total or 1} "
+                              "categories)", icon_url=menu.ctx.bot.user.avatar.url)
         return embed
 
     def format_group_embed(self, embed: discord.Embed, menu, entries: list) -> discord.Embed:
@@ -113,8 +113,8 @@ class HelpMenu(menus.ListPageSource):
             signature = f"{command.qualified_name} {command.signature}"
             embed.add_field(name=signature, value=command.short_doc or "No help found...", inline=False)
 
-        embed.set_author(name=f"Page {menu.current_page + 1} of {self.get_max_pages()} ({self.total} commands)",
-                         icon_url=menu.ctx.bot.user.avatar.url)
+        embed.set_author(name=f"Page {menu.current_page + 1} of {self.get_max_pages() or 1} ({self.total or 1} "
+                              "commands)", icon_url=menu.ctx.bot.user.avatar.url)
         return embed
 
     async def format_page(self, menu, entries) -> discord.Embed:
