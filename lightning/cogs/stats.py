@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import collections
+import io
 import logging
 import time
 from typing import TYPE_CHECKING
@@ -325,6 +326,17 @@ class Stats(LightningCog):
                                           for (index, (command_name, cmd_uses)) in enumerate(records))
             embed.add_field(name="Today", value=commands_used_des)
             await ctx.send(embed=embed)
+
+    @stats.command()
+    @commands.is_owner()
+    async def recent(self, ctx: LightningContext, limit: int = 10):
+        """Shows recent command invocations"""
+        query = """SELECT * FROM commands_usage ORDER BY used_at DESC LIMIT $1;"""
+        records = await self.bot.pool.fetch(query, limit)
+        fmt = tabulate.tabulate(records, headers='keys', tablefmt='psql')
+        fp = io.StringIO(fmt)
+        fp.seek(0)
+        await ctx.send(file=discord.File(fp, filename="recents.txt"))
 
     @command()
     @commands.cooldown(1, 60.0, commands.BucketType.member)
