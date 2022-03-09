@@ -14,8 +14,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from lightning import (LightningBot, LightningCog, LightningCommand,
-                       LightningContext, group)
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from lightning import LightningCog, LightningCommand, group
+
+if TYPE_CHECKING:
+    from lightning import LightningBot, LightningContext
 
 
 class TextMeme(LightningCommand):
@@ -32,11 +38,6 @@ class TextMeme(LightningCommand):
         await ctx.send(str(self.text))
 
 
-class TextMemeGroup(TextMeme):
-    async def _callback(self, ctx: LightningContext) -> None:
-        await ctx.send(str(self.text))
-
-
 class Memes(LightningCog):
     """Approved™ memes"""
 
@@ -50,7 +51,7 @@ class Memes(LightningCog):
             # I hate this
             if isinstance(value, dict):
                 continue
-            self.memes.add_command(TextMemeGroup(key, value))
+            self.memes.add_command(TextMeme(key, value, cog=self))
 
         self.add_meme_commands(nongrouped, hidden=False)
         self.add_meme_commands(nongroupedhidden)
