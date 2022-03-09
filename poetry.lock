@@ -200,7 +200,7 @@ resolved_reference = "ebe27e606fbacedfd472a65275bcaa197bf30666"
 
 [[package]]
 name = "discord.py"
-version = "2.0.0a3745+ga29af164"
+version = "2.0.0a3784+g4e748348"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -220,7 +220,7 @@ voice = ["PyNaCl (>=1.3.0,<1.5)"]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
 reference = "param-default"
-resolved_reference = "a29af164dc830c482f8633358c4f21e3f26db320"
+resolved_reference = "4e74834858a9e489ade26ae4008716748ad125a4"
 
 [[package]]
 name = "distlib"
@@ -400,6 +400,24 @@ sqlbag = "*"
 pg = ["psycopg2-binary"]
 
 [[package]]
+name = "migri"
+version = "0.7.0"
+description = ""
+category = "main"
+optional = false
+python-versions = "<3.11,>=3.7"
+
+[package.dependencies]
+asyncpg = "*"
+click = ">=7,<9"
+sqlparse = ">=0.4.0,<0.5.0"
+
+[package.extras]
+mysql = ["aiomysql"]
+postgresql = ["asyncpg"]
+sqlite = ["aiosqlite"]
+
+[[package]]
 name = "multidict"
 version = "6.0.2"
 description = "multidict implementation"
@@ -488,14 +506,6 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [package.extras]
 test = ["ipaddress", "mock", "unittest2", "enum34", "pywin32", "wmi"]
-
-[[package]]
-name = "psycopg2"
-version = "2.9.3"
-description = "psycopg2 - Python-PostgreSQL Database Adapter"
-category = "main"
-optional = false
-python-versions = ">=3.6"
 
 [[package]]
 name = "psycopg2-binary"
@@ -839,27 +849,10 @@ python-versions = ">=3.6"
 idna = ">=2.0"
 multidict = ">=4.0"
 
-[[package]]
-name = "yoyo-migrations"
-version = "7.3.2"
-description = "Database migrations with SQL"
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-sqlparse = "*"
-tabulate = "*"
-
-[package.extras]
-mysql = ["pymysql"]
-postgres = ["psycopg2"]
-pyodbc = ["pyodbc"]
-
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.8"
-content-hash = "5ea1a153d5bbc199afb5c903d5201855360364d956f67cfadb631962dbed35b9"
+python-versions = ">=3.8,<3.11"
+content-hash = "6a4d6f48d225f687a3a060a490e2f7cd0213d2cec1412134efd77b4b2febc296"
 
 [metadata.files]
 aiohttp = [
@@ -1211,6 +1204,10 @@ migra = [
     {file = "migra-3.0.1621480950-py3-none-any.whl", hash = "sha256:157a40fff99ecadbec389b8972b42eac93f43eb82f4ae8f485adc87fcd7800d6"},
     {file = "migra-3.0.1621480950.tar.gz", hash = "sha256:5fdce56fe7de79b17b7875250c1e90c645117cc8d358c5a43b38b815390a4445"},
 ]
+migri = [
+    {file = "migri-0.7.0-py3-none-any.whl", hash = "sha256:82309400e095be88e43d697746ac307a003eb30b381262d078da414ad55dd16d"},
+    {file = "migri-0.7.0.tar.gz", hash = "sha256:d6662e91719dc13d6f22cddbacaf582367ed2d0d9d4d981b4da7d2fe7c81fcfb"},
+]
 multidict = [
     {file = "multidict-6.0.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:0b9e95a740109c6047602f4db4da9949e6c5945cefbad34a1299775ddc9a62e2"},
     {file = "multidict-6.0.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:ac0e27844758d7177989ce406acc6a83c16ed4524ebc363c1f748cba184d89d3"},
@@ -1396,19 +1393,6 @@ psutil = [
     {file = "psutil-5.9.0-cp39-cp39-win32.whl", hash = "sha256:4e2fb92e3aeae3ec3b7b66c528981fd327fb93fd906a77215200404444ec1845"},
     {file = "psutil-5.9.0-cp39-cp39-win_amd64.whl", hash = "sha256:7d190ee2eaef7831163f254dc58f6d2e2a22e27382b936aab51c835fc080c3d3"},
     {file = "psutil-5.9.0.tar.gz", hash = "sha256:869842dbd66bb80c3217158e629d6fceaecc3a3166d3d1faee515b05dd26ca25"},
-]
-psycopg2 = [
-    {file = "psycopg2-2.9.3-cp310-cp310-win32.whl", hash = "sha256:083707a696e5e1c330af2508d8fab36f9700b26621ccbcb538abe22e15485362"},
-    {file = "psycopg2-2.9.3-cp310-cp310-win_amd64.whl", hash = "sha256:d3ca6421b942f60c008f81a3541e8faf6865a28d5a9b48544b0ee4f40cac7fca"},
-    {file = "psycopg2-2.9.3-cp36-cp36m-win32.whl", hash = "sha256:9572e08b50aed176ef6d66f15a21d823bb6f6d23152d35e8451d7d2d18fdac56"},
-    {file = "psycopg2-2.9.3-cp36-cp36m-win_amd64.whl", hash = "sha256:a81e3866f99382dfe8c15a151f1ca5fde5815fde879348fe5a9884a7c092a305"},
-    {file = "psycopg2-2.9.3-cp37-cp37m-win32.whl", hash = "sha256:cb10d44e6694d763fa1078a26f7f6137d69f555a78ec85dc2ef716c37447e4b2"},
-    {file = "psycopg2-2.9.3-cp37-cp37m-win_amd64.whl", hash = "sha256:4295093a6ae3434d33ec6baab4ca5512a5082cc43c0505293087b8a46d108461"},
-    {file = "psycopg2-2.9.3-cp38-cp38-win32.whl", hash = "sha256:34b33e0162cfcaad151f249c2649fd1030010c16f4bbc40a604c1cb77173dcf7"},
-    {file = "psycopg2-2.9.3-cp38-cp38-win_amd64.whl", hash = "sha256:0762c27d018edbcb2d34d51596e4346c983bd27c330218c56c4dc25ef7e819bf"},
-    {file = "psycopg2-2.9.3-cp39-cp39-win32.whl", hash = "sha256:8cf3878353cc04b053822896bc4922b194792df9df2f1ad8da01fb3043602126"},
-    {file = "psycopg2-2.9.3-cp39-cp39-win_amd64.whl", hash = "sha256:06f32425949bd5fe8f625c49f17ebb9784e1e4fe928b7cce72edc36fb68e4c0c"},
-    {file = "psycopg2-2.9.3.tar.gz", hash = "sha256:8e841d1bf3434da985cc5ef13e6f75c8981ced601fd70cc6bf33351b91562981"},
 ]
 psycopg2-binary = [
     {file = "psycopg2-binary-2.9.3.tar.gz", hash = "sha256:761df5313dc15da1502b21453642d7599d26be88bff659382f8f9747c7ebea4e"},
@@ -1800,8 +1784,4 @@ yarl = [
     {file = "yarl-1.7.2-cp39-cp39-win32.whl", hash = "sha256:1edc172dcca3f11b38a9d5c7505c83c1913c0addc99cd28e993efeaafdfaa18d"},
     {file = "yarl-1.7.2-cp39-cp39-win_amd64.whl", hash = "sha256:797c2c412b04403d2da075fb93c123df35239cd7b4cc4e0cd9e5839b73f52c58"},
     {file = "yarl-1.7.2.tar.gz", hash = "sha256:45399b46d60c253327a460e99856752009fcee5f5d3c80b2f7c0cae1c38d56dd"},
-]
-yoyo-migrations = [
-    {file = "yoyo-migrations-7.3.2.tar.gz", hash = "sha256:44840828e1a0169f541e702d5aedca8185ada68087e7bad4850a6fc5d71e77a4"},
-    {file = "yoyo_migrations-7.3.2-py3-none-any.whl", hash = "sha256:a6e6bc990732d4951c4e2a5b2815d60fe47a445f1c0d1b3433b9ef5f36bca8df"},
 ]
