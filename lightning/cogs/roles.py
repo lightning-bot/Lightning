@@ -57,7 +57,7 @@ DANGEROUS_PERMISSIONS = discord.Permissions(manage_threads=True, ban_members=Tru
                                             manage_guild=True, manage_messages=True, manage_channels=True,
                                             administrator=True, kick_members=True, deafen_members=True,
                                             manage_webhooks=True, manage_nicknames=True, mention_everyone=True,
-                                            move_members=True)
+                                            move_members=True, moderate_members=True)
 
 
 class Roles(LightningCog):
