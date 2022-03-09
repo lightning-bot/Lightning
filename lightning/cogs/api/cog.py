@@ -55,8 +55,8 @@ class API(LightningCog):
             await ctx.send("That season doesn\'t exist")
             return
 
-        resp = await ctx.prompt("This can potentially give spoilers to the show. Are you sure you want to proceed?",
-                                delete_after=True)
+        resp = await ctx.confirm("This can potentially give spoilers to the show. Are you sure you want to proceed?",
+                                 delete_after=True)
         if not resp:
             return
 
@@ -64,7 +64,7 @@ class API(LightningCog):
         episode_info = []
         for e in data:
             if e['season'] == season:
-                ts = datetime.fromisoformat(e['airstamp']).strftime('%Y-%m-%d %H:%M UTC')
+                ts = discord.utils.format_dt(datetime.fromisoformat(e['airstamp']))
                 summary = e['summary']
                 if summary:
                     summary = self.clean_text(summary)
