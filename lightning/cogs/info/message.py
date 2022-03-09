@@ -17,14 +17,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
 import discord
 
-from lightning import LightningCog, LightningContext, group
+from lightning import LightningCog, group
 from lightning.cogs.info.converters import Message
 from lightning.converters import ReadableChannel
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from lightning.utils.helpers import message_id_lookup
+
+if TYPE_CHECKING:
+    from lightning import LightningContext
 
 
 class MessageInfo(LightningCog):
