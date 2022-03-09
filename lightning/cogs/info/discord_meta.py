@@ -17,14 +17,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import collections
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
 
-from lightning import LightningCog, LightningContext, command
+from lightning import LightningCog, command
 from lightning.converters import GuildorNonGuildUser
 from lightning.utils.helpers import Emoji
 from lightning.utils.time import natural_timedelta
+
+if TYPE_CHECKING:
+    from lightning import LightningContext
 
 
 class DiscordMeta(LightningCog):

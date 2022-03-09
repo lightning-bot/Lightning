@@ -18,10 +18,14 @@ from __future__ import annotations
 
 import inspect
 import os
+from typing import TYPE_CHECKING
 
 import discord
 
-from lightning import LightningCog, LightningContext, command
+from lightning import LightningCog, command
+
+if TYPE_CHECKING:
+    from lightning import LightningContext
 
 
 class BotMeta(LightningCog):

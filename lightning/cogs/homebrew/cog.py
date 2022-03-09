@@ -34,8 +34,7 @@ from jishaku.functools import executor_function
 from PIL import Image
 from rapidfuzz import fuzz, process
 
-from lightning import (CommandLevel, LightningCog, LightningContext, Storage,
-                       command, group)
+from lightning import CommandLevel, LightningCog, Storage, command, group
 from lightning.cogs.homebrew import ui
 from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
@@ -48,7 +47,7 @@ log: logging.Logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from typing import List, Optional, Union
 
-    from lightning import LightningBot
+    from lightning import LightningBot, LightningContext
 
 
 class UniversalDBPageSource(menus.ListPageSource):
