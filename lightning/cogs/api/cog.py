@@ -25,14 +25,14 @@ from bs4 import BeautifulSoup
 from discord.ext import menus
 from rapidfuzz import fuzz, process
 
-from lightning import LightningCog, LightningContext, command, group
+from lightning import LightningCog, command, group
 from lightning.cogs.api.menus import CrateViewer
 from lightning.utils import helpers, paginator
 
 if TYPE_CHECKING:
     from typing import Dict, Optional, Tuple
 
-    from lightning import LightningBot
+    from lightning import LightningBot, LightningContext
 
 
 class API(LightningCog):
