@@ -42,7 +42,7 @@ Test Migrations:
   script:
     - export PGPASSWORD=$POSTGRES_PASSWORD
     - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v "ON_ERROR_STOP=1" -c "CREATE DATABASE tests;"
-    - yoyo apply --batch --database postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/tests ./migrations
+    - poetry run migri --db-name "$POSTGRES_DB" --db-user "POSTGRES_USER" --dialect "postgresql" migrate
   rules:
     - changes:
       - migrations/*
