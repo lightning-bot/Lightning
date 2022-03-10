@@ -1,6 +1,6 @@
 """
-Lightning.py - A personal Discord bot
-Copyright (C) 2019-2021 LightSage
+Lightning.py - A Discord bot
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 import asyncio
 import contextlib
 import logging
@@ -23,12 +22,12 @@ import os
 import sys
 
 import discord
+import migri
 import sentry_sdk
 import typer
 
 from lightning.bot import LightningBot
 from lightning.cli import guild, tools
-from lightning.cli.utils import asyncd
 from lightning.config import CONFIG
 from lightning.utils.helpers import create_pool, run_in_shell
 
@@ -134,30 +133,23 @@ def main(ctx: typer.Context):
             launch_bot(CONFIG)
 
 
-@parser.command(help="Initializes the database")
-@asyncd
-async def init_db(init_yoyo: bool = typer.Option(False, "--setup-migrations",
-                                                 help="Initializes the yoyo.ini file for migrations")):
-    typer.echo("Running initial schema script...")
+@parser.command(hidden=True)
+def docker_run():
+    typer.echo("Applying migrations...")
+
+    loop = asyncio.get_event_loop()
 
     pg_uri = CONFIG['tokens']['postgres']['uri']
-    pool = await create_pool(pg_uri, command_timeout=60)
-    with open("scripts/schema.sql", "r") as fp:
-        await pool.execute(fp.read())
 
-    if init_yoyo is True:
-        typer.echo("Setting up migrations config file...")
-        import configparser
-        cfg = configparser.ConfigParser()
-        cfg['DEFAULT'] = {"sources": "migrations/",
-                          "migration_table": "_yoyo_migration",
-                          "batch_mode": "off",
-                          "verbosity": 0,
-                          "database": pg_uri}
-        cfg.write(open('yoyo.ini', 'w'))
-        typer.echo("Created migrations config file")
+    async def migrate():
+        pool = await create_pool(pg_uri, command_timeout=60)
+        async with pool.acquire() as conn:
+            m = migri.PostgreSQLConnection(connection=conn)
+            await migri.apply_migrations("migrations", m)
+    loop.run_until_complete(migrate())
 
-    typer.echo("Done!")
+    with init_logging():
+        launch_bot(CONFIG)
 
 
 if __name__ == "__main__":
