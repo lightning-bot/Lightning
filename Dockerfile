@@ -13,7 +13,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y curl build-esse
 WORKDIR /bot
 
 # Poetry
-ENV POETRY_VIRTUALENVS_IN_PROJECT=true
 RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
 
 
@@ -22,4 +21,4 @@ COPY . .
 RUN poetry install --no-ansi
 
 
-CMD ["poetry", "run", "lightning"]
+CMD ["poetry", "run", "lightning", "docker-run"]

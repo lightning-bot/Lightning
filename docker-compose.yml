@@ -6,14 +6,11 @@ services:
     environment:
       - POSTGRES_USER=lightning
       - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=lightning
 
   bot:
     build: .
     volumes:
       - .:/bot
-      - docker_venv:/bot/.venv
     depends_on:
       - postgres
-
-volumes:
-  docker_venv:
