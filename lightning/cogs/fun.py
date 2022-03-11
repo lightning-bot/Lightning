@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -135,27 +135,7 @@ class Fun(LightningCog):
         else:
             await ctx.send(bottom.encode(text))
 
-    @command()
-    async def lolice(self, ctx: LightningContext, *, user: discord.Member = commands.default.Author) -> None:
-        """Lolice chief"""
-        url = f'https://nekobot.xyz/api/imagegen?type=lolice&url={user.avatar.with_format("png")}'
-        data = await ctx.request(url)
-        embed = discord.Embed()
-        embed.set_image(url=data['message'])
-        await ctx.send(embed=embed)
-
-    @command()
-    async def awooify(self, ctx: LightningContext, *, user: discord.Member = commands.default.Author) -> None:
-        """Awooify a user"""
-        url = f'https://nekobot.xyz/api/imagegen?type=awooify&url={user.avatar.with_format("png")}'
-        data = await ctx.request(url)
-        embed = discord.Embed()
-        embed.set_image(url=data['message'])
-        await ctx.send(embed=embed)
-
-    @lolice.before_invoke
     @owoify.before_invoke
-    @awooify.before_invoke
     async def do_typing_before(self, ctx: LightningContext) -> None:
         await ctx.trigger_typing()
 
