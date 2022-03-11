@@ -114,6 +114,9 @@ venv.bak/
 # theia
 .theia/
 
+# PyCharm
+.idea/
+
 # Ignore files
 lightning.log
 /config
