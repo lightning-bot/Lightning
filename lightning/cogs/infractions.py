@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,16 +14,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import re
+from datetime import datetime
 from io import StringIO
-from json import dumps as json_dumps
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import menus
 from discord.ext.commands import bot_has_permissions, default
+from sanctum.exceptions import NotFound
 
-from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, group)
+from lightning import CommandLevel, LightningCog, group
 from lightning.converters import TargetMember
 from lightning.errors import LightningError
 from lightning.formatters import truncate_text
@@ -31,6 +34,9 @@ from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
 from lightning.utils.modlogformats import ActionType, base_user_format
 from lightning.utils.time import add_tzinfo, natural_timedelta
+
+if TYPE_CHECKING:
+    from lightning import LightningBot, LightningContext
 
 
 class InfractionRecord:
@@ -43,7 +49,7 @@ class InfractionRecord:
 
         self.action = ActionType(record['action'])
         self.reason = record['reason']
-        self.created_at = record['created_at']
+        self.created_at = datetime.fromisoformat(record['created_at'])
         self.active = record['active']
         self.extra = record['extra']
 
@@ -154,15 +160,6 @@ class InfractionSource(menus.KeysetPageSource):
         return embed
 
 
-def serialize_infraction(record) -> dict:
-    data = dict(record)
-
-    data['created_at'] = record['created_at'].isoformat()
-    data['expiry'] = record['expiry'].isoformat() if record['expiry'] else None
-
-    return data
-
-
 class Infractions(LightningCog, required=['Mod']):
     """Infraction related commands"""
 
@@ -175,9 +172,9 @@ class Infractions(LightningCog, required=['Mod']):
     @has_guild_permissions(manage_guild=True)
     async def view(self, ctx: LightningContext, infraction_id: int) -> None:
         """Views an infraction"""
-        query = """SELECT * FROM infractions WHERE id=$1 AND guild_id=$2;"""
-        record = await self.bot.pool.fetchrow(query, infraction_id, ctx.guild.id)
-        if not record:
+        try:
+            record = await self.bot.api.get_infraction(ctx.guild.id, infraction_id)
+        except NotFound:
             await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
             return
 
@@ -194,12 +191,9 @@ class Infractions(LightningCog, required=['Mod']):
     @has_guild_permissions(manage_guild=True)
     async def claim(self, ctx: LightningContext, infraction_id: int) -> None:
         """Claims responsibility for an infraction"""
-        query = """UPDATE infractions
-                   SET moderator_id=$1
-                   WHERE guild_id=$2 AND id=$3;"""
-        resp = await self.bot.pool.execute(query, ctx.author.id, ctx.guild.id, infraction_id)
-
-        if resp == "UPDATE 0":
+        try:
+            await self.bot.api.edit_infraction(ctx.guild.id, infraction_id, {"moderator_id": ctx.author.id})
+        except NotFound:
             await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
             return
 
@@ -209,12 +203,10 @@ class Infractions(LightningCog, required=['Mod']):
     @has_guild_permissions(manage_guild=True)
     async def edit(self, ctx: LightningContext, infraction_id: int, *, reason: str) -> None:
         """Edits the reason for an infraction"""
-        query = """UPDATE infractions
-                   SET moderator_id=$1, reason=$2
-                   WHERE guild_id=$3 AND id=$4;"""
-        resp = await self.bot.pool.execute(query, ctx.author.id, reason, ctx.guild.id, infraction_id)
-
-        if resp == "UPDATE 0":
+        try:
+            await self.bot.api.edit_infraction(ctx.guild.id, infraction_id,
+                                               {"moderator_id": ctx.author.id, "reason": reason})
+        except NotFound:
             await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
             return
 
@@ -238,29 +230,34 @@ class Infractions(LightningCog, required=['Mod']):
     @has_guild_permissions(manage_guild=True)
     async def delete(self, ctx: LightningContext, infraction_id: int) -> None:
         """Deletes an infraction"""
-        # TODO: Query table before
+        try:
+            await self.bot.api.get_infraction(ctx.guild.id, infraction_id)
+        except NotFound:
+            await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
+            return
+
         confirmation = await ctx.confirm(f"Are you sure you want to delete {infraction_id}? "
                                          "**This infraction cannot be restored once deleted!**")
         if not confirmation:
             return
 
-        query = """DELETE FROM infractions
-                   WHERE id=$1
-                   AND guild_id=$2;"""
-        resp = await self.bot.pool.execute(query, infraction_id, ctx.guild.id)
-        if resp == "DELETE 0":
+        # I guess there could be instances where two people are running the same command...
+        try:
+            await self.bot.api.delete_infraction(ctx.guild.id, infraction_id)
+        except NotFound:
             await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
-        else:
-            await ctx.send("Infraction deleted!")
+            return
+
+        await ctx.send("Infraction deleted!")
 
     @infraction.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
     @bot_has_permissions(attach_files=True)
     async def export(self, ctx: LightningContext) -> None:
         """Exports the server's infractions to a JSON"""
-        records = await self.bot.pool.fetch("SELECT * FROM infractions WHERE guild_id=$1;", ctx.guild.id)
+        records = await self.bot.api.get_infractions(ctx.guild.id)
 
-        raw_bytes = StringIO(json_dumps(list(map(serialize_infraction, records))))
+        raw_bytes = StringIO(records)
         raw_bytes.seek(0)
         await ctx.send(file=discord.File(raw_bytes, filename="infractions.json"))
 

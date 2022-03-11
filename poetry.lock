@@ -542,14 +542,14 @@ full = ["numpy"]
 
 [[package]]
 name = "sanctum-tc"
-version = "0.3.1.post0"
+version = "0.4.0"
 description = "Library for interacting with the Sanctum API"
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-aiohttp = ">=3.6.0,<3.8.0"
+aiohttp = ">=3.6.0,<4.0.0"
 
 [[package]]
 name = "sentry-sdk"
@@ -732,7 +732,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "e9dd75dec1433dfc29fdef3e8c7cbb9af831a4b78b867feb854575d23e13c02f"
+content-hash = "7fe3db7dd5390244075b8dff424b7a94c75eaafa23b6ae0e83699d4681746312"
 
 [metadata.files]
 aiohttp = [
@@ -1352,8 +1352,8 @@ rapidfuzz = [
     {file = "rapidfuzz-1.9.1.tar.gz", hash = "sha256:bd7a4fe33ba49db3417f0f57a8af02462554f1296dedcf35b026cd3525efef74"},
 ]
 sanctum-tc = [
-    {file = "sanctum-tc-0.3.1.post0.tar.gz", hash = "sha256:85bfe5d92d1e82ac63aa5ed923559d2539f97fbb35d5f23a7861349f185e9535"},
-    {file = "sanctum_tc-0.3.1.post0-py3-none-any.whl", hash = "sha256:8f69a6f4d06c165a15c8d58e4000df8e9c3ae7697c67f2895be89cd26f8a9b4b"},
+    {file = "sanctum-tc-0.4.0.tar.gz", hash = "sha256:9f37b94bfbc0984e8fef33e66ea37f270768ee74f22f7ac2098ed84eed873e9c"},
+    {file = "sanctum_tc-0.4.0-py3-none-any.whl", hash = "sha256:5e32294c9aac3221cbbc18856bb7390d491073dbb6689b384702ee7f2acbb81c"},
 ]
 sentry-sdk = [
     {file = "sentry-sdk-1.5.7.tar.gz", hash = "sha256:aa52da941c56b5a76fd838f8e9e92a850bf893a9eb1e33ffce6c21431d07ee30"},
