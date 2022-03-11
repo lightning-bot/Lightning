@@ -26,7 +26,7 @@ You can check the command pages on our website to see all the commands!
 ---
 ## Invite
 
-You can add the official instance of this bot to your server with https://discord.com/oauth2/authorize?client_id=532220480577470464&scope=bot&permissions=19193523414.
+You can add the official instance of this bot to your server with https://discord.com/oauth2/authorize?client_id=532220480577470464&scope=bot&permissions=1118705151190.
 
 ---
 ## Self Hosting
