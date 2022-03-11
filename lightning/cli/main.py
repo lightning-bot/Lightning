@@ -22,7 +22,6 @@ import os
 import sys
 
 import discord
-import migri
 import sentry_sdk
 import typer
 
@@ -48,6 +47,11 @@ parser.add_typer(guild.parser, name="guild", help="Guild management commands")
 @contextlib.contextmanager
 def init_logging():
     try:
+        # Clear any existing loggers
+        log = logging.getLogger()
+        if log.hasHandlers():
+            log.handlers.clear()
+
         max_file_size = 1000 * 1000 * 8
         file_handler = logging.handlers.RotatingFileHandler(filename="lightning.log", maxBytes=max_file_size,
                                                             backupCount=10)
@@ -55,8 +59,6 @@ def init_logging():
         file_handler.setFormatter(log_format)
 
         logging_config = CONFIG.get("logging") or {}
-
-        log = logging.getLogger()
 
         if (level := logging_config.get("level", "INFO")) != "":
             log.setLevel(level)
@@ -142,10 +144,13 @@ def docker_run():
     pg_uri = CONFIG['tokens']['postgres']['uri']
 
     async def migrate():
+        import migri
+
         pool = await create_pool(pg_uri, command_timeout=60)
         async with pool.acquire() as conn:
             m = migri.PostgreSQLConnection(connection=conn)
             await migri.apply_migrations("migrations", m)
+
     loop.run_until_complete(migrate())
 
     with init_logging():
