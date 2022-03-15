@@ -218,5 +218,5 @@ class Emoji(LightningCog):
         await ctx.send(content)
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(Emoji(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(Emoji(bot))

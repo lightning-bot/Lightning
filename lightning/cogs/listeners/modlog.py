@@ -267,5 +267,5 @@ class ModLog(LightningCog):
         await self.get_logging_record.invalidate(guild.id)  # :meowsad:
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(ModLog(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(ModLog(bot))

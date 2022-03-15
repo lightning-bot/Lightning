@@ -181,5 +181,5 @@ class Fun(LightningCog):
         await ctx.send("".join(m))
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(Fun(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(Fun(bot))

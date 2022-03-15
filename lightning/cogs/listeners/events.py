@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -201,5 +201,5 @@ class ListenerEvents(LightningCog):
             self.bot.dispatch("lightning_member_role_remove", MemberRoleUpdateEvent(role, event.entry))
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(ListenerEvents(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(ListenerEvents(bot))

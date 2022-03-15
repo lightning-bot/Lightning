@@ -24,5 +24,5 @@ if TYPE_CHECKING:
     from lightning import LightningBot
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(API(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(API(bot))

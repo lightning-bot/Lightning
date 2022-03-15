@@ -271,5 +271,5 @@ class Help(LightningCog):
         self.bot.help_command = self.original_help_command
 
 
-def setup(bot: LightningBot):
-    bot.add_cog(Help(bot))
+async def setup(bot: LightningBot):
+    await bot.add_cog(Help(bot))

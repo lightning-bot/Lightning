@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,12 +14,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import contextlib
 import logging
+from typing import TYPE_CHECKING
 
 import discord
 
-from lightning import ConfigFlags, LightningBot, LightningCog, LightningContext
+from lightning import ConfigFlags, LightningCog
+
+if TYPE_CHECKING:
+    from lightning import LightningBot, LightningContext
 
 log: logging.Logger = logging.getLogger(__name__)
 
@@ -126,5 +132,5 @@ class FeaturesListeners(LightningCog):
                 await member.add_roles(role, reason="Applying configured autorole")
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(FeaturesListeners(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(FeaturesListeners(bot))

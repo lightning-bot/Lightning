@@ -70,5 +70,5 @@ class Memes(LightningCog):
         await ctx.send(f"Available Memes:\n{', '.join(x.name for x in self.memes.commands)}")
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(Memes(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(Memes(bot))

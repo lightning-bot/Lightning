@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,6 +14,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import asyncio
 import collections
 import contextlib
@@ -29,6 +31,7 @@ import asyncpg
 import discord
 import sentry_sdk
 from discord.ext import commands, menus
+from sanctum import HTTPClient
 
 from lightning import cache, errors
 from lightning.config import CONFIG
@@ -37,6 +40,7 @@ from lightning.meta import __version__ as version
 from lightning.models import GuildBotConfig
 from lightning.storage import Storage
 from lightning.utils.emitters import WebhookEmbedEmitter
+from lightning.utils.helpers import create_pool
 
 __all__ = ("LightningBot")
 log = logging.getLogger(__name__)
@@ -89,16 +93,14 @@ class LightningBot(commands.AutoShardedBot):
         self.version = version
         self._pending_cogs = {}
 
-        headers = {"User-Agent": self.config['bot'].pop("user_agent", f"Lightning Bot/{self.version}")}
-        self.aiosession = aiohttp.ClientSession(headers=headers)
-        self.pool: Optional[asyncpg.Pool] = None
+        self.aiosession: aiohttp.ClientSession
+        self.api: HTTPClient
+        self.pool: asyncpg.Pool
         self.redis_pool = cache.start_redis_client()
 
-        # Error logger
-        self._error_logger = WebhookEmbedEmitter(self.config['logging']['bot_errors'], session=self.aiosession,
-                                                 loop=self.loop)
-        self._error_logger.start()
+        self.blacklisted_users = Storage("config/user_blacklist.json")
 
+    async def load_cogs(self) -> None:
         def _transform_path(p):
             return str(p).replace("/", ".").replace("\\", ".")
 
@@ -120,12 +122,28 @@ class LightningBot(commands.AutoShardedBot):
         for cog in cog_list:
             if cog in self.config['bot']['disabled_cogs']:
                 continue
+
             try:
-                self.load_extension(cog)
+                await self.load_extension(cog)
             except Exception as e:
                 log.error(f"Failed to load {cog}", exc_info=e)
 
-        self.blacklisted_users = Storage("config/user_blacklist.json")
+    async def setup_hook(self):
+        try:
+            self.pool = await create_pool(self.config['tokens']['postgres']['uri'], command_timeout=60)
+        except Exception as e:
+            log.exception("Could not set up PostgreSQL. Exiting...", exc_info=e)
+            return
+
+        self.api = HTTPClient(self.config['tokens']['api']['url'], self.config['tokens']['api']['key'])
+        headers = {"User-Agent": self.config['bot'].pop("user_agent", f"Lightning Bot/{self.version}")}
+        self.aiosession = aiohttp.ClientSession(headers=headers)
+
+        await self.load_cogs()
+        # Error logger
+        self._error_logger = WebhookEmbedEmitter(self.config['logging']['bot_errors'], session=self.aiosession,
+                                                 loop=self.loop)
+        self._error_logger.start()
 
     @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=32)
     async def get_guild_bot_config(self, guild_id: int) -> Optional[GuildBotConfig]:
@@ -145,11 +163,11 @@ class LightningBot(commands.AutoShardedBot):
         record = await self.pool.fetchrow(query, guild_id)
         return GuildBotConfig(self, record) if record else None
 
-    def add_cog(self, cls) -> None:
+    async def add_cog(self, cls) -> None:
         deps = getattr(cls, "__lightning_cog_deps__", None)
         if not deps:
             log.debug(f"Loaded cog {cls.__module__} ({cls})")
-            super().add_cog(cls)
+            await super().add_cog(cls)
             return
 
         required_cogs = [self.get_cog(name) for name in deps.required]
@@ -160,7 +178,7 @@ class LightningBot(commands.AutoShardedBot):
                 self._pending_cogs[cls.__class__.__name__] = cls
             return
 
-        super().add_cog(cls)
+        await super().add_cog(cls)
         log.debug(f"Loaded LightningCog {cls.__module__} ({cls}).")
 
         # Try loading cogs pending
@@ -168,7 +186,7 @@ class LightningBot(commands.AutoShardedBot):
         self._pending_cogs = {}
         for cog in list(pending_cogs.values()):
             log.debug(f"Trying to load {cog.__module__} ({str(cog)})")
-            self.add_cog(cog)
+            await self.add_cog(cog)
 
     async def on_ready(self) -> None:
         summary = f"{len(self.guilds)} guild(s) and {len(self.users)} user(s)"
@@ -176,16 +194,15 @@ class LightningBot(commands.AutoShardedBot):
 
     async def _notify_of_spam(self, member, channel, guild=None, blacklist=False) -> None:
         e = discord.Embed(color=discord.Color.red(), title="Member hit ratelimit")
-        webhook = discord.Webhook.from_url(self.config['logging']['auto_blacklist'],
-                                           adapter=discord.AsyncWebhookAdapter(self.aiosession))
+        webhook = discord.Webhook.from_url(self.config['logging']['auto_blacklist'], session=self.aiosession)
         if blacklist:
             log.info(f"User automatically blacklisted for command spam | {member} | ID: {member.id}")
             e.title = "Automatic Blacklist"
         e.description = f"Spam Count: {self.command_spammers[member.id]}"
-        donefmt = f'__Channel__: {channel} (ID: {channel.id})'
+        done_fmt = f'__Channel__: {channel} (ID: {channel.id})'
         if guild:
-            donefmt = f'{donefmt}\n__Guild__: {guild} (ID: {guild.id})'
-        e.add_field(name="Location", value=donefmt)
+            done_fmt = f'{done_fmt}\n__Guild__: {guild} (ID: {guild.id})'
+        e.add_field(name="Location", value=done_fmt)
         e.add_field(name="User", value=f"{str(member)} (ID: {member.id})")
         e.timestamp = discord.utils.utcnow()
         await webhook.execute(embed=e)
@@ -365,6 +382,7 @@ class LightningBot(commands.AutoShardedBot):
         log.info("Closing database...")
         await self.pool.close()
         await self.aiosession.close()
+        await self.api.close()
         log.info("Closed aiohttp session and database successfully.")
         with contextlib.suppress(AttributeError):
             self.redis_pool.connection_pool.disconnect()
