@@ -473,5 +473,5 @@ class Stats(LightningCog):
         await ctx.send(embed=embed)
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(Stats(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(Stats(bot))

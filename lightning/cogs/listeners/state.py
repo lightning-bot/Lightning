@@ -98,5 +98,5 @@ class State(LightningCog):
             await self.add_guild(after)
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(State(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(State(bot))

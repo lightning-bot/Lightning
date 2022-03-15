@@ -33,8 +33,8 @@ class Info(BotMeta, DiscordMeta, MessageInfo):
     pass
 
 
-def setup(bot: LightningBot):
-    bot.add_cog(Info(bot))
+async def setup(bot: LightningBot):
+    await bot.add_cog(Info(bot))
 
     if bot.config['bot'].get("support_server_invite", None) is None:
         bot.remove_command("support")

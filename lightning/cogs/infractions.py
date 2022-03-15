@@ -286,5 +286,5 @@ class Infractions(LightningCog, required=['Mod']):
         await self.start_keyset_pages(ctx, InfractionSource(ctx.bot, ctx.guild, moderator=member))
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(Infractions(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(Infractions(bot))

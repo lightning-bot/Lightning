@@ -220,5 +220,7 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         await ctx.send(embed=embed)
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(Owner(bot=bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(Owner(bot=bot))
+    if bot.config['tokens']['sentry']:
+        bot.remove_command("bug")
