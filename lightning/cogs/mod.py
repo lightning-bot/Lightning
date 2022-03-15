@@ -977,5 +977,5 @@ class Mod(LightningCog, required=["Configuration"]):
         await self.get_mod_config.invalidate(guild.id)
 
 
-def setup(bot) -> None:
-    bot.add_cog(Mod(bot))
+async def setup(bot) -> None:
+    await bot.add_cog(Mod(bot))

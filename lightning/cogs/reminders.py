@@ -323,5 +323,5 @@ class Reminders(LightningCog):
         await channel.send(message, **kwargs)
 
 
-def setup(bot: LightningBot) -> None:
-    bot.add_cog(Reminders(bot))
+async def setup(bot: LightningBot) -> None:
+    await bot.add_cog(Reminders(bot))

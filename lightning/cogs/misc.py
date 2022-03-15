@@ -136,5 +136,5 @@ class Misc(LightningCog):
                                   for snowflake in snowflakes]))
 
 
-def setup(bot: LightningBot):
-    bot.add_cog(Misc(bot))
+async def setup(bot: LightningBot):
+    await bot.add_cog(Misc(bot))

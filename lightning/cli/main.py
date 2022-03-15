@@ -27,6 +27,7 @@ import typer
 
 from lightning.bot import LightningBot
 from lightning.cli import guild, tools
+from lightning.cli.utils import asyncd
 from lightning.config import CONFIG
 from lightning.utils.helpers import create_pool, run_in_shell
 
@@ -79,17 +80,13 @@ def init_logging():
         logging.shutdown()
 
 
-def launch_bot(config) -> None:
-    loop = asyncio.get_event_loop()
-
+async def launch_bot(config) -> None:
     # Create config folder if not found
     if not os.path.exists("config"):
         os.makedirs("config")
 
-    log = logging.getLogger("lightning")
-
     sentry_dsn = config._storage.get('tokens', {}).get("sentry", None)
-    commit = (loop.run_until_complete(run_in_shell('git rev-parse HEAD')))[0].strip()
+    commit = (await run_in_shell('git rev-parse HEAD'))[0].strip()
 
     if sentry_dsn is not None:
         env = "dev" if "beta_prefix" in config['bot'] else "prod"
@@ -111,32 +108,20 @@ def launch_bot(config) -> None:
     bot = LightningBot(**kwargs)
     bot.commit_hash = commit
 
-    # idk but adding your own cogs to your own instance might be useful(?)
-    # ~~Feels like this is becoming another Red bot.~~
-    # This should be a list of extra cogs you want to add. e.g. ['ext.publisher', 'ext.emojify']
-    extra_cogs = bot_config.get("extra_cogs", None)
-    if extra_cogs:
-        for cog in extra_cogs:
-            bot.load_extension(cog)
-
-    try:
-        bot.pool = loop.run_until_complete(create_pool(config['tokens']['postgres']['uri'], command_timeout=60))
-    except Exception as e:
-        log.exception("Could not set up PostgreSQL. Exiting...", exc_info=e)
-        return
-
-    bot.run(config['tokens']['discord'])
+    await bot.start(config['tokens']['discord'])
 
 
 @parser.callback(invoke_without_command=True)
-def main(ctx: typer.Context):
+@asyncd
+async def main(ctx: typer.Context):
     if ctx.invoked_subcommand is None:
         with init_logging():
-            launch_bot(CONFIG)
+            await launch_bot(CONFIG)
 
 
 @parser.command(hidden=True)
-def docker_run():
+@asyncd
+async def docker_run():
     typer.echo("Applying migrations...")
 
     loop = asyncio.get_event_loop()
@@ -154,7 +139,7 @@ def docker_run():
     loop.run_until_complete(migrate())
 
     with init_logging():
-        launch_bot(CONFIG)
+        await launch_bot(CONFIG)
 
 
 if __name__ == "__main__":

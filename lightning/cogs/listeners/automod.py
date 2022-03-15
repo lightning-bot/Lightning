@@ -300,5 +300,5 @@ class AutoMod(LightningCog, required=["Mod"]):
         await self.get_automod_config.invalidate(guild.id)
 
 
-def setup(bot) -> None:
-    bot.add_cog(AutoMod(bot))
+async def setup(bot) -> None:
+    await bot.add_cog(AutoMod(bot))
