@@ -190,16 +190,6 @@ class InbetweenNumber(commands.Converter):
         return val
 
 
-class GuildID(commands.Converter):
-    async def convert(self, ctx, argument):
-        if not argument.isdigit():
-            raise commands.BadArgument(f"Unable to convert \"{argument}\" to GuildID")
-        guild = ctx.bot.get_guild(int(argument))
-        if not guild:
-            raise commands.BadArgument(f"Unable to convert \"{argument}\" to GuildID")
-        return guild
-
-
 WHITELISTED_HOSTS = ["cdn.discordapp.com", "i.imgur.com", "images.discordapp.net", "media.discordapp.net"]
 
 
