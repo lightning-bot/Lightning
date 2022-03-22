@@ -55,7 +55,7 @@ Test Poetry:
     - poetry --version
     - poetry config virtualenvs.in-project true
   script:
-    - poetry install -vv
+    - poetry install -vv --no-ansi
 
 Publish release to Sentry:
   stage: Publish
