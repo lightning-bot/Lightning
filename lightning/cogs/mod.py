@@ -55,7 +55,7 @@ BaseModParser = lflags.FlagParser([lflags.Flag("--nodm", "--no-dm", is_bool_flag
                                   rest_attribute_name="reason", raise_on_bad_flag=False)
 
 
-COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">", "_", ".", "$", "\""]
+COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">", "_", ".", "$", "\"", "?"]
 
 
 class Mod(LightningCog, required=["Configuration"]):
