@@ -200,7 +200,7 @@ resolved_reference = "ebe27e606fbacedfd472a65275bcaa197bf30666"
 
 [[package]]
 name = "discord.py"
-version = "2.0.0a3891+g9c1b2a27"
+version = "2.0.0a3956+g531257ad"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -220,7 +220,7 @@ voice = ["PyNaCl (>=1.3.0,<1.6)"]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
 reference = "param-default"
-resolved_reference = "9c1b2a275e67f3ed6320d2a59bd3ffa081580157"
+resolved_reference = "531257ad56755496af15f7c5cd2164ce17aee685"
 
 [[package]]
 name = "distlib"
