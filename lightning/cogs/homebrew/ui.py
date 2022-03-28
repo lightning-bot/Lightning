@@ -51,7 +51,7 @@ class NinUpdates(UpdateableMenu, ExitableMenu):
         return content
 
     @discord.ui.button(label="Configure", style=discord.ButtonStyle.primary)
-    async def configure_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def configure_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.defer()
         content = "What channel would you like to use? You can send the ID, name, or mention of a channel."
         channel = await self.prompt_convert(interaction, content, SendableChannel())
@@ -76,7 +76,7 @@ class NinUpdates(UpdateableMenu, ExitableMenu):
         await self.update()
 
     @discord.ui.button(label="Remove configuration", style=discord.ButtonStyle.red)
-    async def remove_config_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def remove_config_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         record = await self.ctx.bot.pool.fetchrow("SELECT * FROM nin_updates WHERE guild_id=$1", self.ctx.guild.id)
         if record is None:
             await interaction.response.send_message("Nintendo console updates are currently not configured!")
