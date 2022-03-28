@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -57,11 +57,11 @@ class ConfirmationView(MenuLikeView):
             return self.msg
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green, emoji=Emoji.greentick)
-    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.value = True
         self.stop()
 
     @discord.ui.button(label='Deny', style=discord.ButtonStyle.red, emoji=Emoji.redtick)
-    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.value = False
         self.stop()

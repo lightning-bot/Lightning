@@ -56,7 +56,7 @@ class Logging(UpdateableMenu, ExitableMenu):
         return content
 
     @discord.ui.button(label="Log all events", style=discord.ButtonStyle.primary, emoji="\N{LEDGER}")
-    async def log_all_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def log_all_events_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         query = """INSERT INTO logging (guild_id, channel_id, types)
                    VALUES ($1, $2, $3)
                    ON CONFLICT (channel_id)
@@ -69,7 +69,7 @@ class Logging(UpdateableMenu, ExitableMenu):
         await self.update()
 
     @discord.ui.button(label="Setup specific logging events", style=discord.ButtonStyle.primary, emoji="\N{OPEN BOOK}")
-    async def specific_events_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def specific_events_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         async with self.lock():
             view = SelectSubMenu(*[x.name for x in LoggingType.all], max_options=len(LoggingType.all))
             view.ctx = self.ctx
@@ -95,7 +95,7 @@ class Logging(UpdateableMenu, ExitableMenu):
             self.invalidate()
 
     @discord.ui.button(label="Change logging format", style=discord.ButtonStyle.primary, emoji="\N{NOTEBOOK}")
-    async def change_format_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def change_format_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         fmts = ['emoji', 'minimal with timestamp', 'minimal without timestamp', 'embed']
         async with self.lock():
             view = SelectSubMenu(*fmts)
@@ -120,7 +120,7 @@ class Logging(UpdateableMenu, ExitableMenu):
         self.invalidate()
 
     @discord.ui.button(label="Remove logging", style=discord.ButtonStyle.red, emoji="\N{CLOSED BOOK}")
-    async def remove_logging_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def remove_logging_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         query = """DELETE FROM logging
                    WHERE guild_id=$1
                    AND channel_id=$2;"""
@@ -154,7 +154,7 @@ class AutoRole(UpdateableMenu, ExitableMenu):
         return embed
 
     @discord.ui.button(label="Add an autorole", style=discord.ButtonStyle.primary)
-    async def add_autorole_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def add_autorole_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         async with self.lock():
             await interaction.response.defer()
             content = "What role would you like to setup? You can send the ID, name, or mention of a role."
@@ -168,7 +168,7 @@ class AutoRole(UpdateableMenu, ExitableMenu):
             await self.ctx.bot.get_guild_bot_config.invalidate(self.ctx.guild.id)
 
     @discord.ui.button(label="Remove autorole", style=discord.ButtonStyle.red)
-    async def remove_autorole_button(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+    async def remove_autorole_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await self.ctx.cog.remove_config_key(self.ctx.guild.id, "autorole")
         await self.ctx.bot.get_guild_bot_config.invalidate(self.ctx.guild.id)
         await interaction.response.send_message(content="Successfully removed the server's autorole")
