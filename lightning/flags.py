@@ -299,9 +299,12 @@ class FlagCommand(LightningCommand):
             # Overrides any current parser.
             parser = self.callback.__lightning_argparser__ = kwargs['parser']
 
-        raise_bad_flag = kwargs.pop('raise_bad_flag', True)
+        raise_bad_flag = kwargs.pop('raise_bad_flag', parser.raise_on_bad_flag)
         rest_usage_name = kwargs.pop('rest_attribute_name', None)
-        flag_consume_rest = kwargs.pop('flag_consume_rest', True)
+        flag_consume_rest = kwargs.pop('flag_consume_rest', parser.consume_rest)
+
+        if flag_consume_rest is False and rest_usage_name is not None:
+            raise TypeError("Cannot specify rest_attribute_name if not consuming rest")
 
         parser.consume_rest = flag_consume_rest
         if rest_usage_name:
