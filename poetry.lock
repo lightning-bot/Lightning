@@ -200,7 +200,7 @@ resolved_reference = "ebe27e606fbacedfd472a65275bcaa197bf30666"
 
 [[package]]
 name = "discord.py"
-version = "2.0.0a3984+gf40b3f5c"
+version = "2.0.0a4049+g79aa103a"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -220,7 +220,7 @@ voice = ["PyNaCl (>=1.3.0,<1.6)"]
 type = "git"
 url = "https://github.com/LightSage/discord.py"
 reference = "param-default"
-resolved_reference = "f40b3f5c49241670d42fe384c8f2deb5a13fef14"
+resolved_reference = "79aa103a8c22ce5aafe7f99b7db040d2b4921c27"
 
 [[package]]
 name = "distlib"
@@ -339,32 +339,26 @@ plugins = ["setuptools"]
 
 [[package]]
 name = "jishaku"
-version = "2.3.2a391+g046189f.master"
+version = "2.4.0"
 description = "A discord.py extension including useful tools for bot development and debugging."
 category = "main"
 optional = false
 python-versions = ">=3.8.0"
-develop = false
 
 [package.dependencies]
 braceexpand = ">=0.1.7"
 click = ">=8.0.1"
 import-expression = ">=1.0.0,<2.0.0"
 importlib-metadata = {version = ">=3.7.0", markers = "python_version < \"3.10\""}
+typing-extensions = {version = ">=3.10.0", markers = "python_version < \"3.10\""}
 
 [package.extras]
 discordpy = ["discord.py (>=1.7.3)"]
-docs = ["sphinx (>=3.5.4)", "sphinxcontrib-asyncio"]
-procinfo = ["psutil"]
-publish = ["jinja2"]
-test = ["click", "coverage", "flake8", "isort", "pylint", "pytest", "pytest-asyncio", "pytest-cov", "pytest-mock"]
-voice = ["youtube-dl"]
-
-[package.source]
-type = "git"
-url = "https://github.com/Gorialis/jishaku"
-reference = "master"
-resolved_reference = "046189f53d0a04b7e27427b7c58bbcadf3f931ad"
+docs = ["Sphinx (>=4.4.0)", "sphinxcontrib-asyncio (>=0.3.0)"]
+procinfo = ["psutil (>=5.8.0)"]
+publish = ["Jinja2 (>=3.0.3)"]
+test = ["coverage (>=6.3.2)", "flake8 (>=4.0.1)", "isort (>=5.10.1)", "pylint (>=2.11.1)", "pytest (>=7.0.1)", "pytest-asyncio (>=0.18.1)", "pytest-cov (>=3.0.0)", "pytest-mock (>=3.7.0)"]
+voice = ["yt-dlp (>=2022.3.8)"]
 
 [[package]]
 name = "lru-dict"
@@ -769,7 +763,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "0422f06b3da1f1131bdde837fdefc3754ba64644128dc08b021645e9f8310b26"
+content-hash = "8ae70847274f15542d76798b2b294b9cbfba13ff94bc7a6fad700fb4531644fe"
 
 [metadata.files]
 aiohttp = [
@@ -987,7 +981,13 @@ isort = [
     {file = "isort-5.10.1-py3-none-any.whl", hash = "sha256:6f62d78e2f89b4500b080fe3a81690850cd254227f27f75c3a0c491a1f351ba7"},
     {file = "isort-5.10.1.tar.gz", hash = "sha256:e8443a5e7a020e9d7f97f1d7d9cd17c88bcb3bc7e218bf9cf5095fe550be2951"},
 ]
-jishaku = []
+jishaku = [
+    {file = "jishaku-2.4.0-py3-none-any.whl", hash = "sha256:d61e26d1b5380f76a0c92eb61869e6daff906f029be5c1a4fc76205ee1b2d767"},
+    {file = "jishaku-2.4.0-py3.10.egg", hash = "sha256:e60e593d81e84774f9fcb470e3ca8e7d2f0be543c2d774164340709ba09cc9a2"},
+    {file = "jishaku-2.4.0-py3.8.egg", hash = "sha256:ad647937093d694d2c61a54b1c34eb6d96a7533e694883e4cfd2398ad6c09f12"},
+    {file = "jishaku-2.4.0-py3.9.egg", hash = "sha256:d118c9a5cc557d2828ab2425d3ea6c8afcab99b099ab971e46afc5f0fdc02a16"},
+    {file = "jishaku-2.4.0.tar.gz", hash = "sha256:784d8d3896e62250fef2e504c53340e5a76ef5bc53a390b2aad1cbbb2e05b172"},
+]
 lru-dict = [
     {file = "lru-dict-1.1.7.tar.gz", hash = "sha256:45b81f67d75341d4433abade799a47e9c42a9e22a118531dcb5e549864032d7c"},
 ]
