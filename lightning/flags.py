@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -18,7 +18,6 @@ import inspect
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 
-import discord
 from discord.ext import commands
 from discord.ext.commands.converter import (CONVERTER_MAPPING, Converter,
                                             _convert_to_bool)
@@ -318,7 +317,7 @@ class FlagCommand(LightningCommand):
             parser._register_flags(kwargs['flags'])
 
     @property
-    def signature(self):
+    def signature(self) -> str:
         old_signature = super().signature.split()
         del old_signature[-1]
 
@@ -341,11 +340,11 @@ class FlagCommand(LightningCommand):
 
         return ' '.join(sig)
 
-    async def _parse_flag_args(self, ctx):
+    async def _parse_flag_args(self, ctx: commands.Context):
         args = await self.callback.__lightning_argparser__.parse_args(ctx)
         ctx.kwargs.update(vars(args))
 
-    async def _parse_arguments(self, ctx):
+    async def _parse_arguments(self, ctx: commands.Context):
         ctx.args = [ctx] if self.cog is None else [self.cog, ctx]
         ctx.kwargs = {}
         args = ctx.args
@@ -353,20 +352,6 @@ class FlagCommand(LightningCommand):
 
         view = ctx.view
         iterator = iter(self.params.items())
-
-        if self.cog is not None:
-            # we have 'self' as the first parameter so just advance
-            # the iterator and resume parsing
-            try:
-                next(iterator)
-            except StopIteration:
-                raise discord.ClientException(f'Callback for {self.name} command is missing "self" parameter.')
-
-        # next we have the 'ctx' as the next parameter
-        try:
-            next(iterator)
-        except StopIteration:
-            raise discord.ClientException(f'Callback for {self.name} command is missing "ctx" parameter.')
 
         for name, param in iterator:
             if param.kind == param.POSITIONAL_OR_KEYWORD:
