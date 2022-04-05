@@ -573,7 +573,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
     @group(aliases=['lockdown'], invoke_without_command=True, level=CommandLevel.Mod)
-    async def lock(self, ctx: LightningContext, channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+    async def lock(self, ctx: LightningContext, channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Locks down the channel mentioned.
 
         Sets the channel permissions as @everyone can't send messages.
@@ -600,7 +600,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @lock.command(name="thread", level=CommandLevel.Mod)
     @has_channel_permissions(manage_threads=True)
     @commands.bot_has_permissions(manage_threads=True)
-    async def lock_thread(self, ctx: LightningContext, thread: discord.Thread = commands.default.CurrentChannel):
+    async def lock_thread(self, ctx: LightningContext, thread: discord.Thread = commands.CurrentChannel):
         if not isinstance(thread, discord.Thread):
             raise commands.BadArgument("This doesn't seem to be a thread.")
 
@@ -618,7 +618,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @has_guild_permissions(manage_channels=True)
     @lock.command(name="hard", level=CommandLevel.Admin)
     async def hlock(self, ctx: LightningContext,
-                    channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+                    channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Hard locks a channel.
 
         Sets the channel permissions as @everyone can't \
@@ -648,7 +648,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @has_guild_permissions(manage_channels=True)
     @group(invoke_without_command=True, level=CommandLevel.Mod)
     async def unlock(self, ctx: LightningContext,
-                     channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+                     channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Unlocks the channel mentioned.
 
         If no channel was mentioned, it unlocks the channel the command was used in."""
@@ -665,7 +665,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @has_guild_permissions(manage_channels=True)
     @unlock.command(name='hard', level=CommandLevel.Admin)
     async def hunlock(self, ctx: LightningContext,
-                      channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+                      channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Hard unlocks the channel mentioned.
 
         If no channel was mentioned, it unlocks the channel the command was used in."""
@@ -682,7 +682,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @has_channel_permissions(manage_messages=True)
     @command(level=CommandLevel.Mod)
     async def pin(self, ctx: LightningContext, message_id: int,
-                  channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+                  channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Pins a message by ID."""
         try:
             msg = await channel.fetch_message(message_id)
@@ -702,7 +702,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @has_channel_permissions(manage_messages=True)
     @command(level=CommandLevel.Mod)
     async def unpin(self, ctx: LightningContext, message_id: int,
-                    channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+                    channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Unpins a message by ID."""
         try:
             msg = await channel.fetch_message(message_id)
@@ -721,7 +721,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @has_guild_permissions(manage_messages=True)
     @command(level=CommandLevel.Mod)
     async def clean(self, ctx: LightningContext, search: int = 100,
-                    channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+                    channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Cleans the bot's messages from the channel specified.
 
         If no channel is specified, the bot deletes its \

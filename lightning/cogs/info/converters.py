@@ -16,12 +16,27 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import contextlib
 import re
+from typing import Union
 
 from discord.ext import commands
 
-from lightning.converters import ReadableChannel
+from lightning.converters import ReadableTextChannel, ReadableThread
 from lightning.errors import LightningError
+
+
+class ReadableChannel(commands.Converter):
+    async def convert(self, ctx, argument):
+        channel = None
+
+        with contextlib.suppress(commands.BadUnionArgument):
+            channel = await commands.run_converters(ctx, Union[ReadableTextChannel, ReadableThread], argument,
+                                                    ctx.current_parameter)
+
+        if not channel:
+            raise commands.BadArgument(f"Unable to convert \"{argument}\" to a channel or thread")
+        return channel
 
 
 class Message(commands.Converter):
