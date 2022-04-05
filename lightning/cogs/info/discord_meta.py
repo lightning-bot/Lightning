@@ -23,7 +23,9 @@ import discord
 from discord.ext import commands
 
 from lightning import LightningCog, command
+from lightning.cogs.info.converters import ReadableChannel
 from lightning.converters import GuildorNonGuildUser
+from lightning.utils.checks import no_threads
 from lightning.utils.helpers import Emoji
 from lightning.utils.time import natural_timedelta
 
@@ -33,7 +35,7 @@ if TYPE_CHECKING:
 
 class DiscordMeta(LightningCog):
     @command(aliases=['avy'])
-    async def avatar(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
+    async def avatar(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.Author) -> None:
         """Displays a user's avatar"""
         parts = []
         if hasattr(member, 'guild_avatar') and member.guild_avatar:
@@ -61,7 +63,7 @@ class DiscordMeta(LightningCog):
             return activity.name
 
     @command(aliases=['ui'])
-    async def userinfo(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.default.Author) -> None:
+    async def userinfo(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.Author) -> None:
         """Gives information about a member or a user"""
         embed = discord.Embed(title=member, color=member.colour)
         desc = [f"**ID**: {member.id}",
@@ -123,7 +125,7 @@ class DiscordMeta(LightningCog):
         await ctx.send(embed=em)
 
     @command()
-    async def spotify(self, ctx: LightningContext, member: discord.Member = commands.default.Author) -> None:
+    async def spotify(self, ctx: LightningContext, member: discord.Member = commands.Author) -> None:
         """Tells you what someone is listening to on Spotify"""
         if member.status is discord.Status.offline:
             await ctx.send(f"{member} needs to be online in order for me to check their Spotify status.")
@@ -154,7 +156,7 @@ class DiscordMeta(LightningCog):
 
     @commands.guild_only()
     @command(aliases=['guildinfo'], usage='')
-    async def serverinfo(self, ctx: LightningContext, guild: discord.Guild = commands.default.CurrentGuild) -> None:
+    async def serverinfo(self, ctx: LightningContext, guild: discord.Guild = commands.CurrentGuild) -> None:
         """Shows information about the server"""
         guild = guild if await self.bot.is_owner(ctx.author) else ctx.guild
 
@@ -233,7 +235,19 @@ class DiscordMeta(LightningCog):
         await ctx.send(embed=embed)
 
     @command()
-    async def permissions(self, ctx: LightningContext, member: discord.Member = commands.default.Author,
-                          channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+    async def permissions(self, ctx: LightningContext, member: discord.Member = commands.Author,
+                          channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Shows channel permissions for a member"""
         await self.show_channel_permissions(channel, member, ctx)
+
+    @command()
+    @no_threads()
+    @commands.guild_only()
+    async def topic(self, ctx: LightningContext, *,
+                    channel: ReadableChannel = commands.CurrentChannel) -> None:
+        """Quotes a channel's topic"""
+        if channel.topic is None or channel.topic == "":
+            await ctx.send(f"{channel.mention} has no topic set!")
+            return
+
+        await ctx.send(f"**Topic for {channel.mention}**:\n{channel.topic}")
