@@ -76,17 +76,16 @@ class UniversalDBPageSource(menus.ListPageSource):
         return embed
 
 
-class FindBMPAttachment(commands.CustomDefault):
-    async def default(self, ctx, param) -> str:
-        limit = 15
-        async for message in ctx.channel.history(limit=limit):
-            for attachment in message.attachments:
-                if attachment.url and attachment.url.endswith(".bmp"):
-                    try:
-                        return Whitelisted_URL(attachment.url)
-                    except LightningError:
-                        continue
-        raise commands.BadArgument('Couldn\'t find an attachment that ends with ".bmp"')
+async def FindBMPAttachment(ctx):
+    limit = 15
+    async for message in ctx.channel.history(limit=limit):
+        for attachment in message.attachments:
+            if attachment.url and attachment.url.endswith(".bmp"):
+                try:
+                    return Whitelisted_URL(attachment.url)
+                except LightningError:
+                    continue
+    raise commands.BadArgument('Couldn\'t find an attachment that ends with ".bmp"')
 
 
 FAQ_MAPPING = {"twilightmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
@@ -151,7 +150,7 @@ class Homebrew(LightningCog):
     @commands.bot_has_permissions(manage_webhooks=True)
     @has_channel_permissions(manage_webhooks=True)
     async def nuf_configure(self, ctx: LightningContext, *,
-                            channel: discord.TextChannel = commands.default.CurrentChannel) -> None:
+                            channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Sets up a webhook in the specified channel that will send Nintendo console updates."""
         record = await self.bot.pool.fetchval("SELECT id FROM nin_updates WHERE guild_id=$1", ctx.guild.id)
         if record:
@@ -276,7 +275,9 @@ class Homebrew(LightningCog):
 
     @command()
     @commands.cooldown(30.0, 1, commands.BucketType.user)
-    async def bmp(self, ctx: LightningContext, link: Whitelisted_URL = FindBMPAttachment) -> None:
+    async def bmp(self, ctx: LightningContext,
+                  link: Whitelisted_URL = commands.parameter(default=FindBMPAttachment,
+                                                             displayed_default="<last bmp image>")) -> None:
         """Converts a .bmp image to .png"""
         img_bytes = await ctx.request(link.url)
         img_final = await self.convert_to_png(img_bytes)

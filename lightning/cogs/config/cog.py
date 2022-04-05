@@ -270,7 +270,7 @@ class Configuration(LightningCog):
     @config.command(level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_messages=True, view_audit_log=True, send_messages=True)
     @has_guild_permissions(manage_guild=True)
-    async def logging(self, ctx, *, channel: discord.TextChannel = commands.default.CurrentChannel):
+    async def logging(self, ctx, *, channel: discord.TextChannel = commands.CurrentChannel):
         """Sets up logging for the server via a menu"""
         await ui.Logging(channel, timeout=180.0).start(ctx)
 
@@ -704,7 +704,7 @@ class Configuration(LightningCog):
     @permissions.command(level=CommandLevel.Admin, name="debug")
     @has_guild_permissions(manage_guild=True)
     async def debug_permissions(self, ctx: LightningContext, command: ValidCommandName,
-                                member: discord.Member = commands.default.Author):
+                                member: discord.Member = commands.Author):
         """Debugs a member's permissions to use a command."""
         # TODO: Debug a member's permissions only...
         command = self.bot.get_command(command)

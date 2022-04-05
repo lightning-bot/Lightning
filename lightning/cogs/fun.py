@@ -31,6 +31,18 @@ from lightning.errors import HTTPException, LightningError
 from lightning.utils import helpers
 
 
+async def LastImage(ctx: LightningContext):
+    limit = 15
+    async for message in ctx.channel.history(limit=limit):
+        for embed in message.embeds:
+            if embed.thumbnail and embed.thumbnail.url:
+                return embed.thumbnail.url
+        for attachment in message.attachments:
+            if attachment.url:
+                return attachment.url
+    raise commands.BadArgument(f"Couldn't find an image in the last {limit} messages.")
+
+
 class Fun(LightningCog):
 
     @executor_function
@@ -46,11 +58,13 @@ class Fun(LightningCog):
     @command(aliases=['needsmorejpeg'])
     @commands.cooldown(3, 30.0, commands.BucketType.guild)
     @commands.has_permissions(attach_files=True)
-    async def jpegify(self, ctx: LightningContext, image: str = converters.LastImage) -> None:
+    async def jpegify(self, ctx: LightningContext,
+                      image: str = commands.parameter(default=LastImage,
+                                                      displayed_default="<last image>")) -> None:
         """Jpegify an image"""
         async with ctx.typing():
             image = converters.Whitelisted_URL(image)
-            byte_data = await helpers.request(image.url, self.bot.aiosession)
+            byte_data = await ctx.request(image.url)
             image_buffer = await self.make_jpegify(byte_data)
             await ctx.send(file=discord.File(image_buffer, filename="jpegify.jpeg"))
 
