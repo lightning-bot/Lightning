@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import menus
-from discord.ext.commands import bot_has_permissions, default
+from discord.ext.commands import Author, bot_has_permissions
 from sanctum.exceptions import NotFound
 
 from lightning import CommandLevel, LightningCog, group
@@ -281,7 +281,7 @@ class Infractions(LightningCog, required=['Mod']):
     @list_infractions.command(name='takenby', level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
     async def list_infractions_made_by(self, ctx: LightningContext, *,
-                                       member: discord.Member = default.Author) -> None:
+                                       member: discord.Member = Author) -> None:
         """Lists infractions taken by a moderator"""
         await self.start_keyset_pages(ctx, InfractionSource(ctx.bot, ctx.guild, moderator=member))
 
