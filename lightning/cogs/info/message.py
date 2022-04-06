@@ -22,8 +22,7 @@ from typing import TYPE_CHECKING
 import discord
 
 from lightning import LightningCog, group
-from lightning.cogs.info.converters import Message
-from lightning.converters import ReadableChannel
+from lightning.cogs.info.converters import Message, ReadableChannel
 from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
 from lightning.utils.helpers import message_id_lookup
 
@@ -65,9 +64,12 @@ class MessageInfo(LightningCog):
 
         return embed
 
-    @group(aliases=['messageinfo', 'msgtext'], invoke_without_command=True)
+    @group(invoke_without_command=True, usage="<message>", require_var_positional=True)
     async def quote(self, ctx: LightningContext, *message) -> None:
-        """Quotes a message"""
+        """Quotes a message.
+
+        You can pass either the message ID and channel ID (i.e {prefix}quote <message_id> <channel>) \
+        or you can pass a message link"""
         message_id, channel = await Message().convert(ctx, message)
         msg = discord.utils.get(ctx.bot.cached_messages, id=message_id)
         if msg is None:
@@ -83,7 +85,7 @@ class MessageInfo(LightningCog):
         embed = self.message_info_embed(msg)
         await ctx.send(embed=embed)
 
-    @quote.command(name="raw", aliases=['json'])
+    @quote.command(name="raw", aliases=['json'], require_var_positional=True)
     async def msg_raw(self, ctx: LightningContext, *message) -> None:
         """Shows raw JSON for a message."""
         message_id, channel = await Message().convert(ctx, message)
