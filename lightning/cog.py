@@ -37,5 +37,5 @@ class LightningCog(commands.Cog):
         cls.__lightning_cog_deps__ = LightningCogDeps(required=required_cogs)
 
     def __str__(self):
-        """Returns the cog’s qualified name, not the class name."""
+        """Returns the cog's qualified name, not the class name."""
         return self.qualified_name
