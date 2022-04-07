@@ -161,7 +161,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             alias = command.name if not parent else f'{parent} {command.name}'
         return f'{alias}'
 
-    async def send_bot_help(self, mapping) -> None:
+    async def send_bot_help(self, _) -> None:
         bot = self.context.bot
         entries = await self.filter_commands(bot.commands, sort=True)
         commands = {}

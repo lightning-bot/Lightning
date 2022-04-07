@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -15,8 +15,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncio
-import datetime
-import io
 import json
 import logging
 import subprocess
@@ -32,48 +30,6 @@ from discord.ext import menus
 from lightning import errors
 
 log = logging.getLogger(__name__)
-
-
-async def archive_messages(channel: discord.TextChannel, limit: int, *, filename=None, reverse=False) -> discord.File:
-    """Makes a txt file containing the limit of messages specified.
-
-    Parameters
-    ----------
-    channel : discord.TextChannel
-        The channel to archive messages for.
-    limit : int
-        How many messages to search for
-    filename : None, Optional
-        Optional file name
-    reverse : bool
-        Whether to reverse the messages or not. Defaults to False
-
-    Returns
-    -------
-    :class:discord.File
-        A .txt file containing the messages
-    """
-    messages = []
-    async for msg in channel.history(limit=limit):
-        messages.append(f"[{msg.created_at}]: {msg.author} - {msg.clean_content}")
-
-        if msg.attachments:
-            for attachment in msg.attachments:
-                messages.append(f"{attachment.url}\n")
-        else:
-            messages.append("\n")
-
-    if reverse:
-        messages.reverse()
-
-    text = f"Archive of {channel} (ID: {channel.id}) "\
-           f"made at {datetime.datetime.utcnow()}\n\n\n{''.join(messages)}"
-
-    _bytes = io.StringIO()
-    _bytes.write(text)
-    _bytes.seek(0)
-
-    return discord.File(_bytes, filename=filename or f"message_archive_{str(channel)}.txt")
 
 
 async def message_id_lookup(bot, channel_id: int, message_id: int):
