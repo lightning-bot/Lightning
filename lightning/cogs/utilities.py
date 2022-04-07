@@ -14,18 +14,22 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import asyncio
 from io import StringIO
+from typing import TYPE_CHECKING, Union
 
 import discord
 from discord.ext import commands
 
-from lightning import (Flag, FlagCommand, LightningBot, LightningCog,
-                       LightningContext, command, group)
-from lightning.converters import ReadableChannel, Snowflake, SnowflakeDT
-from lightning.utils import helpers
-from lightning.utils.checks import no_threads
+from lightning import Flag, FlagCommand, LightningCog, command, group
+from lightning.converters import (ReadableTextChannel, ReadableThread,
+                                  Snowflake, SnowflakeDT)
 from lightning.utils.time import format_timestamp
+
+if TYPE_CHECKING:
+    from lightning import LightningBot, LightningContext
 
 ARCHIVE_FLAGS = [Flag("--reverse", "-r", help="Reverses the messages to oldest message first", is_bool_flag=True),
                  Flag("--limit", converter=int, default=50, help="The limit of messages to get"),
@@ -33,11 +37,12 @@ ARCHIVE_FLAGS = [Flag("--reverse", "-r", help="Reverses the messages to oldest m
                  Flag("--user", converter=discord.User, help="The user to archive messages from"),
                  Flag("--before", converter=Snowflake, help="Archives messages before a message ID"),
                  Flag("--after", converter=Snowflake, help="Archives messages after a message ID"),
-                 Flag("--channel", "-c", converter=ReadableChannel, help="The channel to archive messages from")]
+                 Flag("--channel", "-c", converter=Union[ReadableTextChannel, ReadableThread],
+                      help="The channel to archive messages from")]
 
 
-class Misc(LightningCog):
-    """Commands that might be helpful..."""
+class Utilities(LightningCog):
+    """Commands that might be helpful"""
 
     @command()
     @commands.bot_has_permissions(add_reactions=True)
@@ -51,14 +56,30 @@ class Misc(LightningCog):
     @commands.bot_has_permissions(read_message_history=True)
     @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
     async def archive(self, ctx: LightningContext, limit: int,
-                      channel: ReadableChannel = commands.default.CurrentChannel) -> None:
+                      channel: Union[ReadableTextChannel, ReadableThread] = commands.CurrentChannel) -> None:
         """Archives a channel's contents to a text file."""
         if limit > 250:
             await ctx.send("You can only archive 250 messages.")
             return
 
         async with ctx.typing():
-            fp = await helpers.archive_messages(channel, limit)
+            messages = []
+            async for msg in channel.history(limit=limit):
+                messages.append(f"[{msg.created_at}]: {msg.author} - {msg.clean_content}")
+
+                if msg.attachments:
+                    for attachment in msg.attachments:
+                        messages.append(f"{attachment.url}\n")
+                else:
+                    messages.append("\n")
+
+            text = f"Archive of {channel} (ID: {channel.id}) "\
+                   f"made at {ctx.message.created_at}\n\n\n{''.join(messages)}"
+
+            _bytes = StringIO(text)
+            _bytes.seek(0)
+
+            fp = discord.File(_bytes, filename=f"message_archive_{str(channel)}.txt")
 
         await ctx.send(file=fp)
 
@@ -108,26 +129,10 @@ class Misc(LightningCog):
         text = f"Archive of {channel} (ID: {channel.id}) made at {discord.utils.utcnow()}\nConditions: {dict(flags)}"\
                f"\n\n\n{''.join(messages)}"
 
-        _bytes = StringIO()
-        _bytes.write(text)
+        _bytes = StringIO(text)
         _bytes.seek(0)
 
         await ctx.send(file=discord.File(_bytes, filename="message_archive.txt"))
-
-    @command()
-    @no_threads()
-    @commands.guild_only()
-    async def topic(self, ctx: LightningContext, *,
-                    channel: ReadableChannel = commands.default.CurrentChannel) -> None:
-        """Quotes a channel's topic"""
-        if channel.topic is None or channel.topic == "":
-            await ctx.send(f"{channel.mention} has no topic set!")
-            return
-
-        embed = discord.Embed(description=channel.topic,
-                              color=discord.Color.dark_blue())
-        embed.set_footer(text=f"Showing topic for #{str(channel)}")
-        await ctx.send(embed=embed)
 
     @command()
     async def snowflake(self, ctx: LightningContext, *snowflakes: SnowflakeDT) -> None:
@@ -137,4 +142,4 @@ class Misc(LightningCog):
 
 
 async def setup(bot: LightningBot):
-    await bot.add_cog(Misc(bot))
+    await bot.add_cog(Utilities(bot))
