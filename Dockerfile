@@ -15,10 +15,8 @@ WORKDIR /bot
 # Poetry
 RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
 
-
 COPY . .
 
 RUN poetry install --no-ansi
-
 
 CMD ["poetry", "run", "lightning", "docker-run"]
