@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 import secrets
 import urllib.parse
 from datetime import datetime
@@ -122,6 +123,10 @@ def mod_embed(title: str, description: str, social_links: List[str], color: Unio
     return em
 
 
+# This isn't a full semantic version regex
+SEMANTIC_VERSION_REGEX = r'^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)'
+
+
 class Homebrew(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
@@ -211,8 +216,13 @@ class Homebrew(LightningCog):
         feed = feedparser.parse(raw_bytes, response_headers={"Content-Location": feedurl})
         self.feed_digest = digest
         for entry in feed["entries"]:
-            version = entry["title"].split(" ")[-1]
-            console = entry["title"].replace(version, " ").strip()
+            raw_version = entry["title"].split(" ")[-1]
+            match = re.match(SEMANTIC_VERSION_REGEX, raw_version)
+            if not match:
+                # A date ("2022-04-19_00-05-06") version
+                return
+            version = match.string
+            console = entry["title"].replace(raw_version, " ").strip()
             link = entry["link"]
 
             if "published" in entry and entry.published:
@@ -223,7 +233,6 @@ class Homebrew(LightningCog):
                 continue
 
             try:
-                # Migration things:tm:
                 if timestamp <= datetime.fromtimestamp(data[console]["last_updated"],
                                                        tz=timestamp.tzinfo):
                     continue
