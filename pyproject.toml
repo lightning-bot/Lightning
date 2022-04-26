@@ -42,6 +42,7 @@ discord-ext-menus-views = {git = "https://github.com/oliver-ni/discord-ext-menus
 pydantic = "^1.8.2"
 sanctum-tc = "^0.4.0"
 migri = "^0.7.0"
+objgraph = "^3.5.0"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
