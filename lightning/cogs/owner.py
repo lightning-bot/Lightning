@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,20 +14,27 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import random
 import time
 import traceback
+from typing import TYPE_CHECKING
 
 import asyncpg
 import discord
+import objgraph
 import tabulate
 from jishaku.codeblocks import Codeblock, codeblock_converter
 from jishaku.cog import OPTIONAL_FEATURES, STANDARD_FEATURES
 from jishaku.features.baseclass import Feature
 
-from lightning import LightningBot, LightningContext, formatters
+from lightning import LightningBot, formatters
 from lightning.utils import helpers
 from lightning.utils import time as ltime
+
+if TYPE_CHECKING:
+    from lightning import LightningContext
 
 
 class CommandBug:
@@ -218,6 +225,12 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
             embed.description += f"`{bug.token}`: `{preview}` {ltime.natural_timedelta(bug.created_at, brief=True)}\n"
         embed.set_footer(text=f"{total} bugs")
         await ctx.send(embed=embed)
+
+    @Feature.Command(parent="jsk", name="objgraph")
+    async def jsk_objgraph(self, ctx: LightningContext) -> None:
+        """Tells you what objects are currently in memory"""
+        fmt = tabulate.tabulate(objgraph.most_common_types())
+        await ctx.send(formatters.codeblock(fmt))
 
 
 async def setup(bot: LightningBot) -> None:
