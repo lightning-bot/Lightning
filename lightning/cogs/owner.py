@@ -43,9 +43,6 @@ class CommandBug:
         self.traceback = record['traceback']
         self.created_at = ltime.add_tzinfo(record['created_at'])
 
-    def __int__(self):
-        return self.token
-
     def __repr__(self):
         return f"<CommandBug token={self.token}>"
 
@@ -60,7 +57,7 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
     @Feature.Command(parent="jsk", name="pip")
     async def jsk_pip(self, ctx: LightningContext, *, argument: codeblock_converter):
-        return await ctx.invoke(self.jsk_shell, argument=Codeblock(argument.language, "pip3 " + argument.content))
+        return await ctx.invoke(self.jsk_shell, argument=Codeblock(argument.language, f"pip3 {argument.content}"))
 
     @Feature.Command()
     async def fetchlog(self, ctx: LightningContext) -> None:
