@@ -21,7 +21,7 @@ import logging
 import textwrap
 import traceback
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 import asyncpg
 import discord
@@ -35,8 +35,6 @@ from lightning.utils import time as ltime
 from lightning.utils.helpers import BetterUserObject, dm_user
 
 if TYPE_CHECKING:
-    from typing import Optional, Union
-
     from lightning import LightningBot
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -49,7 +47,7 @@ class Reminders(LightningCog):
         super().__init__(bot)
 
         self.task_available = asyncio.Event()
-        self._current_task = None
+        self._current_task: Optional[Timer] = None
         self._task = self.bot.loop.create_task(self.handle_timers())
 
     def cog_unload(self) -> None:
@@ -297,7 +295,7 @@ class Reminders(LightningCog):
             # rip
             return
 
-        timed_txt = ltime.natural_timedelta(timer.created, source=timer.expiry, suffix=True)
+        timed_txt = ltime.natural_timedelta(timer.created_at, source=timer.expiry, suffix=True)
         message = f"<@!{user.id}> You asked to be reminded {timed_txt} about {timer.extra['reminder_text']}"
         secret = timer.extra.pop("secret", False)
 
@@ -318,7 +316,7 @@ class Reminders(LightningCog):
 
             ref = discord.MessageReference(message_id=timer.extra['message_id'], channel_id=channel.id, guild_id=_id,
                                            fail_if_not_exists=False)
-            kwargs.update({"reference": ref})
+            kwargs["reference"] = ref
 
         await channel.send(message, **kwargs)
 
