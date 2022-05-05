@@ -53,7 +53,7 @@ class LightningCommand(commands.Command):
         super().__init__(func, **kwargs)
         level = kwargs.pop('level', CommandLevel.User)
         if not isinstance(level, CommandLevel):
-            raise TypeError("level kwarg must be an instance of CommandLevel")
+            raise TypeError("level kwarg must be a member of CommandLevel")
 
         if level == CommandLevel.Blocked:
             raise ValueError("level cannot be set to Blocked")
