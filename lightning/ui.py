@@ -53,7 +53,7 @@ class BaseView(discord.ui.View):
         loop.create_task(self.cleanup())
         super().stop()
 
-    async def on_error(self, error, item, interaction):
+    async def on_error(self, interaction, error, item):
         with sentry_sdk.push_scope() as scope:
             # lines = traceback.format_exception(type(error), error, error.__traceback__, chain=False)
             # traceback_text = ''.join(lines)
