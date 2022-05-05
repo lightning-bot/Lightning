@@ -282,10 +282,6 @@ class Timer:
         return cls(record['id'], record['event'], record['created'], record['expiry'], record['extra'])
 
     @property
-    def created(self) -> datetime.datetime:
-        return self.created_at
-
-    @property
     def natural_td(self):
         return natural_timedelta(self.created_at, source=self.expiry)
 
