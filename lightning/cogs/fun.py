@@ -149,10 +149,6 @@ class Fun(LightningCog):
         else:
             await ctx.send(bottom.encode(text))
 
-    @owoify.before_invoke
-    async def do_typing_before(self, ctx: LightningContext) -> None:
-        await ctx.trigger_typing()
-
     @command(aliases=['cade'])
     async def cat(self, ctx: LightningContext) -> None:
         """Gives you a random cat picture"""
