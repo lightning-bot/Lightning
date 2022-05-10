@@ -26,6 +26,7 @@ from rapidfuzz import process
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, group)
 from lightning.converters import Role
+from lightning.events import GuildRoleDeleteEvent
 from lightning.utils import paginator
 from lightning.utils.checks import has_guild_permissions
 
@@ -111,10 +112,7 @@ class Roles(LightningCog):
         return resolved, unresolved
 
     def _has_dangerous_permissions(self, permissions: discord.Permissions):
-        if permissions.value & DANGEROUS_PERMISSIONS.value != 0:
-            # has dangerous permissions
-            return True
-        return False
+        return permissions.value & DANGEROUS_PERMISSIONS.value != 0
 
     @group(aliases=['selfrole'], invoke_without_command=True, require_var_positional=True)
     @commands.guild_only()
@@ -172,8 +170,13 @@ class Roles(LightningCog):
     @commands.guild_only()
     @has_guild_permissions(manage_roles=True)
     @commands.bot_has_permissions(manage_roles=True)
-    async def set_toggleable_roles(self, ctx, *, role: Role) -> None:
+    async def set_toggleable_roles(self, ctx, *, role: discord.Role = commands.param(converter=Role)) -> None:
         """Adds a role to the list of toggleable roles for members"""
+        if self._has_dangerous_permissions(role.permissions):
+            await ctx.send(f"Unable to add {role.name} ({role.id}) because it has permissions that are deemed "
+                           "dangerous.")
+            return
+
         query = """INSERT INTO guild_config (guild_id, toggleroles)
                    VALUES ($1, $2::bigint[])
                    ON CONFLICT (guild_id)
@@ -232,8 +235,7 @@ class Roles(LightningCog):
         role_list = []
 
         for role_id in record.toggleroles:
-            role = discord.utils.get(ctx.guild.roles, id=role_id)
-            if role:
+            if role := discord.utils.get(ctx.guild.roles, id=role_id):
                 role_list.append(f"{role.mention} (ID: {role.id})")
             else:
                 unresolved.append(role_id)
@@ -253,7 +255,7 @@ class Roles(LightningCog):
         await menu.start(ctx)
 
     @LightningCog.listener()
-    async def on_lightning_guild_role_delete(self, event):
+    async def on_lightning_guild_role_delete(self, event: GuildRoleDeleteEvent):
         await self.remove_assignable_role(event.guild_id, event.role.id)
         await self.bot.get_guild_bot_config.invalidate(event.guild_id)
 
