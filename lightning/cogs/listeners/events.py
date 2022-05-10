@@ -14,9 +14,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import asyncio
 from datetime import timedelta
-from typing import Optional
+from typing import Callable, Optional, Union
 
 import discord
 
@@ -33,7 +35,7 @@ def match_attribute(attr, before, after):
 
 
 def role_check(before, after):
-    def check(entry):
+    def check(entry: discord.AuditLogEntry):
         added = [role for role in after.roles if role not in before.roles]
         removed = [role for role in before.roles if role not in after.roles]
         return entry.target.id == before.id and hasattr(entry.changes.before, "roles") \
@@ -44,7 +46,7 @@ def role_check(before, after):
 
 
 def guild_role_check(role):
-    def check(entry):
+    def check(entry: discord.AuditLogEntry):
         return role.id == entry.target.id  # getattr(entry.target, "id", None)
     return check
 
@@ -56,8 +58,9 @@ class ListenerEvents(LightningCog):
 
     # TODO: A temp ignored cache.
 
-    async def fetch_audit_log_entry(self, guild: discord.Guild, action: discord.AuditLogAction, *, target=None,
-                                    limit: int = 50, check=None) -> Optional[discord.AuditLogEntry]:
+    async def fetch_audit_log_entry(self, guild: discord.Guild, action: discord.AuditLogAction, *,
+                                    target: Optional[discord.abc.Snowflake] = None, limit: int = 50,
+                                    check: Optional[Callable] = None) -> Optional[discord.AuditLogEntry]:
         async for entry in guild.audit_logs(limit=limit, action=action):
             td = discord.utils.utcnow() - entry.created_at
             if td < timedelta(seconds=10):
@@ -83,7 +86,7 @@ class ListenerEvents(LightningCog):
 
     # Moderation Audit Log Integration Events
     @LightningCog.listener('on_member_remove')
-    async def on_member_kick(self, member):
+    async def on_member_kick(self, member: discord.Member):
         check = await self.check_and_wait(member.guild)
         if check is False:
             return
@@ -106,7 +109,7 @@ class ListenerEvents(LightningCog):
         self.bot.dispatch("lightning_member_kick", event)
 
     @LightningCog.listener()
-    async def on_member_ban(self, guild, user):
+    async def on_member_ban(self, guild: discord.Guild, user: Union[discord.User, discord.Member]):
         check = await self.check_and_wait(guild)
         if check is False:
             return
@@ -124,7 +127,7 @@ class ListenerEvents(LightningCog):
         self.bot.dispatch("lightning_member_ban", event)
 
     @LightningCog.listener()
-    async def on_member_unban(self, guild, user):
+    async def on_member_unban(self, guild: discord.Guild, user: discord.User):
         check = await self.check_and_wait(guild)
         if check is False:
             return
@@ -143,7 +146,7 @@ class ListenerEvents(LightningCog):
 
     # Member events with optional audit log information
     @LightningCog.listener('on_member_update')
-    async def on_member_nick_change(self, before, after):
+    async def on_member_nick_change(self, before: discord.Member, after: discord.Member):
         if before.nick == after.nick:
             return
 
@@ -158,7 +161,7 @@ class ListenerEvents(LightningCog):
         self.bot.dispatch("lightning_member_nick_change", MemberUpdateEvent(before, after, entry))
 
     @LightningCog.listener('on_member_update')
-    async def on_member_role_change(self, before, after):
+    async def on_member_role_change(self, before: discord.Member, after: discord.Member):
         if before.roles == after.roles:
             return
 
@@ -174,13 +177,13 @@ class ListenerEvents(LightningCog):
 
     # Member events that don't need audit logs
     @LightningCog.listener('on_member_update')
-    async def on_member_passed_screening(self, before, after):
+    async def on_member_passed_screening(self, before: discord.Member, after: discord.Member):
         if before.pending is True and after.pending is False:
             self.bot.dispatch("lightning_member_passed_screening", after)
 
     # Guild events with Audit Log Integration
     @LightningCog.listener()
-    async def on_guild_role_delete(self, role):
+    async def on_guild_role_delete(self, role: discord.Role):
         check = await self.check_and_wait(role.guild)
 
         if check is True:
@@ -193,7 +196,7 @@ class ListenerEvents(LightningCog):
 
     # Dispatches role_add and role_remove events.
     @LightningCog.listener()
-    async def on_lightning_member_role_change(self, event):
+    async def on_lightning_member_role_change(self, event: MemberRolesUpdateEvent):
         for role in event.added_roles:
             self.bot.dispatch("lightning_member_role_add", MemberRoleUpdateEvent(role, event.entry))
 
