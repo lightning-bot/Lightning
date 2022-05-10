@@ -23,14 +23,15 @@ from typing import TYPE_CHECKING, Optional, Union
 import discord
 from discord.ext import commands
 
-from lightning import (CommandLevel, LightningCog, LightningContext, ModFlags,
-                       cache, command, converters)
+from lightning import (CommandLevel, LightningBot, LightningCog,
+                       LightningContext, ModFlags, cache, command, converters)
 from lightning import flags as lflags
 from lightning import group
+from lightning.constants import COMMON_HOIST_CHARACTERS
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
 from lightning.events import InfractionEvent
 from lightning.formatters import plural, truncate_text
-from lightning.models import GuildModConfig, PartialGuild
+from lightning.models import GuildModConfig, PartialGuild, Timer
 from lightning.utils import helpers, modlogformats
 from lightning.utils.checks import (has_channel_permissions,
                                     has_guild_permissions)
@@ -53,9 +54,6 @@ confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
 BaseModParser = lflags.FlagParser([lflags.Flag("--nodm", "--no-dm", is_bool_flag=True,
                                    help="Bot does not DM the user the reason for the action.")],
                                   rest_attribute_name="reason", raise_on_bad_flag=False)
-
-
-COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">", "_", ".", "$", "\"", "?"]
 
 
 class Mod(LightningCog, required=["Configuration"]):
@@ -785,7 +783,7 @@ class Mod(LightningCog, required=["Configuration"]):
         await ctx.send(f"Dehoisted {len(dehoists)}/{len(ctx.guild.members)}\n{len(failed_dehoist)} failed.")
 
     @LightningCog.listener()
-    async def on_lightning_timeban_complete(self, timer):
+    async def on_lightning_timeban_complete(self, timer: Timer):
         # We need to update timeban status first. Eventually, we need to move this over to infractions cog but idk
         query = "UPDATE infractions SET active=false WHERE guild_id=$1 AND user_id=$2 AND expiry=$3 AND action='4';"
         await self.bot.pool.execute(query, timer.extra['guild_id'], timer.extra['user_id'], timer.expiry)
@@ -797,7 +795,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
         try:
             user = await self.bot.fetch_user(timer.extra['user_id'])
-        except Exception:
+        except discord.HTTPException:
             user = helpers.BetterUserObject(id=timer.extra['user_id'])
 
         moderator = guild.get_member(timer.extra['mod_id']) or helpers.BetterUserObject(id=timer.extra['mod_id'])
@@ -807,7 +805,7 @@ class Mod(LightningCog, required=["Configuration"]):
         self.bot.dispatch("lightning_timed_moderation_action_done", "UNBAN", guild, user, moderator, timer)
 
     @LightningCog.listener()
-    async def on_lightning_timemute_complete(self, timer):
+    async def on_lightning_timemute_complete(self, timer: Timer):
         async with self.bot.pool.acquire() as connection:
             if await self.punishment_role_check(timer.extra['guild_id'],
                                                 timer.extra['user_id'],
@@ -837,7 +835,7 @@ class Mod(LightningCog, required=["Configuration"]):
             user = helpers.BetterUserObject(timer.extra['user_id'])
         else:
             reason = f"Timed mute made by {modlogformats.base_user_format(moderator)} at "\
-                     f"{get_utc_timestamp(timer.created)} expired"
+                     f"{get_utc_timestamp(timer.created_at)} expired"
             # I think I'll intentionally let it raise an error if bot missing perms or w/e...
             await user.remove_roles(role, reason=reason)
 
@@ -991,5 +989,5 @@ class Mod(LightningCog, required=["Configuration"]):
         await self.get_mod_config.invalidate(guild.id)
 
 
-async def setup(bot) -> None:
+async def setup(bot: LightningBot) -> None:
     await bot.add_cog(Mod(bot))
