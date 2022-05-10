@@ -166,7 +166,7 @@ class Roles(LightningCog):
         for page in paginator.pages:
             await ctx.send(page)
 
-    @togglerole.command(name="add", aliases=["set"], level=CommandLevel.Admin)
+    @togglerole.command(name="add", level=CommandLevel.Admin)
     @commands.guild_only()
     @has_guild_permissions(manage_roles=True)
     @commands.bot_has_permissions(manage_roles=True)
