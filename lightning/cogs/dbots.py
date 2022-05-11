@@ -20,7 +20,7 @@ import orjson
 
 from lightning import LightningBot, LightningCog
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 
 class Dbots(LightningCog):
@@ -40,6 +40,7 @@ class Dbots(LightningCog):
 
 async def setup(bot: LightningBot):
     if not bot.config['tokens'].get("dbots"):
+        log.info("Not loading dbots cog because a dbots token is missing.")
         return
 
     await bot.add_cog(Dbots(bot))
