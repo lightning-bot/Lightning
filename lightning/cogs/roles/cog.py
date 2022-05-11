@@ -25,6 +25,7 @@ from rapidfuzz import process
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, group)
+from lightning.cogs.roles.ui import RoleButton, RoleButtonView
 from lightning.converters import Role
 from lightning.events import GuildRoleDeleteEvent
 from lightning.utils import paginator
@@ -63,6 +64,8 @@ DANGEROUS_PERMISSIONS = discord.Permissions(manage_threads=True, ban_members=Tru
 
 class Roles(LightningCog):
     """Role based commands"""
+    async def cog_load(self):
+        self.bot.loop.create_task(self.init_existing_togglerole_buttons())
 
     @command()
     @commands.guild_only()
@@ -78,8 +81,7 @@ class Roles(LightningCog):
     async def resolve_roles(self, record, ctx, args):
         roles = []
         for x in record:
-            role = ctx.guild.get_role(x)
-            if role:
+            if role := ctx.guild.get_role(x):
                 roles.append(role)
             continue
         role_names = [r.name for r in roles]
@@ -186,6 +188,7 @@ class Roles(LightningCog):
         await self.bot.pool.execute(query, ctx.guild.id, [role.id])
         await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.send(f"Added {role.name} as a toggleable role!")
+        self.bot.loop.create_task(self.update_togglerole_buttons(ctx.guild))
 
     @togglerole.command(name="purge", level=CommandLevel.Admin)
     @commands.guild_only()
@@ -219,6 +222,7 @@ class Roles(LightningCog):
         await self.remove_assignable_role(ctx.guild.id, role_repr[0])
         await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
         await ctx.send(f"Successfully removed {role_repr[1]} from the list of toggleable roles")
+        self.bot.loop.create_task(self.update_togglerole_buttons(ctx.guild))
 
     @commands.guild_only()
     @togglerole.command(name="list")
@@ -240,7 +244,7 @@ class Roles(LightningCog):
             else:
                 unresolved.append(role_id)
 
-        if len(unresolved) != 0:
+        if unresolved:
             # We have some roles that need to be removed...
             query = """UPDATE guild_config
                        SET toggleroles = ARRAY(SELECT x FROM unnest(toggleroles) AS x
@@ -258,6 +262,75 @@ class Roles(LightningCog):
     async def on_lightning_guild_role_delete(self, event: GuildRoleDeleteEvent):
         await self.remove_assignable_role(event.guild_id, event.role.id)
         await self.bot.get_guild_bot_config.invalidate(event.guild_id)
+
+    # Some things to note:
+    # - This implementation only allows for either one message with 25 buttons or a channel designed for buttons only
+    # - An ID PK column would make this implmentation support other messages.
+    async def init_existing_togglerole_buttons(self):
+        await self.bot.wait_until_ready()
+
+        records = await self.bot.pool.fetch("SELECT * FROM togglerole_interactions")
+        for record in records:
+            guild = self.bot.get_guild(record['guild_id'])
+            if not guild:
+                return
+
+            if record['message_id']:
+                view = await self._prepare_view(guild, record['channel_id'])
+                self.bot.add_view(view, message_id=record['message_id'])
+
+    async def update_togglerole_buttons(self, guild: discord.Guild):
+        record = await self.bot.pool.fetchrow("SELECT * FROM togglerole_interactions WHERE guild_id=$1;", guild.id)
+        if not record:
+            return
+
+        channel = guild.get_channel(record['channel_id'])
+        if not channel:  # sus
+            return
+
+        message = await channel.fetch_message(record['message_id'])
+        view = await self._prepare_view(guild, channel.id)
+        await message.edit(view=view)
+
+    async def simple_button_view(self, ctx: LightningContext):
+        message = await ctx.ask("What would you like the message content to be?")
+        if not message:
+            return
+
+        view = await self._prepare_view(ctx.guild, ctx.channel.id)
+        message = await ctx.send(message.content, view=view)
+        query = """INSERT INTO togglerole_interactions (guild_id, channel_id, message_id)
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET channel_id = EXCLUDED.channel_id,
+                   message_id = EXCLUDED.message_id"""
+        await self.bot.pool.execute(query, ctx.guild.id, message.channel.id, message.id)
+        await ctx.send("Bound to this message! Any time you delete or add a self-assignable role, that change will be "
+                       "reflected in this menu.", reference=message)
+
+    @togglerole.command()
+    @has_guild_permissions(manage_roles=True)
+    async def buttons(self, ctx: LightningContext):
+        """Sets up role buttons"""
+        record = await self.bot.get_guild_bot_config(ctx.guild.id)
+        if not record or not record.toggleroles:
+            await ctx.send("This feature cannot be used until you add some roles!")
+            return
+
+        if len(record.toggleroles) <= 25:
+            await self.simple_button_view(ctx)
+            return
+
+        await ctx.send(f"This command only works if the guild has less than {len(record.toggleroles)} self-assignable "
+                       "roles.")
+
+    async def _prepare_view(self, guild: discord.Guild, channel_id: int) -> RoleButtonView:
+        view = RoleButtonView()
+        config = await self.bot.get_guild_bot_config(guild.id)
+        roles = sorted(guild.get_role(role) for role in config.toggleroles)  # hopefully nothing is None...
+        for role in roles:
+            view.add_item(RoleButton(role, channel_id))
+        return view
 
 
 async def setup(bot: LightningBot):
