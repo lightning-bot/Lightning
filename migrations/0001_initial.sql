@@ -112,3 +112,11 @@ CREATE TABLE IF NOT EXISTS automod
     guild_id BIGINT NOT NULL REFERENCES guilds (id) ON DELETE CASCADE PRIMARY KEY,
     config TEXT
 );
+
+-- I suppose this only supports one role menu
+CREATE TABLE IF NOT EXISTS togglerole_interactions
+(
+    guild_id BIGINT NOT NULL REFERENCES guilds (id) ON DELETE CASCADE PRIMARY KEY,
+    channel_id BIGINT,
+    message_id BIGINT
+);
