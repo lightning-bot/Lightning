@@ -310,6 +310,7 @@ class Roles(LightningCog):
 
     @togglerole.command()
     @has_guild_permissions(manage_roles=True)
+    @commands.bot_has_guild_permissions(manage_roles=True)
     async def buttons(self, ctx: LightningContext):
         """Sets up role buttons"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
