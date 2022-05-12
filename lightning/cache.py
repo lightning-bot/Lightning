@@ -15,14 +15,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-# _wrap_new_coroutine, _wrap_and_store_coroutine, ExpiringCache is provided by Rapptz under the MIT License
+# ExpiringCache is provided by Rapptz under the MIT License
 # Copyright ©︎ 2015 Rapptz
 # https://github.com/Rapptz/RoboDanny/blob/19e9dd927a18bdf021e4d1abb012ae2daf392bc2/cogs/utils/cache.py
 import enum
 import inspect
 import time
 from functools import wraps
-from typing import Union
 
 import aioredis
 from lru import LRU
@@ -279,13 +278,10 @@ class CacheRegistry:
         self.caches[new_name] = self.caches.pop(old_name)
 
 
-async def start_redis_client() -> Union[aioredis.Redis, aioredis.ConnectionError]:
-    try:
-        pool = aioredis.Redis(**CONFIG['tokens']['redis'])
-        # Only way to ensure the pool is connected to redis
-        await pool.ping()
-    except Exception as e:
-        pool = e
+async def start_redis_client() -> aioredis.Redis:
+    pool = aioredis.Redis(**CONFIG['tokens']['redis'])
+    # Only way to ensure the pool is connected to redis
+    await pool.ping()
 
     return pool
 
