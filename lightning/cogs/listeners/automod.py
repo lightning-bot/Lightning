@@ -14,16 +14,20 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import datetime
 import re
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
+import aioredis
+import asyncpg
 import discord
-from discord.ext.commands.cooldowns import (BucketType, Cooldown,
-                                            CooldownMapping)
+from discord.ext.commands.cooldowns import BucketType
 from tomlkit import loads as toml_loads
 
-from lightning import CommandLevel, LightningCog, cache
+from lightning import (AutoModCooldown, CommandLevel, LightningBot,
+                       LightningCog, cache)
 from lightning.models import PartialGuild
 from lightning.utils import modlogformats
 from lightning.utils.automod_parser import (AutomodPunishmentEnum,
@@ -47,7 +51,10 @@ def url_check(message):
 
 
 class AutomodConfig:
-    def __init__(self, record) -> None:
+    def __init__(self, bot: LightningBot, guild_id: int, record: asyncpg.Record) -> None:
+        self.guild_id = guild_id
+        self.bot = bot
+
         records = read_file(toml_loads(record))
         self.message_spam: Optional[MessageConfigBase] = None
         self.mass_mentions: Optional[BaseTableModel] = None
@@ -58,42 +65,44 @@ class AutomodConfig:
             if record.type == "mass-mentions":
                 self.mass_mentions = record
             if record.type == "message-spam":
-                self.message_spam = MessageConfigBase.from_model(record, BucketType.member)
+                self.message_spam = MessageConfigBase.from_model(record, BucketType.member, self)
             if record.type == "message-content-spam":
                 self.message_content_spam = MessageConfigBase.from_model(record,
-                                                                         lambda m: (m.author.id, len(m.content)))
+                                                                         lambda m: (m.author.id, len(m.content)), self)
             if record.type == "invite-spam":
-                self.invite_spam = MessageConfigBase.from_model(record, BucketType.member, check=invite_check)
+                self.invite_spam = MessageConfigBase.from_model(record, BucketType.member, self, check=invite_check)
             if record.type == "url-spam":
-                self.url_spam = MessageConfigBase.from_model(record, BucketType.member, check=url_check)
+                self.url_spam = MessageConfigBase.from_model(record, BucketType.member, self, check=url_check)
 
 
 class MessageConfigBase:
     """A class to make interacting with a message spam config easier..."""
-    def __init__(self, rate, seconds, punishment_config, bucket_type, *, check=None) -> None:
-        self.cooldown_bucket = CooldownMapping(Cooldown(rate, seconds), bucket_type)
+    def __init__(self, rate: int, seconds: float, punishment_config: AutomodPunishmentModel,
+                 bucket_type: Union[BucketType, Callable], key: str, redis_pool: aioredis.Redis, *, check=None) -> None:
+        self.cooldown = AutoModCooldown(key, rate, seconds, redis_pool, bucket_type)
         self.punishment: AutomodPunishmentModel = punishment_config
 
         if check and not callable(check):
-            raise Exception("check must be a callable")
+            raise TypeError("check must be a callable")
 
         self.check = check
 
     @classmethod
-    def from_model(cls, record: MessageSpamModel, bucket_type, *, check=None):
-        return cls(record.count, record.seconds, record.punishment, bucket_type, check=check)
+    def from_model(cls, record: MessageSpamModel, bucket_type: Union[BucketType, Callable], config: AutomodConfig,
+                   *, check=None):
+        return cls(record.count, record.seconds, record.punishment, bucket_type,
+                   f"automod:{record.type}:{config.guild_id}", config.bot.redis_pool, check=check)
 
-    def update_bucket(self, message: discord.Message) -> bool:
+    async def update_bucket(self, message: discord.Message) -> bool:
         if self.check and self.check(message) is False:
             return
 
-        b = self.cooldown_bucket.get_bucket(message)
-        ratelimited = b.update_rate_limit(message.created_at.timestamp())
+        ratelimited = await self.cooldown.hit(message)
         return bool(ratelimited)
 
-    def reset_bucket(self, message: discord.Message) -> None:
-        b = self.cooldown_bucket.get_bucket(message)
-        b.reset()
+    async def reset_bucket(self, message: discord.Message) -> None:
+        # I wouldn't think there's a need for this but if you're using warn (for example), it'll double warn
+        await self.cooldown.redis.delete(self.cooldown._key_maker(message))
 
 
 class AutoMod(LightningCog, required=["Mod"]):
@@ -103,7 +112,7 @@ class AutoMod(LightningCog, required=["Mod"]):
     async def get_automod_config(self, guild_id: int):
         query = """SELECT config FROM automod WHERE guild_id=$1;"""
         record = await self.bot.pool.fetchval(query, guild_id)
-        return AutomodConfig(record) if record else None
+        return AutomodConfig(self.bot, guild_id, record) if record else None
 
     async def add_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection=None) -> str:
         return await self.bot.get_cog("Mod").add_punishment_role(guild_id, user_id, role_id, connection=connection)
@@ -201,9 +210,9 @@ class AutoMod(LightningCog, required=["Mod"]):
             Returns True if the bot can timeout a member
         """
         me = message.guild.get_member(self.bot.user.id)
-        if message.channel.permissions_for(me).moderate_members:
-            if duration.dt <= (message.created_at + datetime.timedelta(days=29)):
-                return True
+        if message.channel.permissions_for(me).moderate_members and \
+                duration.dt <= (message.created_at + datetime.timedelta(days=29)):
+            return True
         return False
 
     async def _temp_mute_user(self, message: discord.Message, duration):
@@ -283,16 +292,16 @@ class AutoMod(LightningCog, required=["Mod"]):
         if record.mass_mentions and len(message.mentions) >= record.mass_mentions.count:
             await self._handle_punishment(record.mass_mentions.punishment, message)
 
-        if record.message_spam and record.message_spam.update_bucket(message) is True:
-            record.message_spam.reset_bucket(message)  # Reset our bucket
+        if record.message_spam and await record.message_spam.update_bucket(message) is True:
+            await record.message_spam.reset_bucket(message)  # Reset our bucket
             await self._handle_punishment(record.message_spam.punishment, message)
 
-        if record.invite_spam and record.invite_spam.update_bucket(message) is True:
-            record.invite_spam.reset_bucket(message)  # Reset our bucket
+        if record.invite_spam and await record.invite_spam.update_bucket(message) is True:
+            await record.invite_spam.reset_bucket(message)  # Reset our bucket
             await self._handle_punishment(record.invite_spam.punishment, message)
 
-        if record.url_spam and record.url_spam.update_bucket(message) is True:
-            record.url_spam.reset_bucket(message)  # Reset our bucket
+        if record.url_spam and await record.url_spam.update_bucket(message) is True:
+            await record.url_spam.reset_bucket(message)  # Reset our bucket
             await self._handle_punishment(record.url_spam.punishment, message)
 
     @LightningCog.listener()
