@@ -1,6 +1,6 @@
 """
-Lightning.py - A personal Discord bot
-Copyright (C) 2019-2021 LightSage
+Lightning.py - A Discord bot
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -18,14 +18,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # _wrap_new_coroutine, _wrap_and_store_coroutine, ExpiringCache is provided by Rapptz under the MIT License
 # Copyright ©︎ 2015 Rapptz
 # https://github.com/Rapptz/RoboDanny/blob/19e9dd927a18bdf021e4d1abb012ae2daf392bc2/cogs/utils/cache.py
-import asyncio
 import enum
 import inspect
 import time
 from functools import wraps
 from typing import Union
 
-from aredis import StrictRedis
+import aioredis
 from lru import LRU
 
 from lightning.config import CONFIG
@@ -33,20 +32,6 @@ from lightning.config import CONFIG
 
 class CacheError(Exception):
     pass
-
-
-def _wrap_and_store_coroutine(cache, key, coro):
-    async def func():
-        value = await coro
-        cache[key] = value
-        return value
-    return func()
-
-
-def _wrap_new_coroutine(value):
-    async def new_coroutine():
-        return value
-    return new_coroutine()
 
 
 class ExpiringCache(dict):
@@ -294,13 +279,11 @@ class CacheRegistry:
         self.caches[new_name] = self.caches.pop(old_name)
 
 
-def start_redis_client() -> Union[StrictRedis, Exception]:
-    loop = asyncio.get_event_loop()
-
+async def start_redis_client() -> Union[aioredis.Redis, aioredis.ConnectionError]:
     try:
-        pool = StrictRedis(**CONFIG['tokens']['redis'])
+        pool = aioredis.Redis(**CONFIG['tokens']['redis'])
         # Only way to ensure the pool is connected to redis
-        loop.run_until_complete(pool.ping())
+        await pool.ping()
     except Exception as e:
         pool = e
 
