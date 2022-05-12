@@ -21,7 +21,6 @@ parsedatetime = "^2.6"
 psutil = "^5.7.2"
 tabulate = "^0.8.7"
 hiredis = "^2.0.0"
-aredis = "^1.1.8"
 feedparser = "^6.0.8"
 asyncpg = "^0.25.0"
 discord-ext-menus = {git = "https://github.com/LightSage/discord-ext-menus.git"}
@@ -43,6 +42,8 @@ pydantic = "^1.8.2"
 sanctum-tc = "^0.4.0"
 migri = "^0.7.0"
 objgraph = "^3.5.0"
+asyncpg-stubs = "^0.25.1"
+aioredis = "^2.0.1"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
