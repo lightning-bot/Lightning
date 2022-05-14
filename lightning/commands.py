@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -61,7 +61,18 @@ class LightningCommand(commands.Command):
         if level == CommandLevel.Owner:
             raise NotImplementedError
 
-        self.level = level
+        self.extras['level'] = level
+
+    @property
+    def level(self) -> CommandLevel:
+        """The command's required permission level
+
+        Returns
+        -------
+        CommandLevel
+            The required permission level this command requires
+        """
+        return self.extras['level']
 
     async def _resolve_permissions(self, ctx, user_level, *, fallback=True):
         # This shouldn't even happen...
@@ -92,10 +103,8 @@ class LightningCommand(commands.Command):
         # We need to check custom overrides first...
         bot = ctx.bot
 
-        if not ctx.guild and self.level == CommandLevel.User:
-            return True
-        elif not ctx.guild:
-            return False
+        if not ctx.guild:
+            return self.level == CommandLevel.User
 
         record = await bot.get_guild_bot_config(ctx.guild.id)
         if not record or record.permissions is None:
@@ -123,10 +132,7 @@ class LightningCommand(commands.Command):
             level_overriden = raw.get("LEVEL", None) if raw else None
 
             if level_overriden is not None:
-                if user_level.value >= level_overriden:
-                    return True
-                # Command overrides won't fallback
-                return False
+                return user_level.value >= level_overriden
 
         return await self._resolve_permissions(ctx, user_level, fallback=record.permissions.fallback)
 
