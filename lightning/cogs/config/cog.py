@@ -19,11 +19,10 @@ from io import StringIO
 from typing import Optional, Union
 
 import discord
-from discord.ext import commands, menus
-from discord.ext.menus.views import ViewMenu
+from discord.ext import commands
 
 from lightning import (CommandLevel, ConfigFlags, LightningCog,
-                       LightningContext, ModFlags, cache, command, group)
+                       LightningContext, ModFlags, cache, group)
 from lightning.cogs.config import ui
 from lightning.converters import (Prefix, Role, ValidCommandName,
                                   convert_to_level, convert_to_level_value)
@@ -34,78 +33,6 @@ from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
 
 log = logging.getLogger(__name__)
-
-
-class ConfigViewerMenu(ViewMenu):
-    def give_help(self) -> discord.Embed:
-        messages = [
-            'Welcome to the interactive config viewer!\n',
-            'This interactively allows you to see configuration settings of the bot by navigating with reactions. ',
-            'They are as follows:\n',
-        ]
-
-        for emoji, button in self.buttons.items():
-            messages.append(f'{emoji} {button.action.__doc__}')
-
-        embed = discord.Embed(color=discord.Color.blurple())
-        embed.description = '\n'.join(messages)
-        return embed
-
-    async def send_initial_message(self, ctx: LightningContext, channel):
-        # Help page
-        return await channel.send(embed=self.give_help())
-
-    @menus.button('\N{CLOSED BOOK}')
-    async def generic_stuff(self, payload) -> None:
-        """Displays prefix and generic bot settings"""
-        record = await self.bot.get_guild_bot_config(self.ctx.guild.id)
-        embed = discord.Embed(color=discord.Color.red())
-        embed.add_field(name="Prefixes", value='\n'.join(record.prefixes))
-
-        if record.flags:
-            embed.add_field(name="InvokeDelete", value="Enabled" if record.flags.invoke_delete else "Disabled",
-                            inline=False)
-            embed.add_field(name="RoleSaver", value="Enabled" if record.flags.role_reapply else "Disabled",
-                            inline=False)
-
-        if record.autorole:
-            role = self.ctx.guild.get_role(record.autorole)
-            if role:
-                embed.add_field(name="Autorole", value=f"{role.name} (ID: {role.id})")
-
-        await self.message.edit(embed=embed)
-
-    @menus.button('\N{WARNING SIGN}')
-    async def moderation(self, payload) -> None:
-        """Shows moderation related settings"""
-        obj = await self.ctx.cog.get_mod_config(self.ctx)
-        embed = discord.Embed(color=discord.Color.gold())
-
-        # Mute Role stuff
-        if obj.mute_role_id is not None:
-            if (role := discord.utils.get(self.ctx.guild.roles, id=obj.mute_role_id)) is not None:
-                embed.add_field(name="Permanent Mute Role", value=f"{role.name} (ID: {role.id})")
-
-        if obj.temp_mute_role_id:
-            role = discord.utils.get(self.ctx.guild.roles, id=obj.temp_mute_role_id)
-            if role is not None:
-                embed.add_field(name="Temporary Mute Role", value=f"{role.name} (ID: {role.id})")
-
-        # Warn Thresholds
-        if obj.warn_kick or obj.warn_ban:
-            msg = []
-            if obj.warn_kick:
-                msg.append(f"Kick: at {obj.warn_kick} warns\n")
-            if obj.warn_ban:
-                msg.append(f"Ban: at {obj.warn_ban}+ warns\n")
-            embed.add_field(name="Warn Thresholds", value="".join(msg))
-
-        await self.message.edit(embed=embed)
-
-    @menus.button('\N{INFORMATION SOURCE}\ufe0f')
-    async def show_help(self, payload) -> None:
-        """Shows help"""
-        await self.message.edit(embed=self.give_help())
 
 
 Features = {"role saver": (ConfigFlags.role_reapply, "Now saving member roles.", "No longer saving member roles."),
@@ -150,12 +77,6 @@ class Configuration(LightningCog):
         """Function to reduce duplication for invalidating a cached guild mod config"""
         c = cache.registry.get(config_name)
         return await c.invalidate(str(ctx.guild.id))
-
-    @command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
-    async def settings(self, ctx):
-        menu = ConfigViewerMenu(timeout=60.0, clear_reactions_after=True)
-        await menu.start(ctx)
 
     async def remove_config_key(self, guild_id: int, key: str, *, table='guild_config') -> str:
         query = f"UPDATE {table} SET {key} = NULL WHERE guild_id=$1;"
