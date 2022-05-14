@@ -481,18 +481,9 @@ class Configuration(LightningCog):
 
     @automod.command(level=CommandLevel.Admin, aliases=['upload'])
     @has_guild_permissions(manage_guild=True)
-    async def uploadconfig(self, ctx: LightningContext):
+    async def uploadconfig(self, ctx: LightningContext, attachment: discord.Attachment):
         """Adds an attached .toml file to the automod settings"""
-        if not ctx.message.attachments:
-            await ctx.send("Attach a TOML file.")
-            return
-
-        raw_cfg = None
-        for attachment in ctx.message.attachments:
-            if attachment.filename.endswith(".toml"):
-                raw_cfg = attachment
-
-        if not raw_cfg:
+        if not attachment.filename.endswith(".toml"):
             await ctx.send("Could not find an .TOML file attached to this message...")
             return
 
