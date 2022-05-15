@@ -15,9 +15,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from lightning.bot import LightningBot  # noqa
-from lightning.cog import LightningCog  # noqa
+from lightning.cog import GroupCog, LightningCog  # noqa
 from lightning.commands import *  # noqa
 from lightning.context import *  # noqa
+from lightning.cooldown import AutoModCooldown, RedisCooldown  # noqa
 from lightning.enums import *  # noqa
 from lightning.flags import *  # noqa
 from lightning.meta import *  # noqa
