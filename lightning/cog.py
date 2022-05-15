@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -39,3 +39,7 @@ class LightningCog(commands.Cog):
     def __str__(self):
         """Returns the cog's qualified name, not the class name."""
         return self.qualified_name
+
+
+class GroupCog(LightningCog, commands.GroupCog):
+    ...
