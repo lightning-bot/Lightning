@@ -72,7 +72,7 @@ class BotMeta(LightningCog):
             msg = "You can use this link to invite me to your server. (Select permissions as needed) "\
                   f"<{discord.utils.oauth_url(self.bot.user.id, permissions=perms)}>"
         else:
-            msg = "\n".join("<{}>".format(discord.utils.oauth_url(o.id, permissions=perms)) for o in ids)
+            msg = "\n".join(f"<{discord.utils.oauth_url(o.id, permissions=perms)}>" for o in ids)
 
         await ctx.send(msg)
 
