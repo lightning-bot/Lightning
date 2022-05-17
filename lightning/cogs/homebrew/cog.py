@@ -32,8 +32,8 @@ import feedparser
 from bs4 import BeautifulSoup
 from discord.ext import commands, menus, tasks
 from jishaku.functools import executor_function
-from PIL import Image
 from rapidfuzz import fuzz, process
+from wand.image import Image
 
 from lightning import CommandLevel, LightningCog, Storage, command, group
 from lightning.cogs.homebrew import ui
@@ -276,11 +276,13 @@ class Homebrew(LightningCog):
 
     @executor_function
     def convert_to_png(self, _bytes) -> BytesIO:
-        image_b = Image.open(BytesIO(_bytes))
-        image_file = BytesIO()
-        image_b.save(image_file, format="png")
-        image_file.seek(0)
-        return image_file
+        with Image(blob=BytesIO(_bytes)) as img:
+            img.format = "jpeg"
+            image_bytes = BytesIO()
+            img.save(image_bytes)
+            image_bytes.seek(0)
+
+        return image_bytes
 
     @command()
     @commands.cooldown(30.0, 1, commands.BucketType.user)
@@ -290,7 +292,7 @@ class Homebrew(LightningCog):
         """Converts a .bmp image to .png"""
         img_bytes = await ctx.request(link.url)
         img_final = await self.convert_to_png(img_bytes)
-        await ctx.send(file=discord.File(img_final, filename=f"{secrets.token_urlsafe()}.png"))
+        await ctx.send(file=discord.File(img_final, filename=f"{secrets.token_urlsafe()}.jpeg"))
 
     @command(aliases=['udb'])
     async def universaldb(self, ctx: LightningContext, *, application: str) -> None:
