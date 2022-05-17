@@ -16,11 +16,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+from typing import Any, Dict
+
 
 class CratesIOResponse:
     __slots__ = ('crates', 'total', 'previous_page', 'next_page')
 
-    def __init__(self, data: dict):
+    def __init__(self, data: Dict[str, Any]):
         self.crates = [Crate(x) for x in data['crates']]
         self.total = data['meta']['total']
         self.previous_page = data['meta']['prev_page']
@@ -31,7 +33,7 @@ class Crate:
     __slots__ = ('id', 'name', 'description', 'downloads', 'homepage', 'documentation', 'repository',
                  'exact_match', 'newest_version', 'max_version')
 
-    def __init__(self, data: dict):
+    def __init__(self, data: Dict[str, Any]):
         self.id = data['id']
         self.name = data['name']
         self.description = data['description'].strip()
