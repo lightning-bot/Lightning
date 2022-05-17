@@ -152,16 +152,16 @@ class ChannelConfigInvalidateEvent(GuildConfigInvalidateEvent):
 class GuildRoleDeleteEvent(BaseAuditLogEvent):
     __slots__ = ("role")
 
-    def __init__(self, role, entry):
+    def __init__(self, role: discord.Role, entry):
         super().__init__(entry)
-        self.role = role
+        self.role: discord.Role = role
 
     @property
-    def guild(self):
+    def guild(self) -> discord.Guild:
         return self.role.guild
 
     @property
-    def guild_id(self):
+    def guild_id(self) -> int:
         return self.role.guild.id
 
 # These won't be used yet until I do a refactor of modlogformats for single param events
