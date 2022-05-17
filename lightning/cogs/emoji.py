@@ -200,9 +200,7 @@ class Emoji(LightningCog):
 
     @info.error
     async def emoji_error(self, ctx: LightningContext, error) -> None:
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(error)
-        elif isinstance(error, commands.BadArgument):
+        if isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
             await ctx.send(error)
 
     @command()
