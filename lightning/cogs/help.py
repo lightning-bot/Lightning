@@ -96,12 +96,13 @@ class HelpMenu(menus.ListPageSource):
 
         def format_commands(c):
             # TODO: Handle if embed length is too long
-            return " | ".join([f"`{cmd.qualified_name}`" for cmd in c])
+            cmds = [f"`{cmd.qualified_name}`" for cmd in c]
+            return " | ".join(cmds)
 
         for entry in entries:
             cmds = sorted(self.data.get(entry, []), key=lambda d: d.qualified_name)
             cog = cmds[0].cog
-            value = f"{cog.description}\n{format_commands(cmds)}" if cog.description else format_commands(cmds)
+            value = f"__{cog.description}__\n{format_commands(cmds)}" if cog.description else format_commands(cmds)
             embed.add_field(name=entry, value=value, inline=False)
 
         embed.set_footer(text=f"Page {menu.current_page + 1} of {self.get_max_pages() or 1} ({self.total or 1} "
@@ -129,7 +130,7 @@ class HelpMenu(menus.ListPageSource):
         else:
             embed = self.format_group_embed(embed, menu, entries)
             embed.set_footer(text=menu.help_command.get_ending_note())
-        return embed
+        return {'embed': embed, "content": "Your current permissions allow you to run the following commands."}
 
 
 class PaginatedHelpCommand(commands.HelpCommand):
@@ -163,7 +164,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
     async def send_bot_help(self, _) -> None:
         bot = self.context.bot
-        entries = await self.filter_commands(bot.commands, sort=True)
+        entries = await self.filter_commands(bot.walk_commands(), sort=True)
         commands = {}
         for command in entries:
             try:
