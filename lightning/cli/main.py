@@ -21,6 +21,8 @@ import logging.handlers
 import os
 import sys
 
+import aioredis
+import asyncpg
 import discord
 import sentry_sdk
 import typer
@@ -68,9 +70,7 @@ def init_logging():
 
         log.addHandler(file_handler)
 
-        console_handler = logging_config.get("console", True)
-
-        if console_handler:
+        if _ := logging_config.get("console", True):
             stdout_handler = logging.StreamHandler(sys.stdout)
             stdout_handler.setFormatter(log_format)
             log.addHandler(stdout_handler)
@@ -85,6 +85,8 @@ async def launch_bot(config) -> None:
     if not os.path.exists("config"):
         os.makedirs("config")
 
+    log = logging.getLogger()
+
     sentry_dsn = config._storage.get('tokens', {}).get("sentry", None)
     commit = (await run_in_shell('git rev-parse HEAD'))[0].strip()
 
@@ -97,16 +99,26 @@ async def launch_bot(config) -> None:
     message_cache = bot_config.get('message_cache', 1000)
     kwargs = {'max_messages': message_cache}
 
-    owner_ids = bot_config.get('owner_ids', None)
-    if owner_ids:
+    if owner_ids := bot_config.get('owner_ids', None):
         kwargs['owner_ids'] = owner_ids
 
-    game = bot_config.get("game", None)
-    if game:
+    if game := bot_config.get("game", None):
         kwargs['activity'] = discord.Game(game)
 
     bot = LightningBot(**kwargs)
     bot.commit_hash = commit
+
+    try:
+        bot.pool = await create_pool(bot.config['tokens']['postgres']['uri'], command_timeout=60)
+        bot.redis_pool = aioredis.Redis(**CONFIG['tokens']['redis'])
+        # Only way to ensure the pool is connected to redis
+        await bot.redis_pool.ping()
+    except asyncpg.PostgresConnectionError as e:
+        log.exception("Could not set up PostgreSQL. Exiting...", exc_info=e)
+        return
+    except aioredis.ConnectionError as e:
+        log.exception("Could not setup redis pool. Exiting...", exc_info=e)
+        return
 
     await bot.start(config['tokens']['discord'])
 

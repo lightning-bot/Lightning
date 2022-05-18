@@ -27,6 +27,7 @@ from datetime import datetime
 from typing import Optional
 
 import aiohttp
+import aioredis
 import asyncpg
 import discord
 import sentry_sdk
@@ -40,7 +41,6 @@ from lightning.meta import __version__ as version
 from lightning.models import GuildBotConfig
 from lightning.storage import Storage
 from lightning.utils.emitters import WebhookEmbedEmitter
-from lightning.utils.helpers import create_pool
 
 __all__ = ("LightningBot")
 log = logging.getLogger(__name__)
@@ -74,6 +74,9 @@ async def _callable_prefix(bot, message):
 
 
 class LightningBot(commands.AutoShardedBot):
+    pool: asyncpg.Pool
+    redis_pool: aioredis.Redis
+
     def __init__(self, **kwargs):
         # Intents stuff
         intents = discord.Intents.all()
@@ -95,8 +98,6 @@ class LightningBot(commands.AutoShardedBot):
 
         self.aiosession: aiohttp.ClientSession
         self.api: HTTPClient
-        self.pool: asyncpg.Pool
-        self.redis_pool = cache.start_redis_client()
 
         self.blacklisted_users = Storage("config/user_blacklist.json")
 
@@ -129,12 +130,6 @@ class LightningBot(commands.AutoShardedBot):
                 log.error(f"Failed to load {cog}", exc_info=e)
 
     async def setup_hook(self):
-        try:
-            self.pool = await create_pool(self.config['tokens']['postgres']['uri'], command_timeout=60)
-        except Exception as e:
-            log.exception("Could not set up PostgreSQL. Exiting...", exc_info=e)
-            return
-
         self.api = HTTPClient(self.config['tokens']['api']['url'], self.config['tokens']['api']['key'])
         headers = {"User-Agent": self.config['bot'].pop("user_agent", f"Lightning Bot/{self.version}")}
         self.aiosession = aiohttp.ClientSession(headers=headers)
@@ -198,7 +193,7 @@ class LightningBot(commands.AutoShardedBot):
         if blacklist:
             log.info(f"User automatically blacklisted for command spam | {member} | ID: {member.id}")
             e.title = "Automatic Blacklist"
-        e.description = f"Spam Count: {self.command_spammers[member.id]}"
+        e.description = f"Spam Count: {self.command_spammers[member.id]}/5"
         done_fmt = f'__Channel__: {channel} (ID: {channel.id})'
         if guild:
             done_fmt = f'{done_fmt}\n__Guild__: {guild} (ID: {guild.id})'
