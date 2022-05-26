@@ -379,6 +379,5 @@ class LightningBot(commands.AutoShardedBot):
         await self.aiosession.close()
         await self.api.close()
         log.info("Closed aiohttp session and database successfully.")
-        with contextlib.suppress(AttributeError):
-            self.redis_pool.connection_pool.disconnect()
+        await self.redis_pool.connection_pool.disconnect()
         await super().close()
