@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import io
 import logging
-import random
 import re
 import unicodedata
 
@@ -36,45 +35,10 @@ log = logging.getLogger(__name__)
 
 class Emoji(LightningCog):
     """Emoji related commands"""
-    @property
-    def apne(self):
-        return self.bot.config['bot']['nitro_emoji_guilds'] or []
-
-    @command(aliases=['nemoji', 'nitro'])
-    @commands.cooldown(3, 15.0, commands.BucketType.channel)
-    async def nitroemoji(self, ctx: LightningContext, emoji: str) -> None:
-        """Posts either an animated emoji or non-animated emoji if found
-
-        Note: The server which the emoji is from must be approved by the bot owner."""
-        emojiname: str = emoji.strip(':;')
-        emoji: str = discord.utils.get(self.bot.emojis, name=emojiname)
-
-        if emoji and emoji.guild_id in self.apne:
-            await ctx.send(str(emoji))
-            return
-
-        emojiname = emojiname.lower()
-        rand = list(filter(lambda m: emojiname in m.name.lower() and m.is_usable() and m.guild_id in self.apne,
-                           self.bot.emojis))
-
-        if rand:
-            em = random.choice(rand)
-            await ctx.emoji_send(em)
-        else:
-            await ctx.send("No emoji found")
-
     @group(aliases=['emote'], invoke_without_command=True)
     async def emoji(self, ctx: LightningContext) -> None:
         """Emoji management commands"""
         await ctx.send_help("emoji")
-
-    @emoji.command()
-    @commands.is_owner()
-    async def approvenitro(self, ctx: LightningContext, guild: discord.Guild) -> None:
-        """Approves a guild for the nitro emoji command"""
-        self.bot.config['bot']['nitro_emoji_guilds'].append(guild.id)
-        await self.bot.config.save()
-        await ctx.tick(True)
 
     @emoji.command(aliases=['copy'], level=CommandLevel.Admin)
     @commands.guild_only()
@@ -129,37 +93,6 @@ class Emoji(LightningCog):
             raise
         else:
             await ctx.send(f"Successfully created {emoji} `{emoji}`")
-
-    @emoji.command(level=CommandLevel.Admin)
-    @commands.guild_only()
-    @commands.bot_has_permissions(manage_emojis=True)
-    @has_guild_permissions(manage_emojis=True)
-    async def delete(self, ctx: LightningContext, emote: discord.Emoji) -> None:
-        """Deletes an emoji from the server"""
-        if ctx.guild.id != emote.guild_id:
-            await ctx.send("This emoji isn't in this server!")
-            return
-
-        await emote.delete(reason=action_format(ctx.author, "Emoji removed by"))
-        await ctx.send(f"{emote.name} is now deleted.")
-
-    @emoji.command(level=CommandLevel.Admin)
-    @commands.guild_only()
-    @commands.bot_has_permissions(manage_emojis=True)
-    @has_guild_permissions(manage_emojis=True)
-    async def rename(self, ctx: LightningContext, old_name: discord.Emoji, new_name: str) -> None:
-        """Renames an emoji from the server"""
-        if ctx.guild.id != old_name.guild_id:
-            await ctx.send("This emoji does not belong to this server!")
-            return
-
-        try:
-            await old_name.edit(name=new_name, reason=action_format(ctx.author, "Emoji renamed by"))
-        except discord.HTTPException as e:
-            await self.bot.log_command_error(ctx, e)
-            return
-
-        await ctx.send(f"Renamed {old_name} to {new_name}")
 
     @commands.guild_only()
     @emoji.command(name='list', aliases=['all'])
