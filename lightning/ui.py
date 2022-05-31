@@ -62,7 +62,7 @@ class BaseView(discord.ui.View):
             log.exception(f"An exception occurred during {self} with {item}", exc_info=error)
 
 
-class MenuLikeView(BaseView):
+class MenuLikeView(discord.ui.View):
     """A view that mimics similar behavior of discord.ext.menus.
 
     Parameters
@@ -205,6 +205,13 @@ class MenuLikeView(BaseView):
                 return
 
             await self.message.edit(view=self)
+
+    async def on_error(self, interaction, error, item):
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("view", self)
+            scope.set_extra("item", item)
+            scope.set_extra("interaction", interaction)
+            log.exception(f"An exception occurred during {self} with {item}", exc_info=error)
 
 
 class StopButton(discord.ui.Button['MenuLikeView']):
