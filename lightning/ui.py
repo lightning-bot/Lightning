@@ -49,8 +49,7 @@ class BaseView(discord.ui.View):
         await self.cleanup()
 
     def stop(self):
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.cleanup())
+        asyncio.create_task(self.cleanup())
         super().stop()
 
     async def on_error(self, interaction, error, item):
@@ -126,6 +125,10 @@ class MenuLikeView(BaseView):
         if wait:
             await self.wait()
 
+    def stop(self, *, interaction: Optional[discord.Interaction] = None):
+        super().stop()
+        asyncio.create_task(self.cleanup(interaction=interaction))
+
     def lock_components(self) -> None:
         self.locked = True
 
@@ -176,13 +179,17 @@ class MenuLikeView(BaseView):
 
         return conv
 
-    async def cleanup(self) -> None:
+    async def cleanup(self, *, interaction: Optional[discord.Interaction] = None) -> None:
         # This is first for obvious reasons
         if self.delete_message_after:
             await self.message.delete()
             return
 
         if self.clear_view_after:
+            if interaction and interaction.response.is_done() is False:
+                await interaction.response.edit_message(view=None)
+                return
+
             await self.message.edit(view=None)
             return
 
@@ -192,13 +199,18 @@ class MenuLikeView(BaseView):
                     child.disabled = True
                 else:
                     self.remove_item(child)
+
+            if interaction and interaction.response.is_done() is False:
+                await interaction.response.edit_message(view=self)
+                return
+
             await self.message.edit(view=self)
 
 
-class StopButton(discord.ui.Button):
+class StopButton(discord.ui.Button['MenuLikeView']):
     async def callback(self, interaction: discord.Interaction) -> None:
         assert self.view is not None
-        self.view.stop()
+        self.view.stop(interaction=interaction)
 
 
 class ExitableMenu(MenuLikeView):
@@ -209,7 +221,7 @@ class ExitableMenu(MenuLikeView):
 
 
 class UpdateableMenu(MenuLikeView):
-    async def update(self) -> None:
+    async def update(self, *, interaction: Optional[discord.Interaction] = None) -> None:
         await self.update_components()
 
         fmt = self.format_initial_message(self.ctx)
@@ -217,6 +229,11 @@ class UpdateableMenu(MenuLikeView):
             fmt = await fmt
 
         kwargs = self._assume_message_kwargs(fmt)
+
+        if interaction and interaction.response.is_done() is False:
+            await interaction.response.edit_message(**kwargs, view=self)
+            return
+
         await self.message.edit(**kwargs, view=self)
 
     async def update_components(self) -> None:
@@ -242,13 +259,14 @@ class UpdateableMenu(MenuLikeView):
             await self.update()
 
     @contextlib.asynccontextmanager
-    async def lock(self):
+    async def lock(self, *, interaction: Optional[discord.Interaction] = None):
         self.lock_components()
         try:
             yield
         finally:
             self.unlock_components()
-            await self.update()
+
+            await self.update(interaction=interaction)
 
     async def start(self, ctx, *, channel=None, wait=True) -> None:
         self.ctx = ctx
