@@ -63,14 +63,11 @@ class Logging(UpdateableMenu, ExitableMenu):
                    DO UPDATE SET types = EXCLUDED.types;"""
         await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(LoggingType.all))
         self.invalidate()
-        # await interaction.response.defer()
-        # await interaction.followup.send(f"Successfully set up logging for {self.log_channel.mention}! "
-        #                                f"({LoggingType.all.to_simple_str().replace('|', ', ')})")
-        await self.update()
+        await self.update(interaction=interaction)
 
     @discord.ui.button(label="Setup specific logging events", style=discord.ButtonStyle.primary, emoji="\N{OPEN BOOK}")
     async def specific_events_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        async with self.lock():
+        async with self.lock(interaction=interaction):
             view = SelectSubMenu(*[x.name for x in LoggingType.all], max_options=len(LoggingType.all))
             view.ctx = self.ctx
             view.add_item(discord.ui.Button(label="Documentation",
@@ -90,8 +87,6 @@ class Logging(UpdateableMenu, ExitableMenu):
                        DO UPDATE SET types = EXCLUDED.types;"""
             await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(values))
             await msg.delete()
-            # await interaction.followup.send(f"Successfully set up logging for {self.log_channel.mention}! "
-            #                                f"({values.to_simple_str().replace('|', ', ')})", ephemeral=True)
             self.invalidate()
 
     @discord.ui.button(label="Change logging format", style=discord.ButtonStyle.primary, emoji="\N{NOTEBOOK}")
@@ -116,7 +111,6 @@ class Logging(UpdateableMenu, ExitableMenu):
                                      self.log_channel.id)
             await message.delete()
 
-        # await interaction.followup.send(f"Successfully changed the log format to {format_type}!")
         self.invalidate()
 
     @discord.ui.button(label="Remove logging", style=discord.ButtonStyle.red, emoji="\N{CLOSED BOOK}")
@@ -125,10 +119,8 @@ class Logging(UpdateableMenu, ExitableMenu):
                    WHERE guild_id=$1
                    AND channel_id=$2;"""
         await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id)
-        # await interaction.response.defer()
-        # await interaction.followup.send(content=f"Removed logging from {self.log_channel.mention}!")
         self.invalidate()
-        await self.update()
+        await self.update(interaction=interaction)
 
 
 class AutoRole(UpdateableMenu, ExitableMenu):
