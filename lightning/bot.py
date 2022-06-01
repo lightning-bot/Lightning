@@ -190,8 +190,8 @@ class LightningBot(commands.AutoShardedBot):
         log.info(f'READY: {str(self.user)} ({self.user.id}) and can see {summary}.')
 
     async def _notify_of_spam(self, member, channel, guild=None, blacklist=False) -> None:
-        e = discord.Embed(color=discord.Color.red(), title="Member hit ratelimit")
-        webhook = discord.Webhook.from_url(self.config.logging.auto_blacklist, session=self.aiosession)
+        e = discord.Embed(color=discord.Color.red(), title="Member hit ratelimit", timestamp=discord.utils.utcnow())
+        webhook = discord.Webhook.from_url(self.config.logging.blacklist_alerts, session=self.aiosession)
         if blacklist:
             log.info(f"User automatically blacklisted for command spam | {member} | ID: {member.id}")
             e.title = "Automatic Blacklist"
@@ -201,7 +201,6 @@ class LightningBot(commands.AutoShardedBot):
             done_fmt = f'{done_fmt}\n__Guild__: {guild} (ID: {guild.id})'
         e.add_field(name="Location", value=done_fmt)
         e.add_field(name="User", value=f"{str(member)} (ID: {member.id})")
-        e.timestamp = discord.utils.utcnow()
         await webhook.execute(embed=e)
 
     @property

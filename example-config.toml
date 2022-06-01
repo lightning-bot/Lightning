@@ -10,6 +10,7 @@ sentry = ""
 # PostgreSQL Connection
 [tokens.postgres]
 uri = "postgres://user:password@host:port/database"
+
 # Redis Connection
 [tokens.redis]
 host = ""
@@ -34,15 +35,13 @@ instance = "https://gitlab.com" # Gitlab instance url
 key = "" # Personal Access Token
 project_id = ""
 
+
 [logging]
 # Any bot errors either command errors or internal errors. Should be a webhook url
 bot_errors = ""
 
-# Errors that pertain to the timer system. Expecting a webhook url
-timer_errors = ""
-
 # Webhook URL
-auto_blacklist = ""
+blacklist_alerts = ""
 
 # Logging for guild additions and removals
 guild_alerts = ""
@@ -54,28 +53,10 @@ level = ""
 console = true
 
 
-
-
 [bot]
-# Bot description
-description = ""
-# This is by IDs
-managers = []
 spam_count = 5
 # Startup game
 game = "rewrite is the future!"
 
-# Set to true if you want commands to be used on_message_edit
-edit_commands = true # bool
-
 # Support server invite
 support_server_invite = "https://discord.gg/SpFjsy3"
-
-# Git Repository URL.
-# By default this will link to the main project's repository unless a different one was specified.
-git_repo_url = "https://gitlab.com/lightning-bot/Lightning"
-
-# User-Agent
-user_agent = ""
-
-disabled_cogs = []

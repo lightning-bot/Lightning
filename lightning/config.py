@@ -77,12 +77,12 @@ class SanctumConfig:
 
 
 class LoggingConfig:
-    __slots__ = ('bot_errors', 'guild_alerts', 'auto_blacklist', 'level', 'console')
+    __slots__ = ('bot_errors', 'guild_alerts', 'blacklist_alerts', 'level', 'console')
 
     def __init__(self, data: Dict[str, Any]) -> None:
         self.bot_errors = data['bot_errors']
         self.guild_alerts = data['guild_alerts']
-        self.auto_blacklist = data['auto_blacklist']
+        self.blacklist_alerts = data['blacklist_alerts']
         self.level = data['level']
         self.console = data['console']
 
