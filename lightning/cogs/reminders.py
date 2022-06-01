@@ -138,10 +138,11 @@ class Reminders(LightningCog):
             raise
         except (discord.ConnectionClosed, asyncpg.PostgresConnectionError):
             self.restart_timer_task()
-        except Exception:
-            log.error(traceback.format_exc())
-            webhook = discord.Webhook.from_url(self.bot.config['logging']['timer_errors'], session=self.bot.aiosession)
-            await webhook.execute(f"Timers has Errored!\n```{traceback.format_exc()}```")
+        except Exception as e:
+            exc = "".join(traceback.format_exception(type(e), e, e.__traceback__, chain=False))
+            log.error(exc)
+            embed = discord.Embed(title="Timer Error", description=f"```{exc}```")
+            await self.bot._error_logger.put(embed)
 
     @group(usage="<when>", aliases=["reminder"], invoke_without_command=True)
     async def remind(self, ctx: LightningContext, *,
@@ -151,7 +152,7 @@ class Reminders(LightningCog):
         The input can be any direct date (e.g. YYYY-MM-DD) or a human readable offset.
 
         Examples:
-        - "{prefix}remind in 2 days do essay" (2 days)
+        - "{prefix}remind in 2 days write essay" (2 days)
         - "{prefix}remind 1 hour do dishes" (1 hour)
         - "{prefix}remind 60s clean" (60 seconds)
 
