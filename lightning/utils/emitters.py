@@ -25,8 +25,8 @@ log = logging.getLogger(__name__)
 
 class Emitter:
     """Base emitter"""
-    def __init__(self, *, loop: asyncio.AbstractEventLoop = None):
-        self.loop = loop or asyncio.get_event_loop()
+    def __init__(self):
+        self.loop = asyncio.get_event_loop()
         self._queue = asyncio.Queue()
         self._task = None
 
@@ -58,10 +58,10 @@ class Emitter:
 
 class WebhookEmbedEmitter(Emitter):
     """An emitter designed for webhooks sending embeds"""
-    def __init__(self, url: str, *, session: aiohttp.ClientSession = None, **kwargs):
+    def __init__(self, url: str, *, session: aiohttp.ClientSession = None):
         self.session = session or aiohttp.ClientSession()
         self.webhook = discord.Webhook.from_url(url, session=self.session)
-        super().__init__(**kwargs)
+        super().__init__()
 
     async def put(self, embed: discord.Embed) -> None:
         await self._queue.put(embed)
