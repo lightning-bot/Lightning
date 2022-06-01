@@ -1,6 +1,6 @@
 """
-Lightning.py - A personal Discord bot
-Copyright (C) 2019-2021 LightSage
+Lightning.py - A Discord bot
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -18,7 +18,7 @@ import asyncpg
 import typer
 
 from lightning.cli.utils import asyncd
-from lightning.config import CONFIG
+from lightning.config import Config
 
 parser = typer.Typer()
 tables = [("commands_usage", "guild_id"), ("nin_updates", "guild_id"), ("guilds", "id"),
@@ -36,7 +36,8 @@ def build_delete_query(table: str, column: str) -> str:
 async def cleardata(id: int = typer.Argument(...),
                     prompt: bool = typer.Option(True, help="Whether to ask before removing data from a table")):
     """Clears all data for a guild in the database."""
-    pool = await asyncpg.create_pool(CONFIG['tokens']['postgres']['uri'])
+    cfg = Config()
+    pool = await asyncpg.create_pool(cfg['tokens']['postgres']['uri'])
     for table in tables:
         if prompt:
             resp = typer.confirm(f"Are you sure you want to remove data from {table[0]}?")

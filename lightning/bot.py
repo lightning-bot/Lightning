@@ -35,7 +35,7 @@ from discord.ext import commands, menus
 from sanctum import HTTPClient
 
 from lightning import cache, errors
-from lightning.config import CONFIG
+from lightning.config import Config
 from lightning.context import LightningContext
 from lightning.meta import __version__ as version
 from lightning.models import GuildBotConfig
@@ -76,8 +76,9 @@ class LightningBot(commands.AutoShardedBot):
     pool: asyncpg.Pool
     redis_pool: aioredis.Redis
     api: HTTPClient
+    aiosession: aiohttp.ClientSession
 
-    def __init__(self, **kwargs):
+    def __init__(self, config, **kwargs):
         # Intents stuff
         intents = discord.Intents.all()
         intents.invites = False
@@ -92,11 +93,9 @@ class LightningBot(commands.AutoShardedBot):
         # This should be good enough
         self.command_spam_cooldown = commands.CooldownMapping.from_cooldown(6, 5.0, commands.BucketType.user)
 
-        self.config = CONFIG
+        self.config: Config = config
         self.version = version
         self._pending_cogs = {}
-
-        self.aiosession: aiohttp.ClientSession
 
         self.blacklisted_users = Storage("config/user_blacklist.json")
 

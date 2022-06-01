@@ -26,7 +26,7 @@ from functools import wraps
 import aioredis
 from lru import LRU
 
-from lightning.config import CONFIG
+from lightning.config import Config
 
 
 class CacheError(Exception):
@@ -279,7 +279,8 @@ class CacheRegistry:
 
 
 async def start_redis_client() -> aioredis.Redis:
-    pool = aioredis.Redis(**CONFIG['tokens']['redis'])
+    cfg = Config()
+    pool = aioredis.Redis(**cfg['tokens']['redis'])
     # Only way to ensure the pool is connected to redis
     await pool.ping()
 
