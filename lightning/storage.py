@@ -1,6 +1,6 @@
 """
-Lightning.py - A personal Discord bot
-Copyright (C) 2019-2021 LightSage
+Lightning.py - A Discord bot
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -27,11 +27,11 @@ from tomlkit import parse as toml_parse
 
 # Storage.py (MIT Licensed) from https://gitlab.com/LightSage/python-bin/-/blob/master/storage.py
 class Storage:
-    def __init__(self, file_name: str, *, loop=None):
+    def __init__(self, file_name: str):
 
         self.file_name = file_name
         self.lock = asyncio.Lock()
-        self.loop = loop if loop else asyncio.get_event_loop()
+        self.loop = asyncio.get_event_loop()
         self.load_file()
 
     def load_file(self) -> None:
@@ -40,7 +40,7 @@ class Storage:
             with open(self.file_name, 'r') as f:
                 self._storage = json.load(f)
         except FileNotFoundError:
-            self._storage = dict()
+            self._storage = {}
 
     def _dump(self) -> None:
         name = self.file_name.replace("/", "_")
@@ -68,7 +68,7 @@ class Storage:
         typing.Any
             The value of the key
         """
-        return self._storage.get(str(key))
+        return self._storage.get(key)
 
     async def add(self, key: str, value: typing.Any) -> None:
         """Adds a new entry in the storage and saves.
@@ -80,7 +80,7 @@ class Storage:
         value : typing.Any
             The value to associate to the key
         """
-        self._storage[str(key)] = value
+        self._storage[key] = value
         await self.save()
 
     async def pop(self, key: str) -> typing.Any:
@@ -96,15 +96,15 @@ class Storage:
         typing.Any
             The value of the key that was popped.
         """
-        value = self._storage.pop(str(key))
+        value = self._storage.pop(key)
         await self.save()
         return value
 
     def __contains__(self, item: str):
-        return str(item) in self._storage
+        return item in self._storage
 
     def __getitem__(self, item: str):
-        return self._storage[str(item)]
+        return self._storage[item]
 
     def __len__(self):
         return len(self._storage)
