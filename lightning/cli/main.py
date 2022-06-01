@@ -30,7 +30,7 @@ import typer
 from lightning.bot import LightningBot
 from lightning.cli import guild, tools
 from lightning.cli.utils import asyncd
-from lightning.config import CONFIG
+from lightning.config import Config
 from lightning.utils.helpers import create_pool, run_in_shell
 
 try:
@@ -48,7 +48,7 @@ parser.add_typer(guild.parser, name="guild", help="Guild management commands")
 
 
 @contextlib.contextmanager
-def init_logging():
+def init_logging(config: Config):
     try:
         # Clear any existing loggers
         log = logging.getLogger()
@@ -61,16 +61,14 @@ def init_logging():
         log_format = logging.Formatter('[%(asctime)s] %(name)s (%(filename)s:%(lineno)d) %(levelname)s: %(message)s')
         file_handler.setFormatter(log_format)
 
-        logging_config = CONFIG.get("logging") or {}
-
-        if (level := logging_config.get("level", "INFO")) != "":
+        if (level := config.logging.level) != "":
             log.setLevel(level)
         else:
             log.setLevel("INFO")
 
         log.addHandler(file_handler)
 
-        if _ := logging_config.get("console", True):
+        if config.logging.console:
             stdout_handler = logging.StreamHandler(sys.stdout)
             stdout_handler.setFormatter(log_format)
             log.addHandler(stdout_handler)
@@ -80,37 +78,35 @@ def init_logging():
         logging.shutdown()
 
 
-async def launch_bot(config) -> None:
+async def launch_bot(config: Config) -> None:
     # Create config folder if not found
     if not os.path.exists("config"):
         os.makedirs("config")
 
     log = logging.getLogger()
 
-    sentry_dsn = config._storage.get('tokens', {}).get("sentry", None)
+    sentry_dsn = config.tokens.sentry
     commit = (await run_in_shell('git rev-parse HEAD'))[0].strip()
 
     if sentry_dsn is not None:
-        env = "dev" if "beta_prefix" in config['bot'] else "prod"
+        env = "dev" if config.bot.beta_prefix else "prod"
         sentry_sdk.init(sentry_dsn, environment=env, release=commit)
 
-    bot_config = config._storage.get('bot', {})
+    kwargs = {'max_messages': config.bot.message_cache_max}
 
-    message_cache = bot_config.get('message_cache', 1000)
-    kwargs = {'max_messages': message_cache}
+    if config.bot.owner_ids:
+        kwargs['owner_ids'] = config.bot.owner_ids
 
-    if owner_ids := bot_config.get('owner_ids', None):
-        kwargs['owner_ids'] = owner_ids
+    if config.bot.game:
+        kwargs['activity'] = discord.Game(config.bot.game)
 
-    if game := bot_config.get("game", None):
-        kwargs['activity'] = discord.Game(game)
-
-    bot = LightningBot(**kwargs)
+    bot = LightningBot(config, **kwargs)
     bot.commit_hash = commit
 
     try:
         bot.pool = await create_pool(bot.config['tokens']['postgres']['uri'], command_timeout=60)
-        bot.redis_pool = aioredis.Redis(**CONFIG['tokens']['redis'])
+        bot.redis_pool = aioredis.Redis(host=bot.config.tokens.redis.host, port=bot.config.tokens.redis.port,
+                                        db=bot.config.tokens.redis.db, password=bot.config.tokens.redis.password)
         # Only way to ensure the pool is connected to redis
         await bot.redis_pool.ping()
     except asyncpg.PostgresConnectionError as e:
@@ -127,8 +123,9 @@ async def launch_bot(config) -> None:
 @asyncd
 async def main(ctx: typer.Context):
     if ctx.invoked_subcommand is None:
-        with init_logging():
-            await launch_bot(CONFIG)
+        config = Config()
+        with init_logging(config):
+            await launch_bot(config)
 
 
 @parser.command(hidden=True)
@@ -137,21 +134,20 @@ async def docker_run():
     typer.echo("Applying migrations...")
 
     loop = asyncio.get_event_loop()
-
-    pg_uri = CONFIG['tokens']['postgres']['uri']
+    config = Config()
 
     async def migrate():
         import migri
 
-        pool = await create_pool(pg_uri, command_timeout=60)
+        pool = await create_pool(config.tokens.postgres.uri, command_timeout=60)
         async with pool.acquire() as conn:
             m = migri.PostgreSQLConnection(connection=conn)
             await migri.apply_migrations("migrations", m)
 
     loop.run_until_complete(migrate())
 
-    with init_logging():
-        await launch_bot(CONFIG)
+    with init_logging(config):
+        await launch_bot(config)
 
 
 if __name__ == "__main__":
