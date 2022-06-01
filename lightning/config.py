@@ -21,8 +21,8 @@ from typing import Any, Dict, Optional
 from lightning.storage import TOMLStorage
 
 
-def transform_key(key):
-    return None if key == "" else key
+def transform_key(key, *, default=None):
+    return default if key == "" else key
 
 
 class Config(TOMLStorage):
@@ -89,7 +89,7 @@ class LoggingConfig:
 
 class BotConfig:
     __slots__ = ('description', 'spam_count', 'game', 'edit_commands', 'support_server_invite', 'git_repo',
-                 'user_agent', 'beta_prefix', 'disabled_cogs')
+                 'user_agent', 'beta_prefix', 'disabled_cogs', 'message_cache_max', 'owner_ids')
 
     def __init__(self, data: Dict[str, Any]) -> None:
         self.description = data.pop("description", None)
@@ -101,6 +101,5 @@ class BotConfig:
         self.user_agent = transform_key(data.pop('user_agent', None))
         self.beta_prefix = data.pop('beta_prefix', None)
         self.disabled_cogs = data.pop('disabled_cogs', [])
-
-
-CONFIG = Config()
+        self.message_cache_max = data.pop('message_cache_max', 1000)
+        self.owner_ids = data.pop('owner_ids', None)
