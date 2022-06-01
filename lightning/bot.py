@@ -24,7 +24,7 @@ import pathlib
 import secrets
 import traceback
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 import aiohttp
 import aioredis
@@ -54,10 +54,9 @@ ERROR_HANDLER_MESSAGES = {
 }
 
 
-async def _callable_prefix(bot, message):
-    beta_prefix = bot.config['bot'].get("beta_prefix", None)
-    if beta_prefix:
-        return beta_prefix
+async def _callable_prefix(bot: LightningBot, message: discord.Message):
+    if bot.config.bot.beta_prefix:
+        return bot.config.bot.beta_prefix
 
     prefixes = [f'<@!{bot.user.id}> ', f'<@{bot.user.id}> ']
     if message.guild is None:
@@ -76,6 +75,7 @@ async def _callable_prefix(bot, message):
 class LightningBot(commands.AutoShardedBot):
     pool: asyncpg.Pool
     redis_pool: aioredis.Redis
+    api: HTTPClient
 
     def __init__(self, **kwargs):
         # Intents stuff
@@ -97,7 +97,6 @@ class LightningBot(commands.AutoShardedBot):
         self._pending_cogs = {}
 
         self.aiosession: aiohttp.ClientSession
-        self.api: HTTPClient
 
         self.blacklisted_users = Storage("config/user_blacklist.json")
 
@@ -121,7 +120,7 @@ class LightningBot(commands.AutoShardedBot):
             cog_list.append(qual_name)
 
         for cog in cog_list:
-            if cog in self.config['bot']['disabled_cogs']:
+            if cog in self.config.bot.disabled_cogs:
                 continue
 
             try:
@@ -130,14 +129,17 @@ class LightningBot(commands.AutoShardedBot):
                 log.error(f"Failed to load {cog}", exc_info=e)
 
     async def setup_hook(self):
-        self.api = HTTPClient(self.config['tokens']['api']['url'], self.config['tokens']['api']['key'])
-        headers = {"User-Agent": self.config['bot'].pop("user_agent", f"Lightning Bot/{self.version}")}
+        self.api = HTTPClient(self.config.tokens.api.url, self.config.tokens.api.key)
+
+        if self.config.bot.user_agent:
+            headers = {"User-Agent": self.config.bot.user_agent}
+        else:
+            headers = {"User-Agent": f"Lightning Discord Bot/{self.version}"}
         self.aiosession = aiohttp.ClientSession(headers=headers)
 
         await self.load_cogs()
         # Error logger
-        self._error_logger = WebhookEmbedEmitter(self.config['logging']['bot_errors'], session=self.aiosession,
-                                                 loop=self.loop)
+        self._error_logger = WebhookEmbedEmitter(self.config.logging.bot_errors, session=self.aiosession)
         self._error_logger.start()
 
     @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=32)
@@ -189,7 +191,7 @@ class LightningBot(commands.AutoShardedBot):
 
     async def _notify_of_spam(self, member, channel, guild=None, blacklist=False) -> None:
         e = discord.Embed(color=discord.Color.red(), title="Member hit ratelimit")
-        webhook = discord.Webhook.from_url(self.config['logging']['auto_blacklist'], session=self.aiosession)
+        webhook = discord.Webhook.from_url(self.config.logging.auto_blacklist, session=self.aiosession)
         if blacklist:
             log.info(f"User automatically blacklisted for command spam | {member} | ID: {member.id}")
             e.title = "Automatic Blacklist"
@@ -202,9 +204,13 @@ class LightningBot(commands.AutoShardedBot):
         e.timestamp = discord.utils.utcnow()
         await webhook.execute(embed=e)
 
+    @property
+    def owners(self) -> List[int]:
+        return [self.owner_id] if self.owner_id else self.owner_ids
+
     async def auto_blacklist_check(self, message) -> None:
         author = message.author.id
-        if author in self.config['bot']['managers'] or author == self.owner_id:
+        if await self.is_owner(message.author):
             return
 
         bucket = self.command_spam_cooldown.get_bucket(message)
@@ -212,7 +218,7 @@ class LightningBot(commands.AutoShardedBot):
         if retry_after:
             # User hit the ratelimit
             self.command_spammers[author] += 1
-            if self.command_spammers[author] >= self.config['bot']['spam_count']:
+            if self.command_spammers[author] >= self.config.bot.spam_count:
                 await self.blacklisted_users.add(author, "Automatic blacklist on command spam")
                 await self._notify_of_spam(message.author, message.channel, message.guild, True)
             else:
@@ -239,7 +245,7 @@ class LightningBot(commands.AutoShardedBot):
         await self.process_command_usage(message)
 
     async def on_message_edit(self, before, after):
-        if not self.config['bot']['edit_commands']:
+        if not self.config.bot.edit_commands:
             return
 
         if before.content != after.content:

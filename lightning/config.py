@@ -1,6 +1,6 @@
 """
-Lightning.py - A personal Discord bot
-Copyright (C) 2019-2021 LightSage
+Lightning.py - A Discord bot
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,13 +14,93 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-# from lightning.errors import ConfigTableMissing
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
 from lightning.storage import TOMLStorage
 
 
-class Base(TOMLStorage):
+def transform_key(key):
+    return None if key == "" else key
+
+
+class Config(TOMLStorage):
     def __init__(self, file_path: str = 'config.toml'):
         super().__init__(file_path)
+        self._set_attrs()
+
+    async def save(self) -> None:
+        await super().save()
+        self._set_attrs()
+
+    def _set_attrs(self):
+        self.bot = BotConfig(self._storage['bot'])
+        self.tokens = TokensConfig(self._storage['tokens'])
+        self.logging = LoggingConfig(self._storage['logging'])
 
 
-CONFIG = Base()
+class TokensConfig:
+    __slots__ = ('discord', 'sentry', 'postgres', 'redis', 'api')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.discord: str = data['discord']
+        self.sentry: Optional[str] = transform_key(data['sentry'])
+        self.postgres = PostgresConfig(data['postgres'])
+        self.redis = RedisConfig(data['redis'])
+        self.api = SanctumConfig(data['api'])
+
+
+class PostgresConfig:
+    __slots__ = ('uri',)
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.uri = data['uri']
+
+
+class RedisConfig:
+    __slots__ = ('host', 'port', 'password', 'db')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.host = data['host']
+        self.port = data['port']
+        self.password = transform_key(data.pop("password", None))
+        self.db = data['db']
+
+
+class SanctumConfig:
+    __slots__ = ("url", "key")
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.url = data['url']
+        self.key = data['key']
+
+
+class LoggingConfig:
+    __slots__ = ('bot_errors', 'guild_alerts', 'auto_blacklist', 'level', 'console')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.bot_errors = data['bot_errors']
+        self.guild_alerts = data['guild_alerts']
+        self.auto_blacklist = data['auto_blacklist']
+        self.level = data['level']
+        self.console = data['console']
+
+
+class BotConfig:
+    __slots__ = ('description', 'spam_count', 'game', 'edit_commands', 'support_server_invite', 'git_repo',
+                 'user_agent', 'beta_prefix', 'disabled_cogs')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.description = data.pop("description", None)
+        self.spam_count = data['spam_count']
+        self.game = data.pop("game", None)
+        self.edit_commands = data.pop('edit_commands', False)
+        self.support_server_invite = data.pop('support_server_invite', None)
+        self.git_repo = data.pop('git_repo', 'https://gitlab.com/lightning-bot/Lightning')
+        self.user_agent = transform_key(data.pop('user_agent', None))
+        self.beta_prefix = data.pop('beta_prefix', None)
+        self.disabled_cogs = data.pop('disabled_cogs', [])
+
+
+CONFIG = Config()
