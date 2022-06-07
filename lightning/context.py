@@ -77,17 +77,17 @@ class LightningContext(commands.Context):
 
         return message
 
-    async def send(self, content=None, *args, **kwargs) -> discord.Message:
-        if content:
-            if len(content) > 2000:
-                try:
-                    mysturl = await haste(self.bot.aiosession, content)
-                    content = f"Content too long: {mysturl}"
-                except errors.LightningError:
-                    fp = io.StringIO(content)
-                    content = "Content too long..."
-                    return await super().send(content, file=discord.File(fp, filename='message_too_long.txt'))
-        return await super().send(content, *args, **kwargs)
+    async def send(self, content: Optional[str] = None, **kwargs) -> discord.Message:
+        content = str(content) if content is not None else None
+        if content and len(content) > 2000:
+            try:
+                mysturl = await haste(self.bot.aiosession, content)
+                content = f"Content too long: {mysturl}"
+            except errors.LightningError:
+                fp = io.StringIO(content)
+                content = "Content too long..."
+                return await super().send(content, file=discord.File(fp, filename='message_too_long.txt'))
+        return await super().send(content, **kwargs)
 
     async def request(self, url, **kwargs) -> Union[dict, str, bytes]:
         return await make_request(url, self.bot.aiosession, **kwargs)
