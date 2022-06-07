@@ -78,11 +78,12 @@ class LightningBot(commands.AutoShardedBot):
     api: HTTPClient
     aiosession: aiohttp.ClientSession
 
-    def __init__(self, config, **kwargs):
-        # Intents stuff
+    def __init__(self, config: Config, **kwargs):
+        # Intents
         intents = discord.Intents.all()
         intents.invites = False
         intents.voice_states = False
+
         super().__init__(command_prefix=_callable_prefix, reconnect=True,
                          allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False),
                          intents=intents, **kwargs)
@@ -141,7 +142,7 @@ class LightningBot(commands.AutoShardedBot):
         self._error_logger = WebhookEmbedEmitter(self.config.logging.bot_errors, session=self.aiosession)
         self._error_logger.start()
 
-    @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=32)
+    @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=64)
     async def get_guild_bot_config(self, guild_id: int) -> Optional[GuildBotConfig]:
         """Gets a guild's bot configuration from cache or fetches it from the database.
 
@@ -260,13 +261,14 @@ class LightningBot(commands.AutoShardedBot):
         log.info(log_text)
 
     async def on_error(self, event, *args, **kwargs):
+        exc = traceback.format_exc()
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("event", event)
             scope.set_extra("args", args)
             scope.set_extra("kwargs", kwargs)
-            log.exception(f"Error on {event}", exc_info=traceback.format_exc())
+            log.exception(f"Error on {event}", exc_info=exc)
 
-        embed = discord.Embed(title="Event Error", description=f"```py\n{traceback.format_exc()}```",
+        embed = discord.Embed(title="Event Error", description=f"```py\n{exc}```",
                               color=discord.Color.gold(),
                               timestamp=discord.utils.utcnow())
         embed.add_field(name="Event", value=event)
