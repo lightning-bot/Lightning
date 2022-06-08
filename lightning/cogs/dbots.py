@@ -25,11 +25,20 @@ log = logging.getLogger(__name__)
 
 class Dbots(LightningCog):
     async def update_stats(self):
-        data = {"guildCount": len(self.bot.guilds), "shardCount": len(self.bot.shards)}
-        headers = {"Authorization": self.bot.config['tokens']['dbots'], "Content-Type": "application/json"}
-        async with self.bot.aiosession.post(f"https://discord.bots.gg/api/v1/bots/{self.bot.user.id}/stats",
-                                            data=orjson.dumps(data), headers=headers) as resp:
-            log.info(f"Made a request to dbots and got {resp.status}")
+        headers = {"Content-Type": "application/json"}
+        if self.bot.config.tokens.dbots:
+            data = {"guildCount": len(self.bot.guilds), "shardCount": len(self.bot.shards)}
+            headers['Authorization'] = self.bot.config.tokens.dbots
+            async with self.bot.aiosession.post(f"https://discord.bots.gg/api/v1/bots/{self.bot.user.id}/stats",
+                                                data=orjson.dumps(data), headers=headers) as resp:
+                log.info(f"Made a request to dbots and got {resp.status}")
+
+        if self.bot.config.tokens.topgg:
+            data = {"guild_count": len(self.bot.guilds), "shard_count": len(self.bot.shards)}
+            headers['Authorization'] = self.bot.config.tokens.topgg
+            async with self.bot.aiosession.post(f"https://top.gg/api/bots/{self.bot.user.id}/stats",
+                                                data=orjson.dumps(data), headers=headers) as resp:
+                log.info(f"Made a request to top.gg and got {resp.status}")
 
     @LightningCog.listener('on_ready')
     @LightningCog.listener('on_guild_join')
@@ -39,7 +48,7 @@ class Dbots(LightningCog):
 
 
 async def setup(bot: LightningBot):
-    if not bot.config['tokens'].get("dbots"):
+    if not bot.config.tokens.dbots or not bot.config.tokens.topgg:
         log.info("Not loading dbots cog because a dbots token is missing.")
         return
 
