@@ -54,7 +54,6 @@ class MessageInfo(LightningCog):
             ]
 
             description += '\n\N{BULLET} ' + '\n\N{BULLET} '.join(attach_urls)
-        description += f"\n\n[Jump to message]({msg.jump_url})"
         if msg.embeds:
             description += "\n \N{BULLET} Message has an embed"
         embed.description = description
@@ -74,7 +73,7 @@ class MessageInfo(LightningCog):
         msg = discord.utils.get(ctx.bot.cached_messages, id=message_id)
         if msg is None:
             try:
-                msg = await message_id_lookup(ctx.bot, channel.id, message_id)
+                msg: discord.Message = await message_id_lookup(ctx.bot, channel.id, message_id)
             except discord.NotFound:
                 raise MessageNotFoundInChannel(message_id, channel)
             except discord.Forbidden:
@@ -83,7 +82,8 @@ class MessageInfo(LightningCog):
             await ReadableChannel().convert(ctx, str(msg.channel.id))
 
         embed = self.message_info_embed(msg)
-        await ctx.send(embed=embed)
+        view = discord.ui.View().add_item(discord.ui.Button(label="Jump to message", url=msg.jump_url))
+        await ctx.send(embed=embed, view=view)
 
     @quote.command(name="raw", aliases=['json'], require_var_positional=True)
     async def msg_raw(self, ctx: LightningContext, *message) -> None:
