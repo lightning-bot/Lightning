@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,10 +14,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import asyncio
 import io
 from contextlib import suppress
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import discord
 from discord.ext import commands
@@ -28,10 +30,15 @@ from lightning.utils.helpers import request as make_request
 from lightning.utils.helpers import ticker
 from lightning.utils.ui import ConfirmationView
 
+if TYPE_CHECKING:
+    from lightning.bot import LightningBot
+
 __all__ = ("LightningContext",)
 
 
 class LightningContext(commands.Context):
+    bot: LightningBot
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
