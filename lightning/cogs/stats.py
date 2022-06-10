@@ -21,7 +21,7 @@ import collections
 import io
 import logging
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple, Union
 
 import discord
 import psutil
@@ -37,8 +37,6 @@ from lightning.utils.modlogformats import base_user_format
 from lightning.utils.time import natural_timedelta
 
 if TYPE_CHECKING:
-    from typing import Tuple, Union
-
     from lightning import LightningBot
     from lightning.models import PartialGuild
 
@@ -389,16 +387,11 @@ class Stats(LightningCog):
         shard_latency = round(self.bot.get_shard(shard_id).latency * 1000)
 
         before = time.monotonic()
-        tmpmsg = await ctx.send('Calculating...')
+        tmp = await ctx.send('Calculating...')
         after = time.monotonic()
         rtt_ms = round((after - before) * 1000)
 
-        await tmpmsg.edit(content=f"Pong!\nshard {shard_id}: `{shard_latency} ms`\nrtt: `{rtt_ms} ms`")
-
-    @command()
-    async def uptime(self, ctx: LightningContext) -> None:
-        """Displays my uptime"""
-        await ctx.send(f"Uptime: **{natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}**")
+        await tmp.edit(content=f"Pong!\nshard {shard_id}: `{shard_latency} ms`\nrtt: `{rtt_ms} ms`")
 
     async def get_bot_author(self):
         user = self.bot.get_user(376012343777427457)
@@ -408,12 +401,7 @@ class Stats(LightningCog):
     async def about(self, ctx: LightningContext) -> None:
         """Gives information about the bot."""
         embed = discord.Embed(title="Lightning", color=0xf74b06)
-        if self.bot.owner_id:
-            owners = [self.bot.get_user(self.bot.owner_id)]
-        elif self.bot.owner_ids:
-            owners = [self.bot.get_user(u) for u in self.bot.owner_ids]
-        else:
-            owners = []
+        owners = [self.bot.get_user(u) for u in self.bot.owners]
 
         author = await self.get_bot_author()
         embed.set_author(name=str(author), icon_url=author.avatar.with_static_format('png'))
@@ -423,8 +411,8 @@ class Stats(LightningCog):
         embed.url = self.bot.config['bot'].get("git_repo_url", "https://gitlab.com/lightning-bot/Lightning")
         embed.set_thumbnail(url=ctx.me.avatar.url)
 
-        if self.bot.config['bot']['description']:
-            description.append(f"**Description**: {self.bot.config['bot']['description']}")
+        if self.bot.config.bot.description:
+            description.append(f"**Description**: {self.bot.config.bot.description}")
 
         # Channels
         text = 0
@@ -437,31 +425,21 @@ class Stats(LightningCog):
                     voice += 1
         embed.add_field(name="Channels", value=f"{text:,} text channels\n{voice:,} voice channels")
 
-        # Members
-        membertotal = 0
-        membertotal_online = 0
-        for member in self.bot.get_all_members():
-            membertotal += 1
-            if member.status is not discord.Status.offline:
-                membertotal_online += 1
-        all_members = f"Total: {membertotal:,}\nUnique: {len(self.bot.users):,}\n"\
-                      f"Unique Members Online: {membertotal_online:,}"
-        embed.add_field(name="Members", value=all_members)
-
         memory = self.process.memory_full_info().uss / 1024**2
         description.append(f"**Process**: {memory:.2f} MiB\n**Commit**: [{self.bot.commit_hash[:8]}]"
-                           f"({embed.url}/commit/{self.bot.commit_hash})")
+                           f"({embed.url}/commit/{self.bot.commit_hash})\n**Uptime**: "
+                           f"{natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}")
 
         embed.add_field(name="Servers", value=f"{len(self.bot.guilds):,}\nShards: {self.bot.shard_count}")
 
         query = """SELECT COUNT(*) AS total_commands, (SELECT sum(count) FROM socket_stats) AS total_socket_stats
                    FROM commands_usage;"""
         amounts = await self.bot.pool.fetchrow(query)
-        description.append(f"{amounts['total_commands']} commands ran.\n{amounts['total_socket_stats']} "
+        description.append(f"{amounts['total_commands']:,} commands ran.\n{amounts['total_socket_stats']:,} "
                            "socket events recorded.")
 
         embed.add_field(name="Links", value="[Support Server]"
-                                            f"({self.bot.config['bot']['support_server_invite']}) | "
+                                            f"({self.bot.config.bot.support_server_invite}) | "
                                             "[Website](https://lightning.lightsage.dev) | [Ko-Fi]"
                                             "(https://ko-fi.com/lightsage)",
                                             inline=False)
