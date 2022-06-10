@@ -19,7 +19,8 @@ import logging
 import discord
 from discord.ext import commands
 
-__all__ = ('CommandLevel', 'command', 'group', 'LightningCommand', 'LightningGroupCommand')
+__all__ = ('CommandLevel', 'command', 'group', 'hybrid_command', 'hybrid_group', 'LightningCommand',
+           'LightningGroupCommand', 'HybridGroup', 'HybridCommand')
 log = logging.getLogger(__name__)
 
 
@@ -32,20 +33,6 @@ class CommandLevel(discord.Enum):
     Blocked = 6  # should never be used
     # Allows us to disable a command by default
     Disabled = 7
-
-
-def command(**kwargs):
-    def inner(func):
-        cls = kwargs.pop('cls', LightningCommand)
-        return cls(func, **kwargs)
-    return inner
-
-
-def group(**kwargs):
-    def inner(func):
-        cls = kwargs.pop('cls', LightningGroupCommand)
-        return cls(func, **kwargs)
-    return inner
 
 
 class LightningCommand(commands.Command):
@@ -211,3 +198,70 @@ class LightningGroupCommand(LightningCommand, commands.Group):
             return result
 
         return decorator
+
+
+class HybridCommand(commands.HybridCommand, LightningCommand):
+    ...
+
+
+class HybridGroup(commands.HybridGroup, LightningGroupCommand):
+    def command(self, *args, **kwargs):
+        """A shortcut decorator that invokes :func:`.command` and adds it to
+        the internal command list via :meth:`~.GroupMixin.add_command`.
+        Returns
+        --------
+        Callable[..., :class:`Command`]
+            A decorator that converts the provided method into a Command, adds it to the bot, then returns it.
+        """
+        def decorator(func):
+            kwargs.setdefault('parent', self)
+            result = hybrid_command(*args, **kwargs)(func)
+            self.add_command(result)
+            return result
+
+        return decorator
+
+    def group(self, *args, **kwargs):
+        """A shortcut decorator that invokes :func:`.group` and adds it to
+        the internal command list via :meth:`~.GroupMixin.add_command`.
+        Returns
+        --------
+        Callable[..., :class:`Group`]
+            A decorator that converts the provided method into a Group, adds it to the bot, then returns it.
+        """
+        def decorator(func):
+            kwargs.setdefault('parent', self)
+            result = hybrid_group(*args, **kwargs)(func)
+            self.add_command(result)
+            return result
+
+        return decorator
+
+
+# decorators
+def command(**kwargs):
+    def inner(func):
+        cls = kwargs.pop('cls', LightningCommand)
+        return cls(func, **kwargs)
+    return inner
+
+
+def group(**kwargs):
+    def inner(func):
+        cls = kwargs.pop('cls', LightningGroupCommand)
+        return cls(func, **kwargs)
+    return inner
+
+
+def hybrid_command(**kwargs):
+    def inner(func):
+        cls = kwargs.pop('cls', HybridCommand)
+        return cls(func, **kwargs)
+    return inner
+
+
+def hybrid_group(**kwargs):
+    def inner(func):
+        cls = kwargs.pop('cls', HybridGroup)
+        return cls(func, **kwargs)
+    return inner
