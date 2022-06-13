@@ -19,7 +19,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from io import StringIO
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import discord
 from discord.ext import menus
@@ -160,7 +160,7 @@ class InfractionSource(menus.KeysetPageSource):
         return embed
 
 
-class Infractions(LightningCog, required=['Mod']):
+class Infractions(LightningCog, required=['Moderation']):
     """Infraction related commands"""
 
     @group(aliases=['inf'], invoke_without_command=True, level=CommandLevel.Mod)
@@ -268,15 +268,14 @@ class Infractions(LightningCog, required=['Mod']):
 
     @infraction.group(name='list', invoke_without_command=True, level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
-    async def list_infractions(self, ctx: LightningContext) -> None:
-        """Lists infractions for the server"""
-        await self.start_keyset_pages(ctx, InfractionSource(ctx.bot, ctx.guild))
+    async def list_infractions(self, ctx: LightningContext, member: Optional[discord.User]) -> None:
+        """Lists infractions that were done in the server with optional filter(s)"""
+        if member:
+            src = InfractionSource(ctx.bot, ctx.guild, member=member)
+        else:
+            src = InfractionSource(ctx.bot, ctx.guild)
 
-    @list_infractions.command(name='member', level=CommandLevel.Mod)
-    @has_guild_permissions(manage_guild=True)
-    async def list_infractions_member(self, ctx: LightningContext, *, member: discord.User) -> None:
-        """Lists infractions done to a user"""
-        await self.start_keyset_pages(ctx, InfractionSource(ctx.bot, ctx.guild, member=member))
+        await self.start_keyset_pages(ctx, src)
 
     @list_infractions.command(name='takenby', level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
