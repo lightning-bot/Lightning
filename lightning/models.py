@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 class GuildModConfig:
-    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "temp_mute_role_id", "flags",
+    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "flags",
                  "bot")
 
     def __init__(self, record, bot):
@@ -43,7 +43,6 @@ class GuildModConfig:
         self.mute_role_id: Optional[int] = record['mute_role_id']
         self.warn_kick: Optional[int] = record['warn_kick']
         self.warn_ban: Optional[int] = record['warn_ban']
-        self.temp_mute_role_id: Optional[int] = record['temp_mute_role_id']
         self.flags: ModFlags = ModFlags(record['flags'] or 0)
         self.bot: LightningBot = bot
         # self.automod = AutoModConfig(record)
