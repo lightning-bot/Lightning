@@ -226,7 +226,7 @@ class Reminders(LightningCog):
             await ctx.send("You don't have any reminders that I can delete")
             return
 
-        confirm = await ctx.prompt(f"Are you sure you want to remove {plural(count):reminder}?")
+        confirm = await ctx.confirm(f"Are you sure you want to remove {plural(count):reminder}?")
         if not confirm:
             await ctx.send("Cancelled")
             return
