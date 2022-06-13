@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import contextlib
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional, Union
@@ -27,6 +28,7 @@ from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, ModFlags, cache, command, converters)
 from lightning import flags as lflags
 from lightning import group
+from lightning.cogs.mod.flags import BaseModParser
 from lightning.constants import COMMON_HOIST_CHARACTERS
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
 from lightning.events import InfractionEvent
@@ -49,11 +51,6 @@ confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
                  "timemute": "{target} can no longer speak. It will expire in {expiry}.",
                  "unmute": "{target} can now speak again.",
                  "unban": "\N{OK HAND SIGN} {target} is now unbanned."}
-
-
-BaseModParser = lflags.FlagParser([lflags.Flag("--nodm", "--no-dm", is_bool_flag=True,
-                                   help="Bot does not DM the user the reason for the action.")],
-                                  rest_attribute_name="reason", raise_on_bad_flag=False)
 
 
 class Mod(LightningCog, required=["Configuration"]):
@@ -89,7 +86,7 @@ class Mod(LightningCog, required=["Configuration"]):
         connection = connection or self.bot.pool
         await connection.execute(query, role_id, guild_id, user_id)
 
-    async def log_manual_action(self, guild: discord.Guild, target, moderator,
+    async def log_manual_action(self, guild: discord.Guild, target: Union[discord.User, discord.Member], moderator,
                                 action: Union[modlogformats.ActionType, str], *, timestamp=None,
                                 reason: Optional[str] = None, **kwargs) -> None:
         # We need this for bulk actions
@@ -139,11 +136,8 @@ class Mod(LightningCog, required=["Configuration"]):
             return
 
         if record.flags and ModFlags.react_only_confirmation in record.flags:
-            try:
+            with contextlib.suppress(discord.HTTPException):
                 await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
-            except (discord.Forbidden, discord.HTTPException):
-                pass
-
             await self.log_action(ctx, target, action, **kwargs)
             return
 
@@ -159,13 +153,13 @@ class Mod(LightningCog, required=["Configuration"]):
     @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
     @commands.bot_has_guild_permissions(kick_members=True)
     @has_guild_permissions(kick_members=True)
-    async def kick(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
+    async def kick(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), *, flags) -> None:
         """Kicks a user from the server"""
-        if not flags['nodm']:  # No check is done here since we don't fetch users
+        if not flags.nodm:  # No check is done here since we don't fetch users
             await helpers.dm_user(target, modlogformats.construct_dm_message(target, "kicked", "from",
-                                  reason=flags['reason']))
+                                  reason=flags.reason))
 
-        await ctx.guild.kick(target, reason=self.format_reason(ctx.author, flags['reason']))
+        await ctx.guild.kick(target, reason=self.format_reason(ctx.author, flags.reason))
         await self.confirm_and_log_action(ctx, target, "KICK")
 
     async def time_ban_user(self, ctx, target, moderator, reason, duration, *, dm_user=False,
@@ -228,10 +222,10 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @has_guild_permissions(manage_messages=True)
     @group(cls=lflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod, parser=BaseModParser)
-    async def warn(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), **flags) -> None:
+    async def warn(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), *, flags) -> None:
         """Warns a user"""
-        if not flags['nodm'] and isinstance(target, discord.Member):
-            dm_message = modlogformats.construct_dm_message(target, "warned", "in", reason=flags['reason'])
+        if not flags.nodm and isinstance(target, discord.Member):
+            dm_message = modlogformats.construct_dm_message(target, "warned", "in", reason=flags.reason)
             # ending="\n\nAdditional action may be taken against you if the server has set it up."
             await helpers.dm_user(target, dm_message)
 
@@ -399,19 +393,16 @@ class Mod(LightningCog, required=["Configuration"]):
         else:
             await self.do_message_purge(ctx, 100, lambda e: string in e.content)
 
-    async def get_mute_role(self, ctx: LightningContext, *, temporary_role=False) -> discord.Role:
+    async def get_mute_role(self, ctx: LightningContext) -> discord.Role:
         """Gets the guild's mute role if it exists"""
         config = await self.get_mod_config(ctx.guild.id)
         if not config:
             raise MuteRoleError("You do not have a mute role set.")
 
-        if temporary_role is False:
-            return config.get_mute_role()
-        else:
-            return config.get_temp_mute_role()
+        return config.get_mute_role()
 
     async def time_mute_user(self, ctx, target, reason, duration, *, dm_user=False):
-        role = await self.get_mute_role(ctx, temporary_role=True)
+        role = await self.get_mute_role(ctx)
         duration_text = f"{natural_timedelta(duration.dt, source=ctx.message.created_at)} ("\
                         f"{discord.utils.format_dt(duration.dt)})"
 
@@ -746,7 +737,7 @@ class Mod(LightningCog, required=["Configuration"]):
             if char not in characters:
                 break
 
-            new_nick = new_nick[1:]
+            new_nick = new_nick[1:].lstrip()
 
         if len(new_nick) == 0:
             new_nick = "don't hoist"
@@ -898,13 +889,7 @@ class Mod(LightningCog, required=["Configuration"]):
                 await self.log_manual_action(event.guild, event.after, event.moderator, "MUTE", reason=reason,
                                              connection=conn)
 
-    # Automod
-    # -------
-    # TBH, this is mostly a bunch of listeners, but there's a command or two so it's staying in the same file.
-
-    @command(hidden=True)
-    async def raidmode(self, ctx: LightningContext) -> None:
-        ...
+    # Automod features tm
 
     async def is_member_whitelisted(self, message) -> bool:
         """Check that tells whether a member is exempt from automod or not"""
