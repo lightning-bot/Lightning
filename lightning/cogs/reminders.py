@@ -25,10 +25,11 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import asyncpg
 import discord
+from discord import app_commands
 from discord.ext.commands import clean_content
 from sanctum.exceptions import NotFound
 
-from lightning import LightningCog, LightningContext, group
+from lightning import LightningCog, LightningContext, hybrid_group
 from lightning.formatters import plural
 from lightning.models import Timer
 from lightning.utils import time as ltime
@@ -144,7 +145,8 @@ class Reminders(LightningCog):
             embed = discord.Embed(title="Timer Error", description=f"```{exc}```")
             await self.bot._error_logger.put(embed)
 
-    @group(usage="<when>", aliases=["reminder"], invoke_without_command=True)
+    @hybrid_group(usage="<when>", aliases=["reminder"], invoke_without_command=True, fallback="set")
+    @app_commands.describe(when="When to remind you of something")
     async def remind(self, ctx: LightningContext, *,
                      when: ltime.UserFriendlyTime(clean_content, default='something')) -> None:  # noqa: F821
         """Reminds you of something after a certain date.
@@ -170,57 +172,6 @@ class Reminders(LightningCog):
 
         await ctx.send(content)
 
-    # remind hide/show
-    async def reminder_toggler(self, ctx: LightningContext, reminder_id: int, secret: bool) -> None:
-        """Marks or unmarks a reminder from the secret status"""
-        query = """SELECT extra FROM timers WHERE id=$1 AND event = 'reminder'
-                   AND extra ->> 'author' = $2;"""
-        record = await self.bot.pool.fetchval(query, reminder_id, str(ctx.author.id))
-
-        if not record:
-            await ctx.send("Could not find a reminder with that id.")
-            return
-
-        record['secret'] = secret
-
-        await self.bot.pool.execute("UPDATE timers SET extra=$1 WHERE id=$2;", record, reminder_id)
-
-        if self._current_task and reminder_id == self._current_task.id:
-            # It's probably better to re-run it again.
-            self._current_task.extra = record
-
-        if secret:
-            await ctx.send(f"Marked {reminder_id} as secret")
-        else:
-            await ctx.send(f"Unmarked {reminder_id}.")
-
-    @remind.command()
-    async def hide(self, ctx: LightningContext, reminder_id: int) -> None:
-        """Marks a reminder as "secret"
-
-           A secret reminder will not show the description if you list reminders in a server.
-           When it's time to remind you, the bot will DM you about your reminder."""
-        await self.reminder_toggler(ctx, reminder_id, True)
-
-    @remind.command()
-    async def show(self, ctx: LightningContext, reminder_id: int) -> None:
-        """Unmarks a reminder from the "secret" status."""
-        await self.reminder_toggler(ctx, reminder_id, False)
-
-    def format_list(self, records, *, guild=False) -> discord.Embed:
-        embed = discord.Embed(title="Reminders", color=0xf74b06)
-        for record in records:
-            secret = record['extra'].get("secret", False)
-            if guild is True and secret is True:
-                text = "This reminder is explicitly marked as secret"
-            else:
-                text = textwrap.shorten(record['extra']['reminder_text'], width=512)
-
-            embed.add_field(name=f"{record['id']}: {ltime.format_relative(datetime.fromisoformat(record['expiry']))}",
-                            value=text, inline=False)
-
-        return embed
-
     @remind.command(name='list')
     async def listreminders(self, ctx: LightningContext) -> None:
         """Lists up to 10 of your reminders
@@ -232,10 +183,17 @@ class Reminders(LightningCog):
             await ctx.send("Seems you haven't set a reminder yet...")
             return
 
-        embed = self.format_list(records, guild=bool(ctx.guild))
-        await ctx.send(embed=embed)
+        embed = discord.Embed(title="Reminders", color=0xf74b06)
+        for record in records:
+            text = textwrap.shorten(record['extra']['reminder_text'], width=512)
+
+            embed.add_field(name=f"{record['id']}: {ltime.format_relative(datetime.fromisoformat(record['expiry']))}",
+                            value=text, inline=False)
+
+        await ctx.send(embed=embed, ephemeral=True)
 
     @remind.command(name='delete', aliases=['cancel'])
+    @app_commands.describe(reminder_id="The reminder's ID you want to delete")
     async def deletereminder(self, ctx: LightningContext, *, reminder_id: int) -> None:
         """Deletes a reminder by ID.
 
