@@ -358,7 +358,7 @@ class Stats(LightningCog):
         embed.add_field(name='Owner', value=base_user_format(owner), inline=False)
 
         if not hasattr(self, "guild_stats_bulker"):
-            self.guild_stats_bulker = WebhookEmbedEmitter(self.bot.config['logging']['guild_alerts'],
+            self.guild_stats_bulker = WebhookEmbedEmitter(self.bot.config.logging.guild_alerts,
                                                           session=self.bot.aiosession, loop=self.bot.loop)
             self.guild_stats_bulker.start()
 
@@ -414,23 +414,11 @@ class Stats(LightningCog):
         if self.bot.config.bot.description:
             description.append(f"**Description**: {self.bot.config.bot.description}")
 
-        # Channels
-        text = 0
-        voice = 0
-        for guild in self.bot.guilds:
-            for channel in guild.channels:
-                if isinstance(channel, discord.TextChannel):
-                    text += 1
-                elif isinstance(channel, discord.VoiceChannel):
-                    voice += 1
-        embed.add_field(name="Channels", value=f"{text:,} text channels\n{voice:,} voice channels")
-
         memory = self.process.memory_full_info().uss / 1024**2
         description.append(f"**Process**: {memory:.2f} MiB\n**Commit**: [{self.bot.commit_hash[:8]}]"
                            f"({embed.url}/commit/{self.bot.commit_hash})\n**Uptime**: "
-                           f"{natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}")
-
-        embed.add_field(name="Servers", value=f"{len(self.bot.guilds):,}\nShards: {self.bot.shard_count}")
+                           f"{natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}\n"
+                           f"**Servers**: {len(self.bot.guilds):,}\n**Shards**: {len(self.bot.shards)}")
 
         query = """SELECT COUNT(*) AS total_commands, (SELECT sum(count) FROM socket_stats) AS total_socket_stats
                    FROM commands_usage;"""
