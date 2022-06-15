@@ -125,9 +125,12 @@ class MenuLikeView(discord.ui.View):
         if wait:
             await self.wait()
 
+    async def on_timeout(self):
+        self.stop()
+
     def stop(self, *, interaction: Optional[discord.Interaction] = None):
-        super().stop()
         asyncio.create_task(self.cleanup(interaction=interaction))
+        super().stop()
 
     def lock_components(self) -> None:
         self.locked = True
