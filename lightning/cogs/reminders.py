@@ -180,7 +180,7 @@ class Reminders(LightningCog):
         try:
             records = await self.bot.api.get_user_reminders(ctx.author.id)
         except NotFound:
-            await ctx.send("Seems you haven't set a reminder yet...")
+            await ctx.send("Seems you haven't set a reminder yet...", ephemeral=True)
             return
 
         embed = discord.Embed(title="Reminders", color=0xf74b06)
