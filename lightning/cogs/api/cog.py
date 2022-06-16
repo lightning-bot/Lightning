@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import re
+import urllib.parse
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -103,7 +104,7 @@ class API(LightningCog):
     @command()
     async def qr(self, ctx: LightningContext, *, text: str) -> None:
         """Generates a QR code"""
-        await ctx.send(f"https://api.qrserver.com/v1/create-qr-code/?qzone=4&data={text.replace(' ', '+')}")
+        await ctx.send(f"https://api.qrserver.com/v1/create-qr-code/?qzone=4&data={urllib.parse.quote(text)}")
 
     @command(aliases=['findcrate'])
     async def browsecrates(self, ctx: LightningContext, *, crate: str) -> None:
