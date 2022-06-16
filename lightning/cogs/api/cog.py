@@ -103,7 +103,7 @@ class API(LightningCog):
     @command()
     async def qr(self, ctx: LightningContext, *, text: str) -> None:
         """Generates a QR code"""
-        await ctx.send(f"https://api.qrserver.com/v1/create-qr-code/?data={text.replace(' ', '+')}")
+        await ctx.send(f"https://api.qrserver.com/v1/create-qr-code/?qzone=4&data={text.replace(' ', '+')}")
 
     @command(aliases=['findcrate'])
     async def browsecrates(self, ctx: LightningContext, *, crate: str) -> None:
