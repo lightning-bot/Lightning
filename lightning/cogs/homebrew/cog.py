@@ -41,7 +41,7 @@ from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
 from lightning.utils.checks import has_channel_permissions
 from lightning.utils.helpers import request as make_request
-from lightning.utils.paginator import InfoMenuPages
+from lightning.utils.paginator import Paginator
 
 log: logging.Logger = logging.getLogger(__name__)
 
@@ -304,7 +304,7 @@ class Homebrew(LightningCog):
             await ctx.send("No results found!")
             return
 
-        menu = InfoMenuPages(source=UniversalDBPageSource(results), clear_reactions_after=True)
+        menu = Paginator(UniversalDBPageSource(results))
         await menu.start(ctx)
 
     @group(invoke_without_command=True)
