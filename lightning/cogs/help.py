@@ -55,7 +55,7 @@ class HelpPaginator(Paginator):
         self.bot = ctx.bot
         self.is_bot = False
 
-    @discord.ui.button(label="Understanding arguments", emoji="\N{WHITE QUESTION MARK ORNAMENT}", row=2,
+    @discord.ui.button(label="How to read bot signature", emoji="\N{WHITE QUESTION MARK ORNAMENT}", row=2,
                        style=discord.ButtonStyle.blurple)
     async def show_bot_help(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         """shows how to use the bot"""
@@ -86,7 +86,7 @@ class CategorySelect(discord.ui.Select):
                  row: Optional[int] = None) -> None:
         super().__init__(placeholder="Jump to category", options=options, row=row)
         self.menu = menu
-        # We don't display command signature so this buttons seems kinda extra
+        # We don't display command signature so this button seems kinda extra
         self.menu.remove_item(self.menu.show_bot_help)
 
     async def callback(self, interaction: discord.Interaction):
@@ -114,7 +114,7 @@ class BotHelpSource(menus.ListPageSource):
         return f"{value}\n{description}"
 
 
-class HelpMenu(menus.ListPageSource):
+class CogHelpSource(menus.ListPageSource):
     def __init__(self, data, *, per_page=5):
         self.total = len(data)
         super().__init__(data, per_page=per_page)
@@ -126,9 +126,33 @@ class HelpMenu(menus.ListPageSource):
         cmds = [f"\N{BULLET} `{command.qualified_name}{self.format_signature(command)}` ("
                 f"{command.short_doc or 'No help found...'})\n" for command in entries]
 
-        content = f"Your current permissions allow you to run the following commands:\n{''.join(cmds)}\n\n"\
+        content = f"**{entries[0].cog.qualified_name}**\n*{entries[0].cog.description}*\n"\
+                  f"Your current permissions allow you to run the following commands:\n{''.join(cmds)}\n\n"\
                   f"*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*"\
                   f"\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"
+        return content
+
+
+class GroupHelpSource(CogHelpSource):
+    def __init__(self, data, *, per_page=7, group=None):
+        self.group = group
+        super().__init__(data, per_page=per_page)
+
+    async def format_page(self, menu: HelpPaginator, entries) -> discord.Embed:
+        if menu.current_page == 0 and await self.group.can_run(menu.ctx):
+            content = f"Your current permissions allow you to run the following group command:\n"\
+                      f"{menu.help_command.common_command_formatting(self.group)}"
+        else:
+            content = f"Your current permissions do not allow you to run the following group command:\n"\
+                      f"{menu.help_command.common_command_formatting(self.group)}"
+
+        cmds = [f"\N{BULLET} `{command.qualified_name}{self.format_signature(command)}` ("
+                f"{command.short_doc or 'No help found...'})\n" for command in entries]
+
+        content += f"\n\n**Subcommands**:\nYour current permissions allow you to run the following subcommands:\n"\
+                   f"{''.join(cmds)}\n\n"\
+                   f"*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*"\
+                   f"\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"
         return content
 
 
@@ -178,9 +202,9 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
         await menu.start(self.context)
 
-    async def send_cog_help(self, cog) -> None:
+    async def send_cog_help(self, cog: commands.Cog) -> None:
         entries = await self.filter_commands(cog.walk_commands(), sort=True, key=lambda d: d.qualified_name)
-        menu = HelpPaginator(self, self.context, HelpMenu(entries, per_page=10))
+        menu = HelpPaginator(self, self.context, CogHelpSource(entries, per_page=10))
         await menu.start(self.context)
 
     def flag_help_formatting(self, command):
@@ -245,16 +269,19 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
         return ''.join(desc)
 
-    async def send_command_help(self, command):
+    async def send_command_help(self, command: LightningCommand):
         # No pagination necessary for a single command.
-        content = self.common_command_formatting(command)
+        if await command.can_run(self.context):
+            content = "Your current permissions allow you to run this command.\n"\
+                      f"{self.common_command_formatting(command)}"
+        else:
+            content = "Your current permissions do not allow you to run this command!\n"\
+                      f"{self.common_command_formatting(command)}"
         await self.context.send(content)
 
     async def send_group_help(self, group: LightningGroupCommand):
-        commands = list(group.walk_commands())
-        commands.append(group)
-        entries = await self.filter_commands(commands, sort=True, key=lambda c: c.qualified_name)
-        pages = HelpPaginator(self, self.context, HelpMenu(entries, per_page=10))
+        entries = await self.filter_commands(group.walk_commands(), sort=True, key=lambda c: c.qualified_name)
+        pages = HelpPaginator(self, self.context, GroupHelpSource(entries, group=group))
         await pages.start(self.context)
 
 
