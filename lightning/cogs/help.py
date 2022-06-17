@@ -119,8 +119,11 @@ class HelpMenu(menus.ListPageSource):
         self.total = len(data)
         super().__init__(data, per_page=per_page)
 
+    def format_signature(self, command):
+        return f" {command.signature}" if command.signature else ""
+
     async def format_page(self, menu: HelpPaginator, entries) -> discord.Embed:
-        cmds = [f"\N{BULLET} `{command.qualified_name} {command.signature}` ("
+        cmds = [f"\N{BULLET} `{command.qualified_name}{self.format_signature(command)}` ("
                 f"{command.short_doc or 'No help found...'})\n" for command in entries]
 
         content = f"Your current permissions allow you to run the following commands:\n{''.join(cmds)}\n\n"\
