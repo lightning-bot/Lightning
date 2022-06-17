@@ -15,10 +15,81 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncio
+from typing import Optional
 
 import discord
 from discord.ext import menus
 from discord.ext.menus.views import ViewMenuPages
+
+from lightning.ui import StopButton, UpdateableMenu
+
+
+class Paginator(UpdateableMenu):
+    def __init__(self, source: menus.PageSource, /, *, timeout: Optional[float] = 90):
+        super().__init__(clear_view_after=True, timeout=timeout)
+        self.source: menus.PageSource = source
+        self.current_page: int = 0
+
+        self.add_item(StopButton(label="Stop", style=discord.ButtonStyle.danger))
+
+    @property
+    def max_pages(self) -> int:
+        return self.source.get_max_pages() - 1
+
+    async def format_initial_message(self, ctx):
+        await self.source._prepare_once()
+        page = await self._get_page(self.current_page)
+        return self._assume_message_kwargs(page)
+
+    async def _get_page(self, num: int):
+        page = await self.source.get_page(num)
+        page = await self.source.format_page(self, page)
+        return page
+
+    async def show_page(self, interaction: discord.Interaction, page_number: int):
+        self.current_page = page_number
+        page = await self._get_page(self.current_page)
+        kwargs = self._assume_message_kwargs(page)
+
+        await self.update_components()
+
+        if interaction.response.is_done():
+            await self.message.edit(**kwargs, view=self)
+        else:
+            await interaction.response.edit_message(**kwargs, view=self)
+
+    async def update_components(self) -> None:
+        self.previous_button.disabled = self.current_page == 0
+        self.next_button.disabled = self.current_page == self.max_pages
+        # First & Last
+        self.first_page_button.disabled = self.current_page == 0
+        self.last_page_button.disabled = self.current_page >= self.max_pages
+
+    async def start(self, ctx, *, channel=None, wait: bool = True):
+        if not self.source.is_paginating():
+            # Does not require pagination
+            page = await self._get_page(0)
+            kwargs = self._assume_message_kwargs(page)
+            await ctx.send(**kwargs)
+            return
+
+        await super().start(ctx, channel=channel, wait=wait)
+
+    @discord.ui.button(label="<<")
+    async def first_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.show_page(interaction, 0)
+
+    @discord.ui.button(label="Previous")
+    async def previous_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.show_page(interaction, self.current_page - 1)
+
+    @discord.ui.button(label="Next")
+    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.show_page(interaction, self.current_page + 1)
+
+    @discord.ui.button(label=">>")
+    async def last_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.show_page(interaction, self.max_pages)
 
 
 class BasicEmbedMenu(menus.ListPageSource):
