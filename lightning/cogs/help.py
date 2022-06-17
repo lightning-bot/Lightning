@@ -16,16 +16,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import discord
 from discord.ext import commands, menus
 from rapidfuzz.process import extractOne
 
 from lightning import LightningCog
-from lightning.utils.paginator import InfoMenuPages
+from lightning.commands import LightningCommand, LightningGroupCommand
+from lightning.context import LightningContext
+from lightning.utils.paginator import Paginator
 
 if TYPE_CHECKING:
     from lightning import LightningBot
@@ -34,16 +35,29 @@ log = logging.getLogger(__name__)
 flag_name_lookup = {"HumanTime": "Time", "FutureTime": "Time"}
 
 
-class HelpPaginatorMenu(InfoMenuPages):
-    def __init__(self, help_command, ctx, source, **kwargs):
-        super().__init__(source, clear_reactions_after=True, check_embeds=True, **kwargs)
+def format_commands(commands: Union[LightningCommand, LightningGroupCommand]):
+    cmds = []
+    for cmd in commands:
+        cmds.append(f"\N{BULLET} `{cmd.qualified_name}`\n")
+        if hasattr(cmd, 'commands'):
+            cmds.extend(f'{" " * (len(child.parents) * 3)}• `{child.qualified_name}`\n'
+                        for child in cmd.walk_commands())
+
+    return "".join(cmds)
+
+
+class HelpPaginator(Paginator):
+    def __init__(self, help_command: PaginatedHelpCommand, ctx: LightningContext, source, **kwargs):
+        super().__init__(source, **kwargs)
         self.help_command = help_command
         self.total = len(source.entries)
         self.ctx = ctx
+        self.bot = ctx.bot
         self.is_bot = False
 
-    @menus.button("\N{WHITE QUESTION MARK ORNAMENT}", position=menus.Last(5))
-    async def show_bot_help(self, payload) -> None:
+    @discord.ui.button(label="Understanding arguments", emoji="\N{WHITE QUESTION MARK ORNAMENT}", row=2,
+                       style=discord.ButtonStyle.blurple)
+    async def show_bot_help(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         """shows how to use the bot"""
         embed = discord.Embed(color=discord.Color.blurple())
         embed.title = 'Using the bot'
@@ -64,73 +78,55 @@ class HelpPaginatorMenu(InfoMenuPages):
         for name, value in entries:
             embed.add_field(name=name, value=value, inline=False)
 
-        embed.set_footer(text=f'We were on page {self.current_page + 1} before this message.')
-        await self.message.edit(embed=embed)
-
-        async def go_back_to_current_page():
-            await asyncio.sleep(30.0)
-            await self.show_page(self.current_page)
-
-        self.bot.loop.create_task(go_back_to_current_page())
-
-    async def paginate(self, **kwargs) -> None:
-        await super().start(self.ctx, **kwargs)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-class HelpMenu(menus.ListPageSource):
-    def __init__(self, data, *, per_page=4, embed=None, bot_help=False):
-        self.embed = embed
-        self.bot_help = bot_help
-        self.data = data if bot_help is True else None
-        self.total = len(data)
-        data = sorted(data.keys()) if bot_help is True else data
-        super().__init__(data, per_page=per_page)
+class CategorySelect(discord.ui.Select):
+    def __init__(self, menu: HelpPaginator, *, options: List[discord.SelectOption] = ...,
+                 row: Optional[int] = None) -> None:
+        super().__init__(placeholder="Jump to category", options=options, row=row)
+        self.menu = menu
+        # We don't display command signature so this buttons seems kinda extra
+        self.menu.remove_item(self.menu.show_bot_help)
 
-    def format_category_embed(self, embed: discord.Embed, menu, entries: list) -> discord.Embed:
+    async def callback(self, interaction: discord.Interaction):
+        # self.placeholder = self.menu.source.entries[int(self.values[0])]
+        await self.menu.show_page(interaction, int(self.values[0]))
+
+
+class BotHelpSource(menus.ListPageSource):
+    def __init__(self, entries):
+        data = sorted(entries.keys())
+        self.data = entries
+        super().__init__(data, per_page=1)
+
+    async def format_page(self, menu: HelpPaginator, entry) -> discord.Embed:
         description = f"Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.\nYou can also use \""\
                       f"{menu.ctx.clean_prefix}help [category]\" for help about a category."
         if "support_server_invite" in menu.bot.config['bot']:
             description += "\nFor additional help, join the support server: "\
-                           f"{menu.bot.config['bot']['support_server_invite']}"
-        embed.description = description
+                           f"<{menu.bot.config['bot']['support_server_invite']}>"
 
-        def format_commands(c):
-            # TODO: Handle if embed length is too long
-            cmds = [f"`{cmd.qualified_name}`" for cmd in c]
-            return " | ".join(cmds)
+        cmds = sorted(self.data.get(entry, []), key=lambda d: d.qualified_name)
+        value = f"**{entry}**\n{f'*{cmds[0].cog.description}*' if cmds[0].cog.description else ''}"\
+                f"\nYour current permissions allow you to run the following commands:\n{format_commands(cmds)}"
 
-        for entry in entries:
-            cmds = sorted(self.data.get(entry, []), key=lambda d: d.qualified_name)
-            cog = cmds[0].cog
-            value = f"__{cog.description}__\n{format_commands(cmds)}" if cog.description else format_commands(cmds)
-            embed.add_field(name=entry, value=value, inline=False)
+        return f"{value}\n{description}"
 
-        embed.set_footer(text=f"Page {menu.current_page + 1} of {self.get_max_pages() or 1} ({self.total or 1} "
-                              "categories)", icon_url=menu.ctx.bot.user.avatar.url)
-        return embed
 
-    def format_group_embed(self, embed: discord.Embed, menu, entries: list) -> discord.Embed:
-        for command in entries:
-            signature = f"{command.qualified_name} {command.signature}"
-            embed.add_field(name=signature, value=command.short_doc or "No help found...", inline=False)
+class HelpMenu(menus.ListPageSource):
+    def __init__(self, data, *, per_page=5):
+        self.total = len(data)
+        super().__init__(data, per_page=per_page)
 
-        embed.set_author(name=f"Page {menu.current_page + 1} of {self.get_max_pages() or 1} ({self.total or 1} "
-                              "commands)", icon_url=menu.ctx.bot.user.avatar.url)
-        return embed
+    async def format_page(self, menu: HelpPaginator, entries) -> discord.Embed:
+        cmds = [f"\N{BULLET} `{command.qualified_name} {command.signature}` ("
+                f"{command.short_doc or 'No help found...'})\n" for command in entries]
 
-    async def format_page(self, menu, entries) -> discord.Embed:
-        if self.embed:
-            embed = self.embed
-            embed.clear_fields()
-        else:
-            embed = discord.Embed(color=0xf74b06)
-
-        if self.bot_help is True:
-            embed = self.format_category_embed(embed, menu, entries)
-        else:
-            embed = self.format_group_embed(embed, menu, entries)
-            embed.set_footer(text=menu.help_command.get_ending_note())
-        return {'embed': embed, "content": "Your current permissions allow you to run the following commands."}
+        content = f"Your current permissions allow you to run the following commands:\n{''.join(cmds)}\n\n"\
+                  f"*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*"\
+                  f"\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"
+        return content
 
 
 class PaginatedHelpCommand(commands.HelpCommand):
@@ -164,7 +160,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
     async def send_bot_help(self, _) -> None:
         bot = self.context.bot
-        entries = await self.filter_commands(bot.walk_commands(), sort=True)
+        entries = await self.filter_commands(bot.commands, sort=True)
         commands = {}
         for command in entries:
             try:
@@ -172,14 +168,17 @@ class PaginatedHelpCommand(commands.HelpCommand):
             except KeyError:
                 commands[command.cog.qualified_name or "No Category"] = [command]
 
-        pages = HelpPaginatorMenu(self, self.context, HelpMenu(commands, bot_help=True))
-        await pages.paginate()
+        menu = HelpPaginator(self, self.context, BotHelpSource(commands))
+
+        options = [discord.SelectOption(label=key, value=ix) for ix, key in enumerate(sorted(commands.keys()))]
+        menu.add_item(CategorySelect(menu, options=options, row=3))
+
+        await menu.start(self.context)
 
     async def send_cog_help(self, cog) -> None:
-        entries = await self.filter_commands(cog.get_commands(), sort=True)
-        embed = discord.Embed(title=f'{cog.qualified_name} Commands', description=cog.description or '', color=0xf74b06)
-        pages = HelpPaginatorMenu(self, self.context, HelpMenu(entries, embed=embed, per_page=5))
-        await pages.paginate()
+        entries = await self.filter_commands(cog.walk_commands(), sort=True, key=lambda d: d.qualified_name)
+        menu = HelpPaginator(self, self.context, HelpMenu(entries, per_page=10))
+        await menu.start(self.context)
 
     def flag_help_formatting(self, command):
         if not hasattr(command.callback, "__lightning_argparser__"):
@@ -209,8 +208,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
         return (channel_permissions, guild_permissions)
 
-    def common_command_formatting(self, page_or_embed, command):
-        page_or_embed.title = self.get_command_signature(command)
+    def common_command_formatting(self, command: Union[LightningCommand, LightningGroupCommand]):
         if command.signature:
             usage = f"**Usage**: {command.qualified_name} {command.signature}\n\n"
         else:
@@ -227,11 +225,12 @@ class PaginatedHelpCommand(commands.HelpCommand):
         else:
             desc.append("No help found...")
 
+        if cflags := self.flag_help_formatting(command):
+            fmt = "\n".join(cflags)
+            desc.append(f'\n\n{fmt}')
+
         if hasattr(command, 'level'):
             desc.append(f"\n\n**Default Level Required**: {command.level.name}")
-
-        if cflags := self.flag_help_formatting(command):
-            page_or_embed.add_field(name="Flag options", value="\n".join(cflags))
 
         channel, guild = self.permissions_required_format(command)
         if channel:
@@ -241,24 +240,19 @@ class PaginatedHelpCommand(commands.HelpCommand):
             req = ", ".join(guild).replace('_', ' ').replace('guild', 'server').title()
             desc.append(f"\n**Server Permissions Required**: {req}")
 
-        page_or_embed.description = ''.join(desc)
+        return ''.join(desc)
 
     async def send_command_help(self, command):
         # No pagination necessary for a single command.
-        embed = discord.Embed(colour=0xf74b06)
-        self.common_command_formatting(embed, command)
-        await self.context.send(embed=embed)
+        content = self.common_command_formatting(command)
+        await self.context.send(content)
 
-    async def send_group_help(self, group):
-        subcommands = group.commands
-        if len(subcommands) == 0:
-            return await self.send_command_help(group)
-
-        entries = await self.filter_commands(subcommands, sort=True)
-        embed = discord.Embed(colour=0xf74b06)
-        self.common_command_formatting(embed, group)
-        pages = HelpPaginatorMenu(self, self.context, HelpMenu(entries, embed=embed, per_page=5))
-        await pages.paginate()
+    async def send_group_help(self, group: LightningGroupCommand):
+        commands = list(group.walk_commands())
+        commands.append(group)
+        entries = await self.filter_commands(commands, sort=True, key=lambda c: c.qualified_name)
+        pages = HelpPaginator(self, self.context, HelpMenu(entries, per_page=10))
+        await pages.start(self.context)
 
 
 class Help(LightningCog):
