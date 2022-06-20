@@ -139,12 +139,15 @@ class GroupHelpSource(CogHelpSource):
         super().__init__(data, per_page=per_page)
 
     async def format_page(self, menu: HelpPaginator, entries) -> discord.Embed:
-        if menu.current_page == 0 and await self.group.can_run(menu.ctx):
-            content = f"Your current permissions allow you to run the following group command:\n"\
-                      f"{menu.help_command.common_command_formatting(self.group)}"
+        if menu.current_page == 0:
+            if await self.group.can_run(menu.ctx):
+                content = f"Your current permissions allow you to run the following group command:\n"\
+                          f"{menu.help_command.common_command_formatting(self.group)}"
+            else:
+                content = f"Your current permissions do not allow you to run the following group command:\n"\
+                          f"{menu.help_command.common_command_formatting(self.group)}"
         else:
-            content = f"Your current permissions do not allow you to run the following group command:\n"\
-                      f"{menu.help_command.common_command_formatting(self.group)}"
+            content = ""
 
         cmds = [f"\N{BULLET} `{command.qualified_name}{self.format_signature(command)}` ("
                 f"{command.short_doc or 'No help found...'})\n" for command in entries]
