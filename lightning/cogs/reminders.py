@@ -170,7 +170,7 @@ class Reminders(LightningCog):
         else:
             content = f"Ok {ctx.author.mention}, I'll remind you in {duration_text} about {when.arg}."
 
-        await ctx.send(content)
+        await ctx.send(content, ephemeral=True)
 
     @remind.command(name='list')
     async def listreminders(self, ctx: LightningContext) -> None:
