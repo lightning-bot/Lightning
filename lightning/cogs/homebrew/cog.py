@@ -33,7 +33,6 @@ from bs4 import BeautifulSoup
 from discord.ext import commands, menus, tasks
 from jishaku.functools import executor_function
 from rapidfuzz import fuzz, process
-from wand.image import Image
 
 from lightning import CommandLevel, LightningCog, Storage, command, group
 from lightning.cogs.homebrew import ui
@@ -49,6 +48,13 @@ if TYPE_CHECKING:
     from typing import List, Optional, Union
 
     from lightning import LightningBot, LightningContext
+
+try:
+    from wand.image import Image
+except ImportError:
+    HAS_MAGICK = False
+else:
+    HAS_MAGICK = True
 
 
 class UniversalDBPageSource(menus.ListPageSource):
