@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import asyncio
 import contextlib
 import logging
 import logging.handlers
@@ -133,18 +132,15 @@ async def main(ctx: typer.Context):
 async def docker_run():
     typer.echo("Applying migrations...")
 
-    loop = asyncio.get_event_loop()
     config = Config()
+    import migri
 
-    async def migrate():
-        import migri
+    pool = await create_pool(config.tokens.postgres.uri, command_timeout=60)
+    async with pool.acquire() as conn:
+        m = migri.PostgreSQLConnection(connection=conn)
+        await migri.apply_migrations("migrations", m)
 
-        pool = await create_pool(config.tokens.postgres.uri, command_timeout=60)
-        async with pool.acquire() as conn:
-            m = migri.PostgreSQLConnection(connection=conn)
-            await migri.apply_migrations("migrations", m)
-
-    loop.run_until_complete(migrate())
+    await pool.close()
 
     with init_logging(config):
         await launch_bot(config)
