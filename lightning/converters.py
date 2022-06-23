@@ -14,9 +14,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import logging
 import re
 from datetime import datetime
+from typing import TYPE_CHECKING, Union
 
 import discord
 import yarl
@@ -26,39 +29,18 @@ from lightning.commands import CommandLevel
 from lightning.errors import (ChannelPermissionFailure, HierarchyException,
                               InvalidLevelArgument, LightningError)
 
+if TYPE_CHECKING:
+    from lightning import LightningContext
+
 log = logging.getLogger(__name__)
 
 
-async def non_guild_user(ctx, user_id: str):
-    """
-    Used when a Member or User object cannot be resolved.
-    """
-    try:
-        user_id = int(user_id, base=10)
-    except ValueError:
-        raise commands.BadArgument(f"{user_id} is not a valid member ID.")
-
-    user = ctx.bot.get_user(user_id)
-    if not user:
-        log.debug(f"User is not cached, switching to API lookup for {user_id}")
-        try:
-            user = await ctx.bot.fetch_user(user_id)
-        except discord.NotFound:
-            raise commands.BadArgument(f"\"{user_id}\" could not be found")
-        except discord.HTTPException:
-            raise commands.BadArgument("An exception occurred while finding this user.")
-        else:
-            return user
-    else:
-        return user
-
-
 class GuildorNonGuildUser(commands.Converter):
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx: LightningContext, argument):
         try:
             target = await commands.MemberConverter().convert(ctx, argument)
         except commands.BadArgument:
-            target = await non_guild_user(ctx, argument)
+            target = await commands.UserConverter().convert(ctx, argument)
         return target
 
 
@@ -69,7 +51,7 @@ class TargetMember(commands.Converter):
         else:
             self.user_converter = commands.MemberConverter()
 
-    async def check_member(self, ctx, member):
+    async def check_member(self, ctx: LightningContext, member: Union[discord.User, discord.Member]):
         if member.id == ctx.me.id:
             raise commands.BadArgument("Bots can't do actions on themselves.")
 
@@ -83,13 +65,13 @@ class TargetMember(commands.Converter):
             if member.top_role >= ctx.author.top_role:
                 raise commands.BadArgument("You can't do actions on this member due to hierarchy.")
 
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx: LightningContext, argument: str):
         target = await self.user_converter.convert(ctx, argument)
         await self.check_member(ctx, target)
         return target
 
 
-class ReadableChannel(commands.Converter):
+class ReadableTextChannel(commands.Converter):
     async def convert(self, ctx, argument):
         channel = await commands.TextChannelConverter().convert(ctx, argument)
         if not channel.permissions_for(ctx.me).read_messages:
@@ -97,6 +79,16 @@ class ReadableChannel(commands.Converter):
         if not ctx.author or not channel.permissions_for(ctx.author).read_messages:
             raise ChannelPermissionFailure(f"You don't have permission to view channel {channel.mention}")
         return channel
+
+
+class ReadableThread(commands.Converter):
+    async def convert(self, ctx, argument):
+        thread = await commands.ThreadConverter().convert(ctx, argument)
+        if not thread.permissions_for(ctx.me).read_messages:
+            raise ChannelPermissionFailure(f"I don't have permission to view thread {thread.mention}")
+        if not ctx.author or not thread.permissions_for(ctx.author).read_messages:
+            raise ChannelPermissionFailure(f"You don't have permission to view channel {thread.mention}")
+        return thread
 
 
 class SendableChannel(commands.Converter):
@@ -109,19 +101,6 @@ class SendableChannel(commands.Converter):
             raise ChannelPermissionFailure("You don't have permission to "
                                            f"send messages in {channel.mention}")
         return channel
-
-
-class LastImage(commands.CustomDefault):
-    async def default(self, ctx, param):
-        limit = 15
-        async for message in ctx.channel.history(limit=limit):
-            for embed in message.embeds:
-                if embed.thumbnail and embed.thumbnail.url:
-                    return embed.thumbnail.url
-            for attachment in message.attachments:
-                if attachment.url:
-                    return attachment.url
-        raise commands.BadArgument(f"Couldn't find an image in the last {limit} messages.")
 
 
 # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/mod.py#L122
@@ -216,7 +195,7 @@ class Whitelisted_URL:
 
 class Role(commands.RoleConverter):
     """Converts to :class:`discord.Role` but respects hierarchy"""
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx, argument) -> discord.Role:
         role = await super().convert(ctx, argument)
 
         if role.is_assignable() is False:
