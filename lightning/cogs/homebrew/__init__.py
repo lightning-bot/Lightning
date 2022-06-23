@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .cog import Homebrew
+from .cog import HAS_MAGICK, Homebrew
 
 if TYPE_CHECKING:
     from lightning import LightningBot
@@ -26,3 +26,5 @@ if TYPE_CHECKING:
 
 async def setup(bot: LightningBot) -> None:
     await bot.add_cog(Homebrew(bot))
+    if not HAS_MAGICK:
+        bot.remove_command("bmp")
