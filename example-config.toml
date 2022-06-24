@@ -9,14 +9,18 @@ sentry = ""
 
 # PostgreSQL Connection
 [tokens.postgres]
-uri = "postgres://user:password@host:port/database"
+uri = "postgres://lightning:postgres@postgres/postgres"
 
 # Redis Connection
 [tokens.redis]
-host = ""
-port = ""
+host = "redis"
+port = "6379"
 password = ""
 db = 1
+
+[tokens.api]
+url = "http://api:8000"
+key = "some-key"
 
 
 [git]
