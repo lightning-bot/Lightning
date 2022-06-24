@@ -60,25 +60,6 @@ class GuildModConfig:
                                        ' Please set a new mute role.')
         return role
 
-    def get_temp_mute_role(self, *, fallback=True) -> discord.Role:
-        if not self.temp_mute_role_id and not self.mute_role_id:
-            raise errors.MuteRoleError("This server has not setup a mute role.")
-
-        if not self.temp_mute_role_id and fallback is False:
-            raise errors.MuteRoleError("This server has not setup a temporary mute role.")
-
-        if not self.temp_mute_role_id:
-            return self.get_mute_role()
-
-        guild = self.bot.get_guild(self.guild_id)
-
-        role = discord.utils.get(guild.roles, id=self.temp_mute_role_id)
-        if not role:
-            raise errors.MuteRoleError("The temporary mute role that was set seems to be deleted. Please set a new "
-                                       "temporary mute role.")
-
-        return role
-
 
 class LoggingConfig:
     __slots__ = ('logging')
