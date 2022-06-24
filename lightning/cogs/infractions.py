@@ -248,7 +248,7 @@ class Infractions(LightningCog, required=['Moderation']):
             await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
             return
 
-        await ctx.send("Infraction deleted!")
+        await ctx.reply("Infraction deleted!")
 
     @infraction.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
