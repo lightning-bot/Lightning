@@ -359,7 +359,7 @@ class Stats(LightningCog):
 
         if not hasattr(self, "guild_stats_bulker"):
             self.guild_stats_bulker = WebhookEmbedEmitter(self.bot.config.logging.guild_alerts,
-                                                          session=self.bot.aiosession, loop=self.bot.loop)
+                                                          session=self.bot.aiosession)
             self.guild_stats_bulker.start()
 
         await self.guild_stats_bulker.put(embed)
