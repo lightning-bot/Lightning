@@ -60,12 +60,7 @@ def init_logging(config: Config):
         log_format = logging.Formatter('[%(asctime)s] %(name)s (%(filename)s:%(lineno)d) %(levelname)s: %(message)s')
         file_handler.setFormatter(log_format)
         file_handler.setLevel("INFO")
-
-        if config.logging.level:
-            log.setLevel(config.logging.level)
-        else:
-            log.setLevel("INFO")
-
+        log.setLevel("INFO")
         log.addHandler(file_handler)
 
         discord_log = logging.getLogger('discord')
