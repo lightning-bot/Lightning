@@ -66,7 +66,7 @@ class RedisConfig:
 
     def __init__(self, data: Dict[str, Any]) -> None:
         self.host = data['host']
-        self.port = data['port']
+        self.port = transform_key(data.pop('port', None))
         self.password = transform_key(data.pop("password", None))
         self.db = data['db']
 
@@ -80,13 +80,12 @@ class SanctumConfig:
 
 
 class LoggingConfig:
-    __slots__ = ('bot_errors', 'guild_alerts', 'blacklist_alerts', 'level', 'console')
+    __slots__ = ('bot_errors', 'guild_alerts', 'blacklist_alerts', 'console')
 
     def __init__(self, data: Dict[str, Any]) -> None:
         self.bot_errors = data['bot_errors']
         self.guild_alerts = data['guild_alerts']
         self.blacklist_alerts = data['blacklist_alerts']
-        self.level = data['level']
         self.console = data['console']
 
 
