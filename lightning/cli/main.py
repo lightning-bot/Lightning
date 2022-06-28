@@ -59,17 +59,26 @@ def init_logging(config: Config):
                                                             backupCount=10)
         log_format = logging.Formatter('[%(asctime)s] %(name)s (%(filename)s:%(lineno)d) %(levelname)s: %(message)s')
         file_handler.setFormatter(log_format)
+        file_handler.setLevel("INFO")
 
-        if (level := config.logging.level) != "":
-            log.setLevel(level)
+        if config.logging.level:
+            log.setLevel(config.logging.level)
         else:
             log.setLevel("INFO")
 
         log.addHandler(file_handler)
 
+        discord_log = logging.getLogger('discord')
+        db_fh = logging.handlers.RotatingFileHandler(filename="discord-debug.log", encoding="utf-8", mode="w",
+                                                     maxBytes=max_file_size, backupCount=5)
+        discord_log.setLevel("DEBUG")
+        db_fh.setFormatter(log_format)
+        discord_log.addHandler(db_fh)
+
         if config.logging.console:
             stdout_handler = logging.StreamHandler(sys.stdout)
             stdout_handler.setFormatter(log_format)
+            stdout_handler.setLevel("INFO")
             log.addHandler(stdout_handler)
 
         yield
