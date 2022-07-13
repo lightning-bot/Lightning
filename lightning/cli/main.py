@@ -18,13 +18,13 @@ import contextlib
 import logging
 import logging.handlers
 import os
-import sys
 
 import aioredis
 import asyncpg
 import discord
 import sentry_sdk
 import typer
+from rich.logging import RichHandler
 
 from lightning.bot import LightningBot
 from lightning.cli import guild, tools
@@ -71,10 +71,7 @@ def init_logging(config: Config):
         discord_log.addHandler(db_fh)
 
         if config.logging.console:
-            stdout_handler = logging.StreamHandler(sys.stdout)
-            stdout_handler.setFormatter(log_format)
-            stdout_handler.setLevel("INFO")
-            log.addHandler(stdout_handler)
+            log.addHandler(RichHandler("INFO"))
 
         yield
     finally:
