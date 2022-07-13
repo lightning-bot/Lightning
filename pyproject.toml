@@ -42,6 +42,7 @@ objgraph = "^3.5.0"
 asyncpg-stubs = "^0.25.1"
 aioredis = "^2.0.1"
 Wand = "^0.6.7"
+rich = "^12.5.1"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.4.2"
