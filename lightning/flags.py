@@ -140,6 +140,9 @@ class Namespace(SimpleNamespace):
     def __contains__(self, key):
         return key in self.__dict__
 
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
 
 class FlagParser:
     def __init__(self, flag_options: List[Flag] = None, *, raise_on_bad_flag: bool = True):
