@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import datetime
 import os
 
-import dateutil.parser
 import discord
 from discord.ext import commands
 
@@ -189,36 +188,6 @@ class Git(LightningCog):
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
-    @gitlab.command(name="mergerequest", aliases=['mr'])
-    @commands.check(is_git_whitelisted)
-    async def get_merge_request(self, ctx: LightningContext, id: int) -> None:
-        """Gives information for a merge request"""
-        url = self.create_api_url() + f"/{id}"
-        data = await self.make_request("GET", url)
-        em = discord.Embed(title=f"{data['title']} | !{id}")
-
-        timestamp = dateutil.parser.isoparse(data['created_at'])
-        em.set_footer(text="Created at")
-        em.timestamp = timestamp
-
-        em.set_author(name=data['author']['name'],
-                      url=data['author']['web_url'],
-                      icon_url=data['author']['avatar_url'])
-        em.description = f"[{data['web_url']}]({data['web_url']})"
-        pipeline = f"__URL__: [{data['pipeline']['web_url']}]({data['pipeline']['web_url']})"\
-                   f"\n**Status**: {self.status_emoji(data['head_pipeline']['status'])}"
-        em.add_field(name="**Pipeline Info**", value=pipeline)
-        em.add_field(name="**Labels**",
-                     value="> " + "\n> ".join(data['labels']), inline=False)
-
-        if len(data['assignees']) != 0:
-            assigned = []
-            for e in data['assignees']:
-                assigned.append(f"[{e['name']}]({e['web_url']})")
-            em.add_field(name="**Assignees**", value="\n".join(assigned), inline=False)
-
-        await ctx.send(embed=em)
-
     @gitlab.command()
     @commands.check(is_git_whitelisted)
     async def close(self, ctx: LightningContext, issue: int, *, comment: str = '') -> None:
@@ -262,23 +231,6 @@ class Git(LightningCog):
         embed.description = (f"URL: {data['web_url']}")
         await ctx.send(embed=embed)
 
-    @gitlab.command(aliases=['mrc'])
-    @commands.check(is_git_whitelisted)
-    async def mrchange(self, ctx: LightningContext, mr_id: int, event: str) -> None:
-        """Closes or Reopens a MR. Pass either `close` or `reopen` """
-        url = self.create_api_url() + f"/{mr_id}?state_event={event}"
-        data = await self.make_request("PUT", url)
-        await ctx.send(f"Successfully changed !{mr_id}. {data['web_url']}")
-
-    @gitlab.command()
-    @commands.check(is_git_whitelisted)
-    async def merge(self, ctx: LightningContext, mr_id: int):
-        """Merges a Merge Request"""
-        url = self.create_api_url() + f"/{mr_id}/merge"
-        data = await self.make_request("PUT", url)
-        await ctx.send(f"Successfully merged !{mr_id} to "
-                       f"`{data['target_branch']}`. {data['web_url']}")
-
     @gitlab.command()
     @commands.check(is_git_whitelisted)
     async def addmrlabel(self, ctx: LightningContext, mr_id: int, *labels) -> None:
@@ -306,20 +258,6 @@ class Git(LightningCog):
         url = self.create_api_url(path=f"/issues/{issue}?labels={','.join(_labels)}")
         await self.make_request("PUT", url)
         await ctx.send("Successfully added labels")
-
-    @gitlab.command(aliases=['listmrs'])
-    @commands.check(is_git_whitelisted)
-    async def openmrs(self, ctx: LightningContext) -> None:
-        """Lists currently opened merge requests"""
-        url = self.create_api_url(path="/merge_requests?state=opened")
-        prs = await self.make_request("GET", url)
-        if len(prs) != 0:
-            msgd = {}
-            for p in prs:
-                msgd[str(p['iid'])] = p['web_url']
-            await ctx.send(f"Currently open merge requests: ```json\n{msgd}```")
-        else:
-            await ctx.send("No open merge requests!")
 
 
 async def setup(bot: LightningBot) -> None:
