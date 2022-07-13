@@ -337,6 +337,7 @@ class Roles(LightningCog):
     # Slash commands
     @app_commands.command(name='togglerole')
     @app_commands.describe(role="The role to assign")
+    @app_commands.checks.bot_has_permissions(manage_roles=True)
     async def togglerole_slash(self, interaction: discord.Interaction, role: discord.Role) -> None:
         """Adds/removes a self-assignable role to you"""
         record = await self.bot.get_guild_bot_config(interaction.guild.id)
