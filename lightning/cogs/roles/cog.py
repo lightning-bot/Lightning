@@ -19,6 +19,7 @@ from io import StringIO
 
 import discord
 import tabulate
+from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands.view import StringView
 from rapidfuzz import process
@@ -332,6 +333,37 @@ class Roles(LightningCog):
         for role in roles:
             view.add_item(RoleButton(role, channel_id))
         return view
+
+    # Slash commands
+    @app_commands.command(name='togglerole')
+    @app_commands.describe(role="The role to assign")
+    async def togglerole_slash(self, interaction: discord.Interaction, role: discord.Role) -> None:
+        """Adds/removes a self-assignable role to you"""
+        record = await self.bot.get_guild_bot_config(interaction.guild.id)
+        if not record or not record.toggleroles:
+            await interaction.response.send_message("This feature is not setup in this server.", ephemeral=True)
+            return
+
+        if role.id not in record.toggleroles:
+            # We'll list off the roles that are toggleable...
+            await interaction.response.send_message("This role is not toggleable.", ephemeral=True)
+            return
+
+        if self._has_dangerous_permissions(role.permissions):
+            await interaction.response.send_message("This role has permissions that are deemed dangerous!",
+                                                    ephemeral=True)
+            return
+
+        if role >= interaction.guild.me.top_role:
+            await interaction.response.send_message("This role is too high for me to assign to you!", ephemeral=True)
+            return
+
+        if interaction.user._roles.has(role.id):
+            await interaction.user.remove_roles(role, reason="togglerole slash command usage")
+            await interaction.response.send_message(f"Removed {role.name}!", ephemeral=True)
+        else:
+            await interaction.user.add_roles(role, reason="togglerole slash command usage")
+            await interaction.response.send_message(f"Added {role.name}!", ephemeral=True)
 
 
 async def setup(bot: LightningBot):
