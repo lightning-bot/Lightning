@@ -8,3 +8,4 @@
 .gitignore
 
 __pycache__/
+docker-data/
