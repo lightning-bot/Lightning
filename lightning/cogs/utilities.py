@@ -86,7 +86,7 @@ class Utilities(LightningCog):
     @archive.command(cls=FlagCommand, name="custom", flags=ARCHIVE_FLAGS, flag_consume_rest=False)
     @commands.bot_has_permissions(read_message_history=True)
     @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
-    async def archive_custom(self, ctx: LightningContext, **flags):
+    async def archive_custom(self, ctx: LightningContext, *, flags):
         """An advanced archive command
 
         This command uses "command line" syntax."""
@@ -126,7 +126,7 @@ class Utilities(LightningCog):
         if flags['reverse']:
             messages.reverse()
 
-        text = f"Archive of {channel} (ID: {channel.id}) made at {discord.utils.utcnow()}\nConditions: {dict(flags)}"\
+        text = f"Archive of {channel} (ID: {channel.id}) made at {discord.utils.utcnow()}\nConditions: {vars(flags)}"\
                f"\n\n\n{''.join(messages)}"
 
         _bytes = StringIO(text)
