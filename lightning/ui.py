@@ -20,13 +20,13 @@ import asyncio
 import contextlib
 import logging
 from inspect import isawaitable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 import discord
 import sentry_sdk
 
 if TYPE_CHECKING:
-    from typing import Any, Optional
+    from lightning import LightningContext
 
 __all__ = ("BaseView",
            "MenuLikeView",
@@ -81,13 +81,12 @@ class MenuLikeView(discord.ui.View):
                  timeout=180.0):
         super().__init__(timeout=timeout)
         self.locked = False
-        self.ctx = None
         self.clear_view_after = clear_view_after
         self.delete_message_after = delete_message_after
         self.disable_components_after = disable_components_after
 
     # Seemed like reasonable naming
-    def format_initial_message(self, ctx):
+    def format_initial_message(self, ctx: LightningContext):
         """Formats the initial message to send with when starting the menu via the start method.
 
         This can be sync or async."""
@@ -110,17 +109,15 @@ class MenuLikeView(discord.ui.View):
         elif isinstance(value, discord.Embed):
             return {'embed': value, 'content': None}
 
-    async def start(self, ctx, *, channel=None, wait=True) -> None:
-        self.ctx = ctx
-
-        dest = channel or ctx.channel
+    async def start(self, ctx: LightningContext, *, wait=True) -> None:
+        self.ctx: LightningContext = ctx
 
         fmt = self.format_initial_message(ctx)
         if isawaitable(fmt):
             fmt = await fmt
 
         kwargs = self._assume_message_kwargs(fmt)
-        self.message = await dest.send(**kwargs, view=self)
+        self.message = await ctx.send(**kwargs, view=self)
 
         if wait:
             await self.wait()
@@ -250,7 +247,7 @@ class UpdateableMenu(MenuLikeView):
         ...
 
     @contextlib.asynccontextmanager
-    async def sub_menu(self, view):
+    async def sub_menu(self, view, *, interaction: Optional[discord.Interaction] = None):
         """Async context manager for submenus.
 
         Parameters
@@ -266,7 +263,7 @@ class UpdateableMenu(MenuLikeView):
             yield view
         finally:
             self.unlock_components()
-            await self.update()
+            await self.update(interaction=interaction)
 
     @contextlib.asynccontextmanager
     async def lock(self, *, interaction: Optional[discord.Interaction] = None):
@@ -278,10 +275,8 @@ class UpdateableMenu(MenuLikeView):
 
             await self.update(interaction=interaction)
 
-    async def start(self, ctx, *, channel=None, wait=True) -> None:
+    async def start(self, ctx: LightningContext, *, wait=True) -> None:
         self.ctx = ctx
-
-        dest = channel or ctx.channel
 
         await self.update_components()
 
@@ -290,7 +285,7 @@ class UpdateableMenu(MenuLikeView):
             fmt = await fmt
 
         kwargs = self._assume_message_kwargs(fmt)
-        self.message = await dest.send(**kwargs, view=self)
+        self.message = await ctx.send(**kwargs, view=self)
 
         if wait:
             await self.wait()
