@@ -275,7 +275,7 @@ resolved_reference = "ebe27e606fbacedfd472a65275bcaa197bf30666"
 
 [[package]]
 name = "discord.py"
-version = "2.0.0a4412+g4914e740"
+version = "2.0.0a4418+g87bc79e6"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -299,7 +299,7 @@ voice = ["PyNaCl (>=1.3.0,<1.6)"]
 type = "git"
 url = "https://github.com/Rapptz/discord.py"
 reference = "master"
-resolved_reference = "4914e7402950892c298a10283fd6b9c6dddf4bf7"
+resolved_reference = "87bc79e6e311da60b024ae61a2a3757e55606aa6"
 
 [[package]]
 name = "distlib"
@@ -710,7 +710,7 @@ jupyter = ["ipywidgets (>=7.5.1,<8.0.0)"]
 
 [[package]]
 name = "sanctum-tc"
-version = "0.4.0"
+version = "0.5.0"
 description = "Library for interacting with the Sanctum API"
 category = "main"
 optional = false
@@ -916,7 +916,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "f696484f825b5621113686eac843e8ad9332be4f91ce3e186704dff5350535e3"
+content-hash = "474ccc0239e207ac83a417af1669361d94604f78b37a65a0e920a63fbd28c073"
 
 [metadata.files]
 aiodns = [
@@ -1704,8 +1704,8 @@ rich = [
     {file = "rich-12.5.1.tar.gz", hash = "sha256:63a5c5ce3673d3d5fbbf23cd87e11ab84b6b451436f1b7f19ec54b6bc36ed7ca"},
 ]
 sanctum-tc = [
-    {file = "sanctum-tc-0.4.0.tar.gz", hash = "sha256:9f37b94bfbc0984e8fef33e66ea37f270768ee74f22f7ac2098ed84eed873e9c"},
-    {file = "sanctum_tc-0.4.0-py3-none-any.whl", hash = "sha256:5e32294c9aac3221cbbc18856bb7390d491073dbb6689b384702ee7f2acbb81c"},
+    {file = "sanctum-tc-0.5.0.tar.gz", hash = "sha256:e8eec85175ab27f63090e548491bc3ed68709f64829ce85a647ea8d4440a2b5a"},
+    {file = "sanctum_tc-0.5.0-py3-none-any.whl", hash = "sha256:9648ed530dcc654ec82a7216d0fe33fc97ebd13729e2c1b0843be1e15e89bbcf"},
 ]
 sentry-sdk = [
     {file = "sentry-sdk-1.7.2.tar.gz", hash = "sha256:95fd321f583dfcfaf279a0b2cdc83d8d28c8b7cca4d2959fc4539bb4fecb56a0"},
