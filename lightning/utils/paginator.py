@@ -65,7 +65,7 @@ class Paginator(UpdateableMenu):
         self.first_page_button.disabled = self.current_page == 0
         self.last_page_button.disabled = self.current_page >= self.max_pages
 
-    async def start(self, ctx, *, channel=None, wait: bool = True):
+    async def start(self, ctx, *, wait: bool = True):
         if not self.source.is_paginating():
             # Does not require pagination
             page = await self._get_page(0)
@@ -73,7 +73,7 @@ class Paginator(UpdateableMenu):
             await ctx.send(**kwargs)
             return
 
-        await super().start(ctx, channel=channel, wait=wait)
+        await super().start(ctx, wait=wait)
 
     @discord.ui.button(label="<<")
     async def first_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
