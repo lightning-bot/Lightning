@@ -36,7 +36,7 @@ beautifulsoup4 = "^4.9.3"
 lxml = "^4.6.3"
 discord-ext-menus-views = {git = "https://github.com/oliver-ni/discord-ext-menus-views"}
 pydantic = "^1.8.2"
-sanctum-tc = "^0.4.0"
+sanctum-tc = "^0.5.0"
 migri = "^0.7.0"
 objgraph = "^3.5.0"
 asyncpg-stubs = "^0.25.1"
