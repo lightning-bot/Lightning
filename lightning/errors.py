@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -20,63 +20,53 @@ import aiohttp
 from discord.ext import commands
 
 
-class LightningError(commands.CommandError):
+class LightningError(Exception):
     """Base class for custom errors"""
 
 
-class TimersUnavailable(LightningError):
+class LightningCommandError(LightningError):
+    ...
+
+
+class TimersUnavailable(LightningCommandError):
     def __init__(self):
         super().__init__("Lightning\'s timer system is currently unavailable. "
                          "Please try again later.")
 
 
-class BadTarget(LightningError):
+class BadTarget(LightningCommandError):
     pass
 
 
-class NoImageProvided(LightningError):
+class NoImageProvided(LightningCommandError):
     def __init__(self):
         super().__init__("Please provide an image.")
 
 
-class ChannelNotFound(LightningError):
+class ChannelNotFound(LightningCommandError):
     def __init__(self, channel):
         super().__init__(f"Channel {channel} not found.")
 
 
-class ChannelPermissionFailure(LightningError):
+class ChannelPermissionFailure(LightningCommandError):
     pass
 
 
-class MessageNotFoundInChannel(LightningError):
+class MessageNotFoundInChannel(LightningCommandError):
     def __init__(self, message_id, channel):
         super().__init__(f"Message ({message_id}) was not found in {channel.mention}.")
 
 
-class NotOwnerorBotManager(LightningError):
-    def __init__(self):
-        super().__init__("This command is restricted to my bot manager(s) and owner.")
-
-
-class MuteRoleError(LightningError):
+class MuteRoleError(LightningCommandError):
     pass
 
 
-class MissingStaffRole(LightningError):
+class MissingStaffRole(LightningCommandError):
     def __init__(self, staffrole):
         super().__init__(f"None of your roles indicate you are a {staffrole}.")
 
 
-class NoWarns(LightningError):
-    def __init__(self, user):
-        super().__init__(f"<@{user}> has no warns.")
-
-
-class WarnError(LightningError):
-    pass
-
-
-class EmojiError(LightningError):
+class EmojiError(LightningCommandError):
     pass
 
 
@@ -96,7 +86,7 @@ class HTTPRatelimited(HTTPException):
     pass
 
 
-class HierarchyException(LightningError):
+class HierarchyException(LightningCommandError):
     def __init__(self, thing):
         super().__init__(f"{thing} is higher than your highest {thing}")
 
@@ -120,6 +110,6 @@ class InvalidLevelArgument(LightningError, commands.UserInputError):
         super().__init__(f"{arg} is not a recognized level. Valid levels are {joined}")
 
 
-class NoThreadChannels(LightningError):
+class NoThreadChannels(LightningCommandError):
     def __init__(self):
         super().__init__("This command cannot be ran in a thread channel.")
