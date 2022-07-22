@@ -61,11 +61,6 @@ class MuteRoleError(LightningCommandError):
     pass
 
 
-class MissingStaffRole(LightningCommandError):
-    def __init__(self, staffrole):
-        super().__init__(f"None of your roles indicate you are a {staffrole}.")
-
-
 class EmojiError(LightningCommandError):
     pass
 
