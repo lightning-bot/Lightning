@@ -92,11 +92,7 @@ class AuditLogModAction(BaseAuditLogEvent):
         super().__init__(entry)
         self.member = member
 
-        if guild:
-            self.guild = guild
-        else:
-            self.guild = member.guild  # An "alias" for Action.guild_id. At some point, we'll change Action.
-
+        self.guild = guild or member.guild
         self.action = Action(self.guild.id, event, member, self.moderator, self.reason)
 
 
@@ -108,7 +104,7 @@ class AuditLogModAction(BaseAuditLogEvent):
 class InfractionEvent:  # ModerationEvent sounded nice too...
     __slots__ = ("guild", "event_name", "action")
 
-    def __init__(self, event_name: str, *, member, guild, moderator, reason, **kwargs):
+    def __init__(self, event_name: str, *, member, guild: discord.Guild, moderator, reason, **kwargs):
         self.guild = guild
         self.event_name = event_name
         self.action = Action(self.guild.id, event_name, member, moderator, reason, **kwargs)
