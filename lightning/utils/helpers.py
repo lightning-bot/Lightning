@@ -123,7 +123,7 @@ async def dm_user(user: typing.Union[discord.User, discord.Member], message: str
     try:
         await user.send(message, **kwargs)
         return True
-    except (AttributeError, discord.HTTPException, discord.Forbidden):
+    except (AttributeError, discord.HTTPException):
         return False
 
 
