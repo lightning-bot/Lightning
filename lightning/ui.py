@@ -18,9 +18,10 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import functools
 import logging
 from inspect import isawaitable
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import discord
 import sentry_sdk
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
     from lightning import LightningContext
 
 __all__ = ("BaseView",
+           "lock_when_pressed",
            "MenuLikeView",
            "ExitableMenu",
            "UpdateableMenu",
@@ -53,7 +55,7 @@ class BaseView(discord.ui.View):
         super().stop()
 
     async def on_error(self, interaction, error, item):
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.push_scope() as scope:  # type: ignore
             # lines = traceback.format_exception(type(error), error, error.__traceback__, chain=False)
             # traceback_text = ''.join(lines)
             scope.set_extra("view", self)
@@ -62,11 +64,22 @@ class BaseView(discord.ui.View):
             log.exception(f"An exception occurred during {self} with {item}", exc_info=error)
 
 
+def lock_when_pressed(func):
+    @functools.wraps(func)
+    async def wrapper(self: MenuLikeView, interaction: discord.Interaction, component):
+        async with self.lock(interaction=interaction):
+            await func(self, interaction, component)
+
+    return wrapper
+
+
 class MenuLikeView(discord.ui.View):
     """A view that mimics similar behavior of discord.ext.menus.
 
     Parameters
     ----------
+    context : LightningContext
+        The context for this menu
     clear_view_after : bool
         Whether to remove the view from the message after the view is done or timed out. Defaults to False
     delete_message_after : bool
@@ -77,9 +90,10 @@ class MenuLikeView(discord.ui.View):
         Defaults to True
     timeout : Optional[float]
         Defines when the view should stop listening for the interaction event."""
-    def __init__(self, *, clear_view_after=False, delete_message_after=False, disable_components_after=True,
-                 timeout=180.0):
+    def __init__(self, *, context: LightningContext, clear_view_after=False, delete_message_after=False,
+                 disable_components_after=True, timeout=180.0):
         super().__init__(timeout=timeout)
+        self.ctx = context
         self.locked = False
         self.clear_view_after = clear_view_after
         self.delete_message_after = delete_message_after
@@ -101,26 +115,29 @@ class MenuLikeView(discord.ui.View):
         else:
             return check
 
-    def _assume_message_kwargs(self, value) -> dict:  # "Assumes" kwargs that are passed to message.send
+    def _assume_message_kwargs(self, value: Union[Dict[str, Any], str, discord.Embed]) -> Dict[str, Any]:
         if isinstance(value, dict):
             return value
         elif isinstance(value, str):
-            return {'content': value, 'embed': None}
+            return {'content': value}
         elif isinstance(value, discord.Embed):
-            return {'embed': value, 'content': None}
+            return {'embed': value}
 
-    async def start(self, ctx: LightningContext, *, wait=True) -> None:
-        self.ctx: LightningContext = ctx
-
-        fmt = self.format_initial_message(ctx)
+    async def start(self, *, wait=True) -> None:
+        fmt = self.format_initial_message(self.ctx)
         if isawaitable(fmt):
             fmt = await fmt
 
         kwargs = self._assume_message_kwargs(fmt)
-        self.message = await ctx.send(**kwargs, view=self)
+        self.message = await self.ctx.send(**kwargs, view=self)
 
         if wait:
             await self.wait()
+
+    @classmethod
+    async def from_interaction(cls, interaction: discord.Interaction, **kwargs):
+        ctx = await LightningContext.from_interaction(interaction)
+        return cls(context=ctx, **kwargs)
 
     async def on_timeout(self):
         self.stop()
@@ -151,6 +168,14 @@ class MenuLikeView(discord.ui.View):
         finally:
             pass
 
+    @contextlib.asynccontextmanager
+    async def lock(self, **kwargs):
+        self.lock_components()
+        try:
+            yield
+        finally:
+            self.unlock_components()
+
     async def prompt_convert(self, interaction: discord.Interaction, content: str, converter: Any) -> Optional[Any]:
         pmsg = await interaction.followup.send(content=content, wait=True)
 
@@ -171,7 +196,7 @@ class MenuLikeView(discord.ui.View):
             conv = await converter.convert(self.ctx, message.content)
         except Exception as e:
             conv = None
-            await interaction.followup.send(content=e, ephemeral=True)
+            await interaction.followup.send(content=str(e), ephemeral=True)
 
         with contextlib.suppress(discord.HTTPException):
             await pmsg.delete()
@@ -196,7 +221,7 @@ class MenuLikeView(discord.ui.View):
         if self.disable_components_after:
             for child in self.children:
                 if hasattr(child, "disabled"):
-                    child.disabled = True
+                    child.disabled = True  # type: ignore
                 else:
                     self.remove_item(child)
 
@@ -207,7 +232,7 @@ class MenuLikeView(discord.ui.View):
             await self.message.edit(view=self)
 
     async def on_error(self, interaction, error, item):
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.push_scope() as scope:  # type: ignore
             scope.set_extra("view", self)
             scope.set_extra("item", item)
             scope.set_extra("interaction", interaction)
@@ -221,8 +246,11 @@ class StopButton(discord.ui.Button['MenuLikeView']):
 
 
 class ExitableMenu(MenuLikeView):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *, context: LightningContext, clear_view_after=False, delete_message_after=False,
+                 disable_components_after=True, timeout=180):
+        super().__init__(context=context, clear_view_after=clear_view_after,
+                         delete_message_after=delete_message_after, disable_components_after=disable_components_after,
+                         timeout=timeout)
 
         self.add_item(StopButton(label="Exit"))
 
@@ -275,17 +303,15 @@ class UpdateableMenu(MenuLikeView):
 
             await self.update(interaction=interaction)
 
-    async def start(self, ctx: LightningContext, *, wait=True) -> None:
-        self.ctx = ctx
-
+    async def start(self, *, wait=True) -> None:
         await self.update_components()
 
-        fmt = self.format_initial_message(ctx)
+        fmt = self.format_initial_message(self.ctx)
         if isawaitable(fmt):
             fmt = await fmt
 
         kwargs = self._assume_message_kwargs(fmt)
-        self.message = await ctx.send(**kwargs, view=self)
+        self.message = await self.ctx.send(**kwargs, view=self)
 
         if wait:
             await self.wait()
@@ -294,21 +320,24 @@ class UpdateableMenu(MenuLikeView):
 # classes for easy-to-use submenus!
 class _SelectSM(discord.ui.Select['SelectSubMenu']):
     async def callback(self, interaction: discord.Interaction) -> None:
-        self.view.stop()
+        assert self.view is not None
+
+        self.view.stop(interaction=interaction)
 
 
-class SelectSubMenu(BaseView):
+class SelectSubMenu(MenuLikeView):
     """
     A view designed to work for submenus.
 
     To retrieve the values after the view has stopped, use the values attribute.
     """
-    def __init__(self, *options, max_options: int = 1, exitable: bool = True, **kwargs):
+    def __init__(self, *options: Union[str, discord.SelectOption], max_options: int = 1, exitable: bool = True,
+                 **kwargs):
         super().__init__(**kwargs)
         select = _SelectSM(max_values=max_options)
 
         for option in options:
-            if isinstance(option, discord.ui.Select):
+            if isinstance(option, discord.SelectOption):
                 select.append_option(option)
             else:
                 select.add_option(label=option)
@@ -328,11 +357,13 @@ class SelectSubMenu(BaseView):
 
 class _ButtonSM(discord.ui.Button['ButtonSubMenu']):
     async def callback(self, interaction: discord.Interaction) -> None:
-        self.view.stop()
+        assert self.view is not None
+
+        self.view.stop(interaction=interaction)
         self.view.result = self.label
 
 
-class ButtonSubMenu(BaseView):
+class ButtonSubMenu(MenuLikeView):
     """
     A view designed to work for submenus.
 
@@ -345,9 +376,9 @@ class ButtonSubMenu(BaseView):
     style : discord.ButtonStyle
         A style to use for the buttons. Defaults to discord.ButtonStyle.primary.
     """
-    def __init__(self, *choices, style: discord.ButtonStyle = discord.ButtonStyle.primary):
-        super().__init__()
-        self.result = None
+    def __init__(self, *choices, context: LightningContext, style: discord.ButtonStyle = discord.ButtonStyle.primary):
+        super().__init__(context=context)
+        self.result: Optional[str] = None
 
         for x in choices:
             self.add_item(_ButtonSM(label=x, style=style))
