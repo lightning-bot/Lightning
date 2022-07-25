@@ -41,7 +41,7 @@ from lightning.utils.time import (FutureTime, get_utc_timestamp,
                                   natural_timedelta)
 
 if TYPE_CHECKING:
-    from lightning.cogs.reminders import Reminders
+    from lightning.cogs.reminders.cog import Reminders
 
 confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
                  "timeban": "{target} was banned. \N{THUMBS UP SIGN} It will expire in {expiry}.",
