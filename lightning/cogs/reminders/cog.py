@@ -30,6 +30,7 @@ from discord.ext.commands import clean_content
 from sanctum.exceptions import NotFound
 
 from lightning import LightningCog, LightningContext, hybrid_group
+from lightning.cogs.reminders.ui import ReminderEdit
 from lightning.formatters import plural
 from lightning.models import Timer
 from lightning.utils import time as ltime
@@ -171,6 +172,21 @@ class Reminders(LightningCog):
             content = f"Ok {ctx.author.mention}, I'll remind you in {duration_text} about {when.arg}."
 
         await ctx.send(content, ephemeral=True)
+
+    @remind.command(name="edit")
+    async def edit_reminder(self, ctx: LightningContext, reminder_id: int) -> None:
+        try:
+            record = await self.bot.api.get_timer(reminder_id)
+        except NotFound:
+            await ctx.send("Could not find a reminder with that ID!", ephemeral=True)
+            return
+
+        if record['extra']['author'] != ctx.author.id:
+            await ctx.send("Could not find a reminder with ID belonging to you!", ephemeral=True)
+            return
+
+        prompt = ReminderEdit(reminder_id, context=ctx)
+        await prompt.start()
 
     @remind.command(name='list')
     async def listreminders(self, ctx: LightningContext) -> None:
