@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 flag_name_lookup = {"HumanTime": "Time", "FutureTime": "Time"}
 
 
-def format_commands(commands: Union[LightningCommand, LightningGroupCommand]):
+def format_commands(commands: List[Union[LightningCommand, LightningGroupCommand]]):
     cmds = []
     for cmd in commands:
         cmds.append(f"\N{BULLET} `{cmd.qualified_name}`\n")
@@ -48,10 +48,9 @@ def format_commands(commands: Union[LightningCommand, LightningGroupCommand]):
 
 class HelpPaginator(Paginator):
     def __init__(self, help_command: PaginatedHelpCommand, ctx: LightningContext, source, **kwargs):
-        super().__init__(source, **kwargs)
+        super().__init__(source, context=ctx, **kwargs)
         self.help_command = help_command
         self.total = len(source.entries)
-        self.ctx = ctx
         self.bot = ctx.bot
         self.is_bot = False
 
@@ -203,12 +202,12 @@ class PaginatedHelpCommand(commands.HelpCommand):
         options = [discord.SelectOption(label=key, value=ix) for ix, key in enumerate(sorted(commands.keys()))]
         menu.add_item(CategorySelect(menu, options=options, row=3))
 
-        await menu.start(self.context)
+        await menu.start()
 
     async def send_cog_help(self, cog: commands.Cog) -> None:
         entries = await self.filter_commands(cog.walk_commands(), sort=True, key=lambda d: d.qualified_name)
         menu = HelpPaginator(self, self.context, CogHelpSource(entries, per_page=10))
-        await menu.start(self.context)
+        await menu.start()
 
     def flag_help_formatting(self, command):
         if not hasattr(command.callback, "__lightning_argparser__"):
@@ -285,7 +284,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
     async def send_group_help(self, group: LightningGroupCommand):
         entries = await self.filter_commands(group.walk_commands(), sort=True, key=lambda c: c.qualified_name)
         pages = HelpPaginator(self, self.context, GroupHelpSource(entries, group=group))
-        await pages.start(self.context)
+        await pages.start()
 
 
 class Help(LightningCog):
