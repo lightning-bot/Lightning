@@ -15,18 +15,20 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncio
-from typing import Optional
+from typing import Union
 
 import discord
 from discord.ext import menus
 from discord.ext.menus.views import ViewMenuPages
 
+from lightning import LightningContext
 from lightning.ui import StopButton, UpdateableMenu
 
 
 class Paginator(UpdateableMenu):
-    def __init__(self, source: menus.PageSource, /, *, timeout: Optional[float] = 90):
-        super().__init__(clear_view_after=True, timeout=timeout)
+    def __init__(self, source: menus.PageSource, /, *, context: LightningContext,
+                 timeout: Union[float, int, None] = 90):
+        super().__init__(context=context, clear_view_after=True, timeout=timeout)
         self.source: menus.PageSource = source
         self.current_page: int = 0
 
@@ -65,15 +67,15 @@ class Paginator(UpdateableMenu):
         self.first_page_button.disabled = self.current_page == 0
         self.last_page_button.disabled = self.current_page >= self.max_pages
 
-    async def start(self, ctx, *, wait: bool = True):
+    async def start(self, *, wait: bool = True):
         if not self.source.is_paginating():
             # Does not require pagination
             page = await self._get_page(0)
             kwargs = self._assume_message_kwargs(page)
-            await ctx.send(**kwargs)
+            await self.ctx.send(**kwargs)
             return
 
-        await super().start(ctx, wait=wait)
+        await super().start(wait=wait)
 
     @discord.ui.button(label="<<")
     async def first_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
