@@ -17,25 +17,25 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import collections
-from typing import TYPE_CHECKING
+from typing import Union
 
 import discord
 from discord.ext import commands
 
-from lightning import LightningCog, command
+from lightning import LightningCog, LightningContext, command
 from lightning.cogs.info.converters import ReadableChannel
 from lightning.converters import GuildorNonGuildUser
 from lightning.utils.checks import no_threads
 from lightning.utils.helpers import Emoji
 from lightning.utils.time import natural_timedelta
 
-if TYPE_CHECKING:
-    from lightning import LightningContext
+query_member = commands.Author.replace(annotation=GuildorNonGuildUser)
 
 
 class DiscordMeta(LightningCog):
     @command(aliases=['avy'])
-    async def avatar(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.Author) -> None:
+    async def avatar(self, ctx: LightningContext, *,
+                     member: Union[discord.Member, discord.User] = query_member) -> None:
         """Displays a user's avatar"""
         parts = []
         if hasattr(member, 'guild_avatar') and member.guild_avatar:
@@ -63,7 +63,8 @@ class DiscordMeta(LightningCog):
             return activity.name
 
     @command(aliases=['ui'])
-    async def userinfo(self, ctx: LightningContext, *, member: GuildorNonGuildUser = commands.Author) -> None:
+    async def userinfo(self, ctx: LightningContext, *,
+                       member: Union[discord.User, discord.Member] = query_member) -> None:
         """Gives information about a member or a user"""
         embed = discord.Embed(title=member, color=member.colour)
         desc = [f"**ID**: {member.id}",
@@ -77,10 +78,10 @@ class DiscordMeta(LightningCog):
             desc.append(f"**Shared Servers**: {len(member.mutual_guilds)}")
 
         if not isinstance(member, discord.Member):
-            embed.set_footer(text='This member is not in this server.')
+            embed.set_footer(text='This user is not in this server.')
 
         activities = getattr(member, 'activities', None)
-        if activities is not None:
+        if activities:
             activities_fmt = '\N{BULLET} '.join([f"{self._determine_activity(a)}\n" for a in activities])
             desc.append(f"**Activities**: {activities_fmt.strip()}")
 
