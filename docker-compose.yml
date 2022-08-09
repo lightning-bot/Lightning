@@ -17,8 +17,10 @@ services:
   api:
     image: registry.gitlab.com/lightning-bot/sanctum/sanctum:latest
     command: uvicorn --host=0.0.0.0 sanctum.main:app
+    restart: always
     environment:
       - POSTGRESQL_DSN=postgres://lightning:postgres@postgres/postgres
+      - API_KEY=supersecretkey
 
   bot:
     build: .
