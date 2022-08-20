@@ -21,7 +21,7 @@ import collections
 import io
 import logging
 import time
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import discord
 import psutil
@@ -220,7 +220,7 @@ class Stats(LightningCog):
             em.set_thumbnail(url=ctx.guild.icon.url)
         await ctx.send(embed=em)
 
-    async def command_stats_member(self, ctx: LightningContext, member):
+    async def command_stats_member(self, ctx: LightningContext, member: discord.Member):
         em = discord.Embed(title=f"Command Stats for {member}", color=0xf74b06)
         query = "SELECT COUNT(*), MIN(used_at) FROM commands_usage WHERE guild_id=$1 AND user_id=$2;"
         res = await self.bot.pool.fetchrow(query, ctx.guild.id, member.id)
@@ -254,13 +254,13 @@ class Stats(LightningCog):
         em.add_field(name="Top Commands Today",
                      value=self.format_stat_description(records, none_msg="No commands used yet."), inline=False)
 
-        em.set_thumbnail(url=member.avatar.url)
+        em.set_thumbnail(url=member.display_avatar.url)
         await ctx.send(embed=em)
 
     @group(invoke_without_command=True)
     @commands.guild_only()
     @commands.cooldown(1, 60.0, commands.BucketType.member)
-    async def stats(self, ctx: LightningContext, member: discord.Member = None):
+    async def stats(self, ctx: LightningContext, member: Optional[discord.Member] = None):
         """Sends stats about which commands are used often in the guild"""
         async with ctx.typing():
             if member is None:
