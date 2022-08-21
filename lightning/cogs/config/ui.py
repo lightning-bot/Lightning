@@ -68,8 +68,7 @@ class Logging(UpdateableMenu, ExitableMenu):
     @discord.ui.button(label="Setup specific logging events", style=discord.ButtonStyle.primary, emoji="\N{OPEN BOOK}")
     async def specific_events_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         async with self.lock(interaction=interaction):
-            view = SelectSubMenu(*[x.name for x in LoggingType.all], max_options=len(LoggingType.all))
-            view.ctx = self.ctx
+            view = SelectSubMenu(*[x.name for x in LoggingType.all], max_options=len(LoggingType.all), context=self.ctx)
             view.add_item(discord.ui.Button(label="Documentation",
                                             url="https://lightning-bot.gitlab.io/bot-configuration/#events"))
             await interaction.response.defer()
