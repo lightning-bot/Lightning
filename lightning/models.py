@@ -335,7 +335,8 @@ class Action:
             r = await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
                                           self.reason, strip_tzinfo(self.timestamp), expiry)
         else:
-            query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry, extra)
+            query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry,
+                                                extra)
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                        RETURNING id;"""
             r = await connection.fetchval(query, self.guild_id, self.target.id, self.moderator.id, self.action.value,
