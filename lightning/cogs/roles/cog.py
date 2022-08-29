@@ -26,6 +26,7 @@ from rapidfuzz import process
 
 from lightning import (CommandLevel, LightningBot, LightningCog,
                        LightningContext, command, group)
+from lightning.cogs.roles.menus import RoleSource
 from lightning.cogs.roles.ui import RoleButton, RoleButtonView
 from lightning.converters import Role
 from lightning.events import GuildRoleDeleteEvent
@@ -225,6 +226,10 @@ class Roles(LightningCog):
         await ctx.send(f"Successfully removed {role_repr[1]} from the list of toggleable roles")
         self.bot.loop.create_task(self.update_togglerole_buttons(ctx.guild))
 
+    async def start_role_pages(self, ctx, roles: typing.List[discord.Role]):
+        pages = paginator.Paginator(RoleSource(roles, per_page=12), context=ctx)
+        await pages.start(wait=False)
+
     @commands.guild_only()
     @togglerole.command(name="list")
     async def list_toggleable_roles(self, ctx: LightningContext) -> None:
@@ -237,11 +242,11 @@ class Roles(LightningCog):
         # Unresolved roles shouldn't generally need to be handled as it's handled in the listener below
         # but it's kept as a just-in-case the bot is down when a role is deleted.
         unresolved = []
-        role_list = []
+        roles = []
 
         for role_id in record.toggleroles:
             if role := discord.utils.get(ctx.guild.roles, id=role_id):
-                role_list.append(f"{role.mention} (ID: {role.id})")
+                roles.append(role)
             else:
                 unresolved.append(role_id)
 
@@ -254,10 +259,7 @@ class Roles(LightningCog):
             await self.bot.pool.execute(query, unresolved, ctx.guild.id)
             await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
 
-        embed = discord.Embed(title="Self-Assignable Roles", color=discord.Color.greyple())
-        menu = paginator.InfoMenuPages(paginator.BasicEmbedMenu(role_list, per_page=12, embed=embed),
-                                       clear_reactions_after=True, check_embeds=True)
-        await menu.start(ctx)
+        await self.start_role_pages(ctx, roles)
 
     @LightningCog.listener()
     async def on_lightning_guild_role_delete(self, event: GuildRoleDeleteEvent):
