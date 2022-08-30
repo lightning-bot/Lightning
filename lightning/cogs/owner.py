@@ -60,12 +60,6 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         return await ctx.invoke(self.jsk_shell, argument=Codeblock(argument.language, f"pip3 {argument.content}"))
 
     @Feature.Command()
-    async def fetchlog(self, ctx: LightningContext) -> None:
-        """Sends the log file into the invoking author's DMs"""
-        res = await helpers.dm_user(ctx.author, "Here's the current log file:", file=discord.File("lightning.log"))
-        await ctx.send(helpers.ticker(res))
-
-    @Feature.Command()
     async def blacklist(self, ctx: LightningContext) -> None:
         """Blacklisting Management"""
         if ctx.invoked_subcommand is None:
@@ -119,8 +113,7 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         query = "UPDATE guilds SET whitelisted='f' WHERE id=$1"
         await self.bot.pool.execute(query, guild_id)
 
-        guild = self.bot.get_guild(guild_id)
-        if guild:
+        if guild := self.bot.get_guild(guild_id):
             await guild.leave()
 
         await ctx.tick(True)
