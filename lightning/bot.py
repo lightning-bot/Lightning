@@ -22,6 +22,7 @@ import contextlib
 import logging
 import pathlib
 import secrets
+import sys
 import traceback
 from datetime import datetime
 from typing import List, Optional
@@ -42,7 +43,7 @@ from lightning.models import GuildBotConfig
 from lightning.storage import Storage
 from lightning.utils.emitters import WebhookEmbedEmitter
 
-__all__ = ("LightningBot")
+__all__ = ("LightningBot", )
 log = logging.getLogger(__name__)
 
 
@@ -250,9 +251,14 @@ class LightningBot(commands.AutoShardedBot):
         if before.content != after.content:
             await self.on_message(after)
 
-    async def on_command(self, ctx):
-        log_text = f"{ctx.message.author} ({ctx.message.author.id}): "\
-                   f"\"{ctx.message.content}\" "
+    async def on_command(self, ctx: LightningContext):
+        log_text = f"{ctx.message.author} ({ctx.message.author.id}): "
+
+        if ctx.message.content:
+            log_text += f"\"{ctx.message.content}\" "
+        else:
+            log_text += f"\"/{ctx.command.qualified_name} {vars(ctx.interaction.namespace)}\" "
+
         if ctx.guild:
             log_text += f"in \"{ctx.channel.name}\" ({ctx.channel.id}) "\
                         f"at \"{ctx.guild.name}\" ({ctx.guild.id})"
@@ -260,18 +266,27 @@ class LightningBot(commands.AutoShardedBot):
             log_text += f"in DMs ({ctx.channel.id})"
         log.info(log_text)
 
-    async def on_error(self, event, *args, **kwargs):
-        exc = traceback.format_exc()
+    def can_log_bugs(self) -> bool:
+        return bool(self.config.tokens.sentry)
+
+    async def on_error(self, event: str, *args, **kwargs):
+        exc = sys.exc_info()
+
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("event", event)
             scope.set_extra("args", args)
             scope.set_extra("kwargs", kwargs)
             log.exception(f"Error on {event}", exc_info=exc)
 
-        embed = discord.Embed(title="Event Error", description=f"```py\n{exc}```",
+        exc = traceback.format_exception(exc[0], exc[1], exc[2], chain=False)
+        embed = discord.Embed(title="Event Error", description=f"```py\n{''.join(exc)}```",
                               color=discord.Color.gold(),
                               timestamp=discord.utils.utcnow())
         embed.add_field(name="Event", value=event)
+        if args:
+            embed.add_field(name="Args", value=", ".join(repr(arg) for arg in args))
+        if kwargs:
+            embed.add_field(name="Kwargs", value=", ".join(repr(arg) for arg in kwargs))
         await self._error_logger.put(embed)
 
     async def log_command_error(self, ctx: LightningContext, error, *, send_error_message=True) -> str:
@@ -306,12 +321,15 @@ class LightningBot(commands.AutoShardedBot):
 
         return token
 
-    async def on_command_error(self, ctx: LightningContext, error) -> None:
+    async def on_command_error(self, ctx: LightningContext, error: Exception) -> None:
+
         # Check if command has an error handler first
         if ctx.command.has_error_handler():
             return
         # Check if cog has an error handler after
         if hasattr(ctx, 'cog'):
+            assert ctx.cog is not None
+
             if ctx.cog.has_error_handler():
                 return
 
