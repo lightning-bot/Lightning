@@ -14,7 +14,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
-"discord.py" = {git = "https://github.com/Rapptz/discord.py", extras = ["speed"]}
+"discord.py" = {git = "https://github.com/Rapptz/discord.py.git", branch="master", extras = ["speed"]}
 python-dateutil = "^2.8.1"
 parsedatetime = "^2.6"
 psutil = "^5.7.2"
@@ -36,7 +36,7 @@ beautifulsoup4 = "^4.9.3"
 lxml = "^4.6.3"
 discord-ext-menus-views = {git = "https://github.com/oliver-ni/discord-ext-menus-views"}
 pydantic = "^1.8.2"
-sanctum-tc = "^0.5.0"
+sanctum-tc = "^0.5.1"
 migri = "^0.7.0"
 objgraph = "^3.5.0"
 asyncpg-stubs = "^0.25.1"
