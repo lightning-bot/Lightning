@@ -568,9 +568,8 @@ class Mod(LightningCog, required=["Configuration"]):
         Sets the channel permissions as @everyone can't send messages.
 
         If no channel was mentioned, it locks the channel the command was used in."""
-        if channel.overwrites_for(ctx.guild.default_role).view_channel is False:
-            confirm = await ctx.confirm("\N{WARNING SIGN} Are you sure you want to lock down this channel?\nThis can "
-                                        "result in everyone being able to read this private channel!")
+        if channel == ctx.channel:
+            confirm = await ctx.confirm("Are you sure you want to lock down this channel?")
 
             if not confirm:
                 return
@@ -580,9 +579,12 @@ class Mod(LightningCog, required=["Configuration"]):
                            f"Use `{ctx.prefix}unlock` to unlock.")
             return
 
+        overwrites = channel.overwrites_for(ctx.guild.default_role)
+        overwrites.send_messages = False
+        overwrites.add_reactions = False
         reason = modlogformats.action_format(ctx.author, "Lockdown done by")
-        await channel.set_permissions(ctx.guild.default_role, reason=reason, send_messages=False,
-                                      add_reactions=False)
+        await channel.set_permissions(ctx.guild.default_role, reason=reason, overwrite=overwrites)
+        # Bot permissions
         await channel.set_permissions(ctx.me, reason=reason, send_messages=True, manage_channels=True)
         await ctx.send(f"\N{LOCK} {channel.mention} is now locked.")
 
@@ -605,36 +607,6 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
-    @lock.command(name="hard", level=CommandLevel.Admin)
-    async def hlock(self, ctx: LightningContext,
-                    channel: discord.TextChannel = commands.CurrentChannel) -> None:
-        """Hard locks a channel.
-
-        Sets the channel permissions as @everyone can't \
-        send messages or read messages in the channel.
-
-        If no channel was mentioned, it hard locks the channel the command was used in."""
-        if channel.overwrites_for(ctx.guild.default_role).view_channel is False:
-            confirm = await ctx.confirm("\N{WARNING SIGN} Are you sure you want to lock down this channel?\nThis can "
-                                        "result in everyone being able to read this private channel!")
-
-            if not confirm:
-                return
-
-        if channel.overwrites_for(ctx.guild.default_role).read_messages is False:
-            await ctx.send(f"🔒 {channel.mention} is already hard locked. "
-                           f"Use `{ctx.prefix}unlock hard` to unlock the channel.")
-            return
-
-        reason = modlogformats.action_format(ctx.author, "Hard lockdown done by")
-        await channel.set_permissions(ctx.guild.default_role, reason=reason, read_messages=False,
-                                      send_messages=False)
-        await channel.set_permissions(ctx.me, reason=reason, read_messages=True,
-                                      send_messages=True, manage_channels=True)
-        await ctx.send(f"🔒 {channel.mention} is now hard locked.")
-
-    @commands.bot_has_permissions(manage_channels=True)
-    @has_guild_permissions(manage_channels=True)
     @group(invoke_without_command=True, level=CommandLevel.Mod)
     async def unlock(self, ctx: LightningContext,
                      channel: discord.TextChannel = commands.CurrentChannel) -> None:
@@ -645,26 +617,12 @@ class Mod(LightningCog, required=["Configuration"]):
             await ctx.send(f"🔓 {channel.mention} is already unlocked.")
             return
 
+        overwrites = channel.overwrites_for(ctx.guild.default_role)
+        overwrites.send_messages = None
+        overwrites.add_reactions = None
+
         reason = modlogformats.action_format(ctx.author, "Lockdown removed by")
-        await channel.set_permissions(ctx.guild.default_role, reason=reason, send_messages=None,
-                                      add_reactions=None)
-        await ctx.send(f"🔓 {channel.mention} is now unlocked.")
-
-    @commands.bot_has_permissions(manage_channels=True)
-    @has_guild_permissions(manage_channels=True)
-    @unlock.command(name='hard', level=CommandLevel.Admin)
-    async def hunlock(self, ctx: LightningContext,
-                      channel: discord.TextChannel = commands.CurrentChannel) -> None:
-        """Hard unlocks the channel mentioned.
-
-        If no channel was mentioned, it unlocks the channel the command was used in."""
-        if channel.overwrites_for(ctx.guild.default_role).read_messages is None:
-            await ctx.send(f"🔓 {channel.mention} is already unlocked.")
-            return
-
-        reason = modlogformats.action_format(ctx.author, "Hard lockdown removed by")
-        await channel.set_permissions(ctx.guild.default_role, reason=reason,
-                                      read_messages=None, send_messages=None)
+        await channel.set_permissions(ctx.guild.default_role, reason=reason, overwrite=overwrites)
         await ctx.send(f"🔓 {channel.mention} is now unlocked.")
 
     @commands.bot_has_permissions(manage_messages=True)
