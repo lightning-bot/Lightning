@@ -575,6 +575,13 @@ class Mod(LightningCog, required=["Configuration"]):
         Sets the channel permissions as @everyone can't send messages.
 
         If no channel was mentioned, it locks the channel the command was used in."""
+        if channel.overwrites_for(ctx.guild.default_role).view_channel is False:
+            confirm = await ctx.confirm("\N{WARNING SIGN} Are you sure you want to lock down this channel?\nThis can "
+                                        "result in everyone being able to read this private channel!")
+
+            if not confirm:
+                return
+
         if channel.overwrites_for(ctx.guild.default_role).send_messages is False:
             await ctx.send(f"🔒 {channel.mention} is already locked down. "
                            f"Use `{ctx.prefix}unlock` to unlock.")
@@ -614,6 +621,13 @@ class Mod(LightningCog, required=["Configuration"]):
         send messages or read messages in the channel.
 
         If no channel was mentioned, it hard locks the channel the command was used in."""
+        if channel.overwrites_for(ctx.guild.default_role).view_channel is False:
+            confirm = await ctx.confirm("\N{WARNING SIGN} Are you sure you want to lock down this channel?\nThis can "
+                                        "result in everyone being able to read this private channel!")
+
+            if not confirm:
+                return
+
         if channel.overwrites_for(ctx.guild.default_role).read_messages is False:
             await ctx.send(f"🔒 {channel.mention} is already hard locked. "
                            f"Use `{ctx.prefix}unlock hard` to unlock the channel.")
