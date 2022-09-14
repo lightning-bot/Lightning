@@ -582,6 +582,8 @@ class Mod(LightningCog, required=["Configuration"]):
         overwrites = channel.overwrites_for(ctx.guild.default_role)
         overwrites.send_messages = False
         overwrites.add_reactions = False
+        overwrites.create_public_threads = False
+        overwrites.create_private_threads = False
         reason = modlogformats.action_format(ctx.author, "Lockdown done by")
         await channel.set_permissions(ctx.guild.default_role, reason=reason, overwrite=overwrites)
         # Bot permissions
@@ -607,7 +609,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
-    @group(invoke_without_command=True, level=CommandLevel.Mod)
+    @command(level=CommandLevel.Mod)
     async def unlock(self, ctx: LightningContext,
                      channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Unlocks the channel mentioned.
@@ -620,6 +622,8 @@ class Mod(LightningCog, required=["Configuration"]):
         overwrites = channel.overwrites_for(ctx.guild.default_role)
         overwrites.send_messages = None
         overwrites.add_reactions = None
+        overwrites.create_private_threads = None
+        overwrites.create_public_threads = None
 
         reason = modlogformats.action_format(ctx.author, "Lockdown removed by")
         await channel.set_permissions(ctx.guild.default_role, reason=reason, overwrite=overwrites)
