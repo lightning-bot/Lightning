@@ -33,16 +33,18 @@ from lightning.utils.ui import ConfirmationView
 if TYPE_CHECKING:
     from lightning.bot import LightningBot
 
-__all__ = ("LightningContext",)
+__all__ = ("LightningContext", "GuildContext")
 
 
 class LightningContext(commands.Context):
     bot: LightningBot
+    prefix: str
+    command: commands.Command
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    async def tick(self, boolean: bool, *, send=True) -> Union[bool, discord.Message]:
+    async def tick(self, boolean: bool, *, send=True) -> Union[str, discord.Message]:
         tick = ticker(boolean)
 
         if send:
@@ -98,3 +100,9 @@ class LightningContext(commands.Context):
 
     async def request(self, url, **kwargs) -> Union[dict, str, bytes]:
         return await make_request(url, self.bot.aiosession, **kwargs)
+
+
+class GuildContext(LightningContext):
+    guild: discord.Guild
+    me: discord.Member
+    author: discord.Member
