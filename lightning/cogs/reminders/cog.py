@@ -180,7 +180,7 @@ class Reminders(LightningCog):
 
         if channel is None:
             embed = discord.Embed().set_footer(text="Make sure to have your DMs open so you can receive your reminder"
-                                                    "when it's time!")
+                                                    " when it's time!")
             await ctx.send(content, embed=embed, ephemeral=True)
         else:
             await ctx.send(content, ephemeral=True)
