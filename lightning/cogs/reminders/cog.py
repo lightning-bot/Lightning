@@ -161,17 +161,29 @@ class Reminders(LightningCog):
 
         Times are in UTC.
         """
+        if ctx.interaction:
+            channel = None
+        else:
+            channel = ctx.channel.id
+
         _id = await self.add_timer("reminder", ctx.message.created_at, when.dt, reminder_text=when.arg,
-                                   author=ctx.author.id, channel=ctx.channel.id, message_id=ctx.message.id)
+                                   author=ctx.author.id, channel=channel, message_id=ctx.message.id)
 
         duration_text = ltime.natural_timedelta(when.dt, source=ctx.message.created_at)
 
         if type(_id) == int:
-            content = f"Ok {ctx.author.mention}, I'll remind you in {duration_text} about {when.arg}. (#{_id})"
+            content = f"Ok {ctx.author.mention}, I'll remind you in {'your DMs in ' if not channel else ''}"\
+                      f"{duration_text} about {when.arg}. (#{_id})"
         else:
-            content = f"Ok {ctx.author.mention}, I'll remind you in {duration_text} about {when.arg}."
+            content = f"Ok {ctx.author.mention}, I'll remind you in {'your DMs in ' if not channel else ''}"\
+                      f"{duration_text} about {when.arg}."
 
-        await ctx.send(content, ephemeral=True)
+        if channel is None:
+            embed = discord.Embed().set_footer(text="Make sure to have your DMs open so you can receive your reminder"
+                                                    "when it's time!")
+            await ctx.send(content, embed=embed, ephemeral=True)
+        else:
+            await ctx.send(content, ephemeral=True)
 
     @remind.command(name="edit")
     async def edit_reminder(self, ctx: LightningContext, reminder_id: int) -> None:
