@@ -252,19 +252,23 @@ class LightningBot(commands.AutoShardedBot):
             await self.on_message(after)
 
     async def on_command(self, ctx: LightningContext):
-        log_text = f"{ctx.message.author} ({ctx.message.author.id}): "
+        fmt = [f"{ctx.message.author} ({ctx.message.author.id}): "]
 
         if ctx.message.content:
-            log_text += f"\"{ctx.message.content}\" "
+            fmt.append(f"\"{ctx.message.content}\" ")
         else:
-            log_text += f"\"/{ctx.command.qualified_name} {vars(ctx.interaction.namespace)}\" "
+            if vars(ctx.interaction.namespace):
+                fmt.append(f"\"/{ctx.command.qualified_name} {vars(ctx.interaction.namespace)}\" ")
+            else:
+                fmt.append(f"\"{ctx.command.qualified_name}\" ")
 
         if ctx.guild:
-            log_text += f"in \"{ctx.channel.name}\" ({ctx.channel.id}) "\
-                        f"at \"{ctx.guild.name}\" ({ctx.guild.id})"
+            fmt.append(f"in \"{ctx.channel.name}\" ({ctx.channel.id}) "
+                       f"at \"{ctx.guild.name}\" ({ctx.guild.id})")
         else:
-            log_text += f"in DMs ({ctx.channel.id})"
-        log.info(log_text)
+            fmt.append(f"in DMs ({ctx.channel.id})")
+
+        log.info(''.join(fmt))
 
     def can_log_bugs(self) -> bool:
         return bool(self.config.tokens.sentry)
