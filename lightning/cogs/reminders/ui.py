@@ -61,6 +61,6 @@ class ReminderEdit(ExitableMenu):
             return
 
         msg = await self.format_initial_message(self.ctx)
-        await interaction.edit_original_message(content=msg['content'])
+        await interaction.edit_original_response(content=msg['content'])
 
     # At some point we'll have a date picker...
