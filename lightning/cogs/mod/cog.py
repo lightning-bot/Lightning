@@ -629,46 +629,6 @@ class Mod(LightningCog, required=["Configuration"]):
         await channel.set_permissions(ctx.guild.default_role, reason=reason, overwrite=overwrites)
         await ctx.send(f"🔓 {channel.mention} is now unlocked.")
 
-    @commands.bot_has_permissions(manage_messages=True)
-    @has_channel_permissions(manage_messages=True)
-    @command(level=CommandLevel.Mod)
-    async def pin(self, ctx: LightningContext, message_id: int,
-                  channel: discord.TextChannel = commands.CurrentChannel) -> None:
-        """Pins a message by ID."""
-        try:
-            msg = await channel.fetch_message(message_id)
-        except discord.NotFound:
-            await ctx.send("Message ID not found.")
-            return
-
-        try:
-            await msg.pin(reason=modlogformats.action_format(ctx.author))
-        except discord.HTTPException as e:
-            await self.bot.log_command_error(ctx, e)
-            return
-
-        await ctx.send("\N{OK HAND SIGN}")
-
-    @commands.bot_has_permissions(manage_messages=True)
-    @has_channel_permissions(manage_messages=True)
-    @command(level=CommandLevel.Mod)
-    async def unpin(self, ctx: LightningContext, message_id: int,
-                    channel: discord.TextChannel = commands.CurrentChannel) -> None:
-        """Unpins a message by ID."""
-        try:
-            msg = await channel.fetch_message(message_id)
-        except discord.NotFound:
-            await ctx.send("Message ID not found.")
-            return
-
-        try:
-            await msg.unpin(reason=modlogformats.action_format(ctx.author))
-        except discord.HTTPException as e:
-            await self.bot.log_command_error(ctx, e)
-            return
-
-        await ctx.send("\N{OK HAND SIGN}")
-
     @has_guild_permissions(manage_messages=True)
     @command(level=CommandLevel.Mod)
     async def clean(self, ctx: LightningContext, search: int = 100,
