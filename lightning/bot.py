@@ -282,8 +282,14 @@ class LightningBot(commands.AutoShardedBot):
             scope.set_extra("kwargs", kwargs)
             log.exception(f"Error on {event}", exc_info=exc)
 
-        exc = traceback.format_exception(exc[0], exc[1], exc[2], chain=False)
-        embed = discord.Embed(title="Event Error", description=f"```py\n{''.join(exc)}```",
+        exc = ''.join(traceback.format_exception(exc[0], exc[1], exc[2], chain=False))
+        if len(exc) >= 2040:
+            resp = await self.api.request("PUT", "/admin/paste", data={"text": exc})
+            desc = f"Traceback too long...\n{resp['full_url']}"
+        else:
+            desc = f"```py{exc}```"
+
+        embed = discord.Embed(title="Event Error", description=desc,
                               color=discord.Color.gold(),
                               timestamp=discord.utils.utcnow())
         embed.add_field(name="Event", value=event)
