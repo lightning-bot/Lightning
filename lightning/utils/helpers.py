@@ -32,48 +32,6 @@ from lightning.constants import Emoji
 log = logging.getLogger(__name__)
 
 
-async def message_id_lookup(bot, channel_id: int, message_id: int):
-    """Helper function that performs a message lookup.
-
-    It is preferred that you handle permissions before using this function.
-
-    If the channel isn't found, raises :class:`ChannelNotFound`.
-    If some exception happens, raises :class:`LightningError`.
-    If the message isn't found, returns ``None``.
-
-    Parameters
-    ----------
-    bot : LightningBot
-        The bot.
-    channel_id : int
-        The ID of channel that the message belongs to.
-    message_id : int
-        The ID of the message that is being looked up.
-
-    Returns
-    -------
-    :class:`discord.Message`
-        The message object.
-
-    Raises
-    ------
-    errors.ChannelNotFound
-        Raised when the channel containing the message was deleted
-    errors.LightningError
-        Raised when some exception happens.
-    """
-    channel = bot.get_channel(channel_id)
-    if channel is None:
-        raise errors.ChannelNotFound("Channel was deleted.")
-
-    try:
-        msg = await channel.fetch_message(message_id)
-    except discord.HTTPException:
-        raise errors.LightningError("Somehow failed to find that message. Try again later?")
-
-    return msg
-
-
 async def webhook_send(session: aiohttp.ClientSession, webhook_id: int, token: str, message=None,
                        **kwargs) -> typing.Optional[discord.Message]:
     """Sends a message through a webhook
