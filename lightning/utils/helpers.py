@@ -32,35 +32,6 @@ from lightning.constants import Emoji
 log = logging.getLogger(__name__)
 
 
-async def webhook_send(session: aiohttp.ClientSession, webhook_id: int, token: str, message=None,
-                       **kwargs) -> typing.Optional[discord.Message]:
-    """Sends a message through a webhook
-
-    Parameters
-    ----------
-    session : aiohttp.ClientSession
-        The session to use.
-    webhook_id : int
-        The webhook's ID
-    token : str
-        Token of the webhook
-    message : None, optional
-        The content of the message to send
-    **kwargs
-        Keyword arguments that are passed to discord.Webhook.send()
-
-    Returns
-    -------
-    Optional[discord.Message]
-        Returns a message object if the wait kwarg is passed
-    """
-    webhook = discord.Webhook.partial(webhook_id, token, session=session)
-    try:
-        await webhook.send(message, **kwargs)
-    except discord.NotFound:
-        return None
-
-
 async def dm_user(user: typing.Union[discord.User, discord.Member], message: str = None, **kwargs):
     """Sends a message to a user and handles errors
 
