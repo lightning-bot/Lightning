@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # ShortTime, HumanTime, Time, FutureTime, UserFriendlyTime code is provided by Rapptz under the MIT License
 # Copyright ©︎ 2015 Rapptz
 # https://github.com/Rapptz/RoboDanny/blob/245f2aa4a5caed6861b581c262dafc6835863fe2/cogs/utils/time.py
-
+from __future__ import annotations
 
 import datetime
 import re
@@ -98,6 +98,28 @@ class FutureTime(Time):
             raise commands.BadArgument('This time is in the past')
 
 
+# Should avoid our need to copy the UserFriendlyTime converter
+class UserFriendlyTimeResult:
+    def __init__(self, dt: datetime.datetime) -> None:
+        self.dt = dt
+        self.arg: str = ""
+
+    async def check_constraints(self, ctx, time_cls: UserFriendlyTime, now: datetime.datetime, remaining: str):
+        if self.dt < now:
+            raise commands.BadArgument('This time is in the past.')
+
+        if not remaining:
+            if time_cls.default is None:
+                raise commands.BadArgument('Missing argument after the time.')
+            remaining = time_cls.default
+
+        if time_cls.converter is not None:
+            self.arg = await time_cls.converter.convert(ctx, remaining)
+        else:
+            self.arg = remaining
+        return self
+
+
 class UserFriendlyTime(commands.Converter):
     """That way quotes aren't absolutely necessary."""
 
@@ -111,108 +133,89 @@ class UserFriendlyTime(commands.Converter):
         self.converter = converter
         self.default = default
 
-    def copy(self):
-        cls = self.__class__
-        obj = cls.__new__(cls)
-        obj.converter = self.converter
-        obj.default = self.default
-        return obj
+    async def convert(self, ctx, argument: str) -> UserFriendlyTimeResult:
+        calendar = HumanTime.calendar
+        regex = ShortTime.compiled
+        now = ctx.message.created_at
 
-    async def check_constraints(self, ctx, now, remaining):
-        if self.dt < now:
-            raise commands.BadArgument('This time is in the past.')
+        match = regex.match(argument)
+        if match is not None and match.group(0):
+            data = {k: int(v) for k, v in match.groupdict(default=0).items()}
+            remaining = argument[match.end():].strip()
+            result = UserFriendlyTimeResult(now + relativedelta(**data))
+            await result.check_constraints(ctx, self, now, remaining)
+            return result
 
-        if not remaining:
-            if self.default is None:
-                raise commands.BadArgument('Missing argument after the time.')
-            remaining = self.default
-
-        if self.converter is not None:
-            self.arg = await self.converter.convert(ctx, remaining)
-        else:
-            self.arg = remaining
-        return self
-
-    async def convert(self, ctx, argument):
-        # Create a copy of ourselves to prevent race conditions from two
-        # events modifying the same instance of a converter
-        result = self.copy()
-
-        try:
-            calendar = HumanTime.calendar
-            regex = ShortTime.compiled
-            now = ctx.message.created_at
-
-            match = regex.match(argument)
-            if match is not None and match.group(0):
-                data = {k: int(v) for k, v in match.groupdict(default=0).items()}
+        if match is None or not match.group(0):
+            match = re.compile(r'<t:(?P<timestamp>[0-9]+)(?:\:[tTdDfFR])?>').fullmatch(argument)
+            if match:
                 remaining = argument[match.end():].strip()
-                result.dt = now + relativedelta(**data)
-                return await result.check_constraints(ctx, now, remaining)
+                result = UserFriendlyTimeResult(datetime.datetime.fromtimestamp(int(match['timestamp']),
+                                                tz=datetime.timezone.utc))
+                await result.check_constraints(ctx, self, now, remaining)
+                return result
 
-            # apparently nlp does not like "from now"
-            # it likes "from x" in other cases though so let me handle the 'now' case
-            if argument.endswith('from now'):
-                argument = argument[:-8].strip()
+        # apparently nlp does not like "from now"
+        # it likes "from x" in other cases though so let me handle the 'now' case
+        if argument.endswith('from now'):
+            argument = argument[:-8].strip()
 
-            if argument[0:2] == 'me':
-                # starts with "me to", "me in", or "me at "
-                if argument[0:6] in ('me to ', 'me in ', 'me at '):
-                    argument = argument[6:]
+        if argument[0:2] == 'me':
+            # starts with "me to", "me in", or "me at "
+            if argument[0:6] in ('me to ', 'me in ', 'me at '):
+                argument = argument[6:]
 
-            elements = calendar.nlp(argument, sourceTime=now)
-            if elements is None or len(elements) == 0:
-                raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow" or "3 days".')
+        elements = calendar.nlp(argument, sourceTime=now)
+        if elements is None or len(elements) == 0:
+            raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow" or "3 days".')
 
-            # handle the following cases:
-            # "date time" foo
-            # date time foo
-            # foo date time
+        # handle the following cases:
+        # "date time" foo
+        # date time foo
+        # foo date time
 
-            # first the first two cases:
-            dt, status, begin, end, dt_string = elements[0]
+        # first the first two cases:
+        dt, status, begin, end, dt_string = elements[0]
 
-            if not status.hasDateOrTime:
-                raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow" or "3 days".')
+        if not status.hasDateOrTime:
+            raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow" or "3 days".')
 
-            if begin not in (0, 1) and end != len(argument):
-                raise commands.BadArgument('Time is either in an inappropriate location, which '
-                                           'must be either at the end or beginning of your input, '
-                                           'or I just flat out did not understand what you meant. Sorry.')
+        if begin not in (0, 1) and end != len(argument):
+            raise commands.BadArgument('Time is either in an inappropriate location, which '
+                                       'must be either at the end or beginning of your input, '
+                                       'or I just flat out did not understand what you meant. Sorry.')
 
-            if not status.hasTime:
-                # replace it with the current time
-                dt = dt.replace(hour=now.hour, minute=now.minute, second=now.second, microsecond=now.microsecond)
+        if not status.hasTime:
+            # replace it with the current time
+            dt = dt.replace(hour=now.hour, minute=now.minute, second=now.second, microsecond=now.microsecond)
 
-            # if midnight is provided, just default to next day
-            if status.accuracy == pdt.pdtContext.ACU_HALFDAY:
-                dt = dt.replace(day=now.day + 1)
+        # if midnight is provided, just default to next day
+        if status.accuracy == pdt.pdtContext.ACU_HALFDAY:
+            dt = dt.replace(day=now.day + 1)
 
-            if dt.tzinfo is None:
-                dt = add_tzinfo(dt)
+        if dt.tzinfo is None:
+            dt = add_tzinfo(dt)
 
-            result.dt = dt
+        remaining = ''
 
-            if begin in (0, 1):
-                if begin == 1:
-                    # check if it's quoted:
-                    if argument[0] != '"':
-                        raise commands.BadArgument('Expected quote before time input...')
+        if begin in (0, 1):
+            if begin == 1:
+                # check if it's quoted:
+                if argument[0] != '"':
+                    raise commands.BadArgument('Expected quote before time input...')
 
-                    if not (end < len(argument) and argument[end] == '"'):
-                        raise commands.BadArgument('If the time is quoted, you must unquote it.')
+                if end >= len(argument) or argument[end] != '"':
+                    raise commands.BadArgument('If the time is quoted, you must unquote it.')
 
-                    remaining = argument[end + 1:].lstrip(' ,.!')
-                else:
-                    remaining = argument[end:].lstrip(' ,.!')
-            elif len(argument) == end:
-                remaining = argument[:begin].strip()
+                remaining = argument[end + 1:].lstrip(' ,.!')
+            else:
+                remaining = argument[end:].lstrip(' ,.!')
+        elif len(argument) == end:
+            remaining = argument[:begin].strip()
 
-            return await result.check_constraints(ctx, now, remaining)
-        except:  # noqa
-            import traceback
-            traceback.print_exc()
-            raise
+        result = UserFriendlyTimeResult(dt)
+        await result.check_constraints(ctx, self, now, remaining)
+        return result
 
 
 def natural_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True) -> str:
