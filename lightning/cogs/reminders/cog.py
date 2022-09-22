@@ -154,7 +154,7 @@ class Reminders(LightningCog):
                      ) -> None:  # noqa: F821
         """Reminds you of something after a certain date.
 
-        The input can be any direct date (e.g. YYYY-MM-DD) or a human readable offset.
+        The input can be any direct date (e.g. YYYY-MM-DD), a human readable offset, or a Discord timestamp.
 
         Examples:
         - "{prefix}remind in 2 days write essay" (2 days)
