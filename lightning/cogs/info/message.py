@@ -23,14 +23,44 @@ import discord
 
 from lightning import LightningCog, group
 from lightning.cogs.info.converters import Message, ReadableChannel
-from lightning.errors import ChannelPermissionFailure, MessageNotFoundInChannel
-from lightning.utils.helpers import message_id_lookup
+from lightning.errors import (ChannelNotFound, ChannelPermissionFailure,
+                              LightningError, MessageNotFoundInChannel)
 
 if TYPE_CHECKING:
     from lightning import LightningContext
 
 
 class MessageInfo(LightningCog):
+    async def message_id_lookup(self, channel_id: int, message_id: int):
+        """Performs a message lookup
+
+        If the channel isn't found, raises :class:`ChannelNotFound`.
+        If some exception happens, raises :class:`LightningError`.
+        If the message isn't found, returns ``None``.
+
+        Parameters
+        ----------
+        channel_id : int
+            The ID of channel that the message belongs to.
+        message_id : int
+            The ID of the message that is being looked up.
+
+        Returns
+        -------
+        :class:`discord.Message`
+            The message object.
+        """
+        channel = self.bot.get_channel(channel_id)
+        if channel is None:
+            raise ChannelNotFound("Channel was deleted.")
+
+        try:
+            msg = await channel.fetch_message(message_id)
+        except discord.HTTPException as e:
+            raise LightningError("Somehow failed to find that message. Try again later?") from e
+
+        return msg
+
     def message_info_embed(self, msg: discord.Message) -> discord.Embed:
         embed = discord.Embed(timestamp=msg.created_at)
 
@@ -73,7 +103,7 @@ class MessageInfo(LightningCog):
         msg = discord.utils.get(ctx.bot.cached_messages, id=message_id)
         if msg is None:
             try:
-                msg: discord.Message = await message_id_lookup(ctx.bot, channel.id, message_id)
+                msg: discord.Message = await self.message_id_lookup(channel.id, message_id)
             except discord.NotFound:
                 raise MessageNotFoundInChannel(message_id, channel)
             except discord.Forbidden:
