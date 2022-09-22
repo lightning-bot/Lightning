@@ -17,15 +17,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import asyncio
-import io
 from contextlib import suppress
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, Sequence, Union
 
 import discord
+import sanctum
 from discord.ext import commands
 
-from lightning import errors
-from lightning.utils.helpers import deprecated, haste
+from lightning.utils.helpers import deprecated
 from lightning.utils.helpers import request as make_request
 from lightning.utils.helpers import ticker
 from lightning.utils.ui import ConfirmationView
@@ -86,17 +85,47 @@ class LightningContext(commands.Context):
 
         return message
 
-    async def send(self, content: Optional[str] = None, **kwargs) -> discord.Message:
+    async def send(self, content: Optional[str] = None, *,
+                   tts: bool = False,
+                   embed: Optional[discord.Embed] = None,
+                   embeds: Optional[Sequence[discord.Embed]] = None,
+                   file: Optional[discord.File] = None,
+                   files: Optional[Sequence[discord.File]] = None,
+                   stickers: Optional[Sequence[Union[discord.GuildSticker, discord.StickerItem]]] = None,
+                   delete_after: Optional[float] = None,
+                   nonce: Optional[Union[str, int]] = None,
+                   allowed_mentions: Optional[discord.AllowedMentions] = None,
+                   reference: Optional[Union[discord.Message, discord.MessageReference, discord.PartialMessage]] = None,
+                   mention_author: Optional[bool] = None,
+                   view: Optional[discord.ui.View] = None,
+                   suppress_embeds: bool = False,
+                   ephemeral: bool = False) -> discord.Message:
+        content = await self._prepare_send(content)
+        return await super().send(content=content,
+                                  tts=tts,
+                                  embed=embed,
+                                  embeds=embeds,
+                                  file=file,
+                                  files=files,
+                                  stickers=stickers,
+                                  delete_after=delete_after,
+                                  nonce=nonce,
+                                  allowed_mentions=allowed_mentions,
+                                  reference=reference,
+                                  mention_author=mention_author,
+                                  view=view,
+                                  suppress_embeds=suppress_embeds,
+                                  ephemeral=ephemeral)
+
+    async def _prepare_send(self, content: Optional[str] = None) -> Optional[str]:
         content = str(content) if content is not None else None
-        if content and len(content) > 2000:
+        if content and len(content) >= 2000:
             try:
-                mysturl = await haste(self.bot.aiosession, content)
-                content = f"Content too long: {mysturl}"
-            except errors.LightningError:
-                fp = io.StringIO(content)
+                url = await self.bot.api.request("PUT", "/admin/paste", data={'text': content})
+                content = f"Content too long: {url}"
+            except sanctum.HTTPException:
                 content = "Content too long..."
-                return await super().send(content, file=discord.File(fp, filename='message_too_long.txt'))
-        return await super().send(content, **kwargs)
+        return content
 
     async def request(self, url, **kwargs) -> Union[dict, str, bytes]:
         return await make_request(url, self.bot.aiosession, **kwargs)
