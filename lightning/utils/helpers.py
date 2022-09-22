@@ -167,25 +167,6 @@ async def request(url, session: aiohttp.ClientSession, *, timeout=180, method: s
             raise errors.HTTPException(resp)
 
 
-async def haste(session: aiohttp.ClientSession, text: str, instance: str = 'https://mystb.in/') -> str:
-    """Posts to a haste instance and returns the link.
-
-    Parameters
-    ----------
-    session : aiohttp.ClientSession
-    text : str
-        The text to post to the instance.
-    instance : str
-        Link to a haste instance. By default https://mystb.in/ is used.
-
-    Returns
-    -------
-    str
-        A link to the created haste"""
-    resp = await request(f"{instance}documents", session, method="POST", data=text)
-    return f"{instance}{resp['key']}"
-
-
 async def run_in_shell(command: str):
     try:
         pipe = asyncio.subprocess.PIPE
