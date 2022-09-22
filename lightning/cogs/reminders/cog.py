@@ -21,12 +21,12 @@ import logging
 import textwrap
 import traceback
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import asyncpg
 import discord
 from discord import app_commands
-from discord.ext.commands import clean_content
+from discord.ext.commands import clean_content, parameter
 from sanctum.exceptions import NotFound
 
 from lightning import LightningCog, LightningContext, hybrid_group
@@ -149,7 +149,9 @@ class Reminders(LightningCog):
     @hybrid_group(usage="<when>", aliases=["reminder"], invoke_without_command=True, fallback="set")
     @app_commands.describe(when="When to remind you of something")
     async def remind(self, ctx: LightningContext, *,
-                     when: ltime.UserFriendlyTime(clean_content, default='something')) -> None:  # noqa: F821
+                     when: ltime.UserFriendlyTimeResult =
+                     parameter(converter=ltime.UserFriendlyTime(clean_content, default='something'))
+                     ) -> None:  # noqa: F821
         """Reminds you of something after a certain date.
 
         The input can be any direct date (e.g. YYYY-MM-DD) or a human readable offset.
@@ -187,6 +189,7 @@ class Reminders(LightningCog):
 
     @remind.command(name="edit")
     async def edit_reminder(self, ctx: LightningContext, reminder_id: int) -> None:
+        """Edits a reminder you own"""
         try:
             record = await self.bot.api.get_timer(reminder_id)
         except NotFound:
@@ -275,6 +278,8 @@ class Reminders(LightningCog):
 
     @LightningCog.listener()
     async def on_lightning_reminder_complete(self, timer: Timer) -> None:
+        assert timer.extra is not None
+
         channel = self.bot.get_channel(timer.extra['channel'])
         user = self.bot.get_user(timer.extra['author']) or BetterUserObject(id=timer.extra['author'])
 
@@ -282,8 +287,9 @@ class Reminders(LightningCog):
             # rip
             return
 
-        timed_txt = ltime.natural_timedelta(timer.created_at, source=timer.expiry, suffix=True)
-        message = f"<@!{user.id}> You asked to be reminded {timed_txt} about {timer.extra['reminder_text']}"
+        dt_format = discord.utils.format_dt(ltime.add_tzinfo(timer.created_at), style="R")
+        message = f"<@!{user.id}> You asked to be reminded "\
+                  f"{dt_format} about {timer.extra['reminder_text']}"
         secret = timer.extra.pop("secret", False)
 
         # The reminder will be DM'd on one of the following conditions
@@ -293,14 +299,10 @@ class Reminders(LightningCog):
             await dm_user(user, message)
             return
 
-        kwargs = {"allowed_mentions": discord.AllowedMentions(users=[user])}
+        kwargs: Dict[str, Any] = {"allowed_mentions": discord.AllowedMentions(users=[user])}
 
         if "message_id" in timer.extra:
-            if not hasattr(channel, 'guild'):
-                _id = None
-            else:
-                _id = channel.guild.id
-
+            _id = channel.guild.id if hasattr(channel, 'guild') else None
             ref = discord.MessageReference(message_id=timer.extra['message_id'], channel_id=channel.id, guild_id=_id,
                                            fail_if_not_exists=False)
             kwargs["reference"] = ref
