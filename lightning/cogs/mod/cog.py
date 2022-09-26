@@ -19,12 +19,12 @@ from __future__ import annotations
 import contextlib
 from collections import Counter
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import discord
 from discord.ext import commands
 
-from lightning import (CommandLevel, LightningBot, LightningCog,
+from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, ModFlags, cache, command, converters)
 from lightning import flags as lflags
 from lightning import group
@@ -153,7 +153,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
     @commands.bot_has_guild_permissions(kick_members=True)
     @has_guild_permissions(kick_members=True)
-    async def kick(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), *, flags) -> None:
+    async def kick(self, ctx: GuildContext, target: converters.TargetMember(fetch_user=False), *, flags) -> None:
         """Kicks a user from the server"""
         if not flags.nodm:  # No check is done here since we don't fetch users
             await helpers.dm_user(target, modlogformats.construct_dm_message(target, "kicked", "from",
@@ -199,7 +199,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @has_guild_permissions(ban_members=True)
     @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason",
              raise_bad_flag=False)
-    async def ban(self, ctx: LightningContext, target: converters.TargetMember, **flags) -> None:
+    async def ban(self, ctx: GuildContext, target: converters.TargetMember, **flags) -> None:
         """Bans a user from the server."""
         if flags['delete_messages'] < 0:
             raise commands.BadArgument("You can't delete a negative amount of messages.")
@@ -222,7 +222,10 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @has_guild_permissions(manage_messages=True)
     @group(cls=lflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod, parser=BaseModParser)
-    async def warn(self, ctx: LightningContext, target: converters.TargetMember(fetch_user=False), *, flags) -> None:
+    async def warn(self, ctx: LightningContext,
+                   target: Union[discord.Member, discord.User] = commands.param(
+                       converter=converters.TargetMember(fetch_user=False)),
+                   *, flags) -> None:
         """Warns a user"""
         if not flags.nodm and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "warned", "in", reason=flags.reason)
@@ -235,7 +238,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
     @has_guild_permissions(manage_guild=True)
     @warn.group(name="punishments", aliases=['punishment'], invoke_without_command=True, level=CommandLevel.Admin)
-    async def warn_punish(self, ctx: LightningContext) -> None:
+    async def warn_punish(self, ctx: GuildContext) -> None:
         """Configures warn punishments for the server."""
         record = await self.get_mod_config(ctx.guild.id)
         if not record:
@@ -323,7 +326,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
         await ctx.send("Removed warn punishment configuration!")
 
-    async def do_message_purge(self, ctx: LightningContext, limit: int, predicate, *, before=None, after=None) -> None:
+    async def do_message_purge(self, ctx: GuildContext, limit: int, predicate, *, before=None, after=None) -> None:
         if limit >= 150:
             resp = await ctx.prompt(f"Are you sure you want to purge {limit} messages?", delete_after=True)
             if not resp:
@@ -339,7 +342,7 @@ class Mod(LightningCog, required=["Configuration"]):
         except discord.Forbidden:
             raise commands.MissingPermissions([])
         except discord.HTTPException as e:
-            raise LightningError(f"Error: {e} (try a smaller message search?)")
+            raise LightningError(f"Error: {e} (try a smaller message search?)") from e
 
         spam = Counter(str(m.author) for m in purged)
         dcount = len(purged)
@@ -354,7 +357,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @commands.bot_has_permissions(manage_messages=True)
     @has_channel_permissions(manage_messages=True)
     @commands.group(invoke_without_command=True, aliases=['clear'], level=CommandLevel.Mod)
-    async def purge(self, ctx: LightningContext, search: int) -> None:
+    async def purge(self, ctx: GuildContext, search: int) -> None:
         """Purges messages that meet a certain criteria.
 
         If called without a subcommand, the bot will remove all messages."""
@@ -483,7 +486,7 @@ class Mod(LightningCog, required=["Configuration"]):
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
     async def unmute(self, ctx: LightningContext, target: discord.Member, *,
-                     reason: str = None) -> None:
+                     reason: Optional[str]) -> None:
         """Unmutes a user"""
         role = await self.get_mute_role(ctx)
         check = await self.punishment_role_check(ctx.guild.id, target.id, role.id)
@@ -517,18 +520,19 @@ class Mod(LightningCog, required=["Configuration"]):
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    async def massban(self, ctx: LightningContext, members: commands.Greedy[converters.TargetMember],
+    async def massban(self, ctx: GuildContext, members: commands.Greedy[converters.TargetMember],
                       *, reason: str) -> None:
-        """Mass bans users from the server.
-
-        Note: Users will not be notified about being banned from the server."""
-        confirm = await ctx.prompt(f"Are you sure you want to ban {plural(len(members)):member}?")
+        """Mass bans users from the server"""
+        confirm = await ctx.prompt(f"Are you sure you want to ban {plural(len(members)):member}?\n"
+                                   "They will **not** be notified about being banned!")
         if not confirm:
             return
 
+        reason = self.format_reason(ctx.author.id, reason, action_text="Ban done by")
+
         async with self.bot.pool.acquire() as con:
             for member in members:
-                await ctx.guild.ban(member, delete_message_days=0)
+                await ctx.guild.ban(member, delete_message_days=0, reason=reason)
                 await self.log_action(ctx, member, "BAN", connection=con)
 
     @commands.bot_has_guild_permissions(ban_members=True)
@@ -676,9 +680,9 @@ class Mod(LightningCog, required=["Configuration"]):
     @commands.bot_has_guild_permissions(manage_nicknames=True)
     @commands.cooldown(1, 300.0, commands.BucketType.guild)
     @command(level=CommandLevel.Mod)
-    async def dehoist(self, ctx: LightningContext, character: Optional[str]):
+    async def dehoist(self, ctx: GuildContext, character: Optional[str]):
         """Dehoists members with an optional specified character in the beginning of their name"""
-        character = [character] if character else COMMON_HOIST_CHARACTERS
+        character: List[str] = [character] if character else COMMON_HOIST_CHARACTERS
         dehoists = []
         failed_dehoist = []
 
