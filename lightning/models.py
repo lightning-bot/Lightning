@@ -16,7 +16,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import datetime
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import discord
 
@@ -28,9 +29,6 @@ from lightning.utils import modlogformats
 from lightning.utils.time import natural_timedelta, strip_tzinfo
 
 if TYPE_CHECKING:
-    import datetime
-    from typing import Any, Dict, List, Optional, Union
-
     from lightning import LightningBot
 
 
@@ -45,13 +43,13 @@ class GuildModConfig:
         self.warn_ban: Optional[int] = record['warn_ban']
         self.flags: ModFlags = ModFlags(record['flags'] or 0)
         self.bot: LightningBot = bot
-        # self.automod = AutoModConfig(record)
         # self.raid_mode = record['raid_mode']
 
     def get_mute_role(self) -> discord.Role:
         if not self.mute_role_id:
             raise errors.MuteRoleError("This server has not setup a mute role")
 
+        # Configurations get invalidated if the bot leaves so this should never be None
         guild = self.bot.get_guild(self.guild_id)
 
         role = discord.utils.get(guild.roles, id=self.mute_role_id)
@@ -68,12 +66,13 @@ class LoggingConfig:
         self.logging = {}
         for record in records:
             self.logging[record['channel_id']] = {"types": LoggingType(record['types']),
-                                                  "format": record['format']}
+                                                  "format": record['format'],
+                                                  "webhook_url": record['webhook_url']}
 
-    def get_channels_with_feature(self, feature) -> List[int]:
+    def get_channels_with_feature(self, log_type: int) -> List[Tuple[int, Dict[str, Any]]]:
         channels = []
         for key, value in list(self.logging.items()):
-            if feature in value['types']:
+            if log_type in value['types']:
                 channels.append((key, value))
         return channels
 
