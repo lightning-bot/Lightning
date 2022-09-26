@@ -363,7 +363,7 @@ class LightningBot(commands.AutoShardedBot):
             return
         help_text = f"\nPlease see `{ctx.prefix}help {ctx.command}` for more info about this command."
         if isinstance(error, commands.BadArgument):
-            await ctx.send(f"You gave incorrect arguments. `{str(error)}` {help_text}")
+            await ctx.send(f"You gave incorrect arguments. `{str(error)}` {help_text}", embed_links=False)
             return
         elif isinstance(error, (commands.MissingRequiredArgument, errors.MissingRequiredFlagArgument)):
             codeblock = f"**{ctx.prefix}{ctx.command.qualified_name} {ctx.command.signature}**\n\n{error_text}"
