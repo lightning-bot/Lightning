@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import inspect
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import discord
 from discord import app_commands
@@ -176,16 +176,16 @@ class FlagParser:
         for flag in flags:
             self.add_flag(flag)
 
-    def get_flag(self, flag_name: str) -> Optional[Flag]:
+    def get_flag(self, name: str) -> Optional[Flag]:
         """Gets a flag
 
         Parameters
         ----------
-        flag_name : str
+        name : str
             The name of the flag to get"""
-        return self._flags.get(flag_name, None)
+        return self._flags.get(name, None)
 
-    def get_all_unique_flags(self) -> set:
+    def get_all_unique_flags(self) -> Set[Flag]:
         """Gets all unique flags"""
         return set(self._flags.values())
 
@@ -324,10 +324,10 @@ class FlagCommand(LightningCommand):
 
         sig = [*old_signature]
 
-        parser = self.callback.__lightning_argparser__
+        parser: FlagParser = self.callback.__lightning_argparser__
 
-        if parser.consume_rest:
-            sig.append(f"[{parser.rest_attribute_name}]")
+        if parser.consume_rest_flag:
+            sig.append(f"[{parser.consume_rest_flag.attribute}]")
 
         for flag in parser.get_all_unique_flags():
             if flag.required:
