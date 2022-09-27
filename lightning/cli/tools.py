@@ -15,6 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import pathlib
+import re
 from collections import OrderedDict
 from inspect import Parameter
 from typing import List, Optional
@@ -22,7 +23,6 @@ from typing import List, Optional
 import typer
 from tabulate import tabulate
 
-from lightning import LightningBot
 from lightning.flags import Flag
 
 parser = typer.Typer()
@@ -88,6 +88,23 @@ def newcog(file_name: str = typer.Argument(..., help="The name of the file to cr
         fp.write(f"{license}\n{templ}")
 
     typer.echo(f"Created new cog with {str(path)}")
+
+
+COPYRIGHT_REGEX = re.compile(r"(Copyright\s\(C\)\s[0-9].+-)[0-9].+(\s\w+)")
+
+
+@parser.command()
+def update_copyright(year: str = typer.Argument(..., help="The new year to write to every file"),
+                     directory: pathlib.Path = typer.Option(..., help="Directory to look in",
+                                                            exists=True, file_okay=False, dir_okay=True)):
+    for file in directory.glob("**/*.py"):
+
+        with open(file, mode="r", encoding='utf-8', newline="\n") as fp:
+            w = COPYRIGHT_REGEX.sub(r"\g<1>{}\g<2>".format(year), fp.read())
+
+        with open(file, mode="w", encoding='utf-8', newline="\n") as fp:
+            fp.write(w)
+        return
 
 
 param_name_lookup = {"HumanTime": "Time", "FutureTime": "Time"}
@@ -182,6 +199,7 @@ subcmds_page = """#### Subcommands
 @parser.command()
 def build_command_docs():
     """Builds documentation for commands and stores them in the build directory"""
+    from lightning import LightningBot
     bot = LightningBot()
     for command in bot.walk_commands():
         description = command.description or command.help
@@ -224,6 +242,7 @@ def build_command_docs():
 @parser.command()
 def build_cog_docs():
     """Builds documentation pages for cogs and stores them in the build directory"""
+    from lightning import LightningBot
     bot = LightningBot()
     cogs = sorted(bot.cogs.values(), key=lambda c: c.qualified_name)
     for cog in cogs:
