@@ -27,7 +27,7 @@ import typer
 from rich.logging import RichHandler
 
 from lightning.bot import LightningBot
-from lightning.cli import tools
+from lightning.cli import migrations, tools
 from lightning.cli.utils import asyncd
 from lightning.config import Config
 from lightning.utils.helpers import create_pool, run_in_shell
@@ -43,6 +43,7 @@ else:
 
 parser = typer.Typer()
 parser.add_typer(tools.parser, name="tools", help="Developer tools")
+parser.add_typer(migrations.parser)
 
 
 @contextlib.contextmanager
