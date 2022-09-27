@@ -125,4 +125,4 @@ lightning/resources/templates
 /config.toml
 resources/nindy_data.json
 # Migrations
-yoyo.ini
+migratory.json
