@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS guild_mod_config
     warn_kick BIGINT,
     warn_ban BIGINT,
     mute_role_id BIGINT,
+    temporary_mute_role_id BIGINT,
     raid_mode BOOLEAN DEFAULT 'f',
     flags INT
 );
