@@ -133,15 +133,12 @@ async def main(ctx: typer.Context):
 async def docker_run():
     typer.echo("Applying migrations...")
 
+    m = migrations.Migrator()
+    conn = await asyncpg.connect(m.config["postgres_uri"])
+    await m.apply_revisions(conn)
+    await conn.close()
+
     config = Config()
-    import migri
-
-    pool = await create_pool(config.tokens.postgres.uri, command_timeout=60)
-    async with pool.acquire() as conn:
-        m = migri.PostgreSQLConnection(connection=conn)
-        await migri.apply_migrations("migrations", m)
-
-    await pool.close()
 
     with init_logging(config):
         await launch_bot(config)
