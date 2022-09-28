@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import itertools
 import logging
 from typing import TYPE_CHECKING, List, Optional, Union
 
@@ -41,7 +42,7 @@ def format_commands(commands: List[Union[LightningCommand, LightningGroupCommand
         cmds.append(f"\N{BULLET} `{cmd.qualified_name}`\n")
         if hasattr(cmd, 'commands'):
             cmds.extend(f'{" " * (len(child.parents) * 3)}• `{child.qualified_name}`\n'
-                        for child in cmd.walk_commands())
+                        for child in sorted(cmd.walk_commands(), key=lambda c: c.qualified_name))
 
     return "".join(cmds)
 
@@ -95,7 +96,7 @@ class CategorySelect(discord.ui.Select):
 
 class BotHelpSource(menus.ListPageSource):
     def __init__(self, entries):
-        data = sorted(entries.keys())
+        data = list(entries.keys())
         self.data = entries
         super().__init__(data, per_page=1)
 
@@ -106,7 +107,7 @@ class BotHelpSource(menus.ListPageSource):
             description += "\nFor additional help, join the support server: "\
                            f"<{menu.bot.config['bot']['support_server_invite']}>"
 
-        cmds = sorted(self.data.get(entry, []), key=lambda d: d.qualified_name)
+        cmds = self.data.get(entry, [])
         value = f"**{entry}**\n{f'*{cmds[0].cog.description}*' if cmds[0].cog.description else ''}"\
                 f"\nYour current permissions allow you to run the following commands:\n{format_commands(cmds)}"
 
@@ -189,26 +190,26 @@ class PaginatedHelpCommand(commands.HelpCommand):
         return f'{alias}'
 
     async def send_bot_help(self, _) -> None:
-        bot = self.context.bot
-        entries = await self.filter_commands(bot.commands, sort=True)
+        def key(c):
+            return c.cog.qualified_name if c.cog else "No Category"
+
+        entries = await self.filter_commands(self.context.bot.commands, sort=True, key=key)
         commands = {}
-        for command in entries:
-            try:
-                commands[command.cog.qualified_name or "No Category"].append(command)
-            except KeyError:
-                commands[command.cog.qualified_name or "No Category"] = [command]
+
+        for cog, cmds in itertools.groupby(entries, key=key):
+            commands[cog] = sorted(cmds, key=lambda c: c.qualified_name)
 
         menu = HelpPaginator(self, self.context, BotHelpSource(commands))
 
-        options = [discord.SelectOption(label=key, value=ix) for ix, key in enumerate(sorted(commands.keys()))]
+        options = [discord.SelectOption(label=key, value=str(ix)) for ix, key in enumerate(sorted(commands.keys()))]
         menu.add_item(CategorySelect(menu, options=options, row=3))
 
-        await menu.start()
+        await menu.start(wait=False)
 
     async def send_cog_help(self, cog: commands.Cog) -> None:
         entries = await self.filter_commands(cog.walk_commands(), sort=True, key=lambda d: d.qualified_name)
         menu = HelpPaginator(self, self.context, CogHelpSource(entries, per_page=10))
-        await menu.start()
+        await menu.start(wait=False)
 
     def flag_help_formatting(self, command):
         if not hasattr(command.callback, "__lightning_argparser__"):
