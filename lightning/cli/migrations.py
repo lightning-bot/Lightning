@@ -117,6 +117,7 @@ async def upgrade(sql: Optional[bool] = typer.Option(False,
         return
 
     applied = await m.apply_revisions(conn)
+    await conn.close()
     typer.echo(f"Applied {len(applied)} migrations!")
 
 
