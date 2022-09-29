@@ -14,6 +14,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import re
+from typing import Literal
 
 COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">", "_", ".", "$", "\"", "?", "'"]
 
@@ -41,3 +43,16 @@ class Emoji:
                '8\N{combining enclosing keycap}',
                '9\N{combining enclosing keycap}',
                '\N{KEYCAP TEN}')
+
+
+# Human-readable names
+AUTOMOD_EVENT_NAMES_MAPPING = {"message-spam": "Message Spam",
+                               "mass-mentions": "Mass Mentions",
+                               "url-spam": "URL Spam",
+                               "invite-spam": "Invite Spam",
+                               "message-content-spam": "Repetitive Message Spam"}
+AUTOMOD_EVENT_NAMES = list(AUTOMOD_EVENT_NAMES_MAPPING.keys())
+AUTOMOD_EVENT_NAMES_LITERAL = Literal['message-spam', 'mass-mentions', 'url-spam', 'invite-spam',
+                                      'message-content-spam']
+
+AUTOMOD_COMMAND_CONFIG_REGEX = re.compile(r"(?P<count>[0-9]+)/(?P<seconds>[0-9]+)s")
