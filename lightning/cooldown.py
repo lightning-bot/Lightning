@@ -28,10 +28,10 @@ class RedisCooldown:
     __slots__ = ('key', 'rate', 'per', 'redis')
 
     def __init__(self, key: str, rate: int, per: int, redis: aioredis.Redis) -> None:
-        self.key: str = key
-        self.rate: int = rate
-        self.per: float = per
-        self.redis: aioredis.Redis = redis
+        self.key = key
+        self.rate = rate
+        self.per = per
+        self.redis = redis
 
     async def hit(self) -> bool:
         """
@@ -58,7 +58,7 @@ class RedisCooldown:
 class AutoModCooldown(RedisCooldown):
     # A key should be something like "automod:guild_id:type"
     def __init__(self, key: str, rate: int, per: int, redis: aioredis.Redis,
-                 bucket_type: Union[BucketType, Callable]) -> None:
+                 bucket_type: Union[BucketType, Callable[[Message], str]]) -> None:
         super().__init__(key, rate, per, redis)
         self.bucket_type = bucket_type
         self.per = timedelta(seconds=self.per)
@@ -71,11 +71,27 @@ class AutoModCooldown(RedisCooldown):
         if self.bucket_type.member:
             return f"{self.key}:{message.author.id}"
 
-    async def hit(self, message: Message):
+    async def hit(self, message: Message, *, incr_amount: int = 1) -> bool:
+        """Increments the key
+
+        Parameters
+        ----------
+        message : discord.Message
+            A message object
+        incr_amount : int, optional
+            The amount to increment the key, by default 1
+
+        Returns
+        -------
+        bool
+            True - The key has hit the set rate
+
+            False - The key has not hit the set rate
+        """
         key = self._key_maker(message)
 
         current = await self.redis.get(key)
-        value = await self.redis.incr(key)
+        value = await self.redis.incr(key, incr_amount)
 
         if not current:
             await self.redis.expire(key, self.per)
