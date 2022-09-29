@@ -14,21 +14,28 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
+import collections
 import logging
-from io import StringIO
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import discord
 from discord.ext import commands
+from sanctum import DataConflict, NotFound
 
-from lightning import (CommandLevel, ConfigFlags, LightningCog,
-                       LightningContext, ModFlags, cache, group)
+from lightning import (CommandLevel, ConfigFlags, GuildContext, LightningCog,
+                       cache, group)
 from lightning.cogs.config import ui
-from lightning.converters import (Prefix, Role, ValidCommandName,
-                                  convert_to_level, convert_to_level_value)
+from lightning.cogs.config.converters import (AutoModDuration,
+                                              AutoModDurationResponse,
+                                              IgnorableEntities)
+from lightning.constants import (AUTOMOD_EVENT_NAMES_LITERAL,
+                                 AUTOMOD_EVENT_NAMES_MAPPING)
+from lightning.converters import (Role, ValidCommandName, convert_to_level,
+                                  convert_to_level_value)
 from lightning.formatters import plural
 from lightning.models import GuildModConfig
-from lightning.utils.automod_parser import from_attachment
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
 
@@ -38,21 +45,11 @@ log = logging.getLogger(__name__)
 Features = {"role saver": (ConfigFlags.role_reapply, "Now saving member roles.", "No longer saving member roles."),
             "invoke delete": (ConfigFlags.invoke_delete, "Now deleting successful command invocation messages",
                               "No longer deleting successful command invocation messages")}
-AutoModFeatures = {"delete longer messages": (ModFlags.delete_longer_messages,
-                                              "deleting messages over 2000 characters"),
-                   "delete stickers": (ModFlags.delete_stickers, "deleting messages containing a sticker.")}
 
 
 def convert_to_feature(argument):
     if argument.lower() in Features.keys():
         return Features[argument.lower()]
-    else:
-        raise commands.BadArgument(f"\"{argument}\" is not a valid feature flag.")
-
-
-def convert_to_automod_feature(argument):
-    if argument.lower() in AutoModFeatures.keys():
-        return AutoModFeatures[argument.lower()]
     else:
         raise commands.BadArgument(f"\"{argument}\" is not a valid feature flag.")
 
@@ -73,7 +70,7 @@ class Configuration(LightningCog):
             return None
         return GuildModConfig(ret, self.bot)
 
-    async def invalidate_config(self, ctx: LightningContext, *, config_name="mod_config") -> bool:
+    async def invalidate_config(self, ctx: GuildContext, *, config_name="mod_config") -> bool:
         """Function to reduce duplication for invalidating a cached guild mod config"""
         c = cache.registry.get(config_name)
         return await c.invalidate(str(ctx.guild.id))
@@ -84,16 +81,8 @@ class Configuration(LightningCog):
 
     @group(invoke_without_command=True, level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def config(self, ctx: LightningContext) -> None:
-        """Manages most of the configuration for the bot.
-
-        Manages:
-          - Mute role
-          - Logging
-          - Prefixes
-          - Command Overrides
-          - Feature Flags
-          - Levels"""
+    async def config(self, ctx: GuildContext) -> None:
+        """Manages most of the configuration for the bot"""
         await ctx.send_help('config')
 
     async def add_prefix(self, guild: discord.Guild, prefix: list, *, connection=None) -> None:
@@ -125,61 +114,12 @@ class Configuration(LightningCog):
 
         return await self.bot.pool.execute(query, *args)
 
-    @config.group(aliases=['prefixes'], invoke_without_command=True, level=CommandLevel.Admin)
-    async def prefix(self, ctx: LightningContext) -> None:
-        """Manages the server's custom prefixes.
-
-        If called without a subcommand, this will list the currently set prefixes for this server."""
-        embed = discord.Embed(title="Prefixes",
-                              description="",
-                              color=discord.Color(0xd1486d))
-        embed.description += f"\"{ctx.me.mention}\"\n"
-        for p in await self.get_guild_prefixes(ctx.guild.id):
-            embed.description += f"\"{p}\"\n"
-        await ctx.send(embed=embed)
-
-    @prefix.command(name="add", level=CommandLevel.Admin)
+    @config.command(aliases=['prefixes'], level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def addprefix(self, ctx: LightningContext, prefix: Prefix) -> None:
-        """Adds a custom prefix.
-
-        To have a prefix with a word (or words), you should quote it and \
-        end it with a space, e.g. "lightning " to set the prefix \
-        to "lightning ". This is because Discord removes spaces when sending \
-        messages so the spaces are not preserved."""
-        prefixes = await self.get_guild_prefixes(ctx.guild.id)
-        if len(prefixes) >= 5:
-            await ctx.send("You can only have 5 custom prefixes per guild! Please remove one.")
-            return
-
-        if prefix in prefixes:
-            await ctx.send("That prefix is already registered!")
-            return
-
-        prefixes.append(prefix)
-        await self.add_prefix(ctx.guild, prefixes)
-        await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
-
-        await ctx.send(f"Added `{prefix}`")
-
-    @prefix.command(name="remove", level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
-    async def rmprefix(self, ctx: LightningContext, prefix: Prefix) -> None:
-        """Removes a custom prefix.
-
-        To remove word/multi-word prefixes, you need to quote it.
-
-        Example: `{prefix}prefix remove "lightning "` removes the "lightning " prefix.
-        """
-        prefixes = await self.get_guild_prefixes(ctx.guild.id)
-        if prefix not in prefixes:
-            await ctx.send(f"{prefix} was never added as a custom prefix.")
-            return
-
-        prefixes.remove(prefix)
-        await self.delete_prefix(ctx.guild.id, prefixes)
-        await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
-        await ctx.send(f"Removed `{prefix}`")
+    async def prefix(self, ctx: GuildContext) -> None:
+        """Manages the server's custom prefixes"""
+        prompt = ui.Prefix(context=ctx)
+        await prompt.start(wait=False)
 
     async def add_config_key(self, guild_id, key, value, *, table="guild_config") -> str:
         query = f"""INSERT INTO {table} (guild_id, {key})
@@ -193,7 +133,7 @@ class Configuration(LightningCog):
     @has_guild_permissions(manage_guild=True)
     async def logging(self, ctx, *, channel: discord.TextChannel = commands.CurrentChannel):
         """Sets up logging for the server via a menu"""
-        await ui.Logging(channel, timeout=180.0).start(ctx)
+        await ui.Logging(channel, context=ctx, timeout=180.0).start(wait=False)
 
     async def toggle_feature_flag(self, guild_id: int, flag: ConfigFlags) -> ConfigFlags:
         """Toggles a feature flag for a guild
@@ -219,7 +159,7 @@ class Configuration(LightningCog):
 
     @config.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def toggle(self, ctx: LightningContext, *, feature: convert_to_feature) -> None:
+    async def toggle(self, ctx: GuildContext, *, feature: convert_to_feature) -> None:
         """Toggles a feature flag"""
         flag, piece_yes, piece_no = feature
         toggle = await self.toggle_feature_flag(ctx.guild.id, flag)
@@ -231,36 +171,14 @@ class Configuration(LightningCog):
 
         await ctx.send(piece)
 
-    @config.group(invoke_without_command=True, level=CommandLevel.Admin)
+    @config.command(level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
-    async def autorole(self, ctx: LightningContext) -> None:
+    async def autorole(self, ctx: GuildContext) -> None:
         """Manages the server's autorole
 
         If this command is called alone, an interactive menu will start."""
-        await ui.AutoRole(timeout=180.0).start(ctx)
-
-    @autorole.command(name="set", aliases=['add'], level=CommandLevel.Admin)
-    @commands.bot_has_permissions(manage_roles=True)
-    @has_guild_permissions(manage_roles=True)
-    async def setautoroles(self, ctx, *, role: Role) -> None:
-        """Sets an auto role for the server"""
-        await self.add_config_key(ctx.guild.id, "autorole", role.id)
-        await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
-        await ctx.send(f"Successfully set {role.name} as an auto role.")
-
-    @autorole.command(name='remove', level=CommandLevel.Admin)
-    @has_guild_permissions(manage_roles=True)
-    async def removeautoroles(self, ctx: LightningContext) -> None:
-        """Removes the auto role that's configured"""
-        res = await self.remove_config_key(ctx.guild.id, "autorole")
-
-        if res == "DELETE 0":
-            await ctx.send("This server never had an autorole setup!")
-            return
-
-        await self.bot.get_guild_bot_config.invalidate(ctx.guild.id)
-        await ctx.send("Successfully removed the server's autorole")
+        await ui.AutoRole(context=ctx, timeout=180).start()
 
     # Mute role
 
@@ -268,7 +186,8 @@ class Configuration(LightningCog):
     @has_guild_permissions(manage_guild=True, manage_roles=True)
     @commands.bot_has_permissions(manage_roles=True)
     @commands.cooldown(1, 60.0, commands.BucketType.guild)
-    async def muterole(self, ctx: LightningContext, *, role: Role = None) -> None:
+    async def muterole(self, ctx: GuildContext, *,
+                       role: Optional[discord.Role] = commands.param(converter=Role, default=None)) -> None:
         """Handles mute role configuration.
 
         This command allows you to set the mute role for the server or view the configured mute role."""
@@ -288,7 +207,7 @@ class Configuration(LightningCog):
 
     @muterole.command(name="reset", aliases=['delete', 'remove'], level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True, manage_roles=True)
-    async def delete_mute_role(self, ctx: LightningContext) -> None:
+    async def delete_mute_role(self, ctx: GuildContext) -> None:
         """Deletes the configured mute role."""
         query = """UPDATE guild_mod_config SET mute_role_id=NULL
                    WHERE guild_id=$1;
@@ -309,6 +228,8 @@ class Configuration(LightningCog):
                     continue
                 overwrite.send_messages = False
                 overwrite.add_reactions = False
+                overwrite.send_messages_in_threads = False
+                overwrite.use_application_commands = False
                 try:
                     await channel.set_permissions(role, overwrite=overwrite,
                                                   reason=f'Action done by {author} (ID: {author.id})')
@@ -322,7 +243,7 @@ class Configuration(LightningCog):
 
     @muterole.command(name="update", level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True, manage_roles=True)
-    async def mute_role_perm_update(self, ctx: LightningContext) -> None:
+    async def mute_role_perm_update(self, ctx: GuildContext) -> None:
         """Updates the permission overwrites of the mute role.
 
         This sets the permissions to Send Messages and Add Reactions as False
@@ -343,7 +264,7 @@ class Configuration(LightningCog):
 
     @muterole.command(name="unbind", level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True, manage_roles=True)
-    async def muterole_unbind(self, ctx: LightningContext) -> None:
+    async def muterole_unbind(self, ctx: GuildContext) -> None:
         """Unbinds the mute role from all users"""
         config = await self.get_mod_config(ctx)
         if config is None:
@@ -364,85 +285,93 @@ class Configuration(LightningCog):
 
     # AutoMod
 
-    @config.group(invoke_without_command=True, level=CommandLevel.Admin)
-    async def automod(self, ctx: LightningContext) -> None:
-        await ctx.send_help("config automod")
+    @config.group(level=CommandLevel.Admin)
+    @has_guild_permissions(manage_guild=True)
+    async def automod(self, ctx: GuildContext) -> None:
+        """Commands to configure Lightning's auto-moderation"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
 
-    async def toggle_automod_feature_flag(self, guild_id: int, flag: ModFlags) -> ModFlags:
-        """Toggles an automod feature flag for a guild
+    @automod.command(level=CommandLevel.Admin, name='ignore')
+    @has_guild_permissions(manage_guild=True)
+    async def automod_default_ignores(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]):
+        """Specifies what roles, members, or channels will be ignored by AutoMod by default."""
+        await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, [e.id for e in entities])
+        await ctx.send(f"Now ignoring {', '.join([e.mention for e in entities])}")
 
-        Parameters
-        ----------
-        guild_id : int
-            The ID of the server
-        flag : ModFlags
-            The flag that is being toggled.
+    @automod.command(level=CommandLevel.Admin, name='unignore')
+    @has_guild_permissions(manage_guild=True)
+    async def automod_default_unignore(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]) -> None:
+        """Specify roles, members, or channels to remove from AutoMod default ignores."""
+        config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
+        ignores: List[int] = config['default_ignores']
+        for entity in entities:
+            if entity.id in ignores:
+                ignores.remove(entity.id)
 
-        Returns
-        -------
-        ModFlags
-            Returns the newly created flags.
+        await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, ignores)
+        await ctx.send(f"Removed {', '.join(e.mention for e in entities)} from default ignores")
+
+    @automod.group(level=CommandLevel.Admin, name='rules')
+    @has_guild_permissions(manage_guild=True)
+    async def automod_rules(self, ctx: GuildContext):
+        ...
+
+    @automod_rules.command(level=CommandLevel.Admin, name="add")
+    @has_guild_permissions(manage_guild=True)
+    async def add_automod_rules(self, ctx: GuildContext, type: AUTOMOD_EVENT_NAMES_LITERAL,
+                                *, count: str):
+        """Adds a new rule to automod.
+
+        You can provide count in the following ways
+        To set automod to do something at 5 messages per 10 seconds, you can express it in one of the following ways
+        - "5/10s"
+        - "5 10"
         """
-        record = await self.bot.get_mod_config(guild_id)
-        toggle = record.flags - flag if flag in record.flags else record.flags | flag
-        await self.add_config_key(guild_id, "flags", int(toggle), table="guild_mod_config")
-        await self.invalidate_config(guild_id)
-        return toggle
-
-    @automod.command(name="toggle", level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
-    async def toggle_auto(self, ctx: LightningContext, feature: convert_to_automod_feature) -> None:
-        flag, msg = feature
-        toggle = await self.toggle_automod_feature_flag(ctx.guild.id, flag)
-
-        if flag in toggle:
-            await ctx.send(f"Now {msg}")
+        if type == "mass-mentions":
+            try:
+                result = AutoModDurationResponse(int(count), 0)
+            except ValueError:
+                await ctx.send("Could not convert to an integer")
+                return
         else:
-            await ctx.send(f"No longer {msg}")
+            result: AutoModDurationResponse = await AutoModDuration().convert(ctx, count)
 
-    @automod.command(level=CommandLevel.Admin, aliases=['upload'])
-    @has_guild_permissions(manage_guild=True)
-    async def uploadconfig(self, ctx: LightningContext, attachment: discord.Attachment):
-        """Adds an attached .toml file to the automod settings"""
-        if not attachment.filename.endswith(".toml"):
-            await ctx.send("Could not find an .TOML file attached to this message...")
+        punishment = await ui.prompt_for_automod_punishments(ctx)
+        if punishment is None:
             return
 
+        payload = {"guild_id": ctx.guild.id,
+                   "type": type,
+                   "count": result.count,
+                   "seconds": result.seconds,
+                   "punishment": {"type": punishment[0]}}
         try:
-            await from_attachment(attachment)
-        except Exception as e:
-            await ctx.send(str(e))
+            await self.bot.api.create_guild_automod_rule(ctx.guild.id, payload)
+        except DataConflict:
+            await ctx.send("This rule has already been set up!\nIf you want to edit this rule, please remove it and"
+                           " then re-run this command again!")
             return
 
-        query = """INSERT INTO automod (guild_id, config)
-                   VALUES ($1, $2)
-                   ON CONFLICT (guild_id)
-                   DO UPDATE SET config=EXCLUDED.config;"""
-        await self.bot.pool.execute(query, ctx.guild.id, str(await attachment.read(), "UTF-8"))
+        await ctx.send(f"Successfully set up {AUTOMOD_EVENT_NAMES_MAPPING[type]}!")
 
-        await ctx.send("Configured automod according to your settings.")
-        c = self.bot.get_cog("AutoMod")
-        await c.get_automod_config.invalidate(ctx.guild.id)
-
-    @automod.command(level=CommandLevel.Admin, aliases=['download'])
+    @automod_rules.command(level=CommandLevel.Admin, name="remove")
     @has_guild_permissions(manage_guild=True)
-    async def downloadconfig(self, ctx: LightningContext):
-        """Sends you the current configuration for automoderation"""
-        query = """SELECT config FROM automod WHERE guild_id=$1;"""
-        record = await self.bot.pool.fetchval(query, ctx.guild.id)
-        if not record:
-            await ctx.send("This server doesn't have automod setup.")
+    async def remove_automod_rule(self, ctx: GuildContext, rule: AUTOMOD_EVENT_NAMES_LITERAL):
+        """Removes an existing automod rule"""
+        try:
+            await self.bot.api.delete_guild_automod_rule(ctx.guild.id, rule)
+        except NotFound:
+            await ctx.send(f"{AUTOMOD_EVENT_NAMES_MAPPING[rule]} was never set up!")
             return
 
-        fp = StringIO(record)
-        fp.seek(0)
-        await ctx.send(file=discord.File(fp, "config.toml"))
+        await ctx.send(f"{AUTOMOD_EVENT_NAMES_MAPPING[rule]} was removed.")
 
     # COMMAND OVERRIDES
 
     @config.group(invoke_without_command=True, level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def permissions(self, ctx: LightningContext) -> None:
+    async def permissions(self, ctx: GuildContext) -> None:
         """Manages user permissions for the bot"""
         await ctx.send_help("config permissions")
 
@@ -500,7 +429,7 @@ class Configuration(LightningCog):
 
     @permissions.command(name='add', level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def permissions_add(self, ctx: LightningContext, level: convert_to_level,
+    async def permissions_add(self, ctx: GuildContext, level: convert_to_level,
                               _id: Union[discord.Role, discord.Member]) -> None:
         """Adds a user or a role to a level"""
         await self.adjust_level(ctx.guild.id, level, _id, adjuster="append")
@@ -508,7 +437,7 @@ class Configuration(LightningCog):
 
     @permissions.command(name='remove', level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def permissions_remove(self, ctx: LightningContext, level: convert_to_level,
+    async def permissions_remove(self, ctx: GuildContext, level: convert_to_level,
                                  _id: Union[discord.Member, discord.Role, int]) -> None:
         """Removes a user or a role from a level"""
         added = await self.adjust_level(ctx.guild.id, _id, level, adjuster="remove")
@@ -520,11 +449,11 @@ class Configuration(LightningCog):
 
     @permissions.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def blockcommand(self, ctx: LightningContext, command: ValidCommandName) -> None:
+    async def blockcommand(self, ctx: GuildContext, command: ValidCommandName) -> None:
         """Blocks a command to everyone."""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if record.permissions is None:
-            perms = {"COMMAND_OVERRIDES": {}}
+            perms = collections.defaultdict(dict)
         else:
             perms = record.permissions.raw()
 
@@ -539,7 +468,7 @@ class Configuration(LightningCog):
 
     @permissions.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def unblockcommand(self, ctx: LightningContext, command: ValidCommandName) -> None:
+    async def unblockcommand(self, ctx: GuildContext, command: ValidCommandName) -> None:
         """Unblocks a command"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if record.permissions is None:
@@ -559,7 +488,7 @@ class Configuration(LightningCog):
 
     @permissions.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)  # TODO: Replace with an owner check
-    async def fallback(self, ctx: LightningContext, boolean: bool) -> None:
+    async def fallback(self, ctx: GuildContext, boolean: bool) -> None:
         """Toggles the fallback permissions feature"""
         await self.add_config_key(ctx.guild.id, "fallback", boolean, table="guild_permissions")
         await self.bot.get_permissions_config.invalidate(ctx.guild.id)
@@ -567,7 +496,7 @@ class Configuration(LightningCog):
 
     @permissions.command(level=CommandLevel.Admin, name="show")
     @has_guild_permissions(manage_guild=True)
-    async def show_perms(self, ctx: LightningContext) -> None:
+    async def show_perms(self, ctx: GuildContext) -> None:
         """Shows raw permissions"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if not record or record.permissions is None:
@@ -576,7 +505,9 @@ class Configuration(LightningCog):
 
         await ctx.send(f"```json\n{record.permissions.raw()}```")
 
-    async def debug_command_perms(self, ctx: LightningContext, command, member):
+    async def debug_command_perms(self, ctx: GuildContext, command, member=None):
+        ctx.author = member or ctx.author
+
         embed = discord.Embed(title="Debug Result")
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if not record or record.permissions is None:
@@ -615,16 +546,15 @@ class Configuration(LightningCog):
 
     @permissions.command(level=CommandLevel.Admin, name="debug")
     @has_guild_permissions(manage_guild=True)
-    async def debug_permissions(self, ctx: LightningContext, command: ValidCommandName,
+    async def debug_permissions(self, ctx: GuildContext, command: ValidCommandName,
                                 member: discord.Member = commands.Author):
         """Debugs a member's permissions to use a command."""
-        # TODO: Debug a member's permissions only...
         command = self.bot.get_command(command)
         await self.debug_command_perms(ctx, command, member)
 
     @permissions.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def reset(self, ctx: LightningContext) -> None:
+    async def reset(self, ctx: GuildContext) -> None:
         """Resets all permission configuration."""
         query = "UPDATE guild_config SET permissions = permissions - 'LEVELS' WHERE guild_id=$1;"
         await self.bot.pool.execute(query, ctx.guild.id)
@@ -633,7 +563,7 @@ class Configuration(LightningCog):
 
     @has_guild_permissions(manage_guild=True)
     @permissions.group(invoke_without_command=True, level=CommandLevel.Admin)
-    async def commandoverrides(self, ctx: LightningContext) -> None:
+    async def commandoverrides(self, ctx: GuildContext) -> None:
         """Manages configuration for command overrides.
 
         This allows you to allow certain people or roles to use a command without needing a role recognized as a level.
@@ -642,7 +572,7 @@ class Configuration(LightningCog):
 
     @has_guild_permissions(manage_guild=True)
     @commandoverrides.command(require_var_positional=True, level=CommandLevel.Admin)
-    async def add(self, ctx: LightningContext, command: ValidCommandName,
+    async def add(self, ctx: GuildContext, command: ValidCommandName,
                   *ids: Union[discord.Role, discord.Member]) -> None:
         """Allows users/roles to run a command"""
         # MAYBE TODO: Inform user if some ids are already registered...
@@ -666,7 +596,7 @@ class Configuration(LightningCog):
 
     @has_guild_permissions(manage_guild=True)
     @commandoverrides.command(name='changelevel', level=CommandLevel.Admin)
-    async def change_command_level(self, ctx: LightningContext, command: ValidCommandName,
+    async def change_command_level(self, ctx: GuildContext, command: ValidCommandName,
                                    level: convert_to_level_value):
         """Overrides a command's level"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
@@ -686,7 +616,7 @@ class Configuration(LightningCog):
 
     @has_guild_permissions(manage_guild=True)
     @commandoverrides.command(level=CommandLevel.Admin)
-    async def removeall(self, ctx: LightningContext, command: ValidCommandName) -> None:
+    async def removeall(self, ctx: GuildContext, command: ValidCommandName) -> None:
         """Removes all overrides from a command"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if record.permissions is None:
@@ -705,7 +635,7 @@ class Configuration(LightningCog):
 
     @has_guild_permissions(manage_guild=True)
     @commandoverrides.command(name="reset", level=CommandLevel.Admin)
-    async def reset_overrides(self, ctx: LightningContext) -> None:
+    async def reset_overrides(self, ctx: GuildContext) -> None:
         """Removes all command overrides for this server"""
         query = "UPDATE guild_config SET permissions = permissions - 'COMMAND_OVERRIDES' WHERE guild_id=$1;"
         await self.bot.pool.execute(query, ctx.guild.id)
