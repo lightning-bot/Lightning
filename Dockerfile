@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y curl build-esse
 WORKDIR /bot
 
 # Poetry
-RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
+RUN curl -sSL https://install.python-poetry.org | python -
 
 COPY . .
 
