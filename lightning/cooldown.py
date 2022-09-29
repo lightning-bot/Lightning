@@ -27,7 +27,7 @@ from discord.ext.commands import BucketType
 class RedisCooldown:
     __slots__ = ('key', 'rate', 'per', 'redis')
 
-    def __init__(self, key: str, rate: int, per: float, redis: aioredis.Redis) -> None:
+    def __init__(self, key: str, rate: int, per: int, redis: aioredis.Redis) -> None:
         self.key: str = key
         self.rate: int = rate
         self.per: float = per
@@ -57,7 +57,7 @@ class RedisCooldown:
 
 class AutoModCooldown(RedisCooldown):
     # A key should be something like "automod:guild_id:type"
-    def __init__(self, key: str, rate: float, per: float, redis: aioredis.Redis,
+    def __init__(self, key: str, rate: int, per: int, redis: aioredis.Redis,
                  bucket_type: Union[BucketType, Callable]) -> None:
         super().__init__(key, rate, per, redis)
         self.bucket_type = bucket_type

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import datetime
 import re
+from typing import Optional
 
 import parsedatetime as pdt
 from dateutil.relativedelta import relativedelta
@@ -41,7 +42,7 @@ class ShortTime:
                              (?:(?P<seconds>[0-9]{1,5})(?:seconds?|s))?    # e.g. 15s
                           """, re.VERBOSE)
 
-    def __init__(self, argument, *, now=None):
+    def __init__(self, argument: str, *, now: Optional[datetime.datetime] = None):
         match = self.compiled.fullmatch(argument)
         if match is None or not match.group(0):
             raise commands.BadArgument('Invalid time provided')
@@ -60,7 +61,7 @@ class ShortTime:
 class HumanTime:
     calendar = pdt.Calendar(version=pdt.VERSION_CONTEXT_STYLE)
 
-    def __init__(self, argument, *, now=None):
+    def __init__(self, argument: str, *, now=None):
         now = now or datetime.datetime.now(datetime.timezone.utc)
         dt, status = self.calendar.parseDT(argument, sourceTime=now, tzinfo=datetime.timezone.utc)
         if not status.hasDateOrTime:
@@ -74,12 +75,12 @@ class HumanTime:
         self._past = dt < now
 
     @classmethod
-    async def convert(cls, ctx, argument):
+    async def convert(cls, ctx, argument: str):
         return cls(argument, now=ctx.message.created_at)
 
 
 class Time(HumanTime):
-    def __init__(self, argument, *, now=None):
+    def __init__(self, argument: str, *, now=None):
         try:
             o = ShortTime(argument, now=now)
         except Exception:
