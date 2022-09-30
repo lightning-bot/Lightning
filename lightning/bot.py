@@ -284,10 +284,10 @@ class LightningBot(commands.AutoShardedBot):
 
         exc = ''.join(traceback.format_exception(exc[0], exc[1], exc[2], chain=False))
         if len(exc) >= 2040:
-            resp = await self.api.request("PUT", "/admin/paste", data={"text": exc})
+            resp = await self.api.create_paste(exc)
             desc = f"Traceback too long...\n{resp['full_url']}"
         else:
-            desc = f"```py{exc}```"
+            desc = f"```py\n{exc}```"
 
         embed = discord.Embed(title="Event Error", description=desc,
                               color=discord.Color.gold(),
@@ -371,6 +371,11 @@ class LightningBot(commands.AutoShardedBot):
             return
         elif isinstance(error, commands.TooManyArguments):
             await ctx.send(f"You passed too many arguments.{help_text}")
+            return
+        elif isinstance(error, commands.BadLiteralArgument):
+            lts = ', '.join(f'\"{e}\"' for e in error.literals)
+            await ctx.send(f"You gave an incorrect argument for {error.param.name}. I expected one of "
+                           f"{lts}.\n> **These are case sensitive!**")
             return
         elif isinstance(error, (errors.LightningError, errors.FlagError, menus.MenuError)):
             await ctx.send(error_text)
