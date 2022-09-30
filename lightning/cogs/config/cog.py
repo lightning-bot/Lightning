@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import collections
 import logging
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 import discord
 from discord.ext import commands
@@ -32,8 +32,7 @@ from lightning.cogs.config.converters import (AutoModDuration,
                                               IgnorableEntities)
 from lightning.constants import (AUTOMOD_EVENT_NAMES_LITERAL,
                                  AUTOMOD_EVENT_NAMES_MAPPING)
-from lightning.converters import (Role, ValidCommandName, convert_to_level,
-                                  convert_to_level_value)
+from lightning.converters import Role, ValidCommandName, convert_to_level_value
 from lightning.formatters import plural
 from lightning.models import GuildModConfig
 from lightning.utils.checks import has_guild_permissions
@@ -429,7 +428,7 @@ class Configuration(LightningCog):
 
     @permissions.command(name='add', level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def permissions_add(self, ctx: GuildContext, level: convert_to_level,
+    async def permissions_add(self, ctx: GuildContext, level: Literal['trusted', 'mod', 'admin'],
                               _id: Union[discord.Role, discord.Member]) -> None:
         """Adds a user or a role to a level"""
         await self.adjust_level(ctx.guild.id, level, _id, adjuster="append")
@@ -437,7 +436,7 @@ class Configuration(LightningCog):
 
     @permissions.command(name='remove', level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def permissions_remove(self, ctx: GuildContext, level: convert_to_level,
+    async def permissions_remove(self, ctx: GuildContext, level: Literal['trusted', 'mod', 'admin'],
                                  _id: Union[discord.Member, discord.Role, int]) -> None:
         """Removes a user or a role from a level"""
         added = await self.adjust_level(ctx.guild.id, _id, level, adjuster="remove")
