@@ -204,24 +204,6 @@ class Role(commands.RoleConverter):
         return role
 
 
-class Prefix(commands.Converter):
-    async def convert(self, ctx, argument) -> str:
-        user_id = ctx.bot.user.id
-        if argument.startswith((f'<@{user_id}>', f'<@!{user_id}>')):
-            raise commands.BadArgument('That is a reserved prefix already in use.')
-        if len(argument) > 50:
-            raise commands.BadArgument('You can\'t have a prefix longer than 50 characters!')
-        return argument
-
-
-def convert_to_level(argument):
-    levels = ('trusted', 'mod', 'admin')
-    if argument.lower() in levels:
-        return argument
-    else:
-        raise InvalidLevelArgument(levels, argument)
-
-
 def convert_to_level_value(argument):
     d = {"user": CommandLevel.User,
          "trusted": CommandLevel.Trusted,
