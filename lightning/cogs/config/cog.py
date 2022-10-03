@@ -291,25 +291,36 @@ class Configuration(LightningCog):
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
-    @automod.command(level=CommandLevel.Admin, name='ignore')
+    @automod.command(level=CommandLevel.Admin, name='ignore', require_var_positional=True)
     @has_guild_permissions(manage_guild=True)
-    async def automod_default_ignores(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]):
+    async def automod_default_ignores(self, ctx: GuildContext, *entities: IgnorableEntities):
         """Specifies what roles, members, or channels will be ignored by AutoMod by default."""
         await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, [e.id for e in entities])
         await ctx.send(f"Now ignoring {', '.join([e.mention for e in entities])}")
+        await self.invalidate_config(ctx, config_name="guild_automod")
 
-    @automod.command(level=CommandLevel.Admin, name='unignore')
+    @automod.command(level=CommandLevel.Admin, name='unignore', require_var_positional=True)
     @has_guild_permissions(manage_guild=True)
-    async def automod_default_unignore(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]) -> None:
+    async def automod_default_unignore(self, ctx: GuildContext, *entities: IgnorableEntities) -> None:
         """Specify roles, members, or channels to remove from AutoMod default ignores."""
-        config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
+        try:
+            config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
+        except NotFound:
+            await ctx.send("You have not set up any ignores!")
+            return
+
         ignores: List[int] = config['default_ignores']
+        if not ignores:
+            await ctx.send("You have not set up any ignores!")
+            return
+
         for entity in entities:
             if entity.id in ignores:
                 ignores.remove(entity.id)
 
         await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, ignores)
         await ctx.send(f"Removed {', '.join(e.mention for e in entities)} from default ignores")
+        await self.invalidate_config(ctx, config_name="guild_automod")
 
     @automod.group(level=CommandLevel.Admin, name='rules')
     @has_guild_permissions(manage_guild=True)
@@ -353,6 +364,7 @@ class Configuration(LightningCog):
             return
 
         await ctx.send(f"Successfully set up {AUTOMOD_EVENT_NAMES_MAPPING[type]}!")
+        await self.invalidate_config(ctx, config_name="guild_automod")
 
     @automod_rules.command(level=CommandLevel.Admin, name="remove")
     @has_guild_permissions(manage_guild=True)
@@ -365,6 +377,7 @@ class Configuration(LightningCog):
             return
 
         await ctx.send(f"{AUTOMOD_EVENT_NAMES_MAPPING[rule]} was removed.")
+        await self.invalidate_config(ctx, config_name="guild_automod")
 
     # COMMAND OVERRIDES
 
