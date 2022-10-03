@@ -91,3 +91,14 @@ class PunishmentType(Enum):
     TEMPMUTE = 5
     BAN = 6
     TEMPBAN = 7
+
+
+class AutoModPunishmentType(Enum):
+    DELETE = 1
+    WARN = 2
+    MUTE = 3
+    KICK = 4
+    BAN = 5
+
+    def __str__(self) -> str:
+        return self.name
