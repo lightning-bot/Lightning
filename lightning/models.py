@@ -23,8 +23,10 @@ import discord
 
 from lightning import errors
 from lightning.commands import CommandLevel
+from lightning.constants import AUTOMOD_EVENT_NAMES_LITERAL
 from lightning.context import LightningContext
-from lightning.enums import ConfigFlags, LoggingType, ModFlags
+from lightning.enums import (AutoModPunishmentType, ConfigFlags, LoggingType,
+                             ModFlags)
 from lightning.utils import modlogformats
 from lightning.utils.time import natural_timedelta, strip_tzinfo
 
@@ -350,3 +352,20 @@ class Action:
     @property
     def event(self) -> str:
         return self.action.upper()
+
+
+class GuildAutoModRulePunishment:
+    def __init__(self, record) -> None:
+        self.type = AutoModPunishmentType[record['type']]
+        self.duration: Optional[str] = record.get('duration', None)
+
+
+class GuildAutoModRule:
+    def __init__(self, record) -> None:
+        self.id: int = record['id']
+        self.guild_id: int = record['guild_id']
+        self.type: AUTOMOD_EVENT_NAMES_LITERAL = record['type']
+        self.count: int = record['count']
+        self.seconds: int = record['seconds']
+        self.ignores: List[int] = record['ignores']
+        self.punishment = GuildAutoModRulePunishment(record['punishment'])
