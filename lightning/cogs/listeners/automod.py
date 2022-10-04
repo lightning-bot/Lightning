@@ -390,6 +390,23 @@ class AutoMod(LightningCog, required=["Moderation"]):
         cog: Moderation = self.bot.get_cog("Moderation")  # type: ignore
         await cog.dehoist_member(after, self.bot.user, COMMON_HOIST_CHARACTERS)
 
+    # Remove ids from config
+    @LightningCog.listener('on_member_remove')
+    @LightningCog.listener('on_guild_channel_delete')
+    @LightningCog.listener('on_guild_role_delete')
+    async def on_snowflake_removal(self, payload):
+        # payload: Union[discord.Member, discord.Role, discord.abc.GuildChannel]
+        config = await self.get_automod_config(payload.guild.id)
+        if not config:
+            return
+
+        try:
+            config.default_ignores.remove(payload.id)
+        except ValueError:
+            return
+
+        await self.bot.api.bulk_upsert_guild_automod_default_ignores(payload.guild.id, config.default_ignores)
+
 
 async def setup(bot: LightningBot) -> None:
     await bot.add_cog(AutoMod(bot))
