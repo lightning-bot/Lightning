@@ -322,6 +322,8 @@ class _SelectSM(discord.ui.Select['SelectSubMenu']):
     async def callback(self, interaction: discord.Interaction) -> None:
         assert self.view is not None
 
+        await interaction.response.defer()
+
         self.view.stop(interaction=interaction)
 
 
@@ -353,6 +355,9 @@ class SelectSubMenu(MenuLikeView):
     @property
     def values(self):
         return self._select.values or []
+
+    async def cleanup(self, *, interaction: Optional[discord.Interaction] = None) -> None:
+        return
 
 
 class _ButtonSM(discord.ui.Button['ButtonSubMenu']):

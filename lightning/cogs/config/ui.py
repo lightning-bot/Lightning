@@ -14,9 +14,10 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import discord
+from discord.ext import menus
 from sanctum.exceptions import NotFound
 
 from lightning import ExitableMenu, LoggingType, SelectSubMenu, UpdateableMenu
@@ -25,6 +26,7 @@ from lightning.context import GuildContext
 from lightning.converters import Role
 from lightning.events import ChannelConfigInvalidateEvent
 from lightning.ui import lock_when_pressed
+from lightning.utils.paginator import Paginator
 
 if TYPE_CHECKING:
     from lightning.cogs.config.cog import Configuration
@@ -375,3 +377,9 @@ class AutoModSetup(UpdateableMenu, ExitableMenu):
             return
 
         await interaction.followup.send(f"Removed {AUTOMOD_EVENT_NAMES_MAPPING[select.values[0]]} configuration!")
+
+
+class AutoModIgnoredPages(menus.ListPageSource):
+    async def format_page(self, menu: Paginator, entries: List[str]):
+        desc = [f'{idx + 1}. {entry}' for idx, entry in enumerate(entries, menu.current_page * self.per_page)]
+        return discord.Embed(title="Ignores", description="\n".join(desc), color=discord.Color.greyple())
