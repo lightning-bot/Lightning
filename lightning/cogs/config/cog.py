@@ -37,6 +37,7 @@ from lightning.formatters import plural
 from lightning.models import GuildModConfig
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
+from lightning.utils.paginator import Paginator
 
 log = logging.getLogger(__name__)
 
@@ -287,7 +288,7 @@ class Configuration(LightningCog):
     @config.group(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
     async def automod(self, ctx: GuildContext) -> None:
-        """Commands to configure Lightning's auto-moderation"""
+        """Commands to configure Lightning's Auto-Moderation"""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
@@ -295,7 +296,14 @@ class Configuration(LightningCog):
     @has_guild_permissions(manage_guild=True)
     async def automod_default_ignores(self, ctx: GuildContext, *entities: IgnorableEntities):
         """Specifies what roles, members, or channels will be ignored by AutoMod by default."""
-        await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, [e.id for e in entities])
+        try:
+            config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
+        except NotFound:
+            config = {'default_ignores': []}
+
+        config['default_ignores'].extend(e.id for e in entities)
+
+        await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, config['default_ignores'])
         await ctx.send(f"Now ignoring {', '.join([e.mention for e in entities])}")
         await self.invalidate_config(ctx, config_name="guild_automod")
 
@@ -321,6 +329,31 @@ class Configuration(LightningCog):
         await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, ignores)
         await ctx.send(f"Removed {', '.join(e.mention for e in entities)} from default ignores")
         await self.invalidate_config(ctx, config_name="guild_automod")
+
+    @automod.command(level=CommandLevel.Admin, name='ignored')
+    @has_guild_permissions(manage_guild=True)
+    async def automod_ignored(self, ctx: GuildContext):
+        """Shows what roles, members, or channels are ignored by AutoMod"""
+        try:
+            config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
+        except NotFound:
+            config = {'default_ignores': []}
+
+        # levels: Optional[LevelConfig] = attrgetter('permissions.levels')(await self.bot.get_guild_bot_config())
+        levels = None
+
+        if not config['default_ignores'] and not levels:
+            await ctx.send("You have no ignores set up!")
+            return
+
+        def resolve_snowflake(id: int):
+            if g := ctx.guild.get_channel_or_thread(id):
+                return g.mention
+            return g.mention if (g := ctx.guild.get_role(id)) else f"<@!{id}>"
+
+        pages = Paginator(ui.AutoModIgnoredPages([resolve_snowflake(g) for g in config['default_ignores']],
+                          per_page=10), context=ctx)
+        await pages.start()
 
     @automod.group(level=CommandLevel.Admin, name='rules')
     @has_guild_permissions(manage_guild=True)
