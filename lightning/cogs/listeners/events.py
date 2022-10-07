@@ -57,6 +57,7 @@ class ListenerEvents(LightningCog):
     Based off of Mousey's event system"""
 
     # TODO: A temp ignored cache.
+    # TODO: Don't fetch entries if no logging is enabled???
 
     async def fetch_audit_log_entry(self, guild: discord.Guild, action: discord.AuditLogAction, *,
                                     target: Optional[discord.abc.Snowflake] = None, limit: int = 50,

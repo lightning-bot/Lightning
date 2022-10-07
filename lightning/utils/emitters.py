@@ -1,6 +1,6 @@
 """
-Lightning.py - A personal Discord bot
-Copyright (C) 2019-2021 LightSage
+Lightning.py - A Discord bot
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,8 +14,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import asyncio
 import logging
+from typing import Optional
 
 import aiohttp
 import discord
@@ -25,25 +28,37 @@ log = logging.getLogger(__name__)
 
 class Emitter:
     """Base emitter"""
-    def __init__(self):
+    def __init__(self, *, task_name=None):
         self.loop = asyncio.get_event_loop()
         self._queue = asyncio.Queue()
         self._task = None
+        self._task_name: Optional[str] = task_name
 
     def start(self) -> None:
-        self._task = self.loop.create_task(self.emit_loop())
+        self._task = self.loop.create_task(self.emit_loop(), name=self._task_name)
 
     @property
     def closed(self):
+        """Boolean indicator whether the emitter is closed or running."""
         return self._task.cancelled() if self._task else True
 
     def close(self) -> None:
+        """
+        Closes the emitter loop
+        """
         self._task.cancel()
 
     def running(self) -> bool:
         return not self.closed
 
-    def get_task(self):
+    def get_task(self) -> Optional[asyncio.Task]:
+        """Gets the underlying task for the emitter
+
+        Returns
+        -------
+        Optional[asyncio.Task]
+            The task object created if ran else None
+        """
         return self._task
 
     async def emit_loop(self):
@@ -53,6 +68,8 @@ class Emitter:
             log.exception("An exception occurred during the emit loop", exc_info=e)
 
     async def _emit(self):
+        """The underlying function of what the emitter will do.
+        Subclasses should override this method"""
         raise NotImplementedError
 
 
@@ -81,13 +98,9 @@ class WebhookEmbedEmitter(Emitter):
 
 class TextChannelEmitter(Emitter):
     """An emitter designed for a text channel"""
-    def __init__(self, channel: discord.TextChannel, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, channel: discord.TextChannel):
+        super().__init__(task_name=f"textchannel-emitter-{channel.id}")
         self.channel = channel
-
-    def start(self) -> None:
-        super().start()
-        self._task.set_name(f"textchannel-emitter-{self.channel.id}")
 
     async def put(self, content=None, **kwargs):
         await self._queue.put({'content': content, **kwargs})

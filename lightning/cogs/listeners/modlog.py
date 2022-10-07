@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Optional, Union
 
 import discord
 
@@ -27,8 +27,6 @@ from lightning.utils import modlogformats
 from lightning.utils.emitters import TextChannelEmitter
 
 if TYPE_CHECKING:
-    from typing import Optional, Union
-
     from lightning import LightningBot, LightningContext
     from lightning.events import (AuditLogModAction, InfractionEvent,
                                   MemberRolesUpdateEvent, MemberUpdateEvent)
@@ -40,7 +38,7 @@ class ModLog(LightningCog):
     Infractions should be inserted here as it's part of logging."""
     def __init__(self, bot: LightningBot):
         super().__init__(bot)
-        self._emitters = {}
+        self._emitters: Dict[int, TextChannelEmitter] = {}
 
     # TODO: Log changes to infractions, temporary shushing of modlog channels
 
