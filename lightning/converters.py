@@ -26,6 +26,7 @@ import yarl
 from discord.ext import commands
 
 from lightning.commands import CommandLevel
+from lightning.context import GuildContext
 from lightning.errors import (ChannelPermissionFailure, HierarchyException,
                               InvalidLevelArgument, LightningError)
 
@@ -103,23 +104,6 @@ class SendableChannel(commands.Converter):
         return channel
 
 
-# https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/mod.py#L122
-class BannedMember(commands.Converter):
-    async def convert(self, ctx, argument):
-        if argument.isdigit():
-            try:
-                return await ctx.guild.fetch_ban(discord.Object(argument))
-            except discord.NotFound:
-                raise commands.BadArgument("This member has not been banned before.")
-
-        ban_list = await ctx.guild.bans()
-        entity = discord.utils.find(lambda u: str(u.user) == argument, ban_list)
-
-        if entity is None:
-            raise commands.BadArgument("This member has not been banned before.")
-        return entity
-
-
 class ValidCommandName(commands.Converter):
     async def convert(self, ctx, argument):
         lowered = argument.lower()
@@ -195,7 +179,7 @@ class Whitelisted_URL:
 
 class Role(commands.RoleConverter):
     """Converts to :class:`discord.Role` but respects hierarchy"""
-    async def convert(self, ctx, argument) -> discord.Role:
+    async def convert(self, ctx: GuildContext, argument) -> discord.Role:
         role = await super().convert(ctx, argument)
 
         if role.is_assignable() is False:
