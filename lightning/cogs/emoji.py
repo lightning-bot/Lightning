@@ -23,12 +23,11 @@ import unicodedata
 import discord
 from discord.ext import commands
 
-from lightning import (CommandLevel, LightningBot, LightningCog,
+from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, command, errors, group)
 from lightning.converters import EmojiRE, Whitelisted_URL
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.modlogformats import action_format
-from lightning.utils.paginator import BasicEmbedMenu, InfoMenuPages
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +43,7 @@ class Emoji(LightningCog):
     @commands.guild_only()
     @commands.bot_has_permissions(manage_emojis=True)
     @has_guild_permissions(manage_emojis=True)
-    async def add(self, ctx: LightningContext, *args) -> None:
+    async def add(self, ctx: GuildContext, *args) -> None:
         """Adds an emoji to the server"""
         error_msg = "Expected a custom emote. To add an emoji with a link, you must provide the name and url"\
                     " like <name> <url>."
@@ -94,25 +93,8 @@ class Emoji(LightningCog):
         else:
             await ctx.send(f"Successfully created {emoji} `{emoji}`")
 
-    @commands.guild_only()
-    @emoji.command(name='list', aliases=['all'])
-    async def listemotes(self, ctx: LightningContext) -> None:
-        """Sends a paginator with a list of the server's usable emotes"""
-        if len(ctx.guild.emojis) == 0:
-            await ctx.send("This server has no emojis. Add some emojis then run the command again.")
-            return
-
-        server_emotes = sorted([emoji for emoji in ctx.guild.emojis if emoji.is_usable()], key=lambda x: x.name)
-        emotes = [f'{emoji} -- `{emoji}`' for emoji in server_emotes]
-        if not emotes:
-            await ctx.send("This server has no emojis that are usable by me.")
-            return
-
-        pages = InfoMenuPages(BasicEmbedMenu(emotes, per_page=20), clear_reactions_after=True, check_embeds=True)
-        await pages.start(ctx)
-
     @emoji.command()
-    async def info(self, ctx: LightningContext, emote: EmojiRE) -> None:
+    async def info(self, ctx: GuildContext, emote: EmojiRE) -> None:
         """Gives some info on an emote.
 
         For unicode emoji: use `charinfo`"""
@@ -132,7 +114,7 @@ class Emoji(LightningCog):
         await ctx.send(embed=embed)
 
     @info.error
-    async def emoji_error(self, ctx: LightningContext, error) -> None:
+    async def emoji_error(self, ctx: GuildContext, error) -> None:
         if isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
             await ctx.send(error)
 
@@ -141,7 +123,8 @@ class Emoji(LightningCog):
         """Shows information for a character"""
         def repr_unicode(c):
             name = unicodedata.name(c, 'Name not found.')
-            return f'`{name}` - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{f"{ord(c):x}"}>'
+            return f'`{name}` - {c} \N{EM DASH} <http://www.fileformat.info/info/unicode/char/{ord(c):x}>'
+
         content = '\n'.join(map(repr_unicode, characters))
         if len(content) > 2000:
             await ctx.send('Output too long to display.')
