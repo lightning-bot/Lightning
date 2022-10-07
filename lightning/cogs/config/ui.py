@@ -258,6 +258,8 @@ automod_punishment_options = [discord.SelectOption(label="Delete", value="DELETE
                                                    description="Warns the author of the message"),
                               discord.SelectOption(label="Kick", value="KICK",
                                                    description="Kicks the author of the message"),
+                              discord.SelectOption(label="Mute", value="MUTE",
+                                                   description="Mutes the author of the message"),
                               discord.SelectOption(label="Ban", value="BAN", description="Bans the author of the "
                                                                                          "message")]
 
