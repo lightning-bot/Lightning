@@ -28,6 +28,7 @@ from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, ModFlags, cache, command, converters)
 from lightning import flags as lflags
 from lightning import group
+from lightning.cogs.mod.converters import BannedMember
 from lightning.cogs.mod.flags import BaseModParser
 from lightning.constants import COMMON_HOIST_CHARACTERS
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
@@ -509,10 +510,11 @@ class Mod(LightningCog, required=["Configuration"]):
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    async def unban(self, ctx: LightningContext, member: converters.BannedMember, *, reason: str = None) -> None:
+    async def unban(self, ctx: GuildContext, member: discord.BanEntry = commands.param(
+                    converter=BannedMember), *, reason: Optional[str] = None) -> None:
         """Unbans a user
 
-        You can pass either the ID of the banned member or the Name#Discrim \
+        You can pass either the ID of the banned member, the mention of the member, or the Name#Discrim \
         combination of the member. The member's ID is easier to use."""
         await ctx.guild.unban(member.user, reason=self.format_reason(ctx.author, reason))
         await self.confirm_and_log_action(ctx, member.user, "UNBAN")
