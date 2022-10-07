@@ -58,7 +58,7 @@ class PostgresConfig:
     __slots__ = ('uri',)
 
     def __init__(self, data: Dict[str, Any]) -> None:
-        self.uri = data['uri']
+        self.uri: str = data['uri']
 
 
 class RedisConfig:
