@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import collections
 import logging
-from typing import List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import discord
 from discord.ext import commands
@@ -38,6 +38,7 @@ from lightning.models import GuildModConfig
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
 from lightning.utils.paginator import Paginator
+from lightning.utils.time import ShortTime
 
 log = logging.getLogger(__name__)
 
@@ -301,7 +302,7 @@ class Configuration(LightningCog):
         except NotFound:
             config = {'default_ignores': []}
 
-        config['default_ignores'].extend(e.id for e in entities)
+        config['default_ignores'].extend(e.id for e in entities if e.id not in config['default_ignores'])
 
         await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, config['default_ignores'])
         await ctx.send(f"Now ignoring {', '.join([e.mention for e in entities])}")
@@ -384,11 +385,25 @@ class Configuration(LightningCog):
         if punishment is None:
             return
 
+        punishment_payload: Dict[str, Any] = {"type": punishment[0]}
+
+        # Discord removed selects so blame them for this
+        if punishment[0] in ("BAN", "MUTE"):
+            darg = await ctx.confirm("This punishment supports temporary actions!\nWould you like to set a duration for"
+                                     " this rule?")
+            if darg:
+                m = await ctx.ask("What would you like the duration to be?")
+                if not m:
+                    return
+
+                duration = ShortTime(m.content)
+                punishment_payload['duration'] = duration.delta.seconds
+
         payload = {"guild_id": ctx.guild.id,
                    "type": type,
                    "count": result.count,
                    "seconds": result.seconds,
-                   "punishment": {"type": punishment[0]}}
+                   "punishment": punishment_payload}
         try:
             await self.bot.api.create_guild_automod_rule(ctx.guild.id, payload)
         except DataConflict:
