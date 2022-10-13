@@ -358,6 +358,18 @@ class AutoMod(LightningCog, required=["Moderation"]):
         if message.guild is None:  # DM Channels are exempt.
             return
 
+        # Ignore system content
+        if message.is_system():
+            return
+
+        # Ignore bots (for now)
+        if message.author.bot:
+            return
+
+        # Ignore higher ups
+        if hasattr(message.author, 'top_role') and message.guild.me.top_role < message.author.top_role:
+            return
+
         check = await self.is_member_whitelisted(message)
         if check is True:
             return
