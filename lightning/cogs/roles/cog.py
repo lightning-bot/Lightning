@@ -14,8 +14,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import typing
 from io import StringIO
+from typing import List, Tuple, Union
 
 import discord
 import tabulate
@@ -24,8 +24,8 @@ from discord.ext import commands
 from discord.ext.commands.view import StringView
 from rapidfuzz import process
 
-from lightning import (CommandLevel, LightningBot, LightningCog,
-                       LightningContext, command, group)
+from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
+                       command, group)
 from lightning.cogs.roles.menus import RoleSource
 from lightning.cogs.roles.ui import RoleButton, RoleButtonView
 from lightning.converters import Role
@@ -71,7 +71,7 @@ class Roles(LightningCog):
 
     @command()
     @commands.guild_only()
-    async def rolemembers(self, ctx: LightningContext, *, role: discord.Role) -> None:
+    async def rolemembers(self, ctx: GuildContext, *, role: discord.Role) -> None:
         """Lists members that have a certain role"""
         if len(role.members) == 0:
             await ctx.send(f"{str(role)} has no members.")
@@ -80,7 +80,7 @@ class Roles(LightningCog):
         fp = StringIO(tabulate.tabulate([(str(r), r.id) for r in role.members], ("Name", "ID")))
         await ctx.send(file=discord.File(fp, "members.txt"))
 
-    async def resolve_roles(self, record, ctx, args):
+    async def resolve_roles(self, record, ctx, args) -> Tuple[List[discord.Role], List[str]]:
         roles = []
         for x in record:
             if role := ctx.guild.get_role(x):
@@ -118,10 +118,10 @@ class Roles(LightningCog):
     def _has_dangerous_permissions(self, permissions: discord.Permissions):
         return permissions.value & DANGEROUS_PERMISSIONS.value != 0
 
-    @group(aliases=['selfrole'], invoke_without_command=True, require_var_positional=True)
+    @group(invoke_without_command=True, require_var_positional=True)
     @commands.guild_only()
     @commands.bot_has_permissions(manage_roles=True)
-    async def togglerole(self, ctx: LightningContext, *roles) -> None:
+    async def togglerole(self, ctx: GuildContext, *roles) -> None:
         """Toggles a role that this server has setup.
 
         To toggle multiple roles, you'll need to use a comma (",") as a separator.
@@ -174,7 +174,8 @@ class Roles(LightningCog):
     @commands.guild_only()
     @has_guild_permissions(manage_roles=True)
     @commands.bot_has_permissions(manage_roles=True)
-    async def set_toggleable_roles(self, ctx, *, role: discord.Role = commands.param(converter=Role)) -> None:
+    async def set_toggleable_roles(self, ctx: GuildContext, *,
+                                   role: discord.Role = commands.param(converter=Role)) -> None:
         """Adds a role to the list of toggleable roles for members"""
         if self._has_dangerous_permissions(role.permissions):
             await ctx.send(f"Unable to add {role.name} ({role.id}) because it has permissions that are deemed "
@@ -195,7 +196,7 @@ class Roles(LightningCog):
     @togglerole.command(name="purge", level=CommandLevel.Admin)
     @commands.guild_only()
     @has_guild_permissions(manage_roles=True)
-    async def purge_toggleable_roles(self, ctx: LightningContext) -> None:
+    async def purge_toggleable_roles(self, ctx: GuildContext) -> None:
         """Deletes all the toggleable roles you have set in this server"""
         query = """UPDATE guild_config
                    SET toggleroles=NULL
@@ -218,7 +219,7 @@ class Roles(LightningCog):
     @togglerole.command(name="delete", aliases=['remove'], level=CommandLevel.Admin)
     @commands.guild_only()
     @has_guild_permissions(manage_roles=True)
-    async def remove_toggleable_role(self, ctx: LightningContext, *, role: typing.Union[discord.Role, int]) -> None:
+    async def remove_toggleable_role(self, ctx: GuildContext, *, role: Union[discord.Role, int]) -> None:
         """Removes a role from the toggleable role list"""
         role_repr = (role.id if hasattr(role, 'id') else role, role.name if hasattr(role, 'name') else role)
         await self.remove_assignable_role(ctx.guild.id, role_repr[0])
@@ -226,13 +227,13 @@ class Roles(LightningCog):
         await ctx.send(f"Successfully removed {role_repr[1]} from the list of toggleable roles")
         self.bot.loop.create_task(self.update_togglerole_buttons(ctx.guild))
 
-    async def start_role_pages(self, ctx, roles: typing.List[discord.Role]):
+    async def start_role_pages(self, ctx, roles: List[discord.Role]):
         pages = paginator.Paginator(RoleSource(roles, per_page=12), context=ctx)
         await pages.start(wait=False)
 
     @commands.guild_only()
     @togglerole.command(name="list")
-    async def list_toggleable_roles(self, ctx: LightningContext) -> None:
+    async def list_toggleable_roles(self, ctx: GuildContext) -> None:
         """Lists all the self-assignable roles this server has"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if not record or not record.toggleroles:
@@ -295,7 +296,7 @@ class Roles(LightningCog):
         view = await self._prepare_view(guild, channel.id)
         await message.edit(view=view)
 
-    async def simple_button_view(self, ctx: LightningContext):
+    async def simple_button_view(self, ctx: GuildContext):
         message = await ctx.ask("What would you like the message content to be?")
         if not message:
             return
@@ -314,7 +315,7 @@ class Roles(LightningCog):
     @togglerole.command()
     @has_guild_permissions(manage_roles=True)
     @commands.bot_has_guild_permissions(manage_roles=True)
-    async def buttons(self, ctx: LightningContext):
+    async def buttons(self, ctx: GuildContext):
         """Sets up role buttons"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
         if not record or not record.toggleroles:
