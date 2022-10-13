@@ -127,3 +127,6 @@ lightning/resources/templates
 resources/nindy_data.json
 # Migrations
 migratory.json
+
+# discord debug
+discord-debug.log.*
