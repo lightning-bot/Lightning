@@ -407,8 +407,9 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @LightningCog.listener('on_member_remove')
     @LightningCog.listener('on_guild_channel_delete')
     @LightningCog.listener('on_guild_role_delete')
+    @LightningCog.listener('on_thread_delete')
     async def on_snowflake_removal(self, payload):
-        # payload: Union[discord.Member, discord.Role, discord.abc.GuildChannel]
+        # payload: Union[discord.Member, discord.Role, discord.abc.GuildChannel, discord.Thread]
         config = await self.get_automod_config(payload.guild.id)
         if not config:
             return
