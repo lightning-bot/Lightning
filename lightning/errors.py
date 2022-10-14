@@ -25,6 +25,11 @@ class LightningError(Exception):
 
 
 class LightningCommandError(LightningError):
+    """Error class for if something internal broke with the command."""
+    ...
+
+
+class LightningConversionError(LightningCommandError):
     ...
 
 
@@ -32,15 +37,6 @@ class TimersUnavailable(LightningCommandError):
     def __init__(self):
         super().__init__("Lightning\'s timer system is currently unavailable. "
                          "Please try again later.")
-
-
-class BadTarget(LightningCommandError):
-    pass
-
-
-class NoImageProvided(LightningCommandError):
-    def __init__(self):
-        super().__init__("Please provide an image.")
 
 
 class ChannelNotFound(LightningCommandError):
