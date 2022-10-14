@@ -18,9 +18,7 @@ import asyncio
 import json
 import logging
 import subprocess
-import typing
-import warnings
-from functools import wraps
+from typing import Optional, Union
 
 import aiohttp
 import asyncpg
@@ -32,7 +30,7 @@ from lightning.constants import Emoji
 log = logging.getLogger(__name__)
 
 
-async def dm_user(user: typing.Union[discord.User, discord.Member], message: str = None, **kwargs):
+async def dm_user(user: Union[discord.User, discord.Member], message: Optional[str] = None, **kwargs):
     """Sends a message to a user and handles errors
 
     Parameters
@@ -60,20 +58,20 @@ def ticker(boolean: bool) -> str:
     return Emoji.greentick if boolean else Emoji.redtick
 
 
-class BetterUserObject(discord.Object):
+class UserObject(discord.Object):
     def __init__(self, id):
         super().__init__(id)
 
     @property
     def mention(self):
-        return '<@!%s>' % self.id
+        return f'<@!{self.id}>'
 
     def __str__(self):
         return str(self.id)
 
 
 async def request(url, session: aiohttp.ClientSession, *, timeout=180, method: str = "GET", return_text=False,
-                  **kwargs) -> typing.Union[dict, str, bytes]:
+                  **kwargs) -> Union[dict, str, bytes]:
     async with session.request(method, url, timeout=timeout, **kwargs) as resp:
         if resp.status == 429:
             log.info(f"Ratelimited while requesting {url}")
@@ -119,25 +117,6 @@ async def create_pool(dsn: str, **kwargs) -> asyncpg.Pool:
         await connection.set_type_codec('jsonb', encoder=json.dumps, decoder=json.loads, schema='pg_catalog')
 
     return await asyncpg.create_pool(dsn, init=init, **kwargs)
-
-
-def deprecated(deprecated_in: str = None, removed_in: str = None, details: str = None):
-    """A decorator that marks a function as deprecated"""
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            dfmt = f" as of {deprecated_in}" if deprecated_in else ""
-            rfmt = f" and will be removed in {removed_in}" if removed_in else ""
-
-            defmt = "" if not details else details
-            fmt = f"{func.__name__} is deprecated{dfmt}{rfmt}. {defmt}"
-
-            warnings.simplefilter("always", DeprecationWarning)
-            warnings.warn(fmt, category=DeprecationWarning, stacklevel=2)
-            warnings.simplefilter("default", DeprecationWarning)
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
 
 
 async def safe_delete(message) -> bool:

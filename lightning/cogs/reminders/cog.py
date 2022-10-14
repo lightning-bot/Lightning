@@ -34,7 +34,7 @@ from lightning.cogs.reminders.ui import ReminderEdit
 from lightning.formatters import plural
 from lightning.models import Timer
 from lightning.utils import time as ltime
-from lightning.utils.helpers import BetterUserObject, dm_user
+from lightning.utils.helpers import UserObject, dm_user
 
 if TYPE_CHECKING:
     from lightning import LightningBot
@@ -281,9 +281,9 @@ class Reminders(LightningCog):
         assert timer.extra is not None
 
         channel = self.bot.get_channel(timer.extra['channel'])
-        user = self.bot.get_user(timer.extra['author']) or BetterUserObject(id=timer.extra['author'])
+        user = self.bot.get_user(timer.extra['author']) or UserObject(id=timer.extra['author'])
 
-        if not channel and isinstance(user, BetterUserObject):
+        if not channel and isinstance(user, UserObject):
             # rip
             return
 

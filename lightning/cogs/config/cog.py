@@ -276,7 +276,7 @@ class Configuration(LightningCog):
         query = "SELECT COUNT(*) FROM roles WHERE guild_id=$1 AND $2 = ANY(punishment_roles);"
         users = await self.bot.pool.fetchval(query, ctx.guild.id, config.mute_role_id)
 
-        confirm = await ctx.prompt(f"Are you sure you want to unbind the mute role from {plural(users):user}?")
+        confirm = await ctx.confirm(f"Are you sure you want to unbind the mute role from {plural(users):user}?")
         if not confirm:
             return
 
