@@ -24,8 +24,7 @@ import discord
 from discord.ext import commands
 from sanctum import DataConflict, NotFound
 
-from lightning import (CommandLevel, ConfigFlags, GuildContext, LightningCog,
-                       cache, group)
+from lightning import CommandLevel, GuildContext, LightningCog, cache, group
 from lightning.cogs.config import ui
 from lightning.cogs.config.converters import (AutoModDuration,
                                               AutoModDurationResponse,
@@ -41,18 +40,6 @@ from lightning.utils.paginator import Paginator
 from lightning.utils.time import ShortTime
 
 log = logging.getLogger(__name__)
-
-
-Features = {"role saver": (ConfigFlags.role_reapply, "Now saving member roles.", "No longer saving member roles."),
-            "invoke delete": (ConfigFlags.invoke_delete, "Now deleting successful command invocation messages",
-                              "No longer deleting successful command invocation messages")}
-
-
-def convert_to_feature(argument):
-    if argument.lower() in Features.keys():
-        return Features[argument.lower()]
-    else:
-        raise commands.BadArgument(f"\"{argument}\" is not a valid feature flag.")
 
 
 class Configuration(LightningCog):
@@ -135,42 +122,6 @@ class Configuration(LightningCog):
     async def logging(self, ctx, *, channel: discord.TextChannel = commands.CurrentChannel):
         """Sets up logging for the server via a menu"""
         await ui.Logging(channel, context=ctx, timeout=180.0).start(wait=False)
-
-    async def toggle_feature_flag(self, guild_id: int, flag: ConfigFlags) -> ConfigFlags:
-        """Toggles a feature flag for a guild
-
-        Parameters
-        ----------
-        guild_id : int
-            The ID of the server
-        flag : ConfigFlags
-            The flag that is being toggled.
-
-        Returns
-        -------
-        ConfigFlags
-            Returns the newly created flags.
-        """
-        record = await self.bot.get_guild_bot_config(guild_id)
-        toggle = record.flags - flag if flag in record.flags else \
-            record.flags | flag
-        await self.add_config_key(guild_id, "flags", int(toggle))
-        await self.bot.get_guild_bot_config.invalidate(guild_id)
-        return toggle
-
-    @config.command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
-    async def toggle(self, ctx: GuildContext, *, feature: convert_to_feature) -> None:
-        """Toggles a feature flag"""
-        flag, piece_yes, piece_no = feature
-        toggle = await self.toggle_feature_flag(ctx.guild.id, flag)
-
-        if flag in toggle:
-            piece = piece_yes
-        else:
-            piece = piece_no
-
-        await ctx.send(piece)
 
     @config.command(level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_roles=True)
