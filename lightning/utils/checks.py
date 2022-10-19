@@ -89,20 +89,11 @@ def has_guild_permissions(**permissions):
     async def pred(ctx):
         permcheck = await check_guild_permissions(ctx, permissions, check=all)
         if permcheck is False:
-            raise commands.MissingPermissions(permissions)
+            raise commands.MissingPermissions(list(permissions.keys()))
         return permcheck
     # Note to myself: Change these to __lightning_user_guild_requires__ when rewriting.
     pred.guild_permissions = list(permissions.keys())
     return commands.check(pred)
-
-
-def required_cog(cog_name):
-    """Check function if a cog is loaded"""
-    async def predicate(ctx):
-        if not ctx.bot.get_cog(cog_name):
-            raise errors.CogNotAvailable(cog_name)
-        return True
-    return commands.check(predicate)
 
 
 def no_threads():
