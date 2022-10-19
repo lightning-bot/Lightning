@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import collections
 import logging
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import discord
 from discord.ext import commands
@@ -102,7 +102,7 @@ class Configuration(LightningCog):
 
         return await self.bot.pool.execute(query, *args)
 
-    @config.command(aliases=['prefixes'], level=CommandLevel.Admin)
+    @config.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
     async def prefix(self, ctx: GuildContext) -> None:
         """Manages the server's custom prefixes"""
@@ -149,7 +149,7 @@ class Configuration(LightningCog):
                 await ctx.send("There is no mute role setup!")
                 return
 
-            mute = ret.get_mute_role(ctx)
+            mute = ret.get_mute_role()
             await ctx.send(f"The current mute role is set to {mute.name} ({mute.id})")
             return
 
@@ -168,7 +168,8 @@ class Configuration(LightningCog):
         await self.invalidate_config(ctx)
         await ctx.send("Successfully removed the configured mute role.")
 
-    async def update_mute_role_permissions(self, role: discord.Role, guild: discord.Guild, author) -> tuple:
+    async def update_mute_role_permissions(self, role: discord.Role, guild: discord.Guild,
+                                           author: discord.Member) -> Tuple[int, int, int]:
         success = 0
         failure = 0
         skipped = 0
