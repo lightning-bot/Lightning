@@ -525,8 +525,8 @@ class Mod(LightningCog, required=["Configuration"]):
     async def massban(self, ctx: GuildContext, members: commands.Greedy[converters.TargetMember],
                       *, reason: str) -> None:
         """Mass bans users from the server"""
-        confirm = await ctx.prompt(f"Are you sure you want to ban {plural(len(members)):member}?\n"
-                                   "They will **not** be notified about being banned!")
+        confirm = await ctx.confirm(f"Are you sure you want to ban {plural(len(members)):member}?\n"
+                                    "They will **not** be notified about being banned!")
         if not confirm:
             return
 
