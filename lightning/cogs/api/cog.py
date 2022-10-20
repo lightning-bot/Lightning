@@ -19,20 +19,19 @@ from __future__ import annotations
 import re
 import urllib.parse
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 import discord
 from bs4 import BeautifulSoup
+from discord import app_commands
 from discord.ext import menus
 from rapidfuzz import fuzz, process
 
-from lightning import LightningCog, command, group
+from lightning import LightningCog, command, group, hybrid_command
 from lightning.cogs.api.menus import CrateViewer
 from lightning.utils import helpers, paginator
 
 if TYPE_CHECKING:
-    from typing import Dict, Optional, Tuple
-
     from lightning import LightningBot, LightningContext
 
 
@@ -101,7 +100,8 @@ class API(LightningCog):
 
         await ctx.send(embed=em, delete_after=60.0)
 
-    @command()
+    @hybrid_command()
+    @app_commands.describe(text="The text or URL for the QR code")
     async def qr(self, ctx: LightningContext, *, text: str) -> None:
         """Generates a QR code"""
         await ctx.send(f"https://api.qrserver.com/v1/create-qr-code/?qzone=4&data={urllib.parse.quote(text)}")
@@ -147,7 +147,7 @@ class API(LightningCog):
         return (match[0], entries[match[0]])
 
     @command()
-    async def rtfm(self, ctx: LightningContext, *, entity: str = None):
+    async def rtfm(self, ctx: LightningContext, *, entity: Optional[str] = None):
         """Searches PostgreSQL docs for an entity"""
         if not entity:
             await ctx.send("https://www.postgresql.org/docs/14/bookindex.html")
