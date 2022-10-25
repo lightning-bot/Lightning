@@ -147,7 +147,7 @@ class Reminders(LightningCog):
             await self.bot._error_logger.put(embed)
 
     @hybrid_group(usage="<when>", aliases=["reminder"], invoke_without_command=True, fallback="set")
-    @app_commands.describe(when="When to remind you of something")
+    @app_commands.describe(when="When to remind you of something, in UTC")
     async def remind(self, ctx: LightningContext, *,
                      when: ltime.UserFriendlyTimeResult =
                      parameter(converter=ltime.UserFriendlyTime(clean_content, default='something'))
@@ -188,6 +188,7 @@ class Reminders(LightningCog):
             await ctx.send(content, ephemeral=True)
 
     @remind.command(name="edit")
+    @app_commands.describe(reminder_id="The ID of the reminder")
     async def edit_reminder(self, ctx: LightningContext, reminder_id: int) -> None:
         """Edits a reminder you own"""
         try:
@@ -226,11 +227,9 @@ class Reminders(LightningCog):
     @remind.command(name='delete', aliases=['cancel'])
     @app_commands.describe(reminder_id="The reminder's ID you want to delete")
     async def deletereminder(self, ctx: LightningContext, *, reminder_id: int) -> None:
-        """Deletes a reminder by ID.
+        """Deletes a reminder you own by its ID.
 
-        You can get the ID of a reminder with {prefix}remind list
-
-        You must own the reminder to remove it"""
+        You can get the ID of a reminder with {prefix}remind list"""
         try:
             await self.bot.api.delete_user_reminder(ctx.author.id, reminder_id)
         except NotFound:
@@ -308,7 +307,3 @@ class Reminders(LightningCog):
             kwargs["reference"] = ref
 
         await channel.send(message, **kwargs)
-
-
-async def setup(bot: LightningBot) -> None:
-    await bot.add_cog(Reminders(bot))
