@@ -329,7 +329,7 @@ class Mod(LightningCog, required=["Configuration"]):
 
     async def do_message_purge(self, ctx: GuildContext, limit: int, predicate, *, before=None, after=None) -> None:
         if limit >= 150:
-            resp = await ctx.prompt(f"Are you sure you want to purge {limit} messages?", delete_after=True)
+            resp = await ctx.confirm(f"Are you sure you want to purge {limit} messages?", delete_after=True)
             if not resp:
                 await ctx.send("Cancelled")
                 return
@@ -684,14 +684,14 @@ class Mod(LightningCog, required=["Configuration"]):
     @command(level=CommandLevel.Mod)
     async def dehoist(self, ctx: GuildContext, character: Optional[str]):
         """Dehoists members with an optional specified character in the beginning of their name"""
-        character: List[str] = [character] if character else COMMON_HOIST_CHARACTERS
+        char: List[str] = [character] if character else COMMON_HOIST_CHARACTERS
         dehoists = []
         failed_dehoist = []
 
         async with ctx.typing():
             for member in ctx.guild.members:
                 try:
-                    i = await self.dehoist_member(member, ctx.author, character)
+                    i = await self.dehoist_member(member, ctx.author, char)
                 except discord.HTTPException:
                     failed_dehoist.append(member)
                     continue
@@ -715,9 +715,9 @@ class Mod(LightningCog, required=["Configuration"]):
         try:
             user = await self.bot.fetch_user(timer.extra['user_id'])
         except discord.HTTPException:
-            user = helpers.BetterUserObject(id=timer.extra['user_id'])
+            user = helpers.UserObject(id=timer.extra['user_id'])
 
-        moderator = guild.get_member(timer.extra['mod_id']) or helpers.BetterUserObject(id=timer.extra['mod_id'])
+        moderator = guild.get_member(timer.extra['mod_id']) or helpers.UserObject(id=timer.extra['mod_id'])
 
         reason = f"Timed ban made by {modlogformats.base_user_format(moderator)} at {timer.created_at} expired"
         await guild.unban(user, reason=reason)
@@ -751,7 +751,7 @@ class Mod(LightningCog, required=["Configuration"]):
         user = guild.get_member(timer.extra['user_id'])
         if user is None:
             # User left probably...
-            user = helpers.BetterUserObject(timer.extra['user_id'])
+            user = helpers.UserObject(timer.extra['user_id'])
         else:
             reason = f"Timed mute made by {modlogformats.base_user_format(moderator)} at "\
                      f"{get_utc_timestamp(timer.created_at)} expired"
@@ -819,24 +819,6 @@ class Mod(LightningCog, required=["Configuration"]):
 
     # Automod features tm
 
-    async def is_member_whitelisted(self, message) -> bool:
-        """Check that tells whether a member is exempt from automod or not"""
-        # TODO: Check against a generic set of moderator permissions.
-        record = await self.bot.get_guild_bot_config(message.guild.id)
-        if not record or record.permissions is None:
-            return None
-
-        if record.permissions.levels is None:
-            level = CommandLevel.User
-        else:
-            roles = message.author._roles if hasattr(message.author, "_roles") else []
-            level = record.permissions.levels.get_user_level(message.author.id, roles)
-
-        if level == CommandLevel.Blocked:  # Blocked to commands, not ignored by automod
-            return False
-
-        return level.value >= CommandLevel.Trusted.value
-
     async def get_warn_count(self, guild_id: int, user_id: int) -> int:
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
         rev = await self.bot.pool.fetchval(query, user_id, guild_id,
@@ -873,29 +855,6 @@ class Mod(LightningCog, required=["Configuration"]):
 
         if record.warn_ban and record.warn_ban <= count:
             await self._ban_punishment(event.member)
-
-    @LightningCog.listener()
-    async def on_message(self, message):
-        if message.guild is None:  # DM Channels are exempt.
-            return
-
-        # TODO: Ignored channels
-        check = await self.is_member_whitelisted(message)
-        if check is True:
-            return
-
-        record = await self.get_mod_config(message.guild.id)
-        if not record:
-            return
-
-        # Literally a way to punish nitro users :isabellejoy:
-        if len(message.content) > 2000 and ModFlags.delete_longer_messages in record.flags:
-            await self._delete_punishment(message)
-
-        # More nitro punishments
-        # Apparently some guilds are banning usage of stickers so this might be helpful for them.
-        if len(message.stickers) != 0 and ModFlags.delete_stickers in record.flags:
-            await self._delete_punishment(message)
 
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:
