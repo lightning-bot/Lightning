@@ -21,12 +21,8 @@ from lightning import LightningBot
 from .cog import Mod
 
 
-class Moderation(Mod):
-    ...
-
-
 async def setup(bot: LightningBot) -> None:
-    await bot.add_cog(Moderation(bot))
+    await bot.add_cog(Mod(bot))
 
     if "beta_prefix" in bot.config['bot']:
         bot.remove_command("config prefix")

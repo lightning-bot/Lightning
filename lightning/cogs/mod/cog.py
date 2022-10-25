@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, List, Optional, Union
 import discord
 from discord.ext import commands
 
-from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
+from lightning import (CommandLevel, GuildContext, LightningCog,
                        LightningContext, ModFlags, cache, command, converters)
 from lightning import flags as lflags
 from lightning import group
@@ -54,7 +54,7 @@ confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
                  "unban": "\N{OK HAND SIGN} {target} is now unbanned."}
 
 
-class Mod(LightningCog, required=["Configuration"]):
+class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     """Moderation and server management commands."""
 
     @cache.cached('mod_config', cache.Strategy.lru)
@@ -859,7 +859,3 @@ class Mod(LightningCog, required=["Configuration"]):
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:
         await self.get_mod_config.invalidate(guild.id)
-
-
-async def setup(bot: LightningBot) -> None:
-    await bot.add_cog(Mod(bot))
