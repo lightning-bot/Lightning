@@ -138,6 +138,9 @@ class Stats(LightningCog):
 
     @LightningCog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
+        if interaction.type is not discord.InteractionType.application_command:
+            return
+
         if interaction.command is not None and isinstance(interaction.command, commands.hybrid.HybridAppCommand):
             return
 
