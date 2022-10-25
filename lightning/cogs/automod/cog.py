@@ -17,145 +17,204 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import datetime
-import re
-from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional,
-                    TypedDict, Union)
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Literal,
+                    Optional, TypedDict, Union)
 
-import aioredis
 import discord
-from discord.ext.commands.cooldowns import BucketType
-from sanctum.exceptions import NotFound
+from discord import app_commands
+from discord.ext import commands
+from sanctum.exceptions import DataConflict, NotFound
 
-from lightning import (AutoModCooldown, CommandLevel, LightningBot,
-                       LightningCog, cache)
-from lightning.constants import (AUTOMOD_EVENT_NAMES_MAPPING,
+from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
+                       cache, hybrid_group)
+from lightning.cogs.automod import ui
+from lightning.cogs.automod.converters import (AutoModDuration,
+                                               AutoModDurationResponse,
+                                               IgnorableEntities)
+from lightning.cogs.automod.models import AutomodConfig, SpamConfig
+from lightning.constants import (AUTOMOD_EVENT_NAMES_LITERAL,
+                                 AUTOMOD_EVENT_NAMES_MAPPING,
                                  COMMON_HOIST_CHARACTERS)
 from lightning.models import GuildAutoModRulePunishment, PartialGuild
 from lightning.utils import modlogformats
+from lightning.utils.checks import has_guild_permissions
+from lightning.utils.paginator import Paginator
+from lightning.utils.time import ShortTime
 
 if TYPE_CHECKING:
     from lightning.cogs.mod import Moderation
     from lightning.cogs.reminders.cog import Reminders
 
-    class AutoModGuildConfig(TypedDict):
-        guild_id: int
-        default_ignores: List[int]
-
     class AutoModRulePunishmentPayload(TypedDict):
         type: str
         duration: Optional[str]
-
-    class AutoModRulePayload(TypedDict):
-        guild_id: int
-        type: str
-        count: int
-        seconds: int
-        ignores: List[int]
-        punishment: AutoModRulePunishmentPayload
 
     class AutoModMessage(discord.Message):
         guild: discord.Guild
         author: discord.Member
 
 
-INVITE_REGEX = re.compile(r"(?:https?://)?discord(?:app)?\.(?:com/invite|gg)/[a-zA-Z0-9]+/?")
-URL_REGEX = re.compile(r"https?:\/\/.*?$")
-
-
-def invite_check(message):
-    match = INVITE_REGEX.findall(message.content)
-    return bool(match)
-
-
-def url_check(message):
-    match = URL_REGEX.findall(message.content)
-    return bool(match)
-
-
-class AutomodConfig:
-    def __init__(self, bot: LightningBot, config: AutoModGuildConfig, rules: Dict[str, Any]) -> None:
-        self.guild_id = config["guild_id"]
-        self.default_ignores: List[int] = config.get("default_ignores", [])
-
-        self.bot = bot
-
-        self.message_spam: Optional[SpamConfig] = None
-        self.mass_mentions: Optional[SpamConfig] = None
-        self.message_content_spam: Optional[SpamConfig] = None
-        self.invite_spam: Optional[SpamConfig] = None
-        self.url_spam: Optional[SpamConfig] = None
-        # "Features"
-        self.auto_dehoist: Optional[BasicFeature] = None
-
-        self.load_rules(rules)
-
-    def load_rules(self, rules):
-        for rule in rules:
-            if rule['type'] == "mass-mentions":
-                self.mass_mentions = SpamConfig.from_model(rule, BucketType.member, self)
-            if rule['type'] == "message-spam":
-                self.message_spam = SpamConfig.from_model(rule, BucketType.member, self)
-            if rule['type'] == "message-content-spam":
-                self.message_content_spam = SpamConfig.from_model(rule,
-                                                                  lambda m: (m.author.id, len(m.content)), self)
-            if rule['type'] == "invite-spam":
-                self.invite_spam = SpamConfig.from_model(rule, BucketType.member, self, check=invite_check)
-            if rule['type'] == "url-spam":
-                self.url_spam = SpamConfig.from_model(rule, BucketType.member, self, check=url_check)
-            if rule['type'] == "auto-dehoist":
-                self.auto_dehoist = BasicFeature(rule)
-
-    def is_ignored(self, message: discord.Message):
-        if not self.default_ignores:
-            return False
-
-        return any(a in self.default_ignores for a in getattr(message.author, '_roles', [])) or message.author.id in self.default_ignores or message.channel.id in self.default_ignores  # noqa
-
-
-class BasicFeature:
-    __slots__ = ("punishment")
-
-    def __init__(self, data) -> None:
-        self.punishment = GuildAutoModRulePunishment(data['punishment'])
-
-
-class SpamConfig:
-    __slots__ = ("cooldown", "punishment", "check")
-
-    """A class to make interacting with a message spam config easier..."""
-    def __init__(self, rate: int, seconds: int, punishment_config: AutoModRulePunishmentPayload,
-                 bucket_type: Union[BucketType, Callable[[discord.Message], str]], key: str,
-                 redis_pool: aioredis.Redis, *,
-                 check: Optional[Callable[[discord.Message], bool]] = None) -> None:
-        self.cooldown = AutoModCooldown(key, rate, seconds, redis_pool, bucket_type)
-        self.punishment = GuildAutoModRulePunishment(punishment_config)
-
-        if check and not callable(check):
-            raise TypeError("check must be a callable")
-
-        self.check = check
-
-    @classmethod
-    def from_model(cls, record: AutoModRulePayload, bucket_type: Union[BucketType, Callable], config: AutomodConfig,
-                   *, check=None):
-        return cls(record['count'], record['seconds'], record["punishment"], bucket_type,
-                   f"automod:{record['type']}:{config.guild_id}", config.bot.redis_pool, check=check)
-
-    async def update_bucket(self, message: discord.Message, increment: int = 1) -> bool:
-        if self.check and self.check(message) is False:
-            return False
-
-        ratelimited = await self.cooldown.hit(message, incr_amount=increment)
-
-        return bool(ratelimited)
-
-    async def reset_bucket(self, message: discord.Message) -> None:
-        # I wouldn't think there's a need for this but if you're using warn (for example), it'll double warn
-        await self.cooldown.redis.delete(self.cooldown._key_maker(message))
-
-
 class AutoMod(LightningCog, required=["Moderation"]):
-    """Auto-moderation"""
+    """Auto-moderation commands"""
+    def __init__(self, bot: LightningBot):
+        super().__init__(bot)
+        # AutoMod stats?
+
+    @hybrid_group(level=CommandLevel.Admin)
+    @has_guild_permissions(manage_guild=True)
+    async def automod(self, ctx: GuildContext) -> None:
+        """Commands to configure Lightning's Auto-Moderation"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    @automod.command(level=CommandLevel.Admin, name='ignore', require_var_positional=True)
+    @has_guild_permissions(manage_guild=True)
+    async def automod_default_ignores(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]):
+        """Specifies what roles, members, or channels will be ignored by AutoMod by default."""
+        try:
+            config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
+        except NotFound:
+            config = {'default_ignores': []}
+
+        config['default_ignores'].extend(e.id for e in entities if e.id not in config['default_ignores'])
+
+        await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, config['default_ignores'])
+        await ctx.send(f"Now ignoring {', '.join([e.mention for e in entities])}")
+        await self.get_automod_config.invalidate(ctx.guild.id)
+
+    @automod.command(level=CommandLevel.Admin, name='unignore', require_var_positional=True)
+    @has_guild_permissions(manage_guild=True)
+    async def automod_default_unignore(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]) -> None:
+        """Specify roles, members, or channels to remove from AutoMod default ignores."""
+        try:
+            config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
+        except NotFound:
+            await ctx.send("You have not set up any ignores!")
+            return
+
+        ignores: List[int] = config['default_ignores']
+        if not ignores:
+            await ctx.send("You have not set up any ignores!")
+            return
+
+        for entity in entities:
+            if entity.id in ignores:
+                ignores.remove(entity.id)
+
+        await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, ignores)
+        await ctx.send(f"Removed {', '.join(e.mention for e in entities)} from default ignores")
+        await self.get_automod_config.invalidate(ctx.guild.id)
+
+    @automod.command(level=CommandLevel.Admin, name='ignored')
+    @has_guild_permissions(manage_guild=True)
+    async def automod_ignored(self, ctx: GuildContext):
+        """Shows what roles, members, or channels are ignored by AutoMod"""
+        try:
+            config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
+        except NotFound:
+            config = {'default_ignores': []}
+
+        # levels: Optional[LevelConfig] = attrgetter('permissions.levels')(await self.bot.get_guild_bot_config())
+        levels = None
+
+        if not config['default_ignores'] and not levels:
+            await ctx.send("You have no ignores set up!")
+            return
+
+        def resolve_snowflake(id: int):
+            if g := ctx.guild.get_channel_or_thread(id):
+                return g.mention
+            return g.mention if (g := ctx.guild.get_role(id)) else f"<@!{id}>"
+
+        pages = Paginator(ui.AutoModIgnoredPages([resolve_snowflake(g) for g in config['default_ignores']],
+                          per_page=10), context=ctx)
+        await pages.start()
+
+    @automod.group(level=CommandLevel.Admin, name='rules')
+    @has_guild_permissions(manage_guild=True)
+    async def automod_rules(self, ctx: GuildContext):
+        ...
+
+    @automod_rules.command(level=CommandLevel.Admin, name="add")
+    @has_guild_permissions(manage_guild=True)
+    @app_commands.describe(type="The AutoMod rule to set up",
+                           count="The interval of when the rule should be triggered")
+    async def add_automod_rules(self, ctx: GuildContext, type: AUTOMOD_EVENT_NAMES_LITERAL,
+                                *, count: str):
+        """Adds a new rule to automod.
+
+        You can provide count in the following ways
+        To set automod to do something at 5 messages per 10 seconds, you can express it in one of the following ways
+        - "5/10s"
+        - "5 10"
+        """
+        if type == "mass-mentions":
+            try:
+                result = AutoModDurationResponse(int(count), 0)
+            except ValueError:
+                await ctx.send("Could not convert to an integer")
+                return
+        else:
+            result: AutoModDurationResponse = await AutoModDuration().convert(ctx, count)
+
+        punishment = await ui.prompt_for_automod_punishments(ctx)
+        if punishment is None:
+            return
+
+        punishment_payload: Dict[str, Any] = {"type": punishment[0]}
+
+        # Discord removed selects so blame them for this
+        if punishment[0] in ("BAN", "MUTE"):
+            darg = await ctx.confirm("This punishment supports temporary actions!\nWould you like to set a duration for"
+                                     " this rule?")
+            if darg:
+                m = await ctx.ask("What would you like the duration to be?")
+                if not m:
+                    return
+
+                duration = ShortTime(m.content)
+                punishment_payload['duration'] = duration.delta.seconds
+
+        payload = {"guild_id": ctx.guild.id,
+                   "type": type,
+                   "count": result.count,
+                   "seconds": result.seconds,
+                   "punishment": punishment_payload}
+        try:
+            await self.bot.api.create_guild_automod_rule(ctx.guild.id, payload)
+        except DataConflict:
+            await ctx.reply("This rule has already been set up!\nIf you want to edit this rule, please remove it and"
+                            " then re-run this command again!")
+            return
+
+        await ctx.reply(f"Successfully set up {AUTOMOD_EVENT_NAMES_MAPPING[type]}!")
+        await self.get_automod_config.invalidate(ctx.guild.id)
+
+    @automod_rules.command(level=CommandLevel.Admin, name="remove")
+    @has_guild_permissions(manage_guild=True)
+    @app_commands.describe(rule="The AutoMod rule to remove")
+    async def remove_automod_rule(self, ctx: GuildContext, rule: AUTOMOD_EVENT_NAMES_LITERAL):
+        """Removes an existing automod rule"""
+        try:
+            await self.bot.api.delete_guild_automod_rule(ctx.guild.id, rule)
+        except NotFound:
+            await ctx.send(f"{AUTOMOD_EVENT_NAMES_MAPPING[rule]} was never set up!")
+            return
+
+        await ctx.send(f"{AUTOMOD_EVENT_NAMES_MAPPING[rule]} was removed.")
+        await self.get_automod_config.invalidate(ctx.guild.id)
+
+    # @automod_rules.command(level=CommandLevel.Admin, name="sync", enabled=False, hidden=True)
+    @has_guild_permissions(manage_guild=True)
+    async def sync_automod_rule(self, ctx: GuildContext, rule: Literal['mass-mentions']):
+        """
+        "Syncs" an AutoMod rule with Discord's AutoMod
+        """
+        try:
+            await self.bot.api.get_guild_automod_rules(ctx.guild.id)
+        except NotFound:
+            await ctx.send("No AutoMod rules are set up for this server!")
+            return
 
     @cache.cached('guild_automod', cache.Strategy.raw)
     async def get_automod_config(self, guild_id: int):
@@ -385,6 +444,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await self.check_message(message, record)
 
     @LightningCog.listener()
+    async def on_member_join(self, member: discord.Member):
+        ...
+
+    @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:
         await self.get_automod_config.invalidate(guild.id)
 
@@ -420,7 +483,3 @@ class AutoMod(LightningCog, required=["Moderation"]):
             return
 
         await self.bot.api.bulk_upsert_guild_automod_default_ignores(payload.guild.id, config.default_ignores)
-
-
-async def setup(bot: LightningBot) -> None:
-    await bot.add_cog(AutoMod(bot))
