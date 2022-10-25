@@ -240,28 +240,28 @@ class HybridGroup(commands.HybridGroup, LightningGroupCommand):
 
 # decorators
 def command(**kwargs):
-    def inner(func):
+    def inner(func) -> LightningCommand:
         cls = kwargs.pop('cls', LightningCommand)
         return cls(func, **kwargs)
     return inner
 
 
 def group(**kwargs):
-    def inner(func):
+    def inner(func) -> LightningGroupCommand:
         cls = kwargs.pop('cls', LightningGroupCommand)
         return cls(func, **kwargs)
     return inner
 
 
 def hybrid_command(**kwargs):
-    def inner(func):
+    def inner(func) -> HybridCommand:
         cls = kwargs.pop('cls', HybridCommand)
         return cls(func, **kwargs)
     return inner
 
 
 def hybrid_group(**kwargs):
-    def inner(func):
+    def inner(func) -> HybridGroup:
         cls = kwargs.pop('cls', HybridGroup)
         return cls(func, **kwargs)
     return inner
