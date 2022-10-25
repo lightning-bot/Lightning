@@ -26,7 +26,7 @@ from discord.ext import commands
 from sanctum.exceptions import DataConflict, NotFound
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
-                       cache, hybrid_group)
+                       LightningContext, cache, hybrid_group)
 from lightning.cogs.automod import ui
 from lightning.cogs.automod.converters import (AutoModDuration,
                                                AutoModDurationResponse,
@@ -60,6 +60,11 @@ class AutoMod(LightningCog, required=["Moderation"]):
         super().__init__(bot)
         # AutoMod stats?
 
+    async def cog_check(self, ctx: LightningContext) -> bool:
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage()
+        return True
+
     @hybrid_group(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
     async def automod(self, ctx: GuildContext) -> None:
@@ -67,7 +72,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
-    @automod.command(level=CommandLevel.Admin, name='ignore', require_var_positional=True)
+    @automod.command(level=CommandLevel.Admin, name='ignore')
     @has_guild_permissions(manage_guild=True)
     async def automod_default_ignores(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]):
         """Specifies what roles, members, or channels will be ignored by AutoMod by default."""
@@ -82,7 +87,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await ctx.send(f"Now ignoring {', '.join([e.mention for e in entities])}")
         await self.get_automod_config.invalidate(ctx.guild.id)
 
-    @automod.command(level=CommandLevel.Admin, name='unignore', require_var_positional=True)
+    @automod.command(level=CommandLevel.Admin, name='unignore')
     @has_guild_permissions(manage_guild=True)
     async def automod_default_unignore(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]) -> None:
         """Specify roles, members, or channels to remove from AutoMod default ignores."""
