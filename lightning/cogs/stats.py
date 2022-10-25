@@ -97,7 +97,8 @@ class Stats(LightningCog):
 
     async def bulk_database_insert(self) -> None:
         if self._command_inserts:
-            query = """INSERT INTO command_stats (guild_id, channel_id, user_id, used_at, command_name, failure, application_command)
+            query = """INSERT INTO command_stats (guild_id, channel_id, user_id, used_at, command_name, failure,
+                                                  application_command)
                        SELECT data.guild_id, data.channel_id, data.user_id, data.used_at, data.command_name,
                               data.failure, data.application_command
                        FROM jsonb_to_recordset($1::jsonb) AS
