@@ -25,8 +25,7 @@ from lightning import errors
 from lightning.commands import CommandLevel
 from lightning.constants import AUTOMOD_EVENT_NAMES_LITERAL
 from lightning.context import LightningContext
-from lightning.enums import (AutoModPunishmentType, ConfigFlags, LoggingType,
-                             ModFlags)
+from lightning.enums import AutoModPunishmentType, LoggingType, ModFlags
 from lightning.utils import modlogformats
 from lightning.utils.time import natural_timedelta, strip_tzinfo
 
@@ -271,7 +270,7 @@ class Timer:
 
 
 class GuildBotConfig:
-    __slots__ = ('bot', 'guild_id', 'toggleroles', 'prefixes', 'autorole_id', 'flags', 'permissions')
+    __slots__ = ('bot', 'guild_id', 'toggleroles', 'prefixes', 'autorole_id', 'permissions')
 
     def __init__(self, bot: LightningBot, record):
         self.bot: LightningBot = bot
@@ -280,7 +279,6 @@ class GuildBotConfig:
         self.toggleroles: Optional[List[int]] = record['toggleroles']
         self.prefixes: Optional[List[str]] = record['prefixes']
         self.autorole_id: Optional[int] = record['autorole']
-        self.flags: ConfigFlags = ConfigFlags(record['flags'] or 0)
 
         if record['permissions']:
             self.permissions = GuildPermissionsConfig(record['permissions'])

@@ -18,8 +18,7 @@ from discord import Enum
 from discord.ext.commands import BadArgument
 from flags import Flags
 
-__all__ = ("ConfigFlags",
-           "ModFlags",
+__all__ = ("ModFlags",
            "LoggingType",
            "PunishmentType")
 
@@ -35,15 +34,6 @@ class BaseFlags(Flags):
 
     def __str__(self) -> str:
         return self.name
-
-
-class ConfigFlags(BaseFlags):
-    # Deletes invocation messages
-    invoke_delete = 1 << 0
-    # Reapplies roles to users when they rejoin
-    role_reapply = 1 << 1
-    # Reapplies punishments only.
-    role_reapply_punishments_only = 1 << 2
 
 
 class ModFlags(BaseFlags):
