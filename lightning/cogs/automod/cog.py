@@ -72,6 +72,42 @@ class AutoMod(LightningCog, required=["Moderation"]):
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
+    @automod.command(level=CommandLevel.Admin, name='view')
+    @has_guild_permissions(manage_guild=True)
+    async def automod_view(self, ctx: GuildContext):
+        """Allows you to view the current AutoMod configuration"""
+        try:
+            rules = await ctx.bot.api.get_guild_automod_rules(ctx.guild.id)
+        except NotFound:
+            await ctx.send("This server has not set up Lightning AutoMod yet!")
+            return
+
+        fmt = []
+        for record in rules:
+            if record['type'] == "mass-mentions":
+                fmt.append(f"{AUTOMOD_EVENT_NAMES_MAPPING[record['type']]}: {record['count']}")
+            else:
+                fmt.append(f"{AUTOMOD_EVENT_NAMES_MAPPING[record['type']]}: {record['count']}/{record['seconds']}s")
+
+        embed = discord.Embed(color=0xf74b06, title="Lightning AutoMod")
+        embed.add_field(name="Rules", value="\n".join(fmt))
+
+        try:
+            config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
+        except NotFound:
+            config = {}
+
+        if default_ignores := config.get("default_ignores", None):
+            ignores = await self.verify_default_ignores(ctx, default_ignores)
+            fmt = "\n".join(x.mention for x in ignores[:10])
+            if len(ignores) > 10:
+                fmt = f"{fmt}\n and {len(ignores) - 10} more..."
+            embed.add_field(name="Ignores", value=fmt)
+        else:
+            embed.add_field(name="Ignores", value="None")
+
+        await ctx.send(embed=embed)
+
     @automod.command(level=CommandLevel.Admin, name='ignore')
     @has_guild_permissions(manage_guild=True)
     async def automod_default_ignores(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]):
@@ -110,6 +146,24 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await ctx.send(f"Removed {', '.join(e.mention for e in entities)} from default ignores")
         await self.get_automod_config.invalidate(ctx.guild.id)
 
+    async def verify_default_ignores(self, ctx: GuildContext, ignores: List[int]) -> List[IgnorableEntities]:
+        unresolved: List[int] = []
+        resolved: List[IgnorableEntities] = []
+        for snowflake in ignores:
+            if g := ctx.guild.get_channel_or_thread(snowflake):
+                resolved.append(g)  # type: ignore
+            if g := ctx.guild.get_role(snowflake):
+                resolved.append(g)
+            if g := ctx.guild.get_member(snowflake):
+                resolved.append(g)
+            unresolved.append(snowflake)
+
+        if unresolved:
+            await self.bot.api.bulk_upsert_guild_automod_default_ignores(ctx.guild.id, [x.id for x in resolved])
+            await self.get_automod_config.invalidate(ctx.guild.id)
+
+        return resolved
+
     @automod.command(level=CommandLevel.Admin, name='ignored')
     @has_guild_permissions(manage_guild=True)
     async def automod_ignored(self, ctx: GuildContext):
@@ -126,12 +180,9 @@ class AutoMod(LightningCog, required=["Moderation"]):
             await ctx.send("You have no ignores set up!")
             return
 
-        def resolve_snowflake(id: int):
-            if g := ctx.guild.get_channel_or_thread(id):
-                return g.mention
-            return g.mention if (g := ctx.guild.get_role(id)) else f"<@!{id}>"
+        resolved = await self.verify_default_ignores(ctx, config['default_ignores'])
 
-        pages = Paginator(ui.AutoModIgnoredPages([resolve_snowflake(g) for g in config['default_ignores']],
+        pages = Paginator(ui.AutoModIgnoredPages([r.mention for r in resolved],
                           per_page=10), context=ctx)
         await pages.start()
 
@@ -447,10 +498,6 @@ class AutoMod(LightningCog, required=["Moderation"]):
             return
 
         await self.check_message(message, record)
-
-    @LightningCog.listener()
-    async def on_member_join(self, member: discord.Member):
-        ...
 
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:
