@@ -24,8 +24,7 @@ from discord.ext import commands
 from discord.ext.commands.view import StringView
 from rapidfuzz import process
 
-from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
-                       command, group)
+from lightning import CommandLevel, GuildContext, LightningCog, command, group
 from lightning.cogs.roles.menus import RoleSource
 from lightning.cogs.roles.ui import RoleButton, RoleButtonView
 from lightning.converters import Role
@@ -369,7 +368,3 @@ class Roles(LightningCog):
         else:
             await interaction.user.add_roles(role, reason="togglerole slash command usage")
             await interaction.response.send_message(f"Added {role.name}!", ephemeral=True)
-
-
-async def setup(bot: LightningBot):
-    await bot.add_cog(Roles(bot))
