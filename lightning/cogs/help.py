@@ -100,7 +100,7 @@ class BotHelpSource(menus.ListPageSource):
         self.data = entries
         super().__init__(data, per_page=1)
 
-    async def format_page(self, menu: HelpPaginator, entry) -> discord.Embed:
+    async def format_page(self, menu: HelpPaginator, entry) -> str:
         description = f"Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.\nYou can also use \""\
                       f"{menu.ctx.clean_prefix}help [category]\" for help about a category."
         if "support_server_invite" in menu.bot.config['bot']:
@@ -122,7 +122,7 @@ class CogHelpSource(menus.ListPageSource):
     def format_signature(self, command):
         return f" {command.signature}" if command.signature else ""
 
-    async def format_page(self, menu: HelpPaginator, entries) -> discord.Embed:
+    async def format_page(self, menu: HelpPaginator, entries) -> str:
         cmds = [f"\N{BULLET} `{command.qualified_name}{self.format_signature(command)}` ("
                 f"{command.short_doc or 'No help found...'})\n" for command in entries]
 
@@ -138,7 +138,7 @@ class GroupHelpSource(CogHelpSource):
         self.group = group
         super().__init__(data, per_page=per_page)
 
-    async def format_page(self, menu: HelpPaginator, entries) -> discord.Embed:
+    async def format_page(self, menu: HelpPaginator, entries) -> str:
         if menu.current_page == 0:
             if await self.group.can_run(menu.ctx):
                 content = f"Your current permissions allow you to run the following group command:\n"\
@@ -160,6 +160,8 @@ class GroupHelpSource(CogHelpSource):
 
 
 class PaginatedHelpCommand(commands.HelpCommand):
+    context: LightningContext
+
     def __init__(self):
         super().__init__(command_attrs={
             'cooldown': commands.CooldownMapping(commands.Cooldown(1, 3.0), commands.BucketType.member),
@@ -170,7 +172,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
     def get_ending_note(self) -> str:
         return f'Use {self.context.clean_prefix}{self.invoked_with} [command] for more info on a command.'
 
-    async def command_not_found(self, string) -> str:
+    async def command_not_found(self, string: str) -> str:
         output = f"No command called \"{string}\" found."
         commands = [c.qualified_name for c in await self.filter_commands(self.context.bot.commands)]
         if fuzzymatches := extractOne(string, commands, score_cutoff=70):
