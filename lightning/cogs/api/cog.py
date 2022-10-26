@@ -46,7 +46,7 @@ class API(LightningCog):
 
     def clean_text(self, text: str) -> str:
         html = re.compile('<.*?>')
-        return re.sub(html, '', text)
+        return html.sub('', text)
 
     @group(invoke_without_command=True)
     async def blacklightning(self, ctx: LightningContext, season: int) -> None:
@@ -55,8 +55,7 @@ class API(LightningCog):
             await ctx.send("That season doesn\'t exist")
             return
 
-        resp = await ctx.confirm("This can potentially give spoilers to the show. Are you sure you want to proceed?",
-                                 delete_after=True)
+        resp = await ctx.confirm("This can potentially give spoilers to the show. Are you sure you want to proceed?")
         if not resp:
             return
 
@@ -83,8 +82,7 @@ class API(LightningCog):
     async def episode_info(self, ctx: LightningContext, season: int, episode: int) -> None:
         """Gives info on a certain episode of Black Lightning"""
         url = f"http://api.tvmaze.com/shows/20683/episodebynumber?season={season}&number={episode}"
-        resp = await ctx.prompt("This can potentially give spoilers to the show. Are you sure you want to proceed?",
-                                delete_after=True)
+        resp = await ctx.confirm("This can potentially give spoilers to the show. Are you sure you want to proceed?")
         if not resp:
             return
 
