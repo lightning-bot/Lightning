@@ -25,8 +25,8 @@ from lightning import errors
 from lightning.commands import CommandLevel
 from lightning.constants import AUTOMOD_EVENT_NAMES_LITERAL
 from lightning.context import LightningContext
-from lightning.enums import AutoModPunishmentType, LoggingType, ModFlags
-from lightning.utils import modlogformats
+from lightning.enums import (ActionType, AutoModPunishmentType, LoggingType,
+                             ModFlags)
 from lightning.utils.time import natural_timedelta, strip_tzinfo
 
 if TYPE_CHECKING:
@@ -292,10 +292,10 @@ class GuildBotConfig:
 
 
 def to_action(value):
-    if isinstance(value, modlogformats.ActionType):
+    if isinstance(value, ActionType):
         return value
 
-    a = getattr(modlogformats.ActionType, value)
+    a = getattr(ActionType, value)
     if not a:
         raise ValueError
 
@@ -303,12 +303,12 @@ def to_action(value):
 
 
 class Action:
-    def __init__(self, guild_id: int, action: Union[modlogformats.ActionType, str],
+    def __init__(self, guild_id: int, action: Union[ActionType, str],
                  target: Union[discord.Member, discord.User, int],
                  moderator: Union[discord.Member, discord.User, int], reason: Optional[str] = None, *,
                  expiry: Optional[datetime.datetime] = None, **kwargs):
         self.guild_id = guild_id
-        self.action: modlogformats.ActionType = to_action(action)
+        self.action: ActionType = to_action(action)
         self.target = target
         self.moderator = moderator
         self.reason = reason

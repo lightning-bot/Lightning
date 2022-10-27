@@ -31,6 +31,7 @@ from lightning import group
 from lightning.cogs.mod.converters import BannedMember
 from lightning.cogs.mod.flags import BaseModParser
 from lightning.constants import COMMON_HOIST_CHARACTERS
+from lightning.enums import ActionType
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
 from lightning.events import InfractionEvent
 from lightning.formatters import plural, truncate_text
@@ -88,7 +89,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await connection.execute(query, role_id, guild_id, user_id)
 
     async def log_manual_action(self, guild: discord.Guild, target: Union[discord.User, discord.Member], moderator,
-                                action: Union[modlogformats.ActionType, str], *, timestamp=None,
+                                action: Union[ActionType, str], *, timestamp=None,
                                 reason: Optional[str] = None, **kwargs) -> None:
         # We need this for bulk actions
         connection = kwargs.pop('connection', self.bot.pool)
@@ -98,14 +99,14 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         event = InfractionEvent(action, member=target, guild=guild, moderator=moderator, reason=reason, **kwargs)
         await event.action.add_infraction(connection)
 
-        if not isinstance(action, modlogformats.ActionType):
-            action = modlogformats.ActionType[str(action)]
+        if not isinstance(action, ActionType):
+            action = ActionType[str(action)]
 
         if str(action) == "TIMEMUTE":
-            action = modlogformats.ActionType.MUTE
+            action = ActionType.MUTE
 
         if str(action) == "TIMEBAN":
-            action = modlogformats.ActionType.BAN
+            action = ActionType.BAN
 
         if event.action.expiry:
             event.action.expiry = natural_timedelta(event.action.expiry, source=timestamp)
@@ -234,7 +235,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             await helpers.dm_user(target, dm_message)
 
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
-        warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, modlogformats.ActionType.WARN.value) or 0
+        warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, ActionType.WARN.value) or 0
         await self.confirm_and_log_action(ctx, target, "WARN", warning_text=f"{plural(warns + 1):warning}")
 
     @has_guild_permissions(manage_guild=True)
@@ -822,7 +823,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     async def get_warn_count(self, guild_id: int, user_id: int) -> int:
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
         rev = await self.bot.pool.fetchval(query, user_id, guild_id,
-                                           modlogformats.ActionType.WARN.value)
+                                           ActionType.WARN.value)
         return rev or 0
 
     async def _kick_punishment(self, target):

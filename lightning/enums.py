@@ -73,6 +73,24 @@ class LoggingType(BaseFlags):
     MEMBER_SCREENING_COMPLETE = 1 << 12
 
 
+class ActionType(Enum):
+    WARN = 1
+    KICK = 2
+    BAN = 3
+    TIMEBAN = 4
+    UNBAN = 5
+    MUTE = 6
+    UNMUTE = 7
+    TIMEMUTE = 8
+    TEMPROLE = 9
+
+    def __str__(self):
+        return self.name
+
+    def upper(self):
+        return self.name.replace(" ", "_").upper()
+
+
 class PunishmentType(Enum):
     DELETE = 1
     WARN = 2
