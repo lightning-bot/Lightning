@@ -32,54 +32,38 @@ def is_guild(guild_id):
 
 
 def is_one_of_guilds(*guilds):
-    async def predicate(ctx):
+    async def predicate(ctx) -> bool:
         if not ctx.guild:
             return False
+
         if ctx.guild.id in guilds:
             return True
+
+        return False
     return commands.check(predicate)
 
 
-def check_channel_permissions(ctx, perms):
-    """A copy of discord.py's has_permissions check
-    https://github.com/Rapptz/discord.py/blob/d9a8ae9c78f5ca0eef5e1f033b4151ece4ed1028/discord/ext/commands/core.py#L1533
-    """
-    ch = ctx.channel
-    permissions = ch.permissions_for(ctx.author)
-    missing = [perm for perm, value in perms.items() if getattr(permissions, perm, None) != value]
-
-    if not missing:
-        return True
-    raise commands.MissingPermissions(missing)
-
-
 def has_channel_permissions(**permissions):
+    c = commands.has_permissions(**permissions)
+
     async def predicate(ctx):
-        return check_channel_permissions(ctx, permissions)
+        return await c.predicate(ctx)
+
     predicate.channel_permissions = list(permissions.keys())
     return commands.check(predicate)
 
 
-async def check_guild_permissions(ctx, perms, *, check=all):
-    if await ctx.bot.is_owner(ctx.author):
-        return True
-
-    if not ctx.guild:
-        return False
-
-    resolved = ctx.author.guild_permissions
-    return check(getattr(resolved, name, None) == value for name, value in perms.items())
-
-
 def has_guild_permissions(**permissions):
-    async def pred(ctx):
-        permcheck = await check_guild_permissions(ctx, permissions, check=all)
-        if permcheck is False:
-            raise commands.MissingPermissions(list(permissions.keys()))
-        return permcheck
+    check = commands.has_guild_permissions(**permissions)
+
+    async def predicate(ctx):
+        if await ctx.bot.is_owner(ctx.author):
+            return True
+
+        return await check.predicate(ctx)
     # Note to myself: Change these to __lightning_user_guild_requires__ when rewriting.
-    pred.guild_permissions = list(permissions.keys())
-    return commands.check(pred)
+    predicate.guild_permissions = list(permissions.keys())
+    return commands.check(predicate)
 
 
 def no_threads():
