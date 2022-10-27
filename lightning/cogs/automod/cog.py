@@ -35,14 +35,14 @@ from lightning.cogs.automod.models import AutomodConfig, SpamConfig
 from lightning.constants import (AUTOMOD_EVENT_NAMES_LITERAL,
                                  AUTOMOD_EVENT_NAMES_MAPPING,
                                  COMMON_HOIST_CHARACTERS)
+from lightning.enums import ActionType
 from lightning.models import GuildAutoModRulePunishment, PartialGuild
-from lightning.utils import modlogformats
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.paginator import Paginator
 from lightning.utils.time import ShortTime
 
 if TYPE_CHECKING:
-    from lightning.cogs.mod import Moderation
+    from lightning.cogs.mod import Mod as Moderation
     from lightning.cogs.reminders.cog import Reminders
 
     class AutoModRulePunishmentPayload(TypedDict):
@@ -296,7 +296,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
                                                                            connection=connection)
 
     async def log_manual_action(self, guild: discord.Guild, target, moderator,
-                                action: Union[modlogformats.ActionType, str], *, timestamp=None,
+                                action: Union[ActionType, str], *, timestamp=None,
                                 reason: Optional[str] = None, **kwargs) -> None:
         # We need this for bulk actions
         c: Moderation = self.bot.get_cog("Moderation")  # type: ignore
