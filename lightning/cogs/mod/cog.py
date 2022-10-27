@@ -742,7 +742,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             # Bot was kicked.
             return
 
-        moderator = guild.get_member(timer.extra['mod_id']) or helpers.BetterUserObject(timer.extra['mod_id'])
+        moderator = guild.get_member(timer.extra['mod_id']) or helpers.UserObject(timer.extra['mod_id'])
 
         role = guild.get_role(timer.extra['role_id'])
         if role is None:
@@ -829,7 +829,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     async def _kick_punishment(self, target):
         reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
         await target.kick(reason=reason)
-        await self.log_manual_action(target, self.bot.user, "KICK", reason="Member triggered automod")
+        await self.log_manual_action(target.guild, target, self.bot.user, "KICK", reason="Member triggered automod")
 
     async def _ban_punishment(self, target):
         reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
