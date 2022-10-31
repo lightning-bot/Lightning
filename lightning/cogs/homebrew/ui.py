@@ -17,8 +17,35 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import asyncpg
 import discord
 
-from lightning import ExitableMenu, UpdateableMenu
-from lightning.converters import SendableChannel
+from lightning import ExitableMenu, UpdateableMenu, lock_when_pressed
+from lightning.ui import MenuLikeView
+
+
+class _SelectSM(discord.ui.ChannelSelect['ChannelSelect']):
+    async def callback(self, interaction: discord.Interaction) -> None:
+        assert self.view is not None
+
+        await interaction.response.defer()
+
+        self.view.stop(interaction=interaction)
+
+
+class ChannelSelect(MenuLikeView):
+    def __init__(self,
+                 **kwargs):
+        super().__init__(**kwargs)
+        select = _SelectSM(max_values=1, channel_types=[discord.ChannelType.text],
+                           placeholder="Select or type a channel in")
+        self.add_item(select)
+
+        self._select = select
+
+    @property
+    def values(self):
+        return self._select.values or []
+
+    async def cleanup(self, **kwargs) -> None:
+        return
 
 
 class NinUpdates(UpdateableMenu, ExitableMenu):
@@ -51,13 +78,22 @@ class NinUpdates(UpdateableMenu, ExitableMenu):
         return content
 
     @discord.ui.button(label="Configure", style=discord.ButtonStyle.primary)
+    @lock_when_pressed
     async def configure_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.defer()
-        content = "What channel would you like to use? You can send the ID, name, or mention of a channel."
-        channel = await self.prompt_convert(interaction, content, SendableChannel())
 
-        if not channel:
+        content = "What channel would you like to use? You can select the channel below."
+        view = ChannelSelect(context=self.ctx)
+        m = await interaction.followup.send(content, view=view, wait=True)
+        await view.wait()
+        await m.delete()
+
+        if not view.values:
             return
+
+        channel = view.values[0].resolve()
+        if not channel:
+            channel = await view.values[0].fetch()
 
         try:
             webhook = await channel.create_webhook(name="Nintendo Console Updates")
