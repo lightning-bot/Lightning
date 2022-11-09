@@ -111,7 +111,8 @@ class Reminders(LightningCog):
         delta = (expiry - created).total_seconds()
         if delta <= 60 and force_insert is False:
             # A loop for small timers
-            return self.bot.loop.create_task(self.short_timers(delta, Timer(None, event, created, expiry, kwargs)))
+            return self.bot.loop.create_task(self.short_timers(delta, Timer(None, event, created, expiry, kwargs)),
+                                             name=f"lightning-{event}-timer")
 
         payload = {"event": event, "created": created.isoformat(), "expiry": expiry.isoformat(), "extra": dict(kwargs)}
         record = await self.bot.api.create_timer(payload)
