@@ -16,35 +16,55 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import discord
+from discord import app_commands
+from discord.ext import commands
 
-from lightning import LightningCog, LoggingType
+from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
+                       LightningContext, LoggingType, hybrid_group)
 from lightning.cache import Strategy, cached
+from lightning.cogs.modlog import ui
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils import modlogformats
+from lightning.utils.checks import has_guild_permissions
 from lightning.utils.emitters import TextChannelEmitter
+from lightning.utils.time import ShortTime
 
 if TYPE_CHECKING:
-    from lightning import LightningBot, LightningContext
     from lightning.events import (AuditLogModAction, InfractionEvent,
                                   MemberRolesUpdateEvent, MemberUpdateEvent)
 
 
 class ModLog(LightningCog):
-    """Mod Logging. Like it says.
-
-    Infractions should be inserted here as it's part of logging."""
+    """Mod logging"""
     def __init__(self, bot: LightningBot):
         super().__init__(bot)
         self._emitters: Dict[int, TextChannelEmitter] = {}
+        self.shushed: List[int] = []  # shushed channels
 
-    # TODO: Log changes to infractions, temporary shushing of modlog channels
+    # TODO: Log changes to infractions
+    # I suppose I could use temp ids for a cache like thing?
 
     def cog_unload(self):
         for emitter in self._emitters.values():
             emitter.close()
+
+    @hybrid_group(level=CommandLevel.Admin, fallback="setup")
+    @app_commands.describe(channel="The channel to configure, defaults to the current one")
+    @commands.bot_has_permissions(manage_messages=True, view_audit_log=True, send_messages=True)
+    @has_guild_permissions(manage_guild=True)
+    async def modlog(self, ctx: GuildContext, *, channel: discord.TextChannel = commands.CurrentChannel):
+        """Sets up mod logging for a channel"""
+        await ui.Logging(channel, context=ctx, timeout=180.0).start(wait=False)
+
+    @modlog.command(name='shush', level=CommandLevel.Admin)
+    @app_commands.describe(channel="The channel to shush")
+    @has_guild_permissions(manage_channels=True)
+    async def modlog_shush(self, ctx: GuildContext, channel: discord.TextChannel, duration: ShortTime):
+        """Shushes the mod log temporarily"""
+        ...
 
     @cached('logging', Strategy.lru, max_size=64)
     async def get_logging_record(self, guild_id: int) -> Optional[LoggingConfig]:
@@ -62,12 +82,12 @@ class ModLog(LightningCog):
         records = await self.bot.pool.fetch("SELECT * FROM logging WHERE guild_id=$1;", guild_id)
         return LoggingConfig(records) if records else None
 
-    async def get_records(self, guild: Union[discord.Guild, int], feature):
+    async def get_records(self, guild: Union[discord.Guild, int], feature: int):
         """Async iterator that gets logging records for a guild
 
         Yields an emitter and the record"""
         if not hasattr(guild, "id"):  # This should be an int
-            guild = self.bot.get_guild(guild)
+            guild = self.bot.get_guild(guild)  # type: ignore
             if not guild:
                 return
 
@@ -80,6 +100,10 @@ class ModLog(LightningCog):
             return
 
         for channel_id, rec in records:
+
+            if channel_id in self.shushed:
+                continue
+
             channel = guild.get_channel(channel_id)
             if not channel:
                 continue
@@ -198,30 +222,27 @@ class ModLog(LightningCog):
                 embed = modlogformats.EmbedFormat.completed_screening(member)
                 await emitter.put(embed=embed)
 
-    async def _log_role_changes(self, ltype: LoggingType, guild, member, *, added=None, removed=None,
-                                entry=None) -> None:
-        async for emitter, record in self.get_records(guild, ltype):
+    async def _log_role_changes(self, ltype: LoggingType, event: MemberRolesUpdateEvent) -> None:
+        async for emitter, record in self.get_records(event.guild.id, ltype):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
                 arg = False if record['format'] == "minimal without timestamp" else True
-                message = modlogformats.MinimalisticFormat.role_change(member, added, removed, entry=entry,
+                message = modlogformats.MinimalisticFormat.role_change(event,
                                                                        with_timestamp=arg)
                 await emitter.send(message)
             elif record['format'] == "emoji":
-                message = modlogformats.EmojiFormat.role_change(added, removed, member, entry=entry)
+                message = modlogformats.EmojiFormat.role_change(event)
                 await emitter.put(message)
             elif record['format'] == "embed":
-                embed = modlogformats.EmbedFormat.role_change(member, added, removed, entry=entry)
+                embed = modlogformats.EmbedFormat.role_change(event)
                 await emitter.put(embed=embed)
 
     @LightningCog.listener()
     async def on_lightning_member_role_change(self, event: MemberRolesUpdateEvent):
         if event.added_roles:
-            await self._log_role_changes(LoggingType.MEMBER_ROLE_ADD, event.guild, event.after, added=event.added_roles,
-                                         entry=event.entry)
+            await self._log_role_changes(LoggingType.MEMBER_ROLE_ADD, event)
 
         if event.removed_roles:
-            await self._log_role_changes(LoggingType.MEMBER_ROLE_REMOVE, event.guild, event.after,
-                                         removed=event.removed_roles, entry=event.entry)
+            await self._log_role_changes(LoggingType.MEMBER_ROLE_REMOVE, event)
 
     @LightningCog.listener()
     async def on_lightning_member_nick_change(self, event: MemberUpdateEvent):
@@ -263,7 +284,3 @@ class ModLog(LightningCog):
             self._close_emitter(channel.id)
 
         await self.get_logging_record.invalidate(guild.id)  # :meowsad:
-
-
-async def setup(bot: LightningBot) -> None:
-    await bot.add_cog(ModLog(bot))
