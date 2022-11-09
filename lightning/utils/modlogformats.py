@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2022 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -14,9 +14,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import discord
 
@@ -24,23 +26,8 @@ from lightning.formatters import truncate_text
 from lightning.utils.helpers import Emoji
 from lightning.utils.time import get_utc_timestamp, natural_timedelta
 
-
-class ActionType(discord.Enum):
-    WARN = 1
-    KICK = 2
-    BAN = 3
-    TIMEBAN = 4
-    UNBAN = 5
-    MUTE = 6
-    UNMUTE = 7
-    TIMEMUTE = 8
-    TEMPROLE = 9
-
-    def __str__(self):
-        return self.name
-
-    def upper(self):
-        return self.name.replace(" ", "_").upper()
+if TYPE_CHECKING:
+    from lightning.events import MemberRolesUpdateEvent
 
 
 class BaseFormat:
@@ -143,30 +130,29 @@ class EmojiFormat(BaseFormat):
                f"{escape_markdown_and_mentions(str(bot))}"
 
     @staticmethod
-    def completed_screening(member):
+    def completed_screening(member: discord.Member):
         return f"\N{PASSPORT CONTROL} **Member Completed Screening** {member.mention} | "\
                f"({escape_markdown_and_mentions(str(member))}"
 
     @staticmethod
-    def role_change(added, removed, after, *, entry=None):
-        mod = None
-        if entry:
-            mod = entry.user
-            removed = entry.changes.before.roles
-            added = entry.changes.after.roles
+    def role_change(event: MemberRolesUpdateEvent):
+        if event.entry:
+            removed = event.entry.changes.before.roles
+            added = event.entry.changes.after.roles
+        else:
+            removed = event.removed_roles
+            added = event.added_roles
 
         msg = ["\n👑__Role change__: "]
         if len(added) != 0 or len(removed) != 0:
             roles = []
             for role in removed:
-                safe_role_name = escape_markdown_and_mentions(role.name)
-                roles.append("_~~" + safe_role_name + "~~_")
+                roles.append(f"_~~{escape_markdown_and_mentions(role.name)}~~_")
 
             for role in added:
-                safe_role_name = escape_markdown_and_mentions(role.name)
-                roles.append("__**" + safe_role_name + "**__")
+                roles.append(f"__**{escape_markdown_and_mentions(role.name)}**__")
 
-            for role in after.roles:
+            for role in event.after.roles:
                 if role.name == "@everyone":
                     continue
 
@@ -174,13 +160,13 @@ class EmojiFormat(BaseFormat):
                     roles.append(escape_markdown_and_mentions(role.name))
 
         msg.append(", ".join(roles))
-        safe_user = escape_markdown_and_mentions(str(after))
-        msg = [f"\N{INFORMATION SOURCE} **Member update**: {safe_user} | "
-               f"{after.id} {''.join(msg)}"]
-        if mod:
-            safe_mod = escape_markdown_and_mentions(str(mod))
+        msg = [f"\N{INFORMATION SOURCE} **Member update**: {escape_markdown_and_mentions(str(event.after))} | "
+               f"{event.after.id} {''.join(msg)}"]
+
+        if event.moderator:
             msg.append(f"\n\N{BLUE BOOK} __Moderator__: "
-                       f"{safe_mod} ({mod.id})")
+                       f"{escape_markdown_and_mentions(str(event.moderator))} ({event.moderator.id})")
+
         return ''.join(msg)
 
     @staticmethod
@@ -285,37 +271,28 @@ class MinimalisticFormat(BaseFormat):
             return f"ID: {user.id}"
 
     @staticmethod
-    def role_change(user, added, removed, *, entry=None, with_timestamp=True) -> str:
-        time = discord.utils.utcnow()
-        mod = None
-        reason = None
-
-        if entry:
-            mod = entry.user
-            time = entry.created_at
-            removed = entry.changes.before.roles or []
-            added = entry.changes.after.roles or []
-            reason = entry.reason
+    def role_change(event: MemberRolesUpdateEvent, *, with_timestamp=True) -> str:
+        time = event.entry.created_at if event.entry else discord.utils.utcnow()
 
         if with_timestamp:
             base = [f"[{format_timestamp(time)}] **Role Change**\n"
-                    f"**User**: {escape_markdown_and_mentions(str(user))} ({user.id})\n"]
+                    f"**User**: {escape_markdown_and_mentions(str(event.after))} ({event.after.id})\n"]
         else:
             base = ["**Role Change**\n**User**:"
-                    f"{escape_markdown_and_mentions(str(user))} ({user.id})\n"]
+                    f"{escape_markdown_and_mentions(str(event.after))} ({event.after.id})\n"]
 
-        if added != 0:
-            for role in added:
+        if event.added_roles != 0:
+            for role in event.added_roles:
                 base.append(f"**Role Added**: {escape_markdown_and_mentions(str(role))} ({role.id})\n")
-        if removed != 0:
-            for role in removed:
+        if event.removed_roles != 0:
+            for role in event.removed_roles:
                 base.append(f"**Role Removed**: {escape_markdown_and_mentions(str(role))} ({role.id})\n")
 
-        if mod is not None:
-            base.append(f"**Moderator**: {escape_markdown_and_mentions(str(mod))} ({mod.id})")
+        if event.moderator is not None:
+            base.append(f"**Moderator**: {escape_markdown_and_mentions(str(event.moderator))} ({event.moderator.id})")
 
-        if reason:
-            base.append(f"\n**Reason**: {escape_markdown_and_mentions(reason)}")
+        if event.reason:
+            base.append(f"\n**Reason**: {escape_markdown_and_mentions(event.reason)}")
 
         return ''.join(base)
 
@@ -454,17 +431,21 @@ class EmbedFormat(BaseFormat):
         return embed
 
     @staticmethod
-    def role_change(user, added, removed, *, entry=None):
+    def role_change(event: MemberRolesUpdateEvent) -> discord.Embed:
         embed = discord.Embed(title="Role Change", color=discord.Color.dark_gold(),
-                              description=f"User: {user.mention} ({user.id})")
+                              description=f"User: {event.after.mention} ({event.after.id})")
 
-        time = discord.utils.utcnow()
-        if entry:
-            removed = entry.changes.before.roles
-            added = entry.changes.after.roles
-            time = entry.created_at
+        if event.entry:
+            removed = event.entry.changes.before.roles
+            added = event.entry.changes.after.roles
+            time = event.entry.created_at
+        else:
+            added = event.added_roles
+            removed = event.removed_roles
+            time = discord.utils.utcnow()
 
-            embed.add_field(name="Moderator", value=base_user_format(entry.user))
+        if event.moderator:
+            embed.add_field(name="Moderator", value=base_user_format(event.moderator))
 
         if added:
             added = "".join(r.mention for r in added)
@@ -476,6 +457,10 @@ class EmbedFormat(BaseFormat):
 
         embed.timestamp = time
         return embed
+
+    @staticmethod
+    def role_addition(event: MemberRolesUpdateEvent):
+        return EmbedFormat.role_change(event)
 
     @staticmethod
     def command_ran(ctx) -> discord.Embed:
@@ -507,6 +492,6 @@ class EmbedFormat(BaseFormat):
         return embed
 
     @staticmethod
-    def completed_screening(member):
+    def completed_screening(member: discord.Member):
         return discord.Embed(title="Member Passed Screening", description=f"**Member**: {base_user_format(member)}",
                              color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
