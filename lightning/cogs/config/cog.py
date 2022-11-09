@@ -80,13 +80,6 @@ class Configuration(LightningCog):
         return await self.bot.pool.execute(query, guild_id, value)
 
     @config.command(level=CommandLevel.Admin)
-    @commands.bot_has_permissions(manage_messages=True, view_audit_log=True, send_messages=True)
-    @has_guild_permissions(manage_guild=True)
-    async def logging(self, ctx, *, channel: discord.TextChannel = commands.CurrentChannel):
-        """Sets up logging for the server via a menu"""
-        await ui.Logging(channel, context=ctx, timeout=180.0).start(wait=False)
-
-    @config.command(level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
     async def autorole(self, ctx: GuildContext) -> None:
