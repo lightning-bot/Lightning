@@ -25,13 +25,14 @@ import secrets
 import sys
 import traceback
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import aiohttp
 import aioredis
 import asyncpg
 import discord
 import sentry_sdk
+from discord.app_commands import CommandTree
 from discord.ext import commands, menus
 from sanctum import HTTPClient
 
@@ -73,11 +74,16 @@ async def _callable_prefix(bot: LightningBot, message: discord.Message):
     return prefixes
 
 
+class Tree(CommandTree):
+    ...
+
+
 class LightningBot(commands.AutoShardedBot):
     pool: asyncpg.Pool
     redis_pool: aioredis.Redis
     api: HTTPClient
     aiosession: aiohttp.ClientSession
+    user: discord.ClientUser
 
     def __init__(self, config: Config, **kwargs):
         # Intents
@@ -87,7 +93,7 @@ class LightningBot(commands.AutoShardedBot):
 
         super().__init__(command_prefix=_callable_prefix, reconnect=True,
                          allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False),
-                         intents=intents, **kwargs)
+                         intents=intents, tree_cls=Tree, **kwargs)
 
         self.launch_time = discord.utils.utcnow()
 
@@ -228,11 +234,14 @@ class LightningBot(commands.AutoShardedBot):
         else:
             del self.command_spammers[author]
 
+    async def get_context(self, message: Union[discord.Message, discord.Interaction], *, cls=LightningContext):
+        return await super().get_context(message, cls=cls)
+
     async def process_command_usage(self, message):
         if str(message.author.id) in self.blacklisted_users:
             return
 
-        ctx = await self.get_context(message, cls=LightningContext)
+        ctx = await self.get_context(message)
         if ctx.command is None:
             return
 
@@ -363,7 +372,7 @@ class LightningBot(commands.AutoShardedBot):
             return
         help_text = f"\nPlease see `{ctx.prefix}help {ctx.command}` for more info about this command."
         if isinstance(error, commands.BadArgument):
-            await ctx.send(f"You gave incorrect arguments. `{str(error)}` {help_text}", embed_links=False)
+            await ctx.send(f"You gave incorrect arguments. `{str(error)}` {help_text}", suppress_embeds=True)
             return
         elif isinstance(error, (commands.MissingRequiredArgument, errors.MissingRequiredFlagArgument)):
             codeblock = f"**{ctx.prefix}{ctx.command.qualified_name} {ctx.command.signature}**\n\n{error_text}"
