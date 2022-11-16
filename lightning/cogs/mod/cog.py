@@ -214,8 +214,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                                             delete_message_days=min(flags['delete_messages'], 7))
 
         if not flags['nodm'] and isinstance(target, discord.Member):
-            dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason,
-                                                            ending="\n\nThis ban does not expire.")
+            dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason)
             await helpers.dm_user(target, dm_message)
 
         await ctx.guild.ban(target, reason=self.format_reason(ctx.author, reason),
