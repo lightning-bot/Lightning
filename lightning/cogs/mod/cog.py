@@ -223,19 +223,23 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @has_guild_permissions(manage_messages=True)
     @group(cls=lflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod, parser=BaseModParser)
-    async def warn(self, ctx: LightningContext,
+    async def warn(self, ctx: GuildContext,
                    target: Union[discord.Member, discord.User] = commands.param(
                        converter=converters.TargetMember(fetch_user=False)),
                    *, flags) -> None:
         """Warns a user"""
+        emoji = "\N{OPEN MAILBOX WITH LOWERED FLAG}"
+
         if not flags.nodm and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "warned", "in", reason=flags.reason)
             # ending="\n\nAdditional action may be taken against you if the server has set it up."
-            await helpers.dm_user(target, dm_message)
+            indicator = await helpers.dm_user(target, dm_message)
+            if indicator is True:
+                emoji = "\N{OPEN MAILBOX WITH RAISED FLAG}"
 
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
         warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, ActionType.WARN.value) or 0
-        await self.confirm_and_log_action(ctx, target, "WARN", warning_text=f"{plural(warns + 1):warning}")
+        await self.confirm_and_log_action(ctx, target, "WARN", warning_text=f"{plural(warns + 1):warning} {emoji}")
 
     @has_guild_permissions(manage_guild=True)
     @warn.group(name="punishments", aliases=['punishment'], invoke_without_command=True, level=CommandLevel.Admin)
