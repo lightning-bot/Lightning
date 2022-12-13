@@ -91,9 +91,14 @@ class DiscordMeta(LightningCog):
 
         if hasattr(member, 'roles'):
             if roles := [x.mention for x in member.roles if not x.is_default()]:
-                revrole = reversed(roles)
+                revrole = reversed(roles[:10])
+                if len(roles) > 10:
+                    fmt = " ".join(revrole) + f" (and {len(roles) - 10} other roles)"
+                else:
+                    fmt = " ".join(revrole)
+
                 embed.add_field(name=f"Roles [{len(roles)}]",
-                                value=" ".join(revrole) if len(roles) < 10 else "Cannot show all roles",
+                                value=fmt,
                                 inline=False)
 
         if member.bot:
