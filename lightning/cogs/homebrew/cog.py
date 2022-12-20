@@ -16,25 +16,28 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
-import re
 import secrets
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import TYPE_CHECKING
+from typing import Dict, List, Optional, Union
 
 import asyncpg
 import dateutil.parser
 import discord
 import feedparser
 from bs4 import BeautifulSoup
+from discord import app_commands
 from discord.ext import commands, menus, tasks
 from jishaku.functools import executor_function
 from rapidfuzz import fuzz, process
 
-from lightning import CommandLevel, LightningCog, Storage, command, group
+from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
+                       LightningContext, Storage, command, group,
+                       hybrid_command)
 from lightning.cogs.homebrew import ui
 from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
@@ -43,11 +46,6 @@ from lightning.utils.helpers import request as make_request
 from lightning.utils.paginator import Paginator
 
 log: logging.Logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from typing import List, Optional, Union
-
-    from lightning import LightningBot, LightningContext
 
 try:
     from wand.image import Image
@@ -83,9 +81,8 @@ class UniversalDBPageSource(menus.ListPageSource):
         return embed
 
 
-async def FindBMPAttachment(ctx):
-    limit = 15
-    async for message in ctx.channel.history(limit=limit):
+async def FindBMPAttachment(ctx: GuildContext):
+    async for message in ctx.channel.history(limit=15):
         for attachment in message.attachments:
             if attachment.url and attachment.url.endswith(".bmp"):
                 try:
@@ -129,10 +126,6 @@ def mod_embed(title: str, description: str, social_links: List[str], color: Unio
     return em
 
 
-# This isn't a full semantic version regex
-SEMANTIC_VERSION_REGEX = r'^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)'
-
-
 class Homebrew(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
@@ -143,6 +136,7 @@ class Homebrew(LightningCog):
         # Nintendo updates related
         self.ninupdates_data = Storage("resources/nindy_data.json")
         self.ninupdates_feed_digest = None
+        self._ninupdates_cache: Dict[datetime, List[discord.WebhookMessage]] = {}
         self.do_ninupdates.start()
 
     def cog_unload(self) -> None:
@@ -151,16 +145,16 @@ class Homebrew(LightningCog):
     @group(aliases=['nuf', 'stability'], invoke_without_command=True, level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
     @has_channel_permissions(manage_webhooks=True)
-    async def nintendoupdatesfeed(self, ctx: LightningContext) -> None:
+    async def nintendoupdatesfeed(self, ctx: GuildContext) -> None:
         """Manages the guild's configuration for Nintendo console update alerts.
 
         If invoked with no subcommands, this will start an interactive menu."""
-        await ui.NinUpdates().start(ctx)
+        await ui.NinUpdates(context=ctx).start(wait=False)
 
     @nintendoupdatesfeed.command(name="setup", level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
     @has_channel_permissions(manage_webhooks=True)
-    async def nuf_configure(self, ctx: LightningContext, *,
+    async def nuf_configure(self, ctx: GuildContext, *,
                             channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Sets up a webhook in the specified channel that will send Nintendo console updates."""
         record = await self.bot.pool.fetchval("SELECT id FROM nin_updates WHERE guild_id=$1", ctx.guild.id)
@@ -186,7 +180,7 @@ class Homebrew(LightningCog):
     @nintendoupdatesfeed.command(name="delete", level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
     @has_channel_permissions(manage_webhooks=True)
-    async def nuf_delete(self, ctx: LightningContext) -> None:
+    async def nuf_delete(self, ctx: GuildContext) -> None:
         """Deletes the configuration of Nintendo console updates."""
         record = await self.bot.pool.fetchrow("SELECT * FROM nin_updates WHERE guild_id=$1", ctx.guild.id)
         if record is None:
@@ -206,11 +200,10 @@ class Homebrew(LightningCog):
         await ctx.send("Successfully deleted webhook and configuration!")
 
     async def check_ninupdate_feed(self):
-        data = self.ninupdates_data
-        feedurl = 'https://yls8.mtheall.com/ninupdates/feed.php'
+        feed_url = 'https://yls8.mtheall.com/ninupdates/feed.php'
         # Letting feedparser do the request for us can block the entire bot
         # https://github.com/kurtmckee/feedparser/issues/111
-        async with self.bot.aiosession.get(feedurl, expect100=True) as resp:
+        async with self.bot.aiosession.get(feed_url, expect100=True) as resp:
             raw_bytes = await resp.read()
 
         # Running feedparser is expensive.
@@ -218,67 +211,118 @@ class Homebrew(LightningCog):
         if self.ninupdates_feed_digest == digest:
             return
 
+        await asyncio.create_task(self.science_xml(raw_bytes))
         log.debug("Cached digest does not equal the current digest...")
-        feed = feedparser.parse(raw_bytes, response_headers={"Content-Location": feedurl})
-        self.feed_digest = digest
+        feed = feedparser.parse(raw_bytes, response_headers={"Content-Location": feed_url})
+        self.ninupdates_feed_digest = digest
         for entry in feed["entries"]:
-            raw_version = entry["title"].split(" ")[-1]
-            match = re.match(SEMANTIC_VERSION_REGEX, raw_version)
-            if not match:
-                # A date ("2022-04-19_00-05-06") version
-                return
-            version = match.string
-            console = entry["title"].replace(raw_version, " ").strip()
+            version = entry["title"].split(" ")[-1]
+            console = entry["title"].replace(version, " ").strip()
             link = entry["link"]
 
             if "published" in entry and entry.published:
                 timestamp = dateutil.parser.parse(entry.published)
-            elif "updated" in entry:
-                timestamp = dateutil.parser.parse(entry.updated)
             else:
                 continue
 
+            # I hope this doesn't become a problem, going off some assumptions
+            if "updated" in entry and entry.updated:
+                # If it's updated then we need to reflect that
+                existing_updates = self._ninupdates_cache.pop(timestamp, None)
+
+                if not existing_updates:
+                    continue
+
+                text = f"[{discord.utils.format_dt(timestamp, style='T')}] \N{POLICE CARS REVOLVING LIGHT} **System"\
+                       f" update detected for {console}: {version}**\nMore information at <{link}>"
+
+                log.info(f"Dispatching edited update message for {console} to {len(existing_updates)} guilds.")
+                await self.edit_existing_messages(existing_updates, text)
+                continue
+
             try:
-                if timestamp <= datetime.fromtimestamp(data[console]["last_updated"],
+                if timestamp <= datetime.fromtimestamp(self.ninupdates_data[console]['last_updated'],
                                                        tz=timestamp.tzinfo):
                     continue
             except TypeError:
-                if timestamp <= datetime.fromisoformat(data[console]['last_updated']):
+                if timestamp <= datetime.fromisoformat(self.ninupdates_data[console]['last_updated']):
                     continue
             except KeyError:
                 pass
 
             hook_text = f"[{discord.utils.format_dt(timestamp, style='T')}] \N{POLICE CARS REVOLVING LIGHT} **System"\
                         f" update detected for {console}: {version}**\nMore information at <{link}>"
-            await data.add(console, {"version": version,
-                                     "last_updated": timestamp.isoformat()})
-            await self.dispatch_message_to_guilds(console, hook_text)
+            await self.ninupdates_data.add(console, {"version": version,
+                                           "last_updated": timestamp.isoformat()})
+            await self.dispatch_message_to_guilds(console, timestamp, hook_text)
 
-    async def dispatch_message_to_guilds(self, console: str, text: str) -> None:
+    async def science_xml(self, raw):
+        ch = self.bot.get_channel(1054808921879101511)
+        if not ch:
+            ch = await self.bot.fetch_channel(1054808921879101511)
+
+        await ch.send("Uploaded feed", file=discord.File(BytesIO(raw), "feed.xml"))
+
+    async def edit_existing_messages(self, msgs: List[discord.WebhookMessage], content: str):
+        async def edit(msg: discord.WebhookMessage):
+            await msg.edit(content=content)
+
+        # Don't care about results
+        await asyncio.wait([edit(m) for m in msgs])
+
+    async def _wrap_send(self, webhook: discord.Webhook, content: str, bad_webhooks: list):
+        try:
+            return await webhook.send(content, wait=True)
+        except discord.Forbidden or discord.NotFound:
+            bad_webhooks.append(webhook.token)
+
+    async def dispatch_message_to_guilds(self, console: str, timestamp: datetime, text: str) -> None:
         records = await self.bot.pool.fetch("SELECT * FROM nin_updates;")
-        log.info(f"Dispatching new update message for {console} to {len(records)} guilds.")
-        bad_webhooks = []
-        for record in records:
-            try:
-                webhook = discord.Webhook.partial(record['id'], record['webhook_token'], session=self.bot.aiosession)
-                await webhook.send(text)
-            except (discord.NotFound, discord.Forbidden):
-                bad_webhooks.append(record['id'])
-            except discord.HTTPException:  # discord heckin died
-                continue
+        if not records:
+            return
 
-        # Remove deleted webhooks
+        # At best we get 1 update that has the new console's version...
+        existing_updates = self._ninupdates_cache.pop(timestamp, None)
+
+        if existing_updates:
+            log.info(f"Dispatching edited update message for {console} to {len(existing_updates)} guilds.")
+            await self.edit_existing_messages(existing_updates, text)
+            return
+        else:
+            # should probably do this by console then timestamp but doesn't seem to be a problem for now...
+            self._ninupdates_cache[timestamp] = []
+
+        log.info(f"Dispatching new update message for {console} to {len(records)} guilds.")
+        bad_webhooks: List[str] = []  # list of webhook tokens
+        tasks = await asyncio.gather(*[self._wrap_send(discord.Webhook.partial(record['id'],
+                                                                               record['webhook_token'],
+                                                                               session=self.bot.aiosession),
+                                                       text, bad_webhooks) for record in records],
+                                     return_exceptions=True)
+        for msg in tasks:
+            if not isinstance(msg, discord.WebhookMessage):
+                continue
+            self._ninupdates_cache[timestamp].append(msg)
+
+        # Remove deleted webhooks if applicable
         if bad_webhooks:
-            query = "DELETE FROM nin_updates WHERE id=$1;"
+            query = "DELETE FROM nin_updates WHERE webhook_token=$1;"
             await self.bot.pool.executemany(query, bad_webhooks)
 
     @tasks.loop(seconds=45)
     async def do_ninupdates(self) -> None:
         await self.check_ninupdate_feed()
+        await self.after_ninupdates()
 
     @do_ninupdates.before_loop
     async def before_ninupdates_task(self) -> None:
         await self.bot.wait_until_ready()
+
+    async def after_ninupdates(self) -> None:
+        keys = list(self._ninupdates_cache.keys())
+        for key in keys:
+            if datetime.now(tz=timezone.utc) >= (key + timedelta(minutes=30)):
+                del self._ninupdates_cache[key]
 
     @executor_function
     def convert_to_png(self, _bytes) -> BytesIO:
@@ -291,7 +335,7 @@ class Homebrew(LightningCog):
         return image_bytes
 
     @command()
-    @commands.cooldown(30.0, 1, commands.BucketType.user)
+    @commands.cooldown(30, 1, commands.BucketType.user)
     async def bmp(self, ctx: LightningContext,
                   link: Whitelisted_URL = commands.parameter(default=FindBMPAttachment,
                                                              displayed_default="<last bmp image>")) -> None:
@@ -300,27 +344,36 @@ class Homebrew(LightningCog):
         img_final = await self.convert_to_png(img_bytes)
         await ctx.send(file=discord.File(img_final, filename=f"{secrets.token_urlsafe()}.jpeg"))
 
-    @command(aliases=['udb'])
+    @hybrid_command(aliases=['udb'])
     async def universaldb(self, ctx: LightningContext, *, application: str) -> None:
         """Searches for homebrew on Universal-DB"""
-        resp = await ctx.request(f"https://udb-api.lightsage.dev/search/{urllib.parse.quote(application)}")
+        url = f"https://udb-api.lightsage.dev/search/{urllib.parse.quote(application)}"
+        resp = await ctx.request(url)
         results = resp['results']
 
         if not results:
             await ctx.send("No results found!")
             return
 
-        menu = Paginator(UniversalDBPageSource(results))
-        await menu.start(ctx)
+        menu = Paginator(UniversalDBPageSource(results), context=ctx)
+        await menu.start()
+
+    @universaldb.autocomplete('application')
+    async def universaldb_autocomplete(self, interaction: discord.Interaction, string: str):
+        resp = await self.bot.aiosession.get(f"https://udb-api.lightsage.dev/search/{urllib.parse.quote(string)}")
+        if resp.status != 200:
+            return []
+
+        resp = await resp.json()
+
+        if not resp['results']:
+            return []
+
+        return [app_commands.Choice(name=app['title'], value=app['title']) for app in resp['results'][:25]]
 
     @group(invoke_without_command=True)
     async def mod(self, ctx: LightningContext) -> None:
-        """Gets console modding information
-
-
-        If any information provided in the commands is incorrect,
-        please make an issue on the GitLab repository.
-        (https://gitlab.com/lightning-bot/Lightning)"""
+        """Gets console modding information"""
         await ctx.send_help('mod')
 
     def get_match(self, word_list: list, word: str, score_cutoff: int = 60, partial=False) -> Optional[str]:
