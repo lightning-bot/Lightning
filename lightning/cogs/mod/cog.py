@@ -380,21 +380,21 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_permissions(manage_messages=True)
     @has_channel_permissions(manage_messages=True)
     @purge.command(name="user", level=CommandLevel.Mod)
-    async def purge_from_user(self, ctx: LightningContext, member: discord.Member, search: int = 100) -> None:
+    async def purge_from_user(self, ctx: GuildContext, member: discord.Member, search: int = 100) -> None:
         """Removes messages from a member"""
         await self.do_message_purge(ctx, search, lambda m: m.author == member)
 
     @commands.bot_has_permissions(manage_messages=True)
     @has_channel_permissions(manage_messages=True)
     @purge.command(name="attachments", aliases=['files'], level=CommandLevel.Mod)
-    async def purge_files(self, ctx: LightningContext, search: int = 100) -> None:
+    async def purge_files(self, ctx: GuildContext, search: int = 100) -> None:
         """Removes messages that contains attachments in the message."""
         await self.do_message_purge(ctx, search, lambda e: len(e.attachments))
 
     @commands.bot_has_permissions(manage_messages=True)
     @has_channel_permissions(manage_messages=True)
     @purge.command(name='contains', level=CommandLevel.Mod)
-    async def purge_contains(self, ctx: LightningContext, *, string: str) -> None:
+    async def purge_contains(self, ctx: GuildContext, *, string: str) -> None:
         """Removes messages containing a certain substring."""
         if len(string) < 5:
             raise commands.BadArgument("The string length must be at least 5 characters!")
