@@ -20,7 +20,7 @@ parsedatetime = "^2.6"
 psutil = "^5.7.2"
 tabulate = "^0.8.7"
 hiredis = "^2.0.0"
-feedparser = "^6.0.8"
+feedparser = "^6.0.10"
 asyncpg = "^0.25.0"
 discord-ext-menus = {git = "https://github.com/LightSage/discord-ext-menus.git"}
 lru_dict = "^1.1.6"
