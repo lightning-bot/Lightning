@@ -66,7 +66,7 @@ class TargetMember(commands.Converter):
             if member.top_role >= ctx.author.top_role:
                 raise commands.BadArgument("You can't do actions on this member due to hierarchy.")
 
-    async def convert(self, ctx: LightningContext, argument: str):
+    async def convert(self, ctx: LightningContext, argument: str) -> Union[discord.User, discord.Member]:
         target = await self.user_converter.convert(ctx, argument)
         await self.check_member(ctx, target)
         return target

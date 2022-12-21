@@ -135,7 +135,7 @@ class Homebrew(LightningCog):
 
         # Nintendo updates related
         self.ninupdates_data = Storage("resources/nindy_data.json")
-        self.ninupdates_feed_digest = None
+        self.ninupdates_feed_digest: Optional[bytes] = None
         self._ninupdates_cache: Dict[datetime, List[discord.WebhookMessage]] = {}
         self.do_ninupdates.start()
 

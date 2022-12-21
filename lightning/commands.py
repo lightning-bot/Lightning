@@ -14,10 +14,16 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
+
+if TYPE_CHECKING:
+    from lightning.context import LightningContext
 
 __all__ = ('CommandLevel', 'command', 'group', 'hybrid_command', 'hybrid_group', 'LightningCommand',
            'LightningGroupCommand', 'HybridGroup', 'HybridCommand')
@@ -86,7 +92,7 @@ class LightningCommand(commands.Command):
 
         return await discord.utils.async_all(pred(ctx) for pred in predicates)
 
-    async def _check_level(self, ctx) -> bool:
+    async def _check_level(self, ctx: LightningContext) -> bool:
         # We need to check custom overrides first...
         bot = ctx.bot
 
