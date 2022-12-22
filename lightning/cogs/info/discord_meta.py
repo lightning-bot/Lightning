@@ -130,36 +130,6 @@ class DiscordMeta(LightningCog):
         em.description = "\n".join(desc)
         await ctx.send(embed=em)
 
-    @command()
-    async def spotify(self, ctx: LightningContext, member: discord.Member = commands.Author) -> None:
-        """Tells you what someone is listening to on Spotify"""
-        if member.status is discord.Status.offline:
-            await ctx.send(f"{member} needs to be online in order for me to check their Spotify status.")
-            return
-
-        activity = None
-        for act in member.activities:
-            if isinstance(act, discord.Spotify):
-                activity = act
-                break
-
-        if not activity:
-            await ctx.send(f"{member} is not listening to Spotify with Discord integration."
-                           " If that is wrong, then blame Discord's API.")
-            return
-
-        embed = discord.Embed(title=activity.title, color=0x1DB954)
-        embed.set_thumbnail(url=activity.album_cover_url)
-        embed.set_author(name=member, icon_url=member.avatar.url)
-        embed.add_field(name="Artist", value=', '.join(activity.artists))
-        embed.add_field(name="Album", value=activity.album, inline=False)
-
-        duration_m, duration_s = divmod(activity.duration.total_seconds(), 60)
-        current_m, current_s = divmod((discord.utils.utcnow() - activity.start).seconds, 60)
-        embed.description = f"{'%d:%02d' % (current_m, current_s)} - {'%d:%02d' % (duration_m, duration_s)}"
-
-        await ctx.send(embed=embed)
-
     @commands.guild_only()
     @command(aliases=['guildinfo'], usage='')
     async def serverinfo(self, ctx: LightningContext, guild: discord.Guild = commands.CurrentGuild) -> None:
