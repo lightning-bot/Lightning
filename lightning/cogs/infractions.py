@@ -16,27 +16,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from io import StringIO
-from typing import TYPE_CHECKING, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import discord
-from discord.ext import menus
-from discord.ext.commands import Author, bot_has_permissions
+from discord import app_commands
+from discord.ext import commands, menus
 from sanctum.exceptions import NotFound
 
-from lightning import CommandLevel, LightningCog, group
+from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
+                       group, hybrid_command)
 from lightning.converters import TargetMember
-from lightning.errors import LightningError
+from lightning.enums import ActionType
+from lightning.errors import LightningCommandError
 from lightning.formatters import truncate_text
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.helpers import ticker
-from lightning.utils.modlogformats import ActionType, base_user_format
+from lightning.utils.modlogformats import base_user_format
+from lightning.utils.paginator import Paginator
 from lightning.utils.time import add_tzinfo, natural_timedelta
-
-if TYPE_CHECKING:
-    from lightning import LightningBot, LightningContext
 
 
 class InfractionRecord:
@@ -62,115 +61,114 @@ class InfractionRecord:
         return self.user.id if hasattr(self.user, 'id') else self.user
 
 
-class InfractionSource(menus.KeysetPageSource):
-    def __init__(self, bot, guild, *, member=None, moderator=None, **kwargs):
-        self.guild = guild
-        self.bot = bot
-        self.connection = bot.pool
+class InfractionPaginator(Paginator):
+    def __init__(self, source: menus.PageSource, context: GuildContext, /, *, timeout: Optional[float] = 90):
+        super().__init__(source, context=context, timeout=timeout)
+        self.bot = context.bot
 
+
+class EphemeralInfractionPaginator(InfractionPaginator):
+    async def format_initial_message(self, ctx):
+        await self.source._prepare_once()
+        page = await self._get_page(self.current_page)
+        kwargs = self._assume_message_kwargs(page)
+        kwargs['ephemeral'] = True
+        return kwargs
+
+
+class InfractionSource(menus.ListPageSource):
+    def __init__(self, entries, *, member: Union[discord.User, discord.Member] = None):
+        super().__init__(entries, per_page=5)
         self.member = member
-        self.moderator = moderator
-        self._has_ran = False
-        super().__init__(**kwargs)
 
-    def is_paginating(self):
-        return True
-
-    async def get_page(self, specifier):
-        query = """SELECT * FROM
-                       (SELECT * FROM infractions {where_clause} ORDER BY created_at {sort} LIMIT 5)
-                   subq ORDER BY created_at;"""
-
-        args = []
-        if specifier.reference is None:
-            where_clause = 'WHERE guild_id=$1'
-            args.append(self.guild.id)
-        elif specifier.direction is menus.PageDirection.after:
-            where_clause = 'WHERE id > $1 AND guild_id=$2'
-            args.append(specifier.reference[-1]['id'])
-            args.append(self.guild.id)
-        else:  # PageDirection.before
-            where_clause = 'WHERE id < $1 AND guild_id=$2'
-            args.append(specifier.reference[0]['id'])
-            args.append(self.guild.id)
-
-        if self.member:
-            last_arg = int(re.findall(r"\$\d+", where_clause)[-1].strip("$"))
-            where_clause += f' AND user_id=${last_arg + 1}'
-            args.append(self.member.id)
-
-        if self.moderator:
-            last_arg = int(re.findall(r"\$\d+", where_clause)[-1].strip("$"))
-            where_clause += f' AND moderator_id=${last_arg + 1}'
-            args.append(self.moderator.id)
-
-        sort = 'ASC' if specifier.direction is menus.PageDirection.after else 'DESC'
-
-        records = await self.connection.fetch(query.format(where_clause=where_clause, sort=sort), *args)
-
-        if self._has_ran is False and not records:
-            raise LightningError("No infractions matched your critiera")
-
-        if self._has_ran is False:
-            self._has_ran = True
-
-        if not records:
-            raise ValueError
-
-        return records
-
-    def format_embed_description(self, embed: discord.Embed, entries: list) -> discord.Embed:
-        if self.member:
-            for entry in entries:
-                moderator = self.bot.get_user(entry['moderator_id']) or entry['moderator_id']
-                reason = entry['reason'] or 'No reason provided.'
-                embed.add_field(name=f"{entry['id']}: {natural_timedelta(entry['created_at'])}",
-                                value=f"**Moderator**: {base_user_format(moderator)}\n"
-                                      f"**Reason**: {truncate_text(reason, 45)}", inline=False)
-        elif self.moderator:
-            for entry in entries:
-                user = self.bot.get_user(entry['user_id']) or entry['user_id']
-                reason = entry['reason'] or 'No reason provided.'
-                embed.add_field(name=f"{entry['id']}: {natural_timedelta(entry['created_at'])}",
-                                value=f"**User**: {base_user_format(user)}\n"
-                                      f"**Reason**: {truncate_text(reason, 45)}", inline=False)
-        else:
-            for entry in entries:
-                user = self.bot.get_user(entry['user_id']) or entry['user_id']
-                mod = self.bot.get_user(entry['moderator_id']) or entry['moderator_id']
-                reason = entry['reason'] or 'No reason provided.'
-                embed.add_field(name=f"{entry['id']}: {natural_timedelta(entry['created_at'])}",
-                                value=f"**User**: {base_user_format(user)}\n**Moderator**: {base_user_format(mod)}"
-                                      f"\n**Reason**: {truncate_text(reason, 45)}",
-                                inline=False)
+    async def format_member_page(self, menu: InfractionPaginator, entries):
+        embed = discord.Embed(color=discord.Color.dark_gray(), title=f"Infractions for {self.member}")
+        for entry in entries:
+            moderator = menu.bot.get_user(entry['moderator_id']) or entry['moderator_id']
+            reason = entry['reason'] or 'No reason provided.'
+            embed.add_field(name=f"{entry['id']}: {natural_timedelta(datetime.fromisoformat(entry['created_at']))}",
+                            value=f"**Moderator**: {base_user_format(moderator)}\n"
+                                  f"**Reason**: {truncate_text(reason, 45)}", inline=False)
         return embed
 
-    async def format_page(self, menu, entries):
-        embed = self.format_embed_description(discord.Embed(), entries)
-
-        if self.member:
-            embed.title = f"Infractions for {str(self.member)}"
-        elif self.moderator:
-            embed.title = f"Infractions made by {str(self.moderator)}"
-        else:
-            embed.title = "Server-wide infractions"
-
-        embed.color = discord.Color.dark_grey()
-
+    async def format_all_page(self, menu: InfractionPaginator, entries):
+        embed = discord.Embed(color=discord.Color.dark_gray())
+        for entry in entries:
+            user = menu.bot.get_user(entry['user_id']) or entry['user_id']
+            mod = menu.bot.get_user(entry['moderator_id']) or entry['moderator_id']
+            reason = entry['reason'] or 'No reason provided.'
+            embed.add_field(name=f"{entry['id']}: {natural_timedelta(datetime.fromisoformat(entry['created_at']))}",
+                            value=f"**User**: {base_user_format(user)}\n**Moderator**: {base_user_format(mod)}"
+                                  f"\n**Reason**: {truncate_text(reason, 45)}",
+                            inline=False)
         return embed
+
+    async def format_page(self, menu: InfractionPaginator, entries):
+        if self.member:
+            return await self.format_member_page(menu, entries)
+        else:
+            return await self.format_all_page(menu, entries)
+
+
+class InfractionFilterFlags(commands.FlagConverter):
+    member: discord.Member
+    active: bool = commands.flag(default=True)
+    moderator: Optional[discord.Member]
+    type: Optional[Literal['WARN', 'KICK', 'BAN', 'TEMPBAN', 'TEMPMUTE', 'MUTE']]
 
 
 class Infractions(LightningCog, required=['Moderation']):
     """Infraction related commands"""
+    def __init__(self, bot: LightningBot):
+        super().__init__(bot)
+        self.inf_list_contextmenu = app_commands.ContextMenu(name="View Infractions", callback=self.infraction_list)
+        bot.tree.add_command(self.inf_list_contextmenu)
+
+    async def cog_check(self, ctx) -> bool:
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage()
+        return True
+
+    @hybrid_command(name="mywarns", level=CommandLevel.User)
+    @app_commands.guild_only()
+    async def my_warns(self, ctx: GuildContext):
+        """Shows your warnings in this server"""
+        try:
+            # type: ignore
+            records: List[Dict[str, Any]] = await self.bot.api.get_user_infractions(ctx.guild.id, ctx.author.id)
+        except NotFound:
+            await ctx.send("No warnings found! Good for you!", ephemeral=True)
+            return
+
+        for record in records:
+            if record['action'] != 1:
+                records.remove(record)
+
+        menu = EphemeralInfractionPaginator(InfractionSource(records, member=ctx.author), ctx, timeout=60.0)
+        await menu.start(wait=False)
+
+    # Context menu
+    @app_commands.guild_only()
+    @app_commands.checks.has_permissions(kick_members=True)
+    async def infraction_list(self, interaction: discord.Interaction, member: discord.Member):
+        try:
+            records = await self.bot.api.get_user_infractions(interaction.guild.id, member.id)
+        except NotFound:
+            await interaction.response.send_message(f"No infractions found for {member.mention}!", ephemeral=True)
+            return
+
+        ctx = await GuildContext.from_interaction(interaction)
+        menu = EphemeralInfractionPaginator(InfractionSource(records, member=member), ctx, timeout=60.0)
+        await menu.start(wait=False)
 
     @group(aliases=['inf'], invoke_without_command=True, level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
-    async def infraction(self, ctx: LightningContext) -> None:
+    async def infraction(self, ctx: GuildContext) -> None:
         await ctx.send_help("infraction")
 
     @infraction.command(level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
-    async def view(self, ctx: LightningContext, infraction_id: int) -> None:
+    async def view(self, ctx: GuildContext, infraction_id: int) -> None:
         """Views an infraction"""
         try:
             record = await self.bot.api.get_infraction(ctx.guild.id, infraction_id)
@@ -189,7 +187,7 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @infraction.command(level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
-    async def claim(self, ctx: LightningContext, infraction_id: int) -> None:
+    async def claim(self, ctx: GuildContext, infraction_id: int) -> None:
         """Claims responsibility for an infraction"""
         try:
             await self.bot.api.edit_infraction(ctx.guild.id, infraction_id, {"moderator_id": ctx.author.id})
@@ -201,7 +199,7 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @infraction.command(level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
-    async def edit(self, ctx: LightningContext, infraction_id: int, *, reason: str) -> None:
+    async def edit(self, ctx: GuildContext, infraction_id: int, *, reason: str) -> None:
         """Edits the reason for an infraction"""
         try:
             await self.bot.api.edit_infraction(ctx.guild.id, infraction_id,
@@ -214,7 +212,7 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @infraction.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def transfer(self, ctx: LightningContext, old_user: TargetMember, new_user: TargetMember) -> None:
+    async def transfer(self, ctx: GuildContext, old_user: TargetMember, new_user: TargetMember) -> None:
         """Transfers a user's infractions to another user"""
         confirm = await ctx.confirm(f"Are you sure you want to transfer infractions from {old_user} to {new_user}?")
         if not confirm:
@@ -228,7 +226,7 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @infraction.command(aliases=['remove'], level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    async def delete(self, ctx: LightningContext, infraction_id: int) -> None:
+    async def delete(self, ctx: GuildContext, infraction_id: int) -> None:
         """Deletes an infraction"""
         try:
             await self.bot.api.get_infraction(ctx.guild.id, infraction_id)
@@ -252,8 +250,8 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @infraction.command(level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
-    @bot_has_permissions(attach_files=True)
-    async def export(self, ctx: LightningContext) -> None:
+    @commands.bot_has_permissions(attach_files=True)
+    async def export(self, ctx: GuildContext) -> None:
         """Exports the server's infractions to a JSON"""
         records = await self.bot.api.get_infractions(ctx.guild.id)
 
@@ -261,28 +259,28 @@ class Infractions(LightningCog, required=['Moderation']):
         raw_bytes.seek(0)
         await ctx.send(file=discord.File(raw_bytes, filename="infractions.json"))
 
-    async def start_keyset_pages(self, ctx: LightningContext, source: InfractionSource) -> None:
-        menu = menus.MenuKeysetPages(source, timeout=60.0, clear_reactions_after=True,
-                                     check_embeds=True)
-        await menu.start(ctx)
+    async def start_infraction_pages(self, ctx: GuildContext, source: InfractionSource) -> None:
+        menu = InfractionPaginator(source, ctx, timeout=60.0)
+        await menu.start(wait=False)
 
-    @infraction.group(name='list', invoke_without_command=True, level=CommandLevel.Mod)
+    async def wrap_request(self, coro):
+        try:
+            return await coro
+        except NotFound:
+            raise LightningCommandError("Couldn't find any infractions matching your criteria!")
+
+    @infraction.command(name='list', invoke_without_command=True, level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
-    async def list_infractions(self, ctx: LightningContext, member: Optional[discord.User]) -> None:
+    async def list_infractions(self, ctx: GuildContext, member: Optional[discord.User]) -> None:
         """Lists infractions that were done in the server with optional filter(s)"""
         if member:
-            src = InfractionSource(ctx.bot, ctx.guild, member=member)
+            infs = await self.wrap_request(self.bot.api.get_user_infractions(ctx.guild.id, member.id))
+            src = InfractionSource(infs, member=member)
         else:
-            src = InfractionSource(ctx.bot, ctx.guild)
+            infs = await self.wrap_request(self.bot.api.get_infractions(ctx.guild.id))
+            src = InfractionSource(infs)
 
-        await self.start_keyset_pages(ctx, src)
-
-    @list_infractions.command(name='takenby', level=CommandLevel.Mod)
-    @has_guild_permissions(manage_guild=True)
-    async def list_infractions_made_by(self, ctx: LightningContext, *,
-                                       member: discord.Member = Author) -> None:
-        """Lists infractions taken by a moderator"""
-        await self.start_keyset_pages(ctx, InfractionSource(ctx.bot, ctx.guild, moderator=member))
+        await self.start_infraction_pages(ctx, src)
 
 
 async def setup(bot: LightningBot) -> None:
