@@ -44,7 +44,7 @@ class CommandLevel(discord.Enum):
 class LightningCommand(commands.Command):
     def __init__(self, func, **kwargs):
         super().__init__(func, **kwargs)
-        level = kwargs.pop('level', CommandLevel.User)
+        level = kwargs.get('level', CommandLevel.User)
         if not isinstance(level, CommandLevel):
             raise TypeError("level kwarg must be a member of CommandLevel")
 
@@ -54,18 +54,7 @@ class LightningCommand(commands.Command):
         if level == CommandLevel.Owner:
             raise NotImplementedError
 
-        self.extras['level'] = level
-
-    @property
-    def level(self) -> CommandLevel:
-        """The command's required permission level
-
-        Returns
-        -------
-        CommandLevel
-            The required permission level this command requires
-        """
-        return self.extras['level']
+        self.level = level
 
     async def _resolve_permissions(self, ctx, user_level, *, fallback=True):
         # This shouldn't even happen...
