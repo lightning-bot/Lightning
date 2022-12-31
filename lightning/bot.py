@@ -399,13 +399,7 @@ class LightningBot(commands.AutoShardedBot):
             scope.user = {"id": ctx.author.id, "username": str(ctx.author)}
             scope.set_tag("command", ctx.command.qualified_name)
             scope.set_extra("message content", ctx.message.content)
-            log.error(f"Uncaught error {type(error)}: {str(error)}")
-
-        token = await self.log_command_error(ctx, error)
-
-        # err_msg = f"An exception occurred with command \"{ctx.command.qualified_name}\""\
-        #          f". See {token} for the traceback."
-        # log.error(err_msg)
+            log.error(f"An exception occurred with {type(error)}", exc_info=error)
 
         embed = discord.Embed(title='Command Error', color=0xff0000,
                               timestamp=discord.utils.utcnow())
@@ -417,7 +411,10 @@ class LightningBot(commands.AutoShardedBot):
             donefmt = f'{donefmt}\nGuild: {ctx.guild} (ID: {ctx.guild.id})'
         embed.add_field(name='Location', value=donefmt, inline=False)
 
-        embed.add_field(name='Bug Token', value=token)
+        if self.can_log_bugs():
+            token = await self.log_command_error(ctx, error)
+            embed.add_field(name='Bug Token', value=token)
+
         await self._error_logger.put(embed)
 
     async def close(self) -> None:
