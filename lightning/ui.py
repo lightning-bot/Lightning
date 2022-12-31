@@ -136,6 +136,8 @@ class MenuLikeView(discord.ui.View):
 
     @classmethod
     async def from_interaction(cls, interaction: discord.Interaction, **kwargs):
+        from .context import LightningContext
+
         ctx = await LightningContext.from_interaction(interaction)
         return cls(context=ctx, **kwargs)
 
