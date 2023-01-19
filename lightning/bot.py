@@ -66,7 +66,7 @@ async def _callable_prefix(bot: LightningBot, message: discord.Message):
         return prefixes + generic_defaults
 
     record = await bot.get_guild_bot_config(message.guild.id)
-    prefix = getattr(record, "prefix", None)
+    prefix = getattr(record, "prefixes", None)
 
     if prefix:
         prefixes.extend(prefix)
