@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS guilds
 CREATE TABLE IF NOT EXISTS guild_config
 (
     guild_id BIGINT PRIMARY KEY,
-    prefixes TEXT [],
+    prefix TEXT [],
     autorole BIGINT,
     toggleroles BIGINT [],
     flags INT,
