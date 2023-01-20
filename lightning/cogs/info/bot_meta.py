@@ -32,7 +32,7 @@ class BotMeta(LightningCog):
     @command(name='copyright', aliases=['license'])
     async def _copyright(self, ctx: LightningContext) -> None:
         """Tells you about the copyright license for the bot"""
-        await ctx.send("AGPLv3: https://gitlab.com/lightning-bot/Lightning/-/blob/master/LICENSE")
+        await ctx.send("AGPLv3: https://github.com/lightning-bot/Lightning/blob/master/LICENSE")
 
     @command()
     async def donate(self, ctx: LightningContext) -> None:
@@ -90,7 +90,7 @@ class BotMeta(LightningCog):
     @command()
     async def source(self, ctx: LightningContext, *, command: str = None) -> None:
         """Gives a link to the source code for a command."""
-        source = self.bot.config['bot'].get("git_repo_url", "https://gitlab.com/lightning-bot/Lightning")
+        source = self.bot.config['bot'].get("git_repo_url", "https://github.com/lightning-bot/Lightning")
         if command is None:
             await ctx.send(source)
             return

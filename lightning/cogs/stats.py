@@ -435,7 +435,7 @@ class Stats(LightningCog):
 
         description = [f"This bot instance is owned by {', '.join(str(o) for o in owners)}"]
 
-        embed.url = self.bot.config['bot'].get("git_repo_url", "https://gitlab.com/lightning-bot/Lightning")
+        embed.url = self.bot.config['bot'].get("git_repo_url", "https://github.com/lightning-bot/Lightning")
         embed.set_thumbnail(url=ctx.me.avatar.url)
 
         if self.bot.config.bot.description:
