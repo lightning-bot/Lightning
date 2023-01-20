@@ -1,0 +1,24 @@
+flake8:
+  image: python:latest
+  script:
+  - pip install flake8
+  - flake8 .
+  only:
+    changes:
+      - lightning/*
+
+variables:
+  POSTGRES_DB: lightningbot
+  POSTGRES_USER: lightningbot
+  POSTGRES_PASSWORD: "test"
+
+schema-test:
+  image: postgres
+  services:
+  - postgres
+  script:
+  - export PGPASSWORD=$POSTGRES_PASSWORD
+  - psql -h "postgres" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v "ON_ERROR_STOP=1" -f scripts/schema.sql
+  only:
+    changes:
+      - scripts/*.{sql}

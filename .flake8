@@ -1,0 +1,23 @@
+[flake8]
+max-line-length = 120
+ignore = F402
+exclude = .git,
+          .gitignore,
+          __pycache__,
+          cogs/tags.py,
+          .env,
+          .venv,
+          env,
+          venv,
+          env.bak,
+          venv.bak,
+          .DS_Store,
+          .python-version,
+          .tox,
+          build,
+          dist,
+          .pyc,
+          utils/paginator.py,
+          utils/time.py,
+          /plugins,
+          utils/cache.py

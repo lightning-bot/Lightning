@@ -1,0 +1,40 @@
+[tokens]
+discord = ""
+# TheCatAPI Token (thecatapi.com)
+catapi = ""
+postgresql = ""
+disbin = ""
+
+[git]
+    [git.github]
+    username = ""
+    repository_name = ""
+    key = "" # Personal Access Token
+
+    [git.gitlab]
+    instance = "https://gitlab.com" # Gitlab instance url
+    key = "" # Personal Access Token
+    project_id = ""
+# Guild IDs that have access to use git commands.
+whitelisted_guilds = [527887739178188830,
+                      540978015811928075]
+
+[logging]
+# Any bot errors either command errors or internal errors
+bot_errors = ""
+timer_errors = ""
+auto_blacklist = ""
+# Logging for guild additions and removals
+guild_alerts = ""
+bug_reports_channnel = 603389648211017738
+startup = id
+
+# Extra information bot wise
+[bot]
+description = ""
+# This is by IDs
+managers = []
+spam_count = 5
+# Startup game
+game = "rewrite is the future!"
+status_rotate = 1 # This should be a boolean value
