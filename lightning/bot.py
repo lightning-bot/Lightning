@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -386,7 +386,7 @@ class LightningBot(commands.AutoShardedBot):
             await ctx.send(f"You gave an incorrect argument for {error.param.name}. I expected one of "
                            f"{lts}.\n> **These are case sensitive!**")
             return
-        elif isinstance(error, (errors.LightningError, errors.FlagError, menus.MenuError)):
+        elif isinstance(error, (errors.LightningError, errors.FlagError, menus.MenuError, commands.UserInputError)):
             await ctx.send(error_text)
             return
 
