@@ -75,6 +75,16 @@ class EphemeralInfractionPaginator(InfractionPaginator):
         kwargs['ephemeral'] = True
         return kwargs
 
+    async def start(self, *, wait: bool = True):
+        if not self.source.is_paginating():
+            page = await self._get_page(0)
+            kwargs = self._assume_message_kwargs(page)
+            kwargs['ephemeral'] = True
+            await self.ctx.send(**kwargs)
+            return
+
+        await super().start(wait=wait)
+
 
 class InfractionSource(menus.ListPageSource):
     def __init__(self, entries, *, member: Union[discord.User, discord.Member] = None):
