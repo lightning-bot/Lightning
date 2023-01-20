@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -34,7 +34,7 @@ class Dbots(LightningCog):
                 log.info(f"Made a request to dbots and got {resp.status}")
 
         if self.bot.config.tokens.topgg:
-            data = {"guild_count": len(self.bot.guilds), "shard_count": len(self.bot.shards)}
+            data = {"server_count": len(self.bot.guilds), "shard_count": len(self.bot.shards)}
             headers['Authorization'] = self.bot.config.tokens.topgg
             async with self.bot.aiosession.post(f"https://top.gg/api/bots/{self.bot.user.id}/stats",
                                                 data=orjson.dumps(data), headers=headers) as resp:
