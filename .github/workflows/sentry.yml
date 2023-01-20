@@ -21,3 +21,4 @@ jobs:
           SENTRY_PROJECT: 'lightning-py'
         with:
           environment: prod
+          ignore_missing: true
