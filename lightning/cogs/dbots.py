@@ -40,10 +40,13 @@ class Dbots(LightningCog):
                                                 data=orjson.dumps(data), headers=headers) as resp:
                 log.info(f"Made a request to top.gg and got {resp.status}")
 
-    @LightningCog.listener('on_ready')
     @LightningCog.listener('on_guild_join')
     @LightningCog.listener('on_guild_remove')
-    async def on_guild_event(self):
+    async def on_guild_event(self, _):
+        await self.update_stats()
+
+    @LightningCog.listener()
+    async def on_ready(self):
         await self.update_stats()
 
 
