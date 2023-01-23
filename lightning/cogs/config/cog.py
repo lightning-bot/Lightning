@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -59,7 +59,7 @@ class Configuration(LightningCog):
         query = f"UPDATE {table} SET {key} = NULL WHERE guild_id=$1;"
         return await self.bot.pool.execute(query, guild_id)
 
-    @group(invoke_without_command=True)
+    @group(invoke_without_command=True, level=CommandLevel.Admin)
     @has_guild_permissions(manage_guild=True)
     async def config(self, ctx: GuildContext) -> None:
         """Manages most of the configuration for the bot"""
