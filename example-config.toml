@@ -1,10 +1,7 @@
 [tokens]
 discord = ""
 
-# TheCatAPI Token (Grab one at thecatapi.com)
-catapi = ""
-
-# Sentry Logging
+# Sentry.io logging
 sentry = ""
 
 # PostgreSQL Connection
@@ -21,24 +18,6 @@ db = 1
 [tokens.api]
 url = "http://api:8000"
 key = "some-key"
-
-
-[git]
-# Guild IDs that have access to use git commands.
-whitelisted_guilds = [527887739178188830,
-                      540978015811928075]
-whitelisted_users = []
-
-[git.github]
-username = ""
-repository_name = ""
-key = "" # Personal Access Token
-
-[git.gitlab]
-instance = "https://gitlab.com" # Gitlab instance url
-key = "" # Personal Access Token
-project_id = ""
-
 
 [logging]
 # Any bot errors either command errors or internal errors. Should be a webhook url
