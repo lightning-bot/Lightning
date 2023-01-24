@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -28,6 +28,7 @@ class Emoji:
     python = "<:python:605592693267103744>"
     dpy = "<:dpy:617883851162779648>"
     postgres = "<:postgres:617886426318635015>"
+    bot_tag = "<:bot_tag:1067547599026012170>"
     # Presence emojis
     do_not_disturb = "<:dnd:572962188134842389>"
     online = "<:online:572962188114001921>"

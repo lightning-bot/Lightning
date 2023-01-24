@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -159,7 +159,7 @@ class DiscordMeta(LightningCog):
               f'{Emoji.idle} {member_by_status["idle"]} ' \
               f'{Emoji.do_not_disturb} {member_by_status["dnd"]} ' \
               f'{Emoji.offline}{member_by_status["offline"]}\n' \
-              f'<:bot_tag:596576775555776522> {member_by_status["bots"]}\n'\
+              f'{Emoji.bot_tag} {member_by_status["bots"]}\n'\
               f'Total: {guild.member_count}'
         embed.add_field(name="Members", value=fmt, inline=False)
 
