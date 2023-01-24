@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -113,19 +113,22 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         self.bot.dispatch(f"lightning_member_{str(action).lower()}", event)
 
-    async def log_action(self, ctx: LightningContext, target, action: str, **kwargs) -> None:
-        reason = ctx.kwargs.get('rest') or ctx.kwargs.get('reason')
+    async def log_action(self, ctx: GuildContext, target, action: str, **kwargs) -> None:
+        if ctx.kwargs.get('flags', None):
+            reason = ctx.kwargs['flags'].reason
+        else:
+            reason = ctx.kwargs.get('reason', None)
 
         await self.log_manual_action(ctx.guild, target, ctx.author, action, timestamp=ctx.message.created_at,
                                      reason=reason, **kwargs)
 
-    async def log_bulk_actions(self, ctx: LightningContext, targets: list, action: str, **kwargs) -> None:
+    async def log_bulk_actions(self, ctx: GuildContext, targets: list, action: str, **kwargs) -> None:
         """Logs a bunch of actions"""
         async with self.bot.pool.acquire() as conn:
             for target in targets:
                 await self.log_action(ctx, target, action, connection=conn, **kwargs)
 
-    async def confirm_and_log_action(self, ctx: LightningContext, target, action: str, **kwargs) -> None:
+    async def confirm_and_log_action(self, ctx: GuildContext, target, action: str, **kwargs) -> None:
         duration_text = kwargs.pop("duration_text", None)
         warning_text = kwargs.pop("warning_text", None)
 
