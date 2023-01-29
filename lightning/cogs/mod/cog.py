@@ -204,7 +204,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @has_guild_permissions(ban_members=True)
     @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason",
              raise_bad_flag=False)
-    async def ban(self, ctx: GuildContext, target: converters.TargetMember, **flags) -> None:
+    async def ban(self, ctx: GuildContext, target: converters.TargetMember, *, flags) -> None:
         """Bans a user from the server."""
         if flags['delete_messages'] < 0:
             raise commands.BadArgument("You can't delete a negative amount of messages.")
