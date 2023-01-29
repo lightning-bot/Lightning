@@ -306,9 +306,11 @@ class FlagCommand(LightningCommand):
         if flag_consume_rest is False and rest_usage_name is not None:
             raise TypeError("Cannot specify rest_attribute_name if not consuming rest")
 
-        parser.consume_rest = flag_consume_rest
         if rest_usage_name:
-            parser.rest_attribute_name = rest_usage_name
+            parser.consume_rest_flag = Flag(attribute=rest_usage_name, consume_rest=True)
+        else:
+            parser.consume_rest_flag = flag_consume_rest
+
         parser.raise_on_bad_flag = raise_bad_flag
 
         # Add additional flags to the parser and prevents us from stacking a bunch of decorators.
