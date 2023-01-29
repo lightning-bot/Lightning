@@ -446,7 +446,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
     @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason", raise_bad_flag=False)
-    async def mute(self, ctx: LightningContext, target: converters.TargetMember, **flags) -> None:
+    async def mute(self, ctx: LightningContext, target: converters.TargetMember, *, flags) -> None:
         """Mutes a user"""
         role = await self.get_mute_role(ctx)
         if flags['duration']:
@@ -548,7 +548,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @has_guild_permissions(ban_members=True)
     @command(cls=lflags.FlagCommand, aliases=['tempban'], level=CommandLevel.Mod, parser=BaseModParser)
     async def timeban(self, ctx: LightningContext, target: converters.TargetMember,
-                      duration: FutureTime, **flags) -> None:
+                      duration: FutureTime, *, flags) -> None:
         """Bans a user for a specified amount of time.
 
         The duration can be a short time format such as "30d", \
@@ -562,7 +562,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
     async def timemute(self, ctx: LightningContext, target: converters.TargetMember,
-                       duration: FutureTime, **flags) -> None:
+                       duration: FutureTime, *, flags) -> None:
         """Mutes a user for a specified amount of time.
 
         The duration can be a short time format such as "30d", \
