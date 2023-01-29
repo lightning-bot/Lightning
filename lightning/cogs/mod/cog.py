@@ -267,7 +267,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(kick_members=True)
     @has_guild_permissions(manage_guild=True)
     @warn_punish.command(name="kick", level=CommandLevel.Admin)
-    async def warn_kick(self, ctx: LightningContext, number: converters.InbetweenNumber(1, 100)) -> None:
+    async def warn_kick(self, ctx: GuildContext, number: converters.InbetweenNumber(1, 100)) -> None:
         """Configures the warn kick punishment.
 
         This kicks the member after acquiring a certain amount of warns."""
@@ -294,7 +294,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(manage_guild=True)
     @warn_punish.command(name="ban", level=CommandLevel.Admin)
-    async def warn_ban(self, ctx: LightningContext, number: converters.InbetweenNumber(1, 100)) -> None:
+    async def warn_ban(self, ctx: GuildContext, number: converters.InbetweenNumber(1, 100)) -> None:
         """Configures the warn ban punishment.
 
         This bans the member after acquiring a certain amount of warns or higher."""
@@ -319,7 +319,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @has_guild_permissions(manage_guild=True)
     @warn_punish.command(name="clear", level=CommandLevel.Admin)
-    async def warn_remove(self, ctx: LightningContext) -> None:
+    async def warn_remove(self, ctx: GuildContext) -> None:
         """Removes all warn punishment configuration."""
         query = """UPDATE guild_mod_config
                    SET warn_ban=NULL,
@@ -404,7 +404,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         else:
             await self.do_message_purge(ctx, 100, lambda e: string in e.content)
 
-    async def get_mute_role(self, ctx: LightningContext) -> discord.Role:
+    async def get_mute_role(self, ctx: GuildContext) -> discord.Role:
         """Gets the guild's mute role if it exists"""
         config = await self.get_mod_config(ctx.guild.id)
         if not config:
@@ -446,7 +446,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
     @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason", raise_bad_flag=False)
-    async def mute(self, ctx: LightningContext, target: converters.TargetMember, *, flags) -> None:
+    async def mute(self, ctx: GuildContext, target: converters.TargetMember, *, flags) -> None:
         """Mutes a user"""
         role = await self.get_mute_role(ctx)
         if flags['duration']:
@@ -493,7 +493,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
-    async def unmute(self, ctx: LightningContext, target: discord.Member, *,
+    async def unmute(self, ctx: GuildContext, target: discord.Member, *,
                      reason: Optional[str]) -> None:
         """Unmutes a user"""
         role = await self.get_mute_role(ctx)
@@ -547,7 +547,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
     @command(cls=lflags.FlagCommand, aliases=['tempban'], level=CommandLevel.Mod, parser=BaseModParser)
-    async def timeban(self, ctx: LightningContext, target: converters.TargetMember,
+    async def timeban(self, ctx: GuildContext, target: converters.TargetMember,
                       duration: FutureTime, *, flags) -> None:
         """Bans a user for a specified amount of time.
 
@@ -561,7 +561,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=lflags.FlagCommand, parser=BaseModParser)
     @commands.bot_has_guild_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
-    async def timemute(self, ctx: LightningContext, target: converters.TargetMember,
+    async def timemute(self, ctx: GuildContext, target: converters.TargetMember,
                        duration: FutureTime, *, flags) -> None:
         """Mutes a user for a specified amount of time.
 
@@ -575,7 +575,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
     @group(aliases=['lockdown'], invoke_without_command=True, level=CommandLevel.Mod)
-    async def lock(self, ctx: LightningContext, channel: discord.TextChannel = commands.CurrentChannel) -> None:
+    async def lock(self, ctx: GuildContext, channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Locks down the channel mentioned.
 
         Sets the channel permissions as @everyone can't send messages.
@@ -606,7 +606,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @lock.command(name="thread", level=CommandLevel.Mod)
     @has_channel_permissions(manage_threads=True)
     @commands.bot_has_permissions(manage_threads=True)
-    async def lock_thread(self, ctx: LightningContext, thread: discord.Thread = commands.CurrentChannel):
+    async def lock_thread(self, ctx: GuildContext, thread: discord.Thread = commands.CurrentChannel):
         if not isinstance(thread, discord.Thread):
             raise commands.BadArgument("This doesn't seem to be a thread.")
 
@@ -623,7 +623,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
     @command(level=CommandLevel.Mod)
-    async def unlock(self, ctx: LightningContext,
+    async def unlock(self, ctx: GuildContext,
                      channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Unlocks the channel mentioned.
 
@@ -644,7 +644,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @has_guild_permissions(manage_messages=True)
     @command(level=CommandLevel.Mod)
-    async def clean(self, ctx: LightningContext, search: int = 100,
+    async def clean(self, ctx: GuildContext, search: int = 100,
                     channel: discord.TextChannel = commands.CurrentChannel) -> None:
         """Cleans the bot's messages from the channel specified.
 
