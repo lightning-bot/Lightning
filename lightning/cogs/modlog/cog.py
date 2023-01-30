@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -52,6 +52,7 @@ class ModLog(LightningCog):
             emitter.close()
 
     @hybrid_group(level=CommandLevel.Admin, fallback="setup")
+    @app_commands.guild_only()
     @app_commands.describe(channel="The channel to configure, defaults to the current one")
     @commands.bot_has_permissions(manage_messages=True, view_audit_log=True, send_messages=True)
     @has_guild_permissions(manage_guild=True)

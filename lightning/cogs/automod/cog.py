@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -66,6 +66,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         return True
 
     @hybrid_group(level=CommandLevel.Admin)
+    @app_commands.guild_only()
     @has_guild_permissions(manage_guild=True)
     async def automod(self, ctx: GuildContext) -> None:
         """Commands to configure Lightning's Auto-Moderation"""
@@ -194,24 +195,24 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @automod_rules.command(level=CommandLevel.Admin, name="add")
     @has_guild_permissions(manage_guild=True)
     @app_commands.describe(type="The AutoMod rule to set up",
-                           count="The interval of when the rule should be triggered")
+                           interval="The interval of when the rule should be triggered")
     async def add_automod_rules(self, ctx: GuildContext, type: AUTOMOD_EVENT_NAMES_LITERAL,
-                                *, count: str):
-        """Adds a new rule to automod.
+                                *, interval: str):
+        """Adds a new rule to AutoMod.
 
-        You can provide count in the following ways
+        You can provide the interval in the following ways
         To set automod to do something at 5 messages per 10 seconds, you can express it in one of the following ways
         - "5/10s"
         - "5 10"
         """
         if type == "mass-mentions":
             try:
-                result = AutoModDurationResponse(int(count), 0)
+                result = AutoModDurationResponse(int(interval), 0)
             except ValueError:
                 await ctx.send("Could not convert to an integer")
                 return
         else:
-            result: AutoModDurationResponse = await AutoModDuration().convert(ctx, count)
+            result: AutoModDurationResponse = await AutoModDuration().convert(ctx, interval)
 
         punishment = await ui.prompt_for_automod_punishments(ctx)
         if punishment is None:
