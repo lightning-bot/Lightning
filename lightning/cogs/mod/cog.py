@@ -426,9 +426,10 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                                        mod_id=ctx.author.id, force_insert=True)
 
         if isinstance(target, discord.Member):
-            msg = modlogformats.construct_dm_message(target, "muted", "in", reason=reason,
-                                                     ending=f"\n\nThis mute will expire in {duration_text}.")
-            await helpers.dm_user(target, msg)
+            if dm_user:
+                msg = modlogformats.construct_dm_message(target, "muted", "in", reason=reason,
+                                                         ending=f"\n\nThis mute will expire in {duration_text}.")
+                await helpers.dm_user(target, msg)
 
             if reason:
                 opt_reason = f"{reason} (Timemute expires in {duration_text})"
