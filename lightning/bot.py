@@ -167,11 +167,12 @@ class LightningBot(commands.AutoShardedBot):
         record = await self.pool.fetchrow(query, guild_id)
         return GuildBotConfig(self, record) if record else None
 
-    async def add_cog(self, cls) -> None:
+    async def add_cog(self, cls: commands.Cog, /, *, override: bool = False, guild=discord.utils.MISSING,
+                      guilds=discord.utils.MISSING) -> None:
         deps = getattr(cls, "__lightning_cog_deps__", None)
         if not deps:
             log.debug(f"Loaded cog {cls.__module__} ({cls})")
-            await super().add_cog(cls)
+            await super().add_cog(cls, override=override, guild=guild, guilds=guilds)
             return
 
         required_cogs = [self.get_cog(name) for name in deps.required]
@@ -182,7 +183,7 @@ class LightningBot(commands.AutoShardedBot):
                 self._pending_cogs[cls.__class__.__name__] = cls
             return
 
-        await super().add_cog(cls)
+        await super().add_cog(cls, override=override, guild=guild, guilds=guilds)
         log.debug(f"Loaded LightningCog {cls.__module__} ({cls}).")
 
         # Try loading cogs pending
