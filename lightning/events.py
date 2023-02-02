@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -16,14 +16,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import List, Optional, Union
+
+import discord
 
 from lightning.models import Action
-
-if TYPE_CHECKING:
-    from typing import List, Optional
-
-    import discord
 
 # These are event models that'll be passed for listeners cog
 
@@ -88,7 +85,8 @@ class AuditLogModAction(BaseAuditLogEvent):
     This will also build the Action class from the parameters given."""
     __slots__ = ("member", "guild", "action")
 
-    def __init__(self, event, member, entry, *, guild=None):
+    def __init__(self, event, member: Union[discord.User, discord.Member], entry: discord.AuditLogEntry,
+                 *, guild: Optional[discord.Guild] = None):
         super().__init__(entry)
         self.member = member
 

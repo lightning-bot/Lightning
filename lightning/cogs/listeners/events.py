@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 import discord
 
@@ -85,64 +85,51 @@ class ListenerEvents(LightningCog):
         await asyncio.sleep(timeout)
         return True
 
+    async def resolve_removed_target(self, entry: discord.AuditLogEntry):
+        if isinstance(entry.target, (discord.User, discord.Member)):
+            return entry.target
+
+        try:
+            await self.bot.fetch_user(entry.target.id)
+        except discord.HTTPException:
+            return entry.target
+
     # Moderation Audit Log Integration Events
-    @LightningCog.listener('on_member_remove')
-    async def on_member_kick(self, member: discord.Member):
-        check = await self.check_and_wait(member.guild)
-        if check is False:
+    @LightningCog.listener('on_audit_log_entry_create')
+    async def on_member_kick(self, entry: discord.AuditLogEntry):
+        if entry.action is not discord.AuditLogAction.kick:
             return
 
-        guild = member.guild
-
-        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.kick, target=member)
-
-        if not entry:  # The user was not kicked.
+        if entry.user_id == self.bot.user.id:
+            # Should already be logged
             return
 
-        if member.joined_at is None or member.joined_at > entry.created_at:
-            return
-
-        if entry.user == self.bot.user:
-            # Assuming it's already logged
-            return
-
-        event = AuditLogModAction("KICK", member, entry)
+        # entry.target is discord.User maybe?
+        event = AuditLogModAction("KICK", entry.target, entry, guild=entry.guild)
         self.bot.dispatch("lightning_member_kick", event)
 
-    @LightningCog.listener()
-    async def on_member_ban(self, guild: discord.Guild, user: Union[discord.User, discord.Member]):
-        check = await self.check_and_wait(guild)
-        if check is False:
+    @LightningCog.listener('on_audit_log_entry_create')
+    async def on_member_ban(self, entry: discord.AuditLogEntry):
+        if entry.action is not discord.AuditLogAction.ban:
             return
 
-        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.ban, target=user)
-
-        if not entry:
+        if entry.user_id == self.bot.user.id:
+            # should be logged
             return
 
-        if entry.user == self.bot.user:
-            # Assuming it's already logged
-            return
-
-        event = AuditLogModAction("BAN", user, entry, guild=guild)
+        event = AuditLogModAction("BAN", entry.target, entry, guild=entry.guild)
         self.bot.dispatch("lightning_member_ban", event)
 
-    @LightningCog.listener()
-    async def on_member_unban(self, guild: discord.Guild, user: discord.User):
-        check = await self.check_and_wait(guild)
-        if check is False:
+    @LightningCog.listener('on_audit_log_entry_create')
+    async def on_member_unban(self, entry: discord.AuditLogEntry):
+        if entry.action is not discord.AuditLogAction.unban:
             return
 
-        entry = await self.fetch_audit_log_entry(guild, discord.AuditLogAction.unban, target=user)
-
-        if not entry:
+        if entry.user_id == self.bot.user.id:
+            # should be logged
             return
 
-        if entry.user == self.bot.user:
-            # Assuming it's already logged
-            return
-
-        event = AuditLogModAction("UNBAN", user, entry, guild=guild)
+        event = AuditLogModAction("UNBAN", entry.target, entry, guild=entry.guild)
         self.bot.dispatch("lightning_member_unban", event)
 
     # Member events with optional audit log information
