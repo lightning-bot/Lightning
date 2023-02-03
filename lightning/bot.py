@@ -200,22 +200,24 @@ class LightningBot(commands.AutoShardedBot):
     async def _notify_of_spam(self, member, channel, guild=None, blacklist=False) -> None:
         e = discord.Embed(color=discord.Color.red(), title="Member hit ratelimit", timestamp=discord.utils.utcnow())
         webhook = discord.Webhook.from_url(self.config.logging.blacklist_alerts, session=self.aiosession)
+
         if blacklist:
             log.info(f"User automatically blacklisted for command spam | {member} | ID: {member.id}")
             e.title = "Automatic Blacklist"
+
         e.description = f"Spam Count: {self.command_spammers[member.id]}/5"
         done_fmt = f'__Channel__: {channel} (ID: {channel.id})'
         if guild:
             done_fmt = f'{done_fmt}\n__Guild__: {guild} (ID: {guild.id})'
         e.add_field(name="Location", value=done_fmt)
         e.add_field(name="User", value=f"{str(member)} (ID: {member.id})")
-        await webhook.execute(embed=e)
+        await webhook.send(embed=e)
 
     @property
     def owners(self) -> List[int]:
         return [self.owner_id] if self.owner_id else self.owner_ids
 
-    async def auto_blacklist_check(self, message) -> None:
+    async def auto_blacklist_check(self, message: discord.Message) -> None:
         author = message.author.id
         if await self.is_owner(message.author):
             return
