@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -116,8 +116,8 @@ class LightningContext(commands.Context):
         content = str(content) if content is not None else None
         if content and len(content) >= 2000:
             try:
-                url = await self.bot.api.request("PUT", "/admin/paste", data={'text': content})
-                content = f"Content too long: {url}"
+                url = await self.bot.api.create_paste(content)
+                content = f"Content too long: {url['full_url']}"
             except sanctum.HTTPException:
                 content = "Content too long..."
         return content
