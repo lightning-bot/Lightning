@@ -169,7 +169,7 @@ class ModLog(LightningCog):
 
     @LightningCog.listener()
     async def on_lightning_timed_moderation_action_done(self, action, guild_id, user, moderator, timer):
-        async for emitter, record in self.get_records(guild_id, action):
+        async for emitter, record in self.get_records(guild_id, LoggingType(f"MEMBER_{action.upper()}")):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
                 arg = False if record['format'] == "minimal without timestamp" else True
                 message = modlogformats.MinimalisticFormat.timed_action_expired(action.lower(), user, moderator,
