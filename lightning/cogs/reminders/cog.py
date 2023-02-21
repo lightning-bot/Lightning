@@ -241,7 +241,7 @@ class Reminders(LightningCog):
             # Matches current timer, re-run loop as it's gone
             self.restart_timer_task()
 
-        await ctx.send(f"Successfully deleted reminder (ID: {reminder_id})")
+        await ctx.send(f"Successfully deleted reminder (ID: {reminder_id})", ephemeral=True)
 
     @remind.command(name='clear')
     async def clear_reminders(self, ctx: LightningContext) -> None:
