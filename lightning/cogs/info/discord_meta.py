@@ -150,6 +150,9 @@ class DiscordMeta(LightningCog):
 
             embed.set_thumbnail(url=icon_url)
 
+        if guild.chunked is False:
+            await guild.chunk()
+
         member_by_status = collections.Counter()
         for m in guild.members:
             member_by_status[str(m.status)] += 1
