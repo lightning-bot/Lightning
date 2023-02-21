@@ -39,7 +39,7 @@ from lightning.utils.time import add_tzinfo, natural_timedelta
 
 
 class InfractionRecord:
-    def __init__(self, bot: LightningBot, record: dict):
+    def __init__(self, bot: LightningBot, record: Dict[str, Any]):
         self.id = record['id']
 
         self.guild = bot.get_guild(record['guild_id']) or record['guild_id']
@@ -120,6 +120,20 @@ class InfractionSource(menus.ListPageSource):
             return await self.format_all_page(menu, entries)
 
 
+class SingularInfractionSource(menus.ListPageSource):
+    def __init__(self, entries):
+        super().__init__(entries, per_page=1)
+
+    async def format_page(self, menu: InfractionPaginator, entry: Dict[str, Any]):
+        color = discord.Color.green() if entry['active'] else discord.Color.dark_gray()
+        record = InfractionRecord(menu.bot, entry)
+        embed = discord.Embed(color=color, title=str(record.action).capitalize(),
+                              timestamp=add_tzinfo(record.created_at))
+        embed.description = record.reason or "No reason provided"
+        embed.set_footer(text="Infraction created at")
+        return embed
+
+
 class InfractionFilterFlags(commands.FlagConverter):
     member: discord.Member
     active: bool = commands.flag(default=True)
@@ -154,7 +168,7 @@ class Infractions(LightningCog, required=['Moderation']):
             if record['action'] != 1:
                 records.remove(record)
 
-        menu = EphemeralInfractionPaginator(InfractionSource(records, member=ctx.author), ctx, timeout=60.0)
+        menu = EphemeralInfractionPaginator(SingularInfractionSource(records), ctx, timeout=60.0)
         await menu.start(wait=False)
 
     # Context menu
