@@ -17,10 +17,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from datetime import datetime
-from io import StringIO
+from io import BytesIO
 from typing import Any, Dict, List, Literal, Optional, Union
 
 import discord
+import orjson
 from discord import app_commands
 from discord.ext import commands, menus
 from sanctum.exceptions import NotFound
@@ -279,7 +280,7 @@ class Infractions(LightningCog, required=['Moderation']):
         """Exports the server's infractions to a JSON"""
         records = await self.bot.api.get_infractions(ctx.guild.id)
 
-        raw_bytes = StringIO(records)
+        raw_bytes = BytesIO(orjson.dumps(records))
         raw_bytes.seek(0)
         await ctx.send(file=discord.File(raw_bytes, filename="infractions.json"))
 
