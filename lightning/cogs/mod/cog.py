@@ -69,7 +69,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             raise commands.NoPrivateMessage()
         return True
 
-    def format_reason(self, author, reason: str, *, action_text=None) -> str:
+    def format_reason(self, author, reason: Optional[str], *, action_text=None) -> str:
         return truncate_text(modlogformats.action_format(author, action_text, reason=reason), 512)
 
     async def add_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection=None) -> str:
@@ -599,7 +599,14 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         overwrites.create_public_threads = False
         overwrites.create_private_threads = False
         reason = modlogformats.action_format(ctx.author, "Lockdown done by")
-        await channel.set_permissions(ctx.guild.default_role, reason=reason, overwrite=overwrites)
+
+        try:
+            await channel.set_permissions(ctx.guild.default_role, reason=reason, overwrite=overwrites)
+        except discord.Forbidden as e:
+            # Thanks Onboarding!
+            await ctx.send(f"Unable to lock that channel! `{str(e)}`")
+            return
+
         # Bot permissions
         await channel.set_permissions(ctx.me, reason=reason, send_messages=True, manage_channels=True)
         await ctx.send(f"\N{LOCK} {channel.mention} is now locked.")
@@ -711,6 +718,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @LightningCog.listener()
     async def on_lightning_timeban_complete(self, timer: Timer):
+        assert timer.extra is not None
+
         # We need to update timeban status first. Eventually, we need to move this over to infractions cog but idk
         query = "UPDATE infractions SET active=false WHERE guild_id=$1 AND user_id=$2 AND expiry=$3 AND action='4';"
         await self.bot.pool.execute(query, timer.extra['guild_id'], timer.extra['user_id'], timer.expiry)
@@ -733,6 +742,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @LightningCog.listener()
     async def on_lightning_timemute_complete(self, timer: Timer):
+        assert timer.extra is not None
+
         async with self.bot.pool.acquire() as connection:
             if await self.punishment_role_check(timer.extra['guild_id'],
                                                 timer.extra['user_id'],
