@@ -21,9 +21,13 @@ from io import BytesIO
 from typing import Any, Dict, List, Literal, Optional, Union
 
 import discord
+import matplotlib
 import orjson
 from discord import app_commands
 from discord.ext import commands, menus
+from jishaku.functools import executor_function
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 from sanctum.exceptions import NotFound
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
@@ -37,6 +41,8 @@ from lightning.utils.helpers import ticker
 from lightning.utils.modlogformats import base_user_format
 from lightning.utils.paginator import Paginator
 from lightning.utils.time import add_tzinfo, natural_timedelta
+
+matplotlib.use('Agg')
 
 
 class InfractionRecord:
@@ -148,6 +154,18 @@ class Infractions(LightningCog, required=['Moderation']):
         super().__init__(bot)
         self.inf_list_contextmenu = app_commands.ContextMenu(name="View Infractions", callback=self.infraction_list)
         bot.tree.add_command(self.inf_list_contextmenu)
+
+        self.numbers = (
+            '\N{FIRST PLACE MEDAL}',
+            '\N{SECOND PLACE MEDAL}',
+            '\N{THIRD PLACE MEDAL}',
+            '4\N{combining enclosing keycap}',
+            '5\N{combining enclosing keycap}',
+            '6\N{combining enclosing keycap}',
+            '7\N{combining enclosing keycap}',
+            '8\N{combining enclosing keycap}',
+            '9\N{combining enclosing keycap}',
+            '\N{KEYCAP TEN}')
 
     async def cog_check(self, ctx) -> bool:
         if ctx.guild is None:
@@ -306,6 +324,113 @@ class Infractions(LightningCog, required=['Moderation']):
             src = InfractionSource(infs)
 
         await self.start_infraction_pages(ctx, src)
+
+    async def detailed_moderator_stats(self, ctx: GuildContext, moderator: discord.Member):
+        embed = discord.Embed(title="Detailed Infraction Stats")
+        query = """SELECT COUNT (*) as "infractions"
+                    FROM infractions
+                    WHERE guild_id = $1
+                    AND moderator_id = $2;
+                    """
+        total_count = await self.bot.pool.fetchval(query, ctx.guild.id, moderator.id)
+        if not total_count:
+            embed.description = f"{moderator.mention} hasn't done any moderation actions yet!"
+            return embed
+
+        desc = []
+
+        query = """SELECT moderator_id, COUNT(*) as "count"
+                   FROM infractions
+                   WHERE guild_id=$1
+                   GROUP BY moderator_id
+                   ORDER BY "count" DESC
+                   LIMIT 1;"""
+        record = await self.bot.pool.fetchrow(query, ctx.guild.id)
+
+        if record['moderator_id'] == moderator.id:
+            desc.append(f"{moderator.mention} is currently in 1st place for creating the most infractions!"
+                        f" ({record['count']})")
+        else:
+            desc.append(f"{moderator.mention} needs {total_count - record['count']} more infractions to be in 1st place"
+                        "!")
+
+        query = """SELECT COUNT(*) as "count"
+                   FROM infractions
+                   WHERE guild_id=$1
+                   AND moderator_id=$2
+                   AND created_at > (timezone('UTC', now()) - INTERVAL '7 days');"""
+        record = await self.bot.pool.fetchval(query, ctx.guild.id, moderator.id)
+        desc.append(f"In the past seven days, {moderator.mention} has made {record or 0} infractions!")
+
+        embed.description = "\n".join(desc)
+
+        # At some point, we'll have some graphs too :)
+
+        return embed
+
+    @executor_function
+    def create_guild_pie(self, data: List[int], labels: List[str], inf_data: Dict[int, int]) -> discord.File:
+        fig, ax = plt.subplots(2, figsize=[9, 9])
+        ax[0].pie(data, labels=labels, autopct="%1.1f%%", shadow=True)
+        ax[0].set_title("Top 10 Moderators")
+
+        for num in ActionType:
+            d = inf_data.get(num.value)
+            if not d:
+                inf_data[num.value] = 0
+
+        inf_data = dict(sorted(inf_data.items()))
+        ax[1].bar([str(t).capitalize() for t in ActionType], inf_data.values())
+        ax[1].set_title("All-Time Actions Taken")
+        ax[1].yaxis.set_major_locator(MaxNLocator(integer=True))
+
+        fp = BytesIO()
+        plt.savefig(fp, format='png')
+        fp.seek(0)
+        return discord.File(fp, 'plot.png')
+
+    @infraction.command(name="stats", level=CommandLevel.Mod)
+    @has_guild_permissions(manage_guild=True)
+    @commands.bot_has_permissions(attach_files=True)
+    async def infraction_stats(self, ctx: GuildContext, moderator: Optional[discord.Member]) -> None:
+        """Shows some stats about this guild's infractions"""
+        if moderator:
+            embed = await self.detailed_moderator_stats(ctx, moderator)
+            await ctx.send(embed=embed)
+            return
+
+        query = """SELECT moderator_id,
+                        COUNT (*) as "count"
+                    FROM infractions
+                    WHERE guild_id = $1
+                    GROUP BY moderator_id
+                    ORDER BY "count" DESC
+                    LIMIT 10;
+                    """
+        records = await self.bot.pool.fetch(query, ctx.guild.id)
+        embed = discord.Embed()
+        desc = [
+            f"{self.numbers[idx]}: <@{record['moderator_id']}> ({record['count']} infractions)\n"
+            for idx, record in enumerate(records)
+        ]
+        embed.description = "".join(desc)
+
+        labels = []
+        for record in records:
+            if mod := ctx.guild.get_member(record['moderator_id']) or ctx.bot.get_user(record['moderator_id']):
+                labels.append(str(mod))
+            else:
+                labels.append(f"Unknown user with ID: {record['moderator_id']}")
+
+        query = """SELECT action, COUNT (*) as "count"
+                   FROM infractions
+                   WHERE guild_id=$1
+                   GROUP BY action;"""
+        typesc = dict(await self.bot.pool.fetch(query, ctx.guild.id))
+
+        f = await self.create_guild_pie([record['count'] for record in records], labels, typesc)
+        embed.set_image(url="attachment://plot.png")
+        await ctx.send(embed=embed, file=f)
 
 
 async def setup(bot: LightningBot) -> None:
