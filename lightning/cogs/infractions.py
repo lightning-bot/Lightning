@@ -369,10 +369,11 @@ class Infractions(LightningCog, required=['Moderation']):
         return embed
 
     @executor_function
-    def create_guild_pie(self, data: List[int], labels: List[str], inf_data: Dict[int, int]) -> discord.File:
+    def create_guild_graph(self, data: List[int], labels: List[str], inf_data: Dict[int, int]) -> discord.File:
         fig, ax = plt.subplots(2, figsize=[9, 9])
-        ax[0].pie(data, labels=labels, autopct="%1.1f%%", shadow=True)
+        ax[0].pie(data, autopct="%1.1f%%")
         ax[0].set_title("Top 10 Moderators")
+        ax[0].legend(labels, title="Moderators", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
 
         for num in ActionType:
             d = inf_data.get(num.value)
@@ -428,7 +429,7 @@ class Infractions(LightningCog, required=['Moderation']):
                    GROUP BY action;"""
         typesc = dict(await self.bot.pool.fetch(query, ctx.guild.id))
 
-        f = await self.create_guild_pie([record['count'] for record in records], labels, typesc)
+        f = await self.create_guild_graph([record['count'] for record in records], labels, typesc)
         embed.set_image(url="attachment://plot.png")
         await ctx.send(embed=embed, file=f)
 
