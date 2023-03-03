@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -71,12 +71,9 @@ class API(LightningCog):
                     summary = "No information available!"
                 episode_info.append((e['name'], f"Episode Info: {summary}\n**Air Date:** {ts}"))
 
-        p = paginator.InfoMenuPages(paginator.FieldMenus(entries=episode_info, per_page=4),
-                                    delete_message_after=True, check_embeds=True, timeout=60.0)
-        try:
-            await p.start(ctx, channel=await ctx.author.create_dm())
-        except discord.Forbidden:
-            await p.start(ctx)
+        p = paginator.Paginator(paginator.FieldMenus(entries=episode_info, per_page=4),
+                                context=ctx, timeout=60.0)
+        await p.start(wait=False)
 
     @blacklightning.command(name="episode")
     async def episode_info(self, ctx: LightningContext, season: int, episode: int) -> None:
