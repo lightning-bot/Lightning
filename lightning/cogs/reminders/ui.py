@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -20,7 +20,8 @@ from datetime import datetime
 
 import discord
 
-from lightning.ui import ExitableMenu
+from lightning.constants import Emoji
+from lightning.ui import ExitableMenu, lock_when_pressed
 
 
 class ReminderEditTextModal(discord.ui.Modal):
@@ -62,5 +63,17 @@ class ReminderEdit(ExitableMenu):
 
         msg = await self.format_initial_message(self.ctx)
         await interaction.edit_original_response(content=msg['content'])
+
+    @lock_when_pressed
+    @discord.ui.button(label="Delete reminder", emoji=Emoji.redtick, style=discord.ButtonStyle.danger)
+    async def delete_reminder_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        prompt = await self.ctx.confirm("Are you sure you want to delete this reminder?")
+        if prompt is not True:
+            return
+
+        await self.ctx.bot.api.delete_timer(self.timer_id)
+        await interaction.followup.send("Deleted the reminder!")
+        self.stop()
 
     # At some point we'll have a date picker...
