@@ -20,8 +20,8 @@ import re
 from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional,
                     TypedDict, Union)
 
-import aioredis
 import discord
+import redis.asyncio as aioredis
 from discord.ext.commands import BucketType
 
 from lightning import AutoModCooldown, LightningBot
