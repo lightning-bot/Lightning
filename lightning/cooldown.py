@@ -19,7 +19,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Callable, Union
 
-import aioredis
+import redis.asyncio as aioredis
 from discord import Message
 from discord.ext.commands import BucketType
 

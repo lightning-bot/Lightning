@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -23,7 +23,7 @@ import inspect
 import time
 from functools import wraps
 
-import aioredis
+import redis.asyncio as aioredis
 from lru import LRU
 
 from lightning.config import Config

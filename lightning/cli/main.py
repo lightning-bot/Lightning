@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -19,9 +19,9 @@ import logging
 import logging.handlers
 import os
 
-import aioredis
 import asyncpg
 import discord
+import redis.asyncio as redis
 import sentry_sdk
 import typer
 from rich.logging import RichHandler
@@ -105,14 +105,14 @@ async def launch_bot(config: Config) -> None:
 
     try:
         bot.pool = await create_pool(bot.config['tokens']['postgres']['uri'], command_timeout=60)
-        bot.redis_pool = aioredis.Redis(host=bot.config.tokens.redis.host, port=bot.config.tokens.redis.port,
-                                        db=bot.config.tokens.redis.db, password=bot.config.tokens.redis.password)
+        bot.redis_pool = redis.Redis(host=bot.config.tokens.redis.host, port=bot.config.tokens.redis.port,
+                                     db=bot.config.tokens.redis.db, password=bot.config.tokens.redis.password)
         # Only way to ensure the pool is connected to redis
         await bot.redis_pool.ping()
     except asyncpg.PostgresConnectionError as e:
         log.exception("Could not set up PostgreSQL. Exiting...", exc_info=e)
         return
-    except aioredis.ConnectionError as e:
+    except redis.ConnectionError as e:
         log.exception("Could not setup redis pool. Exiting...", exc_info=e)
         return
 

@@ -28,9 +28,9 @@ from datetime import datetime
 from typing import List, Optional, Union
 
 import aiohttp
-import aioredis
 import asyncpg
 import discord
+import redis.asyncio as aioredis
 import sentry_sdk
 from discord.app_commands import CommandTree
 from discord.ext import commands, menus
