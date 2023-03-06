@@ -94,7 +94,8 @@ class LightningContext(commands.Context):
                    mention_author: Optional[bool] = None,
                    view: Optional[discord.ui.View] = None,
                    suppress_embeds: bool = False,
-                   ephemeral: bool = False) -> discord.Message:
+                   ephemeral: bool = False,
+                   silent: bool = False) -> discord.Message:
         content = await self._prepare_send(content)
         return await super().send(content=content,
                                   tts=tts,
@@ -110,7 +111,8 @@ class LightningContext(commands.Context):
                                   mention_author=mention_author,
                                   view=view,
                                   suppress_embeds=suppress_embeds,
-                                  ephemeral=ephemeral)
+                                  ephemeral=ephemeral,
+                                  silent=silent)
 
     async def _prepare_send(self, content: Optional[str] = None) -> Optional[str]:
         content = str(content) if content is not None else None
