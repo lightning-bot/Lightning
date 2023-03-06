@@ -473,16 +473,14 @@ class Homebrew(LightningCog):
                case_insensitive=False)
     async def mod_ds(self, ctx: LightningContext) -> None:
         """Gives information on DS modding"""
-        features = ["Redirect your NAND to the SD card",
+        features = ["Run Nintendo DS game backups natively on your DSi SD card without the need of a flashcard.",
                     "Use normally incompatible flashcards",
                     "Boot into different homebrew applications by holding different buttons when turning on your "
                     "Nintendo DSi.",
                     "Launch any DSiWare (out-of-region & 3DS exclusives) from your SD card",
-                    "Run Nintendo DS game backups natively on your DSi SD card without the need of a flashcard.",
-                    "Watch your favorite movies using MPEG4Player",
-                    "Run old-time favorites using a variety of emulators",
-                    "Use FreeNAND to transfer configurations, sys, titles and tickets to another Nintendo DSi from a SD"
-                    " NAND"]
+                    "Display an image (referred to as the boot splash) on system launch",
+                    "Watch your favorite movies using FastVideoDS",
+                    "Run old-time classics using a variety of emulators"]
         em = discord.Embed(title="Nintendo DSi Modding guide",
                            url="https://dsi.cfw.guide/",
                            color=0xD6FEFF)
@@ -505,9 +503,9 @@ class Homebrew(LightningCog):
                     "Modify your Nintendo DS game using Cheat Codes",
                     "Install Custom FirmWare on your 3DS using NTRBoot Hax"]
         embed = discord.Embed(title="Nintendo DS Flashcard guide",
-                              url="https://nightyoshi370.github.io/mm-github-pages-starter/",
+                              url="https://www.reddit.com/r/flashcarts/wiki/ds-quick-start-guide",
                               color=0xD6FEFF)
-        embed.description = ("This [guide](https://nightyoshi370.github.io/mm-github-pages-starter/)"
+        embed.description = ("This [guide](https://www.reddit.com/r/flashcarts/wiki/ds-quick-start-guide)"
                              " links to most flashcard kernels that are made "
                              "for the Nintendo DS. You can also view its "
                              "compatibility status for the Nintendo DSi and the Nintendo 3DS")
