@@ -32,7 +32,7 @@ import asyncpg
 import discord
 import redis.asyncio as aioredis
 import sentry_sdk
-from discord.app_commands import CommandTree
+from discord import app_commands
 from discord.ext import commands, menus
 from sanctum import HTTPClient
 
@@ -74,8 +74,26 @@ async def _callable_prefix(bot: LightningBot, message: discord.Message):
     return prefixes
 
 
-class Tree(CommandTree):
-    ...
+class Tree(app_commands.CommandTree):
+    async def on_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError, /) -> None:
+        command = interaction.command
+        if not command:
+            return await super().on_error(interaction, error)
+
+        if command._has_any_error_handlers():
+            return
+
+        if interaction.response.is_done():
+            messagable = interaction.followup.send
+        else:
+            messagable = interaction.response.send_message
+
+        if isinstance(error, app_commands.MissingPermissions):
+            p = ', '.join(error.missing_permissions).replace('_', ' ').replace('guild', 'server').title()
+            await messagable(f"You are missing {p} permissions to use this command!", ephemeral=True)
+            return
+
+        return await super().on_error(interaction, error)
 
 
 class LightningBot(commands.AutoShardedBot):
