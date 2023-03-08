@@ -30,7 +30,7 @@ rapidfuzz = "^1.6.1"
 typer = "^0.6.1"
 tomlkit = "^0.7.0"
 uvloop = {version = "^0.17.0", platform = "linux"}
-orjson = "^3.6.0"
+orjson = "^3.8.7"
 beautifulsoup4 = "^4.9.3"
 lxml = "^4.6.3"
 pydantic = "^1.8.2"
