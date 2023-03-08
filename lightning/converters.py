@@ -201,11 +201,10 @@ def convert_to_level_value(argument):
 
 
 def Snowflake(argument) -> int:
-    match = re.match(r"[0-9]{15,20}", argument)
-    if not match:
+    if match := re.match(r"[0-9]{15,20}", argument):
+        return int(match[0])
+    else:
         raise commands.BadArgument("That doesn't seem like a snowflake.")
-
-    return int(match.group(0))
 
 
 def SnowflakeDT(argument) -> datetime:

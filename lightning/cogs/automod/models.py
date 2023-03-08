@@ -93,10 +93,16 @@ class AutomodConfig:
                 self.auto_dehoist = BasicFeature(rule)
 
     def is_ignored(self, message: discord.Message):
-        if not self.default_ignores:
-            return False
-
-        return any(a in self.default_ignores for a in getattr(message.author, '_roles', [])) or message.author.id in self.default_ignores or message.channel.id in self.default_ignores  # noqa
+        return (
+            any(
+                a in self.default_ignores
+                for a in getattr(message.author, '_roles', [])
+            )
+            or message.author.id in self.default_ignores
+            or message.channel.id in self.default_ignores
+            if self.default_ignores
+            else False
+        )
 
 
 class BasicFeature:

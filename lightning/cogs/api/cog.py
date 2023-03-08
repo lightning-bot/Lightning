@@ -65,10 +65,7 @@ class API(LightningCog):
             if e['season'] == season:
                 ts = discord.utils.format_dt(datetime.fromisoformat(e['airstamp']))
                 summary = e['summary']
-                if summary:
-                    summary = self.clean_text(summary)
-                else:
-                    summary = "No information available!"
+                summary = self.clean_text(summary) if summary else "No information available!"
                 episode_info.append((e['name'], f"Episode Info: {summary}\n**Air Date:** {ts}"))
 
         p = paginator.Paginator(paginator.FieldMenus(entries=episode_info, per_page=4),
@@ -111,9 +108,7 @@ class API(LightningCog):
     def get_match(self, word_list: list, word: str, score_cutoff: int = 60) -> Optional[Tuple[str, float, int]]:
         result = process.extractOne(word, word_list, scorer=fuzz.WRatio,
                                     score_cutoff=score_cutoff, processor=lambda a: a.lower())
-        if not result:
-            return None
-        return result
+        return result or None
 
     def _build_pg_cache(self, content):
         soup = BeautifulSoup(content, "lxml")
@@ -136,10 +131,7 @@ class API(LightningCog):
 
         match = self.get_match(list(entries.keys()), entry, 40)
 
-        if not match:
-            return None
-
-        return (match[0], entries[match[0]])
+        return (match[0], entries[match[0]]) if match else None
 
     @command()
     async def rtfm(self, ctx: LightningContext, *, entity: Optional[str] = None):

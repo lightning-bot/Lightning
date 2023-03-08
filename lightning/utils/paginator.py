@@ -98,10 +98,7 @@ class BasicEmbedMenu(menus.ListPageSource):
         super().__init__(data, per_page=per_page)
 
     async def format_page(self, menu, entries) -> discord.Embed:
-        if self.embed:
-            embed = self.embed
-        else:
-            embed = discord.Embed(color=discord.Color.greyple())
+        embed = self.embed or discord.Embed(color=discord.Color.greyple())
         embed.description = "\n".join(entries)
         embed.set_footer(text=f"Page {menu.current_page + 1} of {self.get_max_pages()}")
         return embed

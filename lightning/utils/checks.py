@@ -33,13 +33,8 @@ def is_guild(guild_id):
 
 def is_one_of_guilds(*guilds):
     async def predicate(ctx) -> bool:
-        if not ctx.guild:
-            return False
+        return ctx.guild.id in guilds if ctx.guild else False
 
-        if ctx.guild.id in guilds:
-            return True
-
-        return False
     return commands.check(predicate)
 
 

@@ -45,10 +45,7 @@ class LightningContext(commands.Context):
     async def tick(self, boolean: bool, *, send=True) -> Union[str, discord.Message]:
         tick = ticker(boolean)
 
-        if send:
-            return await self.send(tick)
-        else:
-            return tick
+        return await self.send(tick) if send else tick
 
     async def emoji_send(self, emoji: discord.Emoji) -> None:
         """Attempts to send the specified emote. If failed, reacts."""

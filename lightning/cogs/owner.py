@@ -157,7 +157,7 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         if len(output) == 0:
             multi_statement = True
 
-        if multi_statement is False:
+        if not multi_statement:
             table = tabulate.tabulate(output, headers="keys", tablefmt="psql")
             content = f"Took {round(dt)}ms\n{formatters.codeblock(table, language='')}"
         else:

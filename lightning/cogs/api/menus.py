@@ -49,9 +49,9 @@ class CrateViewer(menus.KeysetPageSource):
                 if specifier.reference.next_page is None:
                     raise ValueError
                 query = specifier.reference.next_page
+            elif specifier.reference.previous_page is None:
+                raise ValueError
             else:
-                if specifier.reference.previous_page is None:
-                    raise ValueError
                 query = specifier.reference.previous_page
         elif specifier.direction is menus.PageDirection.before:
             data = await self.request(query)
@@ -68,6 +68,6 @@ class CrateViewer(menus.KeysetPageSource):
     async def format_page(self, menu, page) -> discord.Embed:
         v = "\n".join(f"**Exact Match** [{p.name}](https://crates.io/crates/{p.id})" if p.exact_match else
                       f"[{p.name}](https://crates.io/crates/{p.id})" for p in page.crates)
-        embed = discord.Embed(title=f"Results for {self.search_term}", color=0x3B6837,
-                              description=v)
-        return embed
+        return discord.Embed(
+            title=f"Results for {self.search_term}", color=0x3B6837, description=v
+        )

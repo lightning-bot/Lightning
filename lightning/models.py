@@ -53,11 +53,11 @@ class GuildModConfig:
         # Configurations get invalidated if the bot leaves so this should never be None
         guild = self.bot.get_guild(self.guild_id)
 
-        role = discord.utils.get(guild.roles, id=self.mute_role_id)
-        if not role:
+        if role := discord.utils.get(guild.roles, id=self.mute_role_id):
+            return role
+        else:
             raise errors.MuteRoleError('The mute role that was set seems to be deleted.'
                                        ' Please set a new mute role.')
-        return role
 
 
 class LoggingConfig:
@@ -71,11 +71,11 @@ class LoggingConfig:
                                                   "webhook_url": record['webhook_url']}
 
     def get_channels_with_feature(self, log_type: int) -> List[Tuple[int, Dict[str, Any]]]:
-        channels = []
-        for key, value in list(self.logging.items()):
-            if log_type in value['types']:
-                channels.append((key, value))
-        return channels
+        return [
+            (key, value)
+            for key, value in list(self.logging.items())
+            if log_type in value['types']
+        ]
 
     def get(self, key):
         return self.logging.get(key, None)
@@ -103,23 +103,14 @@ class CommandOverrides:
 
     def is_command_level_blocked(self, command: str) -> bool:
         override = self.overrides.get(command, {}).get("LEVEL", None)
-        if override is None:
-            return False
-
-        if override == CommandLevel.Disabled.value:
-            return True
-
-        return False
+        return False if override is None else override == CommandLevel.Disabled.value
 
     def is_command_id_overriden(self, command: str, ids: list):
         override_ids = self.overrides.get(command, {}).get("ID_OVERRIDES", None)
         if override_ids is None:
             return False
 
-        if any(_id in override_ids for _id in ids) is False:
-            return False
-
-        return True
+        return any((_id in override_ids for _id in ids))
 
     def resolve_overrides(self, ctx: LightningContext) -> bool:
         # TODO: Rewrite this.
@@ -133,11 +124,7 @@ class CommandOverrides:
             return True
 
         # Check if level is blocked
-        if self.is_command_level_blocked(command) is True:
-            # blocked commmand...
-            return False
-
-        return True
+        return self.is_command_level_blocked(command) is not True
 
     def to_dict(self):
         return self.overrides
@@ -198,10 +185,7 @@ class LevelConfig:
             return "roles"
 
         users = [*self.blocked_user_ids, *self.admin_user_ids, *self.mod_user_ids, *self.trusted_user_ids]
-        if any(r for r in ids if r in users):
-            return "users"
-
-        return None
+        return "users" if any(r for r in ids if r in users) else None
 
     def to_dict(self):
         return {"ADMIN": {"ROLE_IDS": self.admin_role_ids, "USER_IDS": self.admin_user_ids},
@@ -221,18 +205,13 @@ class GuildPermissionsConfig:
         # self.disabled_features = record['DISABLED']
 
     def raw(self):
-        y = {}
+        y = {
+            'COMMAND_OVERRIDES': self.command_overrides.to_dict()
+            if self.command_overrides
+            else {}
+        }
 
-        if self.command_overrides:
-            y['COMMAND_OVERRIDES'] = self.command_overrides.to_dict()
-        else:
-            y['COMMAND_OVERRIDES'] = {}
-
-        if self.levels:
-            y['LEVELS'] = self.levels.to_dict()
-        else:
-            y['LEVELS'] = {}
-
+        y['LEVELS'] = self.levels.to_dict() if self.levels else {}
         return y
 
 
@@ -295,11 +274,10 @@ def to_action(value):
     if isinstance(value, ActionType):
         return value
 
-    a = getattr(ActionType, value)
-    if not a:
+    if a := getattr(ActionType, value):
+        return a
+    else:
         raise ValueError
-
-    return a
 
 
 class Action:
@@ -322,11 +300,7 @@ class Action:
         """Inserts an infraction into the database.
 
         As a safeguard, timestamp and expiry datetimes are stripped of tzinfo"""
-        if self.expiry:
-            expiry = strip_tzinfo(self.expiry)
-        else:
-            expiry = None
-
+        expiry = strip_tzinfo(self.expiry) if self.expiry else None
         if len(self.kwargs) == 0:
             query = """INSERT INTO infractions (guild_id, user_id, moderator_id, action, reason, created_at, expiry)
                        VALUES ($1, $2, $3, $4, $5, $6, $7)

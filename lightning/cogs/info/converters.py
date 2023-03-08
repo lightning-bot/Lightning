@@ -64,7 +64,7 @@ class Message(commands.Converter):
                 raise LightningError("Not a valid message ID.")
             channel = ctx.channel
             return message, channel
-        message_id = int(match.group("message_id"))
-        channel_id = match.group("channel_id")
+        message_id = int(match["message_id"])
+        channel_id = match["channel_id"]
         channel = await ReadableChannel().convert(ctx, channel_id)
         return message_id, channel

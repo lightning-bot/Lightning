@@ -50,9 +50,7 @@ class Migrator:
         self.config = self.load_config()
 
     def load_migrations(self):
-        fps: List[Revision] = []
-        for file in self.root.glob("*.sql"):
-            fps.append(Revision(file))
+        fps: List[Revision] = [Revision(file) for file in self.root.glob("*.sql")]
         return fps
 
     @property

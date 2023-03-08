@@ -80,8 +80,7 @@ class DiscordMeta(LightningCog):
         if not isinstance(member, discord.Member):
             embed.set_footer(text='This user is not in this server.')
 
-        activities = getattr(member, 'activities', None)
-        if activities:
+        if activities := getattr(member, 'activities', None):
             activities_fmt = '\N{BULLET} '.join([f"{self._determine_activity(a)}\n" for a in activities])
             desc.append(f"**Activities**: {activities_fmt.strip()}")
 

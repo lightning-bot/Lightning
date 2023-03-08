@@ -90,9 +90,7 @@ class WebhookEmbedEmitter(Emitter):
             await asyncio.sleep(5)
 
             size = self._queue.qsize()
-            for _ in range(min(9, size)):
-                embeds.append(self._queue.get_nowait())
-
+            embeds.extend(self._queue.get_nowait() for _ in range(min(9, size)))
             await self.webhook.send(embeds=embeds)
 
 

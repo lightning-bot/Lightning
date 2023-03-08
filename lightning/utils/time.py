@@ -148,8 +148,9 @@ class UserFriendlyTime(commands.Converter):
             return result
 
         if match is None or not match.group(0):
-            match = re.compile(r'<t:(?P<timestamp>[0-9]+)(?:\:[tTdDfFR])?>').fullmatch(argument)
-            if match:
+            if match := re.compile(
+                r'<t:(?P<timestamp>[0-9]+)(?:\:[tTdDfFR])?>'
+            ).fullmatch(argument):
                 remaining = argument[match.end():].strip()
                 result = UserFriendlyTimeResult(datetime.datetime.fromtimestamp(int(match['timestamp']),
                                                 tz=datetime.timezone.utc))
@@ -161,10 +162,8 @@ class UserFriendlyTime(commands.Converter):
         if argument.endswith('from now'):
             argument = argument[:-8].strip()
 
-        if argument[0:2] == 'me':
-            # starts with "me to", "me in", or "me at "
-            if argument[0:6] in ('me to ', 'me in ', 'me at '):
-                argument = argument[6:]
+        if argument[:2] == 'me' and argument[:6] in ('me to ', 'me in ', 'me at '):
+            argument = argument[6:]
 
         elements = calendar.nlp(argument, sourceTime=now)
         if elements is None or len(elements) == 0:
@@ -255,13 +254,12 @@ def natural_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True) 
 
     output = []
     for attr, brief_attr in attrs:
-        elem = getattr(delta, attr + 's')
+        elem = getattr(delta, f'{attr}s')
         if not elem:
             continue
 
         if attr == 'day':
-            weeks = delta.weeks
-            if weeks:
+            if weeks := delta.weeks:
                 elem -= weeks * 7
                 if not brief:
                     output.append(format(plural(weeks), 'week'))
@@ -282,10 +280,11 @@ def natural_timedelta(dt, *, source=None, accuracy=3, brief=False, suffix=True) 
     if len(output) == 0:
         return 'now'
     else:
-        if not brief:
-            return human_join(output, conj='and') + suffix
-        else:
-            return ' '.join(output) + suffix
+        return (
+            ' '.join(output) + suffix
+            if brief
+            else human_join(output, conj='and') + suffix
+        )
 
 
 def strip_tzinfo(dt: datetime.datetime):

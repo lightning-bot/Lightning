@@ -178,12 +178,10 @@ def key_builder(args, kwargs, *, ignore_kwargs=False) -> str:
 
     if not ignore_kwargs:
         for k, v in kwargs.items():
-            if k == 'connection' or k == 'conn':
+            if k in ['connection', 'conn']:
                 continue
 
-            key.append(repr(k))
-            key.append(repr(v))
-
+            key.extend((repr(k), repr(v)))
     return ':'.join(key)
 
 

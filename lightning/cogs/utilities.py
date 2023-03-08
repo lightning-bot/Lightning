@@ -68,13 +68,12 @@ class Utilities(LightningCog):
                 messages.append(f"[{msg.created_at}]: {msg.author} - {msg.clean_content}")
 
                 if msg.attachments:
-                    for attachment in msg.attachments:
-                        messages.append(f"{attachment.url}\n")
+                    messages.extend(f"{attachment.url}\n" for attachment in msg.attachments)
                 else:
                     messages.append("\n")
 
             text = f"Archive of {channel} (ID: {channel.id}) "\
-                   f"made at {ctx.message.created_at}\n\n\n{''.join(messages)}"
+                       f"made at {ctx.message.created_at}\n\n\n{''.join(messages)}"
 
             _bytes = StringIO(text)
             _bytes.seek(0)
@@ -114,8 +113,7 @@ class Utilities(LightningCog):
                 messages.append(f"Embed data: {[e.to_dict() for e in msg.embeds]}")
 
             if msg.attachments:
-                for attachment in msg.attachments:
-                    messages.append(f"{attachment.url}\n")
+                messages.extend(f"{attachment.url}\n" for attachment in msg.attachments)
             else:
                 messages.append("\n")
 
@@ -127,7 +125,7 @@ class Utilities(LightningCog):
             messages.reverse()
 
         text = f"Archive of {channel} (ID: {channel.id}) made at {discord.utils.utcnow()}\nConditions: {vars(flags)}"\
-               f"\n\n\n{''.join(messages)}"
+                   f"\n\n\n{''.join(messages)}"
 
         _bytes = StringIO(text)
         _bytes.seek(0)

@@ -343,8 +343,7 @@ class FlagCommand(LightningCommand):
         return ' '.join(sig)
 
     async def _parse_flag_args(self, ctx: commands.Context):
-        args = await self.callback.__lightning_argparser__.parse_args(ctx)
-        return args
+        return await self.callback.__lightning_argparser__.parse_args(ctx)
 
     async def _parse_arguments(self, ctx: commands.Context):
         ctx.args = [ctx] if self.cog is None else [self.cog, ctx]

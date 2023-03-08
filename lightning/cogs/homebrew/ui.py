@@ -57,25 +57,22 @@ class NinUpdates(UpdateableMenu, ExitableMenu):
         # We're not using update_components method here since we also need to make a request for webhooks
         record = await self.fetch_record()
         if record is None:
-            content = "Nintendo console updates are currently not configured!"
             self.configure_button.disabled = False
             self.remove_config_button.disabled = True
-            return content
-
+            return "Nintendo console updates are currently not configured!"
         webhook = discord.utils.get(await ctx.guild.webhooks(), id=record)
         if webhook is None:
             query = 'DELETE FROM nin_updates WHERE guild_id=$1'
             await self.ctx.bot.pool.execute(query, ctx.guild.id)
             # Disable remove config button since we already removed it
             self.remove_config_button.disabled = True
-            content = "The webhook that sent Nintendo console update notifications seems to "\
-                      "be deleted. Please re-configure by pressing the configure button."
-            return content
-
-        content = f"**Configuration**:\n\nDispatching messages to {webhook.channel.mention}"
+            return (
+                "The webhook that sent Nintendo console update notifications seems to "
+                "be deleted. Please re-configure by pressing the configure button."
+            )
         self.configure_button.disabled = True  # it's already configured
         self.remove_config_button.disabled = False
-        return content
+        return f"**Configuration**:\n\nDispatching messages to {webhook.channel.mention}"
 
     @discord.ui.button(label="Configure", style=discord.ButtonStyle.primary)
     @lock_when_pressed

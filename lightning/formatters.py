@@ -21,9 +21,7 @@ def codeblock(text: str, *, language: str = "py") -> str:
 
 
 def truncate_text(text: str, limit: int, *, suffix: str = "...") -> str:
-    if len(text) < limit:
-        return text
-    return text[:limit - len(suffix)] + suffix
+    return text if len(text) < limit else text[:limit - len(suffix)] + suffix
 
 
 # plural, human_join use code provided by Rapptz under the MIT License
@@ -37,9 +35,7 @@ class plural:  # noqa
         v = self.value
         singular, sep, plural = format_spec.partition('|')
         plural = plural or f'{singular}s'
-        if abs(v) != 1:
-            return f'{v} {plural}'
-        return f'{v} {singular}'
+        return f'{v} {plural}' if abs(v) != 1 else f'{v} {singular}'
 
 
 def human_join(seq, delim=', ', conj='or') -> str:
@@ -53,4 +49,4 @@ def human_join(seq, delim=', ', conj='or') -> str:
     if size == 2:
         return f'{seq[0]} {conj} {seq[1]}'
 
-    return delim.join(seq[:-1]) + f' {conj} {seq[-1]}'
+    return f'{delim.join(seq[:-1])} {conj} {seq[-1]}'

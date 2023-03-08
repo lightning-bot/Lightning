@@ -75,11 +75,11 @@ class LightningCommand(commands.Command):
             return False
 
         predicates = [pred for pred in self.checks if hasattr(pred, 'guild_permissions') or hasattr(pred, 'channel_permissions')]  # noqa
-        if not predicates:
-            # No permissions to fallback to...
-            return False
-
-        return await discord.utils.async_all(pred(ctx) for pred in predicates)
+        return (
+            await discord.utils.async_all(pred(ctx) for pred in predicates)
+            if predicates
+            else False
+        )
 
     async def _check_level(self, ctx: LightningContext) -> bool:
         # We need to check custom overrides first...
@@ -119,13 +119,12 @@ class LightningCommand(commands.Command):
         return await self._resolve_permissions(ctx, user_level, fallback=record.permissions.fallback)
 
     def _filter_out_permissions(self) -> list:
-        other_checks = []
-        for predicate in self.checks:
-            if hasattr(predicate, 'guild_permissions') or hasattr(predicate, 'channel_permissions'):
-                continue
-            else:
-                other_checks.append(predicate)
-        return other_checks
+        return [
+            predicate
+            for predicate in self.checks
+            if not hasattr(predicate, 'guild_permissions')
+            and not hasattr(predicate, 'channel_permissions')
+        ]
 
     async def can_run(self, ctx):
         if not self.enabled:
@@ -152,11 +151,7 @@ class LightningCommand(commands.Command):
 
             checks = self._filter_out_permissions()
             pred = await discord.utils.async_all(predicate(ctx) for predicate in checks)
-            if pred is False:
-                # An important check failed...
-                return False
-
-            return await self._check_level(ctx)
+            return False if pred is False else await self._check_level(ctx)
         finally:
             ctx.command = original
 

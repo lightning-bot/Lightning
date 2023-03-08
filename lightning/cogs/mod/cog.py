@@ -855,10 +855,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await self.log_manual_action(target.guild, target, self.bot.user, "BAN", reason=reason)
 
     async def _delete_punishment(self, message):
-        try:
+        with contextlib.suppress(discord.HTTPException):
             await message.delete()
-        except discord.HTTPException:
-            pass
 
     @LightningCog.listener("on_lightning_member_warn")
     async def handle_warn_punishments(self, event):

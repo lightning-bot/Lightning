@@ -79,21 +79,19 @@ class Stats(LightningCog):
             self.guild_stats_bulker.close()
 
     async def insert_command(self, ctx: LightningContext) -> None:
-        if ctx.guild is None:
-            guild_id = None
-        else:
-            guild_id = ctx.guild.id
-
+        guild_id = None if ctx.guild is None else ctx.guild.id
         async with self._lock:
-            self._command_inserts.append({
-                'guild_id': guild_id,
-                'channel_id': ctx.channel.id,
-                'user_id': ctx.author.id,
-                'used_at': ctx.message.created_at.isoformat(),
-                'command_name': ctx.command.qualified_name,
-                'failure': ctx.command_failed,
-                'application_command': True if ctx.interaction else False,
-            })
+            self._command_inserts.append(
+                {
+                    'guild_id': guild_id,
+                    'channel_id': ctx.channel.id,
+                    'user_id': ctx.author.id,
+                    'used_at': ctx.message.created_at.isoformat(),
+                    'command_name': ctx.command.qualified_name,
+                    'failure': ctx.command_failed,
+                    'application_command': bool(ctx.interaction),
+                }
+            )
 
     async def bulk_database_insert(self) -> None:
         if self._command_inserts:
@@ -112,12 +110,12 @@ class Stats(LightningCog):
             self._command_inserts.clear()
 
     async def bulk_socket_stats_insert(self) -> None:
-        query = """INSERT INTO socket_stats (event, count)
+        if self._socket_stats:
+            items = self._socket_stats.items()
+            query = """INSERT INTO socket_stats (event, count)
                    VALUES ($1, $2::bigint)
                    ON CONFLICT (event)
                    DO UPDATE SET count = socket_stats.count + $2::bigint;"""
-        if self._socket_stats:
-            items = self._socket_stats.items()
             await self.bot.pool.executemany(query, items)
             # This gets spammy fast so it's logged at the DEBUG level
             log.debug(f"{len(self._socket_stats)} socket events were added to the database.")
@@ -144,10 +142,7 @@ class Stats(LightningCog):
         if interaction.command is not None and isinstance(interaction.command, commands.hybrid.HybridAppCommand):
             return
 
-        if interaction.guild is None:
-            guild_id = None
-        else:
-            guild_id = interaction.guild.id
+        guild_id = None if interaction.guild is None else interaction.guild.id
         async with self._lock:
             self._command_inserts.append({
                 'guild_id': guild_id,
@@ -173,10 +168,7 @@ class Stats(LightningCog):
         x = '\n'.join(f'{self.number_places[index]}: {command_name} ({cmd_uses} times)'
                       for (index, (command_name, cmd_uses)) in enumerate(records))
 
-        if len(x) == 0:
-            return none_msg
-
-        return x
+        return x or none_msg
 
     async def commands_stats_guild(self, ctx: GuildContext):
         em = discord.Embed(title="Command Stats", color=0xf74b06)
@@ -209,7 +201,7 @@ class Stats(LightningCog):
         records = await self.bot.pool.fetch(query, ctx.guild.id)
         usage = '\n'.join(f'{self.number_places[index]}: <@!{user}> ({uses} times)'
                           for (index, (user, uses)) in enumerate(records))
-        if len(usage) != 0:
+        if usage != "":
             em.add_field(name="Top Command Users", value=usage)
 
         query = """SELECT command_name,
@@ -240,7 +232,7 @@ class Stats(LightningCog):
             channel = getattr(ctx.guild.get_channel(channel_id), "mention", "Deleted channel")
             fmt.append(f"{self.number_places[index]}: {channel}")
         fmt = "\n".join(fmt)
-        if len(fmt) != 0:
+        if fmt != "":
             em.add_field(name="Top Channels Used", value=fmt, inline=False)
 
         if ctx.guild.icon:
@@ -406,11 +398,7 @@ class Stats(LightningCog):
     @command()
     async def ping(self, ctx: LightningContext) -> None:
         """Tells you the ping."""
-        if ctx.guild:
-            shard_id = ctx.guild.shard_id
-        else:
-            shard_id = 0
-
+        shard_id = ctx.guild.shard_id if ctx.guild else 0
         shard_latency = round(self.bot.get_shard(shard_id).latency * 1000)
 
         before = time.monotonic()

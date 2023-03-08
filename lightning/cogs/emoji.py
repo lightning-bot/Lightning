@@ -46,7 +46,7 @@ class Emoji(LightningCog):
     async def add(self, ctx: GuildContext, *args) -> None:
         """Adds an emoji to the server"""
         error_msg = "Expected a custom emote. To add an emoji with a link, you must provide the name and url"\
-                    " like <name> <url>."
+                        " like <name> <url>."
         if len(args) == 1:
             regexmatch = re.match(r"<(a?):([A-Za-z0-9_]+):([0-9]+)>", args[0])
             if not regexmatch:
@@ -60,7 +60,7 @@ class Emoji(LightningCog):
         elif len(args) == 2:
             url = args[1]
             emoji_name = args[0]
-        elif len(args) >= 3 or len(args) == 0:
+        elif len(args) >= 3 or not args:
             raise commands.BadArgument(error_msg)
 
         wurl = Whitelisted_URL(url)

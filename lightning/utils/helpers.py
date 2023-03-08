@@ -82,16 +82,15 @@ async def request(url, session: aiohttp.ClientSession, *, timeout=180, method: s
             log.info(f"404 while requesting {url}")
             raise errors.HTTPException(resp)
 
-        if 300 > resp.status >= 200:
-            if return_text is True:
-                return await resp.text()
-
-            try:
-                return await resp.json()
-            except aiohttp.ContentTypeError:
-                return await resp.read()
-        else:
+        if not 300 > resp.status >= 200:
             raise errors.HTTPException(resp)
+        if return_text is True:
+            return await resp.text()
+
+        try:
+            return await resp.json()
+        except aiohttp.ContentTypeError:
+            return await resp.read()
 
 
 async def run_in_shell(command: str):

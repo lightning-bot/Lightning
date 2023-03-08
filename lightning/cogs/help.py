@@ -126,11 +126,7 @@ class CogHelpSource(menus.ListPageSource):
         cmds = [f"\N{BULLET} `{command.qualified_name}{self.format_signature(command)}` ("
                 f"{command.short_doc or 'No help found...'})\n" for command in entries]
 
-        content = f"**{entries[0].cog.qualified_name}**\n*{entries[0].cog.description}*\n"\
-                  f"Your current permissions allow you to run the following commands:\n{''.join(cmds)}\n\n"\
-                  f"*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*"\
-                  f"\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"
-        return content
+        return f"""**{entries[0].cog.qualified_name}**\n*{entries[0].cog.description}*\nYour current permissions allow you to run the following commands:\n{''.join(cmds)}\n\n*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"""
 
 
 class GroupHelpSource(CogHelpSource):
@@ -188,7 +184,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
                 fmt = f'{parent} {fmt}'
             alias = fmt
         else:
-            alias = command.name if not parent else f'{parent} {command.name}'
+            alias = f'{parent} {command.name}' if parent else command.name
         return f'{alias}'
 
     async def send_bot_help(self, _) -> None:

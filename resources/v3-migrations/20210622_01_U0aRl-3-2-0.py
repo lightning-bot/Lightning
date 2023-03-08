@@ -36,7 +36,7 @@ def convert_to_flags(record):
 
 
 def migrate_permissions(r: dict) -> str:
-    levels = r.get("LEVELS", None)
+    levels = r.get("LEVELS")
     if not levels:
         return r
 

@@ -32,8 +32,9 @@ class Logging(UpdateableMenu, ExitableMenu):
 
     async def fetch_record(self):
         query = "SELECT * FROM logging WHERE guild_id=$1 AND channel_id=$2;"
-        record = await self.ctx.bot.pool.fetchrow(query, self.ctx.guild.id, self.log_channel.id)
-        return record
+        return await self.ctx.bot.pool.fetchrow(
+            query, self.ctx.guild.id, self.log_channel.id
+        )
 
     async def update_components(self):
         record = await self.fetch_record()
@@ -47,13 +48,9 @@ class Logging(UpdateableMenu, ExitableMenu):
     async def format_initial_message(self, ctx):
         record = await self.fetch_record()
         if not record:
-            content = f"No configuration exists for {self.log_channel.mention} yet!"
-        else:
-            types = LoggingType(record['types'])
-            content = f"Configuration for {self.log_channel.mention}:\n\n"\
-                      f"Events: {types.to_simple_str().replace('|', ', ')}\n"\
-                      f"Log Format: {record['format'].title()}"
-        return content
+            return f"No configuration exists for {self.log_channel.mention} yet!"
+        types = LoggingType(record['types'])
+        return f"Configuration for {self.log_channel.mention}:\n\nEvents: {types.to_simple_str().replace('|', ', ')}\nLog Format: {record['format'].title()}"
 
     @discord.ui.button(label="Log all events", style=discord.ButtonStyle.primary, emoji="\N{LEDGER}")
     async def log_all_events_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:

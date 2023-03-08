@@ -109,7 +109,7 @@ class Reminders(LightningCog):
         expiry = ltime.strip_tzinfo(expiry)  # Just in case
 
         delta = (expiry - created).total_seconds()
-        if delta <= 60 and force_insert is False:
+        if delta <= 60 and not force_insert:
             # A loop for small timers
             return self.bot.loop.create_task(self.short_timers(delta, Timer(None, event, created, expiry, kwargs)),
                                              name=f"lightning-{event}-timer")
@@ -152,7 +152,7 @@ class Reminders(LightningCog):
     async def remind(self, ctx: LightningContext, *,
                      when: ltime.UserFriendlyTimeResult =
                      parameter(converter=ltime.UserFriendlyTime(clean_content, default='something'))
-                     ) -> None:  # noqa: F821
+                     ) -> None:    # noqa: F821
         """Reminds you of something after a certain date.
 
         The input can be any direct date (e.g. YYYY-MM-DD), a human readable offset, or a Discord timestamp.
@@ -164,22 +164,16 @@ class Reminders(LightningCog):
 
         Times are in UTC.
         """
-        if ctx.interaction:
-            channel = None
-        else:
-            channel = ctx.channel.id
-
+        channel = None if ctx.interaction else ctx.channel.id
         _id = await self.add_timer("reminder", ctx.message.created_at, when.dt, reminder_text=when.arg,
                                    author=ctx.author.id, channel=channel, message_id=ctx.message.id)
 
         duration_text = ltime.natural_timedelta(when.dt, source=ctx.message.created_at)
 
         if type(_id) == int:
-            content = f"Ok {ctx.author.mention}, I'll remind you in {'your DMs in ' if not channel else ''}"\
-                      f"{duration_text} about {when.arg}. (#{_id})"
+            content = f"Ok {ctx.author.mention}, I'll remind you in {'' if channel else 'your DMs in '}{duration_text} about {when.arg}. (#{_id})"
         else:
-            content = f"Ok {ctx.author.mention}, I'll remind you in {'your DMs in ' if not channel else ''}"\
-                      f"{duration_text} about {when.arg}."
+            content = f"Ok {ctx.author.mention}, I'll remind you in {'' if channel else 'your DMs in '}{duration_text} about {when.arg}."
 
         if channel is None:
             embed = discord.Embed().set_footer(text="Make sure to have your DMs open so you can receive your reminder"

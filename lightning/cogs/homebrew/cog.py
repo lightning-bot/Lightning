@@ -281,10 +281,7 @@ class Homebrew(LightningCog):
         if not records:
             return
 
-        # At best we get 1 update that has the new console's version...
-        existing_updates = self._ninupdates_cache.pop(timestamp, None)
-
-        if existing_updates:
+        if existing_updates := self._ninupdates_cache.pop(timestamp, None):
             log.info(f"Dispatching edited update message for {console} to {len(existing_updates)} guilds.")
             await self.edit_existing_messages(existing_updates, text)
             return
@@ -366,10 +363,14 @@ class Homebrew(LightningCog):
 
         resp = await resp.json()
 
-        if not resp['results']:
-            return []
-
-        return [app_commands.Choice(name=app['title'], value=app['title']) for app in resp['results'][:25]]
+        return (
+            [
+                app_commands.Choice(name=app['title'], value=app['title'])
+                for app in resp['results'][:25]
+            ]
+            if resp['results']
+            else []
+        )
 
     @group(invoke_without_command=True)
     async def mod(self, ctx: LightningContext) -> None:
@@ -383,9 +384,7 @@ class Homebrew(LightningCog):
         else:
             result = process.extractOne(word, word_list, scorer=fuzz.ratio,
                                         score_cutoff=score_cutoff)
-        if not result:
-            return None
-        return result
+        return result or None
 
     def get_faq_entries_from(self, content):
         entries = []
@@ -416,10 +415,7 @@ class Homebrew(LightningCog):
             entries = self.faq_entry_cache[site]
 
         match = self.get_match(list(entries.keys()), content, 40)  # 40 should be safe cutoff
-        if not match:
-            return None
-
-        return (match[0], entries[match[0]])
+        return (match[0], entries[match[0]]) if match else None
 
     @mod.command(name='faq')
     async def mod_faq(self, ctx: LightningContext, entity: str, *, question: str) -> None:

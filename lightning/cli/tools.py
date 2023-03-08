@@ -50,12 +50,11 @@ def get_license():
 
 
 def get_resolved_path(file_name: str, directory: Optional[pathlib.Path], *, suffix: str = ".py") -> pathlib.Path:
-    if directory is None:
-        path = pathlib.Path(f"{file_name}{suffix}")
-    else:
-        path = directory / f"{file_name}{suffix}"
-
-    return path
+    return (
+        pathlib.Path(f"{file_name}{suffix}")
+        if directory is None
+        else directory / f"{file_name}{suffix}"
+    )
 
 
 @parser.command(help="Generates a new .py file with copyright added")
@@ -100,7 +99,7 @@ def update_copyright(year: str = typer.Argument(..., help="The new year to write
     for file in directory.glob("**/*.py"):
 
         with open(file, mode="r", encoding='utf-8', newline="\n") as fp:
-            w = COPYRIGHT_REGEX.sub(r"\g<1>{}\g<2>".format(year), fp.read())
+            w = COPYRIGHT_REGEX.sub(f"\g<1>{year}\g<2>", fp.read())
 
         with open(file, mode="w", encoding='utf-8', newline="\n") as fp:
             fp.write(w)
@@ -124,7 +123,7 @@ def format_command_flags(flags: List[Flag]) -> str:
             name = flag.converter.__name__
             arg = param_name_lookup[name] if name in param_name_lookup else name
 
-        help_text = flag.help if flag.help else "No help found..."
+        help_text = flag.help or "No help found..."
         base.append(f'`{", ".join(flag.names)}` ({arg}): {help_text}')
     return "\n\n\n".join(base)
 
@@ -140,27 +139,17 @@ def format_command_params(parameters: OrderedDict) -> str:
             annotation = param.annotation.__class__.__name__
         base.append(f"\N{BULLET} **{name}**: `{annotation}`")
 
-    if not base:
-        return "None"
-
-    return '\n\n'.join(base)
+    return '\n\n'.join(base) if base else "None"
 
 
 def format_command_aliases(aliases: List[str]) -> str:
-    if not aliases:
-        return "None"
-
-    return f'`{", ".join([a for a in aliases])}`'
+    return f'`{", ".join(list(aliases))}`' if aliases else "None"
 
 
 def format_subcommands(commands) -> str:
     # I'm not sure how I want this to look.
     def make_link(c):
-        if c.cog:
-            cog = c.cog.qualified_name.lower()
-        else:
-            cog = "not_categorized"
-
+        cog = c.cog.qualified_name.lower() if c.cog else "not_categorized"
         return f'https://lightning-bot.gitlab.io/commands/{cog}/'\
                f'{c.qualified_name.replace(" ", "_")}'
 
@@ -223,11 +212,7 @@ def build_command_docs():
 
         fname = command.qualified_name.replace(" ", "_")
 
-        if command.cog:
-            cog = command.cog.qualified_name.lower()
-        else:
-            cog = "not_categorized"
-
+        cog = command.cog.qualified_name.lower() if command.cog else "not_categorized"
         path = pathlib.Path(f"build/docs/commands/{cog}/")
         path.mkdir(parents=True, exist_ok=True)
         path = path / pathlib.Path(f"{fname}.md")
@@ -249,10 +234,9 @@ def build_cog_docs():
         cmds = []
 
         for command in sorted(cog.walk_commands(), key=lambda c: c.qualified_name):
-            aliases = ' '.join("`{}`".format(r) for r in command.aliases) or "None"
-            signature = command.signature or command.usage
+            aliases = ' '.join(f"`{r}`" for r in command.aliases) or "None"
             usage = f".{command.qualified_name}"
-            if signature:
+            if signature := command.signature or command.usage:
                 usage += f" {signature}"
 
             if command.cog:
@@ -273,7 +257,7 @@ def build_cog_docs():
 
         desc = (cog.qualified_name, cog.description, tabulate(cmds,
                 headers=("Name", "Aliases", "Description", "Usage"), tablefmt="github"))
-        fmt = "# {}\n{}\n\n{}\n\n".format(desc[0], desc[1], desc[2])
+        fmt = f"# {desc[0]}\n{desc[1]}\n\n{desc[2]}\n\n"
         with path.open("w", encoding="utf-8") as fp:
             fp.write(fmt)
 

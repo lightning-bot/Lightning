@@ -108,12 +108,11 @@ class MenuLikeView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         check = self.ctx.author.id == interaction.user.id
-        if self.locked is True and check is True:
-            await interaction.response.defer()
-            await interaction.followup.send(content="You have not finished a prompt yet", ephemeral=True)
-            return False
-        else:
+        if self.locked is not True or not check:
             return check
+        await interaction.response.defer()
+        await interaction.followup.send(content="You have not finished a prompt yet", ephemeral=True)
+        return False
 
     def _assume_message_kwargs(self, value: Union[Dict[str, Any], str, discord.Embed]) -> Dict[str, Any]:
         if isinstance(value, dict):

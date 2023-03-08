@@ -46,9 +46,7 @@ class Configuration(LightningCog):
         connection = connection or self.bot.pool
         query = """SELECT * FROM guild_mod_config WHERE guild_id=$1"""
         ret = await connection.fetchrow(query, ctx.guild.id)
-        if not ret:
-            return None
-        return GuildModConfig(ret, self.bot)
+        return GuildModConfig(ret, self.bot) if ret else None
 
     async def invalidate_config(self, ctx: GuildContext, *, config_name="mod_config") -> bool:
         """Function to reduce duplication for invalidating a cached guild mod config"""
@@ -207,11 +205,7 @@ class Configuration(LightningCog):
         if not hasattr(_id, "id"):
             _id = discord.Object(id=_id)
 
-        if isinstance(_id, discord.Role):
-            role_id = True
-        else:
-            role_id = False
-
+        role_id = isinstance(_id, discord.Role)
         record = await self.bot.get_guild_bot_config(guild_id)
         if record is None or record.permissions is None or record.permissions.levels is None:
             perms = {"LEVELS": {}}
@@ -226,25 +220,23 @@ class Configuration(LightningCog):
         def append(d):
             if _id in d:
                 return False
-            else:
-                d.append(_id.id)
-                return True
+            d.append(_id.id)
+            return True
 
         def remove(d):
             if _id not in d:
                 return False
-            else:
-                d.remove(_id.id)
-                return True
+            d.remove(_id.id)
+            return True
 
         adj = {"append": append,
                "remove": remove}
 
-        if not role_id:
-            res = adj[adjuster](perms['LEVELS'][level_name]['USER_IDS'])
-        else:  # This should be a role id
-            res = adj[adjuster](perms['LEVELS'][level_name]['ROLE_IDS'])
-
+        res = (
+            adj[adjuster](perms['LEVELS'][level_name]['ROLE_IDS'])
+            if role_id
+            else adj[adjuster](perms['LEVELS'][level_name]['USER_IDS'])
+        )
         if res is False:  # Nothing changed
             return res
 
