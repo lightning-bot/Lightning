@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-import random
 import time
 import traceback
 from typing import TYPE_CHECKING
@@ -30,7 +29,6 @@ from jishaku.cog import OPTIONAL_FEATURES, STANDARD_FEATURES
 from jishaku.features.baseclass import Feature
 
 from lightning import LightningBot, formatters
-from lightning.utils import helpers
 from lightning.utils import time as ltime
 
 if TYPE_CHECKING:
@@ -128,13 +126,6 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
         await self.bot.change_presence(activity=discord.Game(name=gamename))
         await ctx.send(f'Successfully changed status to `{gamename}`')
-
-    @Feature.Command()
-    async def exit(self, ctx: LightningContext) -> None:
-        """Stops the bot"""
-        shutdown_messages = ["Shutting Down...", "See ya!", "RIP", "Turning off...."]
-        await ctx.send(f"{helpers.Emoji.greentick} {random.choice(shutdown_messages)}")
-        await self.bot.close()
 
     @Feature.Command()
     async def sql(self, ctx: LightningContext, *, query: codeblock_converter) -> None:
