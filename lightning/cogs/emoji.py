@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -94,7 +94,7 @@ class Emoji(LightningCog):
             await ctx.send(f"Successfully created {emoji} `{emoji}`")
 
     @emoji.command()
-    async def info(self, ctx: GuildContext, emote: EmojiRE) -> None:
+    async def info(self, ctx: LightningContext, emote: discord.Emoji = commands.param(converter=EmojiRE)) -> None:
         """Gives some info on an emote.
 
         For unicode emoji: use `charinfo`"""
@@ -114,7 +114,7 @@ class Emoji(LightningCog):
         await ctx.send(embed=embed)
 
     @info.error
-    async def emoji_error(self, ctx: GuildContext, error) -> None:
+    async def emoji_error(self, ctx: LightningContext, error) -> None:
         if isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
             await ctx.send(error)
 
