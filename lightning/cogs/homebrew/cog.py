@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -43,7 +43,6 @@ from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
 from lightning.utils.checks import has_channel_permissions
 from lightning.utils.helpers import request as make_request
-from lightning.utils.paginator import Paginator
 
 log: logging.Logger = logging.getLogger(__name__)
 
@@ -360,8 +359,8 @@ class Homebrew(LightningCog):
             await ctx.send("No results found!")
             return
 
-        menu = Paginator(UniversalDBPageSource(results), context=ctx)
-        await menu.start()
+        menu = ui.UniversalDBPaginator(UniversalDBPageSource(results), context=ctx)
+        await menu.start(wait=False)
 
     @universaldb.autocomplete('application')
     async def universaldb_autocomplete(self, interaction: discord.Interaction, string: str):
@@ -489,7 +488,6 @@ class Homebrew(LightningCog):
         em = discord.Embed(title="Nintendo DSi Modding guide",
                            url="https://dsi.cfw.guide/",
                            color=0xD6FEFF)
-        # Original embed color was "16776918", search got me "D6FEFF".
         em.description = ("This [guide](https://dsi.cfw.guide/) "
                           "will take you from a regular Nintendo "
                           "DSi to a modified console by using the Memory Pit exploit."

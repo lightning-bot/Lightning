@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -16,9 +16,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import asyncpg
 import discord
+from discord.ext import menus
 
 from lightning import ExitableMenu, UpdateableMenu, lock_when_pressed
 from lightning.ui import MenuLikeView
+from lightning.utils.paginator import Paginator
 
 
 class _SelectSM(discord.ui.ChannelSelect['ChannelSelect']):
@@ -130,3 +132,26 @@ class NinUpdates(UpdateableMenu, ExitableMenu):
             await interaction.response.send_message("Successfully deleted webhook and configuration!")
 
         await self.update()
+
+
+class UniversalDBPaginator(Paginator):
+    source: menus.ListPageSource
+
+    async def update_components(self) -> None:
+        await super().update_components()
+
+        entry = await self.source.get_page(self.current_page)
+        prereleases = entry.get("prerelease", {})
+        self.prereleases_button.disabled = not prereleases
+
+    def format_downloads(self, entry):
+        downloads = [f"[{k}]({v['url']})" for k, v in entry['downloads'].items()]
+        return "\n".join(downloads)
+
+    @discord.ui.button(label="Show pre-releases", row=2, style=discord.ButtonStyle.blurple)
+    async def prereleases_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        entry = await self.source.get_page(self.current_page)
+        prereleases = entry.get("prerelease", {})
+        embed = await self._get_page(self.current_page)
+        embed.add_field(name="Latest Pre-releases", value=self.format_downloads(prereleases))
+        await interaction.response.edit_message(embed=embed)
