@@ -78,6 +78,11 @@ class UniversalDBPageSource(menus.ListPageSource):
             embed.set_thumbnail(url=list(entry['qr'].values())[0])
 
         embed.set_author(name=entry['author'])
+
+        if 'updated' in entry:
+            embed.timestamp = dateutil.parser.parse(entry['updated'])
+            embed.set_footer(text="Last updated at")
+
         return embed
 
 
