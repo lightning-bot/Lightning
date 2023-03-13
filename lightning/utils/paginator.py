@@ -14,6 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from inspect import isawaitable
 from typing import Union
 
 import discord
@@ -65,15 +66,27 @@ class Paginator(UpdateableMenu):
         self.first_page_button.disabled = self.current_page == 0
         self.last_page_button.disabled = self.current_page >= self.max_pages
 
-    async def start(self, *, wait: bool = True):
+    async def start(self, *, wait: bool = True, ephemeral: bool = True):
         if not self.source.is_paginating():
             # Does not require pagination
             page = await self._get_page(0)
             kwargs = self._assume_message_kwargs(page)
+            kwargs["ephemeral"] = ephemeral
             await self.ctx.send(**kwargs)
             return
 
-        await super().start(wait=wait)
+        await self.update_components()
+
+        fmt = self.format_initial_message(self.ctx)
+        if isawaitable(fmt):
+            fmt = await fmt
+
+        kwargs = self._assume_message_kwargs(fmt)
+        kwargs["ephemeral"] = ephemeral
+        self.message = await self.ctx.send(**kwargs, view=self)
+
+        if wait:
+            await self.wait()
 
     @discord.ui.button(label="<<")
     async def first_page_button(self, interaction: discord.Interaction, button: discord.ui.Button):
