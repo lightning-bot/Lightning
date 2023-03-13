@@ -66,7 +66,7 @@ class Paginator(UpdateableMenu):
         self.first_page_button.disabled = self.current_page == 0
         self.last_page_button.disabled = self.current_page >= self.max_pages
 
-    async def start(self, *, wait: bool = True, ephemeral: bool = True):
+    async def start(self, *, wait: bool = True, ephemeral: bool = False):
         if not self.source.is_paginating():
             # Does not require pagination
             page = await self._get_page(0)
