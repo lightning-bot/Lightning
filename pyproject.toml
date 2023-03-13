@@ -28,7 +28,7 @@ py-flags = "^1.1.4"
 jishaku = "^2.5.0"
 rapidfuzz = "^1.6.1"
 typer = "^0.6.1"
-tomlkit = "^0.7.0"
+tomlkit = "^0.11.6"
 uvloop = {version = "^0.17.0", platform = "linux"}
 orjson = "^3.6.0"
 beautifulsoup4 = "^4.9.3"
