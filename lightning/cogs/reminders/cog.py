@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import textwrap
 import traceback
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
@@ -30,7 +29,7 @@ from discord.ext.commands import clean_content, parameter
 from sanctum.exceptions import NotFound
 
 from lightning import LightningCog, LightningContext, hybrid_group
-from lightning.cogs.reminders.ui import ReminderEdit
+from lightning.cogs.reminders.ui import ReminderEdit, ReminderPaginator
 from lightning.formatters import plural
 from lightning.models import Timer
 from lightning.utils import time as ltime
@@ -207,23 +206,17 @@ class Reminders(LightningCog):
 
     @remind.command(name='list')
     async def listreminders(self, ctx: LightningContext) -> None:
-        """Lists up to 10 of your reminders
+        """Shows up to 25 of your reminders
 
         This will only show reminders that are longer than one minute."""
         try:
-            records = await self.bot.api.get_user_reminders(ctx.author.id)
+            records = await self.bot.api.get_user_reminders(ctx.author.id, limit=25)
         except NotFound:
             await ctx.send("Seems you haven't set a reminder yet...", ephemeral=True)
             return
 
-        embed = discord.Embed(title="Reminders", color=0xf74b06)
-        for record in records:
-            text = textwrap.shorten(record['extra']['reminder_text'], width=512)
-
-            embed.add_field(name=f"{record['id']}: {ltime.format_relative(datetime.fromisoformat(record['expiry']))}",
-                            value=text, inline=False)
-
-        await ctx.send(embed=embed, ephemeral=True)
+        view = ReminderPaginator(records, context=ctx)
+        await view.start(wait=False, ephemeral=True)
 
     @remind.command(name='delete', aliases=['cancel'])
     @app_commands.describe(reminder_id="The reminder's ID you want to delete")

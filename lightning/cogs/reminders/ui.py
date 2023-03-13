@@ -16,12 +16,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import textwrap
 from datetime import datetime
 
 import discord
+from discord.ext import menus
 
 from lightning.constants import Emoji
 from lightning.ui import ExitableMenu, lock_when_pressed
+from lightning.utils.paginator import Paginator
 
 
 class ReminderEditTextModal(discord.ui.Modal):
@@ -77,3 +80,22 @@ class ReminderEdit(ExitableMenu):
         self.stop()
 
     # At some point we'll have a date picker...
+
+
+class ReminderSource(menus.ListPageSource):
+    def __init__(self, entries):
+        super().__init__(entries, per_page=10)
+
+    async def format_page(self, menu: ReminderPaginator, records):
+        embed = discord.Embed(title="Reminders", color=0xf74b06)
+        for record in records:
+            text = textwrap.shorten(record['extra']['reminder_text'], width=512)
+            dt = discord.utils.format_dt(datetime.fromisoformat(record['expiry']), style="R")
+
+            embed.add_field(name=f"{record['id']}: {dt}", value=text, inline=False)
+        return embed
+
+
+class ReminderPaginator(Paginator):
+    def __init__(self, records, /, *, context):
+        super().__init__(ReminderSource(records), context=context, timeout=90)
