@@ -74,25 +74,6 @@ class InfractionPaginator(Paginator):
         self.bot = context.bot
 
 
-class EphemeralInfractionPaginator(InfractionPaginator):
-    async def format_initial_message(self, ctx):
-        await self.source._prepare_once()
-        page = await self._get_page(self.current_page)
-        kwargs = self._assume_message_kwargs(page)
-        kwargs['ephemeral'] = True
-        return kwargs
-
-    async def start(self, *, wait: bool = True):
-        if not self.source.is_paginating():
-            page = await self._get_page(0)
-            kwargs = self._assume_message_kwargs(page)
-            kwargs['ephemeral'] = True
-            await self.ctx.send(**kwargs)
-            return
-
-        await super().start(wait=wait)
-
-
 class InfractionSource(menus.ListPageSource):
     def __init__(self, entries, *, member: Union[discord.User, discord.Member] = None):
         super().__init__(entries, per_page=5)
@@ -187,8 +168,8 @@ class Infractions(LightningCog, required=['Moderation']):
             if record['action'] != 1:
                 records.remove(record)
 
-        menu = EphemeralInfractionPaginator(SingularInfractionSource(records), ctx, timeout=60.0)
-        await menu.start(wait=False)
+        menu = InfractionPaginator(SingularInfractionSource(records), ctx, timeout=60.0)
+        await menu.start(wait=False, ephemeral=True)
 
     # Context menu
     @app_commands.guild_only()
@@ -201,8 +182,8 @@ class Infractions(LightningCog, required=['Moderation']):
             return
 
         ctx = await GuildContext.from_interaction(interaction)
-        menu = EphemeralInfractionPaginator(InfractionSource(records, member=member), ctx, timeout=60.0)
-        await menu.start(wait=False)
+        menu = InfractionPaginator(InfractionSource(records, member=member), ctx, timeout=60.0)
+        await menu.start(wait=False, ephemeral=True)
 
     @group(aliases=['inf'], invoke_without_command=True, level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
