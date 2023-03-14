@@ -70,7 +70,10 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         return True
 
     def format_reason(self, author, reason: Optional[str], *, action_text=None) -> str:
-        return truncate_text(modlogformats.action_format(author, action_text, reason=reason), 512)
+        if action_text:
+            return truncate_text(modlogformats.action_format(author, action_text, reason=reason), 512)
+        else:
+            return truncate_text(modlogformats.action_format(author, reason=reason), 512)
 
     async def add_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection=None) -> str:
         query = """INSERT INTO roles (guild_id, user_id, punishment_roles)
