@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
 
   api:
-    image: registry.gitlab.com/lightning-bot/sanctum/sanctum:latest
+    image: ghcr.io/lightning-bot/sanctum:latest
     command: uvicorn --host=0.0.0.0 sanctum.main:app
     restart: always
     environment:
