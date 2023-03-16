@@ -151,7 +151,6 @@ class UniversalDBPaginator(Paginator):
     @discord.ui.button(label="Show pre-releases", row=2, style=discord.ButtonStyle.blurple)
     async def prereleases_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         entry = await self.source.get_page(self.current_page)
-        prereleases = entry.get("prerelease", {})
         embed = await self._get_page(self.current_page)
-        embed.add_field(name="Latest Pre-releases", value=self.format_downloads(prereleases))
+        embed.add_field(name="Latest Pre-releases", value=self.format_downloads(entry['prerelease']))
         await interaction.response.edit_message(embed=embed)
