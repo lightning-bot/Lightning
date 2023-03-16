@@ -215,7 +215,7 @@ class Homebrew(LightningCog):
         if self.ninupdates_feed_digest == digest:
             return
 
-        await asyncio.create_task(self.science_xml(raw_bytes))
+        # await asyncio.create_task(self.science_xml(raw_bytes))
         log.debug("Cached digest does not equal the current digest...")
         feed = feedparser.parse(raw_bytes, response_headers={"Content-Location": feed_url})
         self.ninupdates_feed_digest = digest
