@@ -287,7 +287,7 @@ class Stats(LightningCog):
     @group(invoke_without_command=True)
     @commands.guild_only()
     @commands.cooldown(1, 60.0, commands.BucketType.member)
-    async def stats(self, ctx: LightningContext, member: Optional[discord.Member] = None):
+    async def stats(self, ctx: GuildContext, member: Optional[discord.Member] = None):
         """Sends stats about which commands are used often in the guild"""
         async with ctx.typing():
             if member is None:
@@ -297,8 +297,9 @@ class Stats(LightningCog):
 
     @stats.command(name="auditlog", aliases=['table', 'log'], level=CommandLevel.Mod)
     @has_guild_permissions(manage_guild=True)
+    @commands.guild_only()
     @commands.cooldown(1, 60.0, commands.BucketType.member)
-    async def stats_audit_log(self, ctx: LightningContext, limit: InbetweenNumber(1, 500) = 50):
+    async def stats_audit_log(self, ctx: GuildContext, limit: InbetweenNumber(1, 500) = 50):
         """Shows command stats for the server through a table."""
         async with ctx.typing():
             query = """SELECT command_name, channel_id, user_id, used_at
@@ -308,9 +309,10 @@ class Stats(LightningCog):
                        LIMIT $2;
                     """
             records = await self.bot.pool.fetch(query, ctx.guild.id, limit)
-            headers = ("Command", "Channel ID", "Author ID", "Timestamp")
+            headers = {"command_name": "Command", "channel_id": "Channel ID", "user_id": "Author ID",
+                       "used_at": "Timestamp"}
             content = f"Showing {len(records)} most recent entries...\n"
-            table = tabulate.tabulate(records, headers=headers, tablefmt="psql")
+            table = tabulate.tabulate(records, headers=headers, tablefmt="psql", disable_numparse=True)
             content += table
             await ctx.send(content)
 
