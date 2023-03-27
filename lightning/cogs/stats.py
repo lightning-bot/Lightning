@@ -429,7 +429,7 @@ class Stats(LightningCog):
     @command()
     async def about(self, ctx: LightningContext) -> None:
         """Gives information about the bot."""
-        embed = discord.Embed(title="Lightning", color=0xf74b06)
+        embed = discord.Embed(title="Lightning", color=0xf74b06, url=self.bot.config.bot.git_repo)
         owners = [self.bot.get_user(u) for u in self.bot.owners]
 
         author = await self.get_bot_author()
@@ -437,7 +437,6 @@ class Stats(LightningCog):
 
         description = [f"This bot instance is owned by {', '.join(str(o) for o in owners)}"]
 
-        embed.url = self.bot.config['bot'].get("git_repo_url", "https://github.com/lightning-bot/Lightning")
         embed.set_thumbnail(url=ctx.me.avatar.url)
 
         if self.bot.config.bot.description:
