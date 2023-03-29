@@ -267,10 +267,10 @@ class Homebrew(LightningCog):
         log.info(f"Dispatching new update message for {console} to {len(records)} guilds.")
         bad_webhooks: List[str] = []  # list of webhook tokens
         for record in records:
-            webhook = discord.Webhook.partial(record['id'], record['webhook_token'])
+            webhook = discord.Webhook.partial(record['id'], record['webhook_token'], session=self.bot.aiosession)
             try:
                 await webhook.send(text)
-            except discord.Forbidden or discord.NotFound:
+            except (discord.Forbidden, discord.NotFound):
                 bad_webhooks.append(record['webhook_token'])
 
         # Remove deleted webhooks if applicable
