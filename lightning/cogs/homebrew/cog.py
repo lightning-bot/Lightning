@@ -16,14 +16,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import logging
+import re
 import secrets
 import urllib.parse
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from io import BytesIO
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import asyncpg
 import dateutil.parser
@@ -130,6 +130,10 @@ def mod_embed(title: str, description: str, social_links: List[str], color: Unio
     return em
 
 
+# This isn't a full semantic version regex
+SEMANTIC_VERSION_REGEX = r'^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)'
+
+
 class Homebrew(LightningCog):
     def __init__(self, bot: LightningBot):
         self.bot = bot
@@ -140,7 +144,6 @@ class Homebrew(LightningCog):
         # Nintendo updates related
         self.ninupdates_data = Storage("resources/nindy_data.json")
         self.ninupdates_feed_digest: Optional[bytes] = None
-        self._ninupdates_cache: Dict[datetime, List[discord.WebhookMessage]] = {}
         self.do_ninupdates.start()
 
     def cog_unload(self) -> None:
@@ -215,33 +218,22 @@ class Homebrew(LightningCog):
         if self.ninupdates_feed_digest == digest:
             return
 
-        # await asyncio.create_task(self.science_xml(raw_bytes))
         log.debug("Cached digest does not equal the current digest...")
         feed = feedparser.parse(raw_bytes, response_headers={"Content-Location": feed_url})
         self.ninupdates_feed_digest = digest
         for entry in feed["entries"]:
-            version = entry["title"].split(" ")[-1]
-            console = entry["title"].replace(version, " ").strip()
+            raw_version = entry["title"].split(" ")[-1]
+            match = re.match(SEMANTIC_VERSION_REGEX, raw_version)
+            if not match:
+                # A date ("2022-04-19_00-05-06") version
+                return
+            version = match.string
+            console = entry["title"].replace(raw_version, " ").strip()
             link = entry["link"]
 
             if "published" in entry and entry.published:
                 timestamp = dateutil.parser.parse(entry.published)
             else:
-                continue
-
-            # I hope this doesn't become a problem, going off some assumptions
-            if "updated" in entry and entry.updated:
-                # If it's updated then we need to reflect that
-                existing_updates = self._ninupdates_cache.pop(timestamp, None)
-
-                if not existing_updates:
-                    continue
-
-                text = f"[{discord.utils.format_dt(timestamp, style='T')}] \N{POLICE CARS REVOLVING LIGHT} **System"\
-                       f" update detected for {console}: {version}**\nMore information at <{link}>"
-
-                log.info(f"Dispatching edited update message for {console} to {len(existing_updates)} guilds.")
-                await self.edit_existing_messages(existing_updates, text)
                 continue
 
             try:
@@ -258,7 +250,7 @@ class Homebrew(LightningCog):
                         f" update detected for {console}: {version}**\nMore information at <{link}>"
             await self.ninupdates_data.add(console, {"version": version,
                                            "last_updated": timestamp.isoformat()})
-            await self.dispatch_message_to_guilds(console, timestamp, hook_text)
+            await self.dispatch_message_to_guilds(console, hook_text)
 
     async def science_xml(self, raw):
         ch = self.bot.get_channel(1054808921879101511)
@@ -267,46 +259,19 @@ class Homebrew(LightningCog):
 
         await ch.send("Uploaded feed", file=discord.File(BytesIO(raw), "feed.xml"))
 
-    async def edit_existing_messages(self, msgs: List[discord.WebhookMessage], content: str):
-        async def edit(msg: discord.WebhookMessage):
-            await msg.edit(content=content)
-
-        # Don't care about results
-        await asyncio.wait([edit(m) for m in msgs])
-
-    async def _wrap_send(self, webhook: discord.Webhook, content: str, bad_webhooks: list):
-        try:
-            return await webhook.send(content, wait=True)
-        except discord.Forbidden or discord.NotFound:
-            bad_webhooks.append(webhook.token)
-
-    async def dispatch_message_to_guilds(self, console: str, timestamp: datetime, text: str) -> None:
+    async def dispatch_message_to_guilds(self, console: str, text: str) -> None:
         records = await self.bot.pool.fetch("SELECT * FROM nin_updates;")
         if not records:
             return
 
-        # At best we get 1 update that has the new console's version...
-        existing_updates = self._ninupdates_cache.pop(timestamp, None)
-
-        if existing_updates:
-            log.info(f"Dispatching edited update message for {console} to {len(existing_updates)} guilds.")
-            await self.edit_existing_messages(existing_updates, text)
-            return
-        else:
-            # should probably do this by console then timestamp but doesn't seem to be a problem for now...
-            self._ninupdates_cache[timestamp] = []
-
         log.info(f"Dispatching new update message for {console} to {len(records)} guilds.")
         bad_webhooks: List[str] = []  # list of webhook tokens
-        tasks = await asyncio.gather(*[self._wrap_send(discord.Webhook.partial(record['id'],
-                                                                               record['webhook_token'],
-                                                                               session=self.bot.aiosession),
-                                                       text, bad_webhooks) for record in records],
-                                     return_exceptions=True)
-        for msg in tasks:
-            if not isinstance(msg, discord.WebhookMessage):
-                continue
-            self._ninupdates_cache[timestamp].append(msg)
+        for record in records:
+            webhook = discord.Webhook.partial(record['id'], record['webhook_token'])
+            try:
+                await webhook.send(text)
+            except discord.Forbidden or discord.NotFound:
+                bad_webhooks.append(record['webhook_token'])
 
         # Remove deleted webhooks if applicable
         if bad_webhooks:
@@ -316,17 +281,10 @@ class Homebrew(LightningCog):
     @tasks.loop(seconds=45)
     async def do_ninupdates(self) -> None:
         await self.check_ninupdate_feed()
-        await self.after_ninupdates()
 
     @do_ninupdates.before_loop
     async def before_ninupdates_task(self) -> None:
         await self.bot.wait_until_ready()
-
-    async def after_ninupdates(self) -> None:
-        keys = list(self._ninupdates_cache.keys())
-        for key in keys:
-            if datetime.now(tz=timezone.utc) >= (key + timedelta(minutes=30)):
-                del self._ninupdates_cache[key]
 
     @executor_function
     def convert_to_png(self, _bytes) -> BytesIO:
