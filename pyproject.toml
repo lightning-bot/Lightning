@@ -43,7 +43,7 @@ setuptools = "^67.6.0"
 wheel = "^0.40.0"
 matplotlib = "^3.7.0"
 numpy = "^1.24.2"
-redis = {extras = ["hiredis"], version = "^4.5.3"}
+redis = {extras = ["hiredis"], version = "^4.5.4"}
 
 [tool.poetry.dev-dependencies]
 isort = "^5.12.0"
