@@ -148,7 +148,7 @@ class UserFriendlyTime(commands.Converter):
             return result
 
         if match is None or not match.group(0):
-            match = re.compile(r'<t:(?P<timestamp>[0-9]+)(?:\:[tTdDfFR])?>').fullmatch(argument)
+            match = re.compile(r'<t:(?P<timestamp>[0-9]+)(?:\:[tTdDfFR])?>').match(argument)
             if match:
                 remaining = argument[match.end():].strip()
                 result = UserFriendlyTimeResult(datetime.datetime.fromtimestamp(int(match['timestamp']),
