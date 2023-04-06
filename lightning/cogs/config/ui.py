@@ -85,7 +85,7 @@ class Prefix(UpdateableMenu, ExitableMenu):
             return "No custom prefixes are currently set up!"
 
         pfxs = "\n".join(f"\N{BULLET} `{pfx}`" for pfx in config)
-        return f"**Prefix Configuration**:\n{pfxs}"
+        return f"**Custom Prefix Configuration**\n__The current custom prefixes in this server are__\n{pfxs}"
 
     async def update_components(self) -> None:
         config = await self.get_prefixes()
