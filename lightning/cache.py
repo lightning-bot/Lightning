@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 # ExpiringCache is provided by Rapptz under the MIT License
 # Copyright ©︎ 2015 Rapptz
 # https://github.com/Rapptz/RoboDanny/blob/19e9dd927a18bdf021e4d1abb012ae2daf392bc2/cogs/utils/cache.py
@@ -22,6 +21,7 @@ import enum
 import inspect
 import time
 from functools import wraps
+from typing import Optional
 
 import redis.asyncio as aioredis
 from lru import LRU
@@ -252,7 +252,7 @@ class CacheRegistry:
 
         del self.caches[name]
 
-    def get(self, name: str):
+    def get(self, name: str) -> Optional[BaseCache]:
         """Gets a registered cache.
 
         Parameters
