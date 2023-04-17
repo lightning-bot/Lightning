@@ -98,7 +98,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         except NotFound:
             config = {}
 
-        if default_ignores := config.get("default_ignores", None):
+        if default_ignores := config.get("default_ignores"):
             ignores = await self.verify_default_ignores(ctx, default_ignores)
             fmt = "\n".join(x.mention for x in ignores[:10])
             if len(ignores) > 10:
@@ -325,10 +325,11 @@ class AutoMod(LightningCog, required=["Moderation"]):
     async def _warn_punishment(self, message: AutoModMessage, *, reason):
         await self.log_manual_action(message.guild, message.author, self.bot.user, "WARN", reason=reason)
 
+    # Change reason
     async def _kick_punishment(self, message: AutoModMessage, *, reason):
         await message.author.kick(reason=reason)
         await self.log_manual_action(message.guild, message.author, self.bot.user, "KICK",
-                                     reason="Member triggered AutoMod")
+                                     reason=reason)
 
     async def _time_ban_member(self, message: AutoModMessage, seconds: int, *, reason):
         duration = message.created_at + datetime.timedelta(seconds=seconds)
