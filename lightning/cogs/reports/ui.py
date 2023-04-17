@@ -40,6 +40,7 @@ class ReasonModal(discord.ui.Modal, title="Message Report"):
 
 
 action_options = [discord.SelectOption(label="Warn", value="warn", emoji="\N{WARNING SIGN}"),
+                  discord.SelectOption(label="Mute", value="mute", emoji="\N{SPEAKER WITH CANCELLATION STROKE}"),
                   discord.SelectOption(label="Kick", value="kick", emoji="\N{WOMANS BOOTS}"),
                   discord.SelectOption(label="Ban", value="ban", emoji="\N{HAMMER}")]
 
