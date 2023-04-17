@@ -23,7 +23,8 @@ from typing import TYPE_CHECKING, Union
 import discord
 from discord.ext import commands
 
-from lightning import Flag, FlagCommand, LightningCog, command, group
+from lightning import (Flag, FlagCommand, LightningCog, command, group,
+                       hybrid_command)
 from lightning.converters import (ReadableTextChannel, ReadableThread,
                                   Snowflake, SnowflakeDT)
 from lightning.utils.time import format_timestamp
@@ -44,7 +45,7 @@ ARCHIVE_FLAGS = [Flag("--reverse", "-r", help="Reverses the messages to oldest m
 class Utilities(LightningCog):
     """Commands that might be helpful"""
 
-    @command()
+    @hybrid_command()
     @commands.bot_has_permissions(add_reactions=True)
     async def poll(self, ctx: LightningContext, *, question: str) -> None:
         """Creates a simple poll with thumbs up, thumbs down, and shrug as reactions"""
