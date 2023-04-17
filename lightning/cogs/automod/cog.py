@@ -426,7 +426,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await message.author.add_roles(role, reason=reason)
         await self.add_punishment_role(message.guild.id, message.author.id, role.id)
         await self.log_manual_action(message.guild, message.author, self.bot.user, "MUTE",
-                                     reason="Member triggered automod", timestamp=message.created_at)
+                                     reason=reason, timestamp=message.created_at)
 
     punishments = {"WARN": _warn_punishment,
                    "KICK": _kick_punishment,
