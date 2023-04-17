@@ -274,7 +274,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
             return
 
     @cache.cached('guild_automod', cache.Strategy.raw)
-    async def get_automod_config(self, guild_id: int):
+    async def get_automod_config(self, guild_id: int) -> Optional[AutomodConfig]:
         try:
             config = await self.bot.api.get_guild_automod_config(guild_id)
             rules = await self.bot.api.get_guild_automod_rules(guild_id)
