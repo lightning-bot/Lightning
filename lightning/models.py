@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 class GuildModConfig:
     __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "flags",
-                 "bot")
+                 "bot", "message_report_channel_id")
 
     def __init__(self, record, bot):
         self.guild_id: int = record['guild_id']
@@ -44,7 +44,8 @@ class GuildModConfig:
         self.warn_ban: Optional[int] = record['warn_ban']
         self.flags: ModFlags = ModFlags(record['flags'] or 0)
         self.bot: LightningBot = bot
-        # self.raid_mode = record['raid_mode']
+        # Adding message report config to here for now. It might evolve as time goes on.
+        self.message_report_channel_id: Optional[int] = record['message_report_channel_id']
 
     def get_mute_role(self) -> discord.Role:
         if not self.mute_role_id:
@@ -53,11 +54,15 @@ class GuildModConfig:
         # Configurations get invalidated if the bot leaves so this should never be None
         guild = self.bot.get_guild(self.guild_id)
 
-        role = discord.utils.get(guild.roles, id=self.mute_role_id)
+        role = guild.get_role(self.mute_role_id)
         if not role:
             raise errors.MuteRoleError('The mute role that was set seems to be deleted.'
                                        ' Please set a new mute role.')
         return role
+
+    def get_message_report_channel(self) -> Optional[discord.TextChannel]:
+        guild = self.bot.get_guild(self.guild_id)
+        return guild.get_channel(self.message_report_channel_id)
 
 
 class LoggingConfig:
