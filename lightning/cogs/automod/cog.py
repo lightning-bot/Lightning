@@ -533,7 +533,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         try:
             config.default_ignores.remove(payload.id)
-        except ValueError:
+        except KeyError:
             return
 
         await self.bot.api.bulk_upsert_guild_automod_default_ignores(payload.guild.id, config.default_ignores)
