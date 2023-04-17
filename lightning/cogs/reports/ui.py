@@ -80,7 +80,7 @@ class ActionDashboard(discord.ui.View):
         func = getattr(cog, f"_{self.action.lower()}_punishment")
         await func(self.message, reason=self.reason)
 
-        await interaction.response.edit_message(content="Successfully completed action!")
+        await interaction.response.edit_message(content="Successfully completed action!", view=None)
         self.stop()
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
