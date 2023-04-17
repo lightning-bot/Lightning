@@ -22,11 +22,12 @@ import discord
 from discord import app_commands
 from sanctum.exceptions import NotFound
 
-from lightning import GuildContext, LightningCog, hybrid_command
+from lightning import CommandLevel, GuildContext, LightningCog, hybrid_command
 from lightning.cache import registry as cache_registry
 from lightning.cogs.reports.ui import (ReasonModal, ReportConfiguration,
                                        ReportDashboard)
 from lightning.models import GuildModConfig
+from lightning.utils.checks import has_guild_permissions
 
 if TYPE_CHECKING:
     from lightning.cogs.mod import Mod
@@ -167,7 +168,8 @@ class Reports(LightningCog):
                    "reporter": {"author_id": interaction.user.id, "reason": reason, "original": True}}
         record = await self.bot.api.create_guild_message_report(guild.id, payload)
 
-    @hybrid_command(name='reportsetup')
+    @hybrid_command(name='reportsetup', level=CommandLevel.Admin)
+    @has_guild_permissions(manage_guild=True)
     async def report_setup(self, ctx: GuildContext):
         """Configure the message report feature"""
         view = ReportConfiguration(context=ctx, delete_message_after=True)
