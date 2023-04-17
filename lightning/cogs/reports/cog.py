@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Optional
 
 import discord
 from discord import app_commands
+from sanctum.exceptions import NotFound
 
 from lightning import GuildContext, LightningCog, hybrid_command
 from lightning.cache import registry as cache_registry
@@ -142,7 +143,11 @@ class Reports(LightningCog):
 
         channel = record.get_message_report_channel()
 
-        record = await self.bot.api.get_guild_message_report(guild.id, message.id)
+        try:
+            record = await self.bot.api.get_guild_message_report(guild.id, message.id)
+        except NotFound:
+            record = None
+
         if record:
             if record['dismissed'] is True:
                 return
