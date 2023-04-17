@@ -18,4 +18,4 @@ CREATE TABLE IF NOT EXISTS message_reporters (
     PRIMARY KEY ("message_id", "author_id")
 );
 
-ALTER TABLE guild_mod_config ADD COLUMN message_report_channel_id BIGINT;
+ALTER TABLE guild_mod_config ADD COLUMN IF NOT EXISTS message_report_channel_id BIGINT;
