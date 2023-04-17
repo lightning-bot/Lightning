@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -61,8 +61,8 @@ def url_check(message):
 
 class AutomodConfig:
     def __init__(self, bot: LightningBot, config: AutoModGuildConfig, rules: Dict[str, Any]) -> None:
-        self.guild_id = config["guild_id"]
-        self.default_ignores: List[int] = config.get("default_ignores", [])
+        self.guild_id: int = config["guild_id"]
+        self.default_ignores: set[int] = set(config.get("default_ignores", []))
 
         self.bot = bot
 
