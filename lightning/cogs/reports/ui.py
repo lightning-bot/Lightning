@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 import discord
+from sanctum.exceptions import NotFound
 
 from lightning import GuildContext, LightningBot, lock_when_pressed
 from lightning.cache import registry as cache_registry
@@ -249,8 +250,12 @@ class ReportConfiguration(UpdateableMenu, ExitableMenu):
     ctx: GuildContext
 
     async def format_initial_message(self, ctx: GuildContext):
-        record = await ctx.bot.api.get_guild_moderation_config(ctx.guild.id)
-        if not record or record['message_report_channel_id'] is None:
+        try:
+            record = await ctx.bot.api.get_guild_moderation_config(ctx.guild.id)
+        except NotFound:
+            return "You haven't set up message reports yet!"
+
+        if record['message_report_channel_id'] is None:
             return "You haven't set up message reports yet!"
 
         channel = ctx.guild.get_channel(record['message_report_channel_id'])
@@ -287,8 +292,11 @@ class ReportConfiguration(UpdateableMenu, ExitableMenu):
         if not channel:
             channel = await view.values[0].fetch()
 
-        query = "UPDATE guild_mod_config SET message_report_channel_id=$1 WHERE guild_id=$2;"
-        await interaction.client.pool.execute(query, channel.id, interaction.guild.id)
+        query = """INSERT INTO guild_mod_config (guild_id, message_report_channel_id)
+                   VALUES ($1, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET message_report_channel_id = EXCLUDED.message_report_channel_id;"""
+        await interaction.client.pool.execute(query, interaction.guild.id, channel.id)
         await self.invalidate_config(interaction.guild.id)
 
         await self.update()
