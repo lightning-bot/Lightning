@@ -81,10 +81,13 @@ class ActionDashboard(BaseView):
 
         if self.notify:
             content = f"{self.message.author.mention} will receive a DM when you press Confirm."
+            self.notify_button.label = "Don't Notify"
         else:
             content = f"{self.message.author.mention} will not receive a DM when you press Confirm."
+            self.notify_button.label = "Notify"
 
-        await interaction.response.send_message(content=content, ephemeral=True)
+        await interaction.response.edit_message(view=self)
+        await interaction.followup.send(content, ephemeral=True)
 
     def member_actionable(self):
         return self.message.guild.owner_id == self.message.author.id or \
