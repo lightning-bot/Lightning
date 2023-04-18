@@ -105,7 +105,7 @@ class ActionDashboard(BaseView):
         if not self.member_actionable():
             await interaction.response.send_message("Unable to action on the message author due to role hierarchy!",
                                                     ephemeral=True)
-            # return
+            return
 
         func = getattr(cog, f"_{self.action.lower()}_punishment")
 
