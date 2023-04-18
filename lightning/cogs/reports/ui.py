@@ -272,6 +272,7 @@ class ReportConfiguration(UpdateableMenu, ExitableMenu):
 
         if not record:
             self.set_channel_button.disabled = False
+            return
 
         if self.ctx.guild.get_channel(record['message_report_channel_id']):
             self.set_channel_button.disabled = True
