@@ -265,7 +265,11 @@ class ReportConfiguration(UpdateableMenu, ExitableMenu):
         return f"**Message Report Configuration**\nReport Channel: <#{record['message_report_channel_id']}>"
 
     async def update_components(self) -> None:
-        record = await self.ctx.bot.api.get_guild_moderation_config(self.ctx.guild.id)
+        try:
+            record = await self.ctx.bot.api.get_guild_moderation_config(self.ctx.guild.id)
+        except NotFound:
+            record = None
+
         if not record:
             self.set_channel_button.disabled = False
 
