@@ -86,6 +86,8 @@ class Reports(LightningCog):
 
         query = "UPDATE guild_mod_config SET message_report_channel_id=NULL WHERE guild_id=$1;"
         await self.bot.pool.execute(query, channel.guild.id)
+        query = "DELETE FROM message_reports WHERE guild_id=$1;"
+        await self.bot.pool.execute(query, channel.guild.id)
 
         if c := cache_registry.get("guild_mod_config"):
             await c.invalidate(str(channel.guild.id))
