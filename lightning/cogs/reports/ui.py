@@ -23,8 +23,10 @@ import discord
 
 from lightning import GuildContext, LightningBot, lock_when_pressed
 from lightning.cache import registry as cache_registry
-from lightning.ui import ExitableMenu, MenuLikeView, UpdateableMenu
-from lightning.utils.modlogformats import base_user_format
+from lightning.ui import BaseView, ExitableMenu, MenuLikeView, UpdateableMenu
+from lightning.utils.helpers import dm_user
+from lightning.utils.modlogformats import (base_user_format,
+                                           construct_dm_message)
 from lightning.utils.time import add_tzinfo
 
 if TYPE_CHECKING:
@@ -45,17 +47,20 @@ action_options = [discord.SelectOption(label="Warn", value="warn", emoji="\N{WAR
                   discord.SelectOption(label="Ban", value="ban", emoji="\N{HAMMER}")]
 
 
-class ActionDashboard(discord.ui.View):
+class ActionDashboard(BaseView):
     def __init__(self, message: discord.Message, *, timeout=180):
         self.message = message
         self.action = None
         self.reason = "No reason provided."
+        self.notify = False
+        self.duration = None
         super().__init__(timeout=timeout)
 
     @discord.ui.select(options=action_options, min_values=1, max_values=1, placeholder="Select a punishment")
     async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
         self.confirm_button.disabled = False
         self.reason_button.disabled = False
+        self.notify_button.disabled = False
         self.action = select.values[0]
         await interaction.response.edit_message(content=f"You selected {self.action.capitalize()}. "
                                                         "Press Confirm once you're done configuring any other options.",
@@ -70,6 +75,21 @@ class ActionDashboard(discord.ui.View):
         await modal.wait()
         self.reason = modal.reason.value
 
+    @discord.ui.button(label="Notify", style=discord.ButtonStyle.blurple, disabled=True)
+    async def notify_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
+        self.notify = not self.notify
+
+        if self.notify:
+            content = f"{self.message.author.mention} will receive a DM when you press Confirm."
+        else:
+            content = f"{self.message.author.mention} will not receive a DM when you press Confirm."
+
+        await interaction.response.send_message(content=content, ephemeral=True)
+
+    def member_actionable(self):
+        return self.message.guild.owner_id == self.message.author.id or \
+            self.message.guild.me.top_role <= self.message.author.top_role
+
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green, disabled=True)
     async def confirm_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         # I don't wanna repeat these again
@@ -78,7 +98,26 @@ class ActionDashboard(discord.ui.View):
             await interaction.response.send_message("Unable to action on reports at this time!", ephemeral=True)
             return
 
+        if not self.member_actionable():
+            await interaction.response.send_message("Unable to action on the message author due to role hierarchy!",
+                                                    ephemeral=True)
+            # return
+
         func = getattr(cog, f"_{self.action.lower()}_punishment")
+
+        if self.notify:
+            if self.action in ("warn", "mute"):
+                v, loc = f"{self.action}ed", "in"
+            elif self.action == "kick":
+                v, loc = "kicked", "from"
+            elif self.action == "ban":
+                v, loc = "banned", "from"
+            else:
+                v, loc = "punished", "in"
+            dm_message = construct_dm_message(self.message.author, v, loc, reason=self.reason,
+                                              middle=f" due to a message you posted. ({self.message.jump_url})")
+            await dm_user(self.message.author, dm_message)
+
         await func(self.message, reason=self.reason)
 
         await interaction.response.edit_message(content="Successfully completed action!", view=None)
