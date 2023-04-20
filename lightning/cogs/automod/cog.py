@@ -386,7 +386,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
             return True
         return False
 
-    async def _temp_mute_user(self, message: AutoModMessage, seconds: int, *, reason: str):
+    async def _time_mute_user(self, message: AutoModMessage, seconds: int, *, reason: str):
         duration = message.created_at + datetime.timedelta(seconds=seconds)
 
         if self.can_timeout(message, duration):
@@ -414,7 +414,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
     async def _mute_punishment(self, message: AutoModMessage, duration=None, *, reason: str):
         if duration:
-            return await self._temp_mute_user(message, duration, reason=reason)
+            return await self._time_mute_user(message, duration, reason=reason)
 
         if not message.channel.permissions_for(message.guild.me).manage_roles:
             return
