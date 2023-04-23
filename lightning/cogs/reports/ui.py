@@ -180,8 +180,9 @@ class ReportDashboard(discord.ui.View):
 
     @discord.ui.button(label="Action", style=discord.ButtonStyle.red)
     async def action_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
-        msg = await self.fetch_message(interaction)
-        if not msg:
+        try:
+            msg = await self.fetch_message(interaction)
+        except discord.NotFound:
             # Dismiss it?
             await interaction.response.send_message("This message was deleted!", ephemeral=True)
             return
