@@ -331,8 +331,12 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await self.log_manual_action(message.guild, message.author, self.bot.user, "KICK",
                                      reason=reason)
 
-    async def _time_ban_member(self, message: AutoModMessage, seconds: int, *, reason):
-        duration = message.created_at + datetime.timedelta(seconds=seconds)
+    async def _time_ban_member(self, message: AutoModMessage, seconds: Union[int, datetime.datetime], *, reason):
+        if isinstance(seconds, datetime.datetime):
+            duration = seconds
+        else:
+            duration = message.created_at + datetime.timedelta(seconds=seconds)
+
         cog: Reminders = self.bot.get_cog("Reminders")  # type: ignore
         timer_id = await cog.add_timer("timeban", message.created_at, duration, guild_id=message.guild.id,
                                        user_id=message.author.id, mod_id=self.bot.user.id, force_insert=True)
@@ -386,8 +390,11 @@ class AutoMod(LightningCog, required=["Moderation"]):
             return True
         return False
 
-    async def _time_mute_user(self, message: AutoModMessage, seconds: int, *, reason: str):
-        duration = message.created_at + datetime.timedelta(seconds=seconds)
+    async def _time_mute_user(self, message: AutoModMessage, seconds: Union[int, datetime.datetime], *, reason: str):
+        if isinstance(seconds, datetime.datetime):
+            duration = seconds
+        else:
+            duration = message.created_at + datetime.timedelta(seconds=seconds)
 
         if self.can_timeout(message, duration):
             await message.author.edit(timed_out_until=duration, reason=reason)
