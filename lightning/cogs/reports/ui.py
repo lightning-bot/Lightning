@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 
 import discord
@@ -28,7 +28,7 @@ from lightning.ui import BaseView, ExitableMenu, MenuLikeView, UpdateableMenu
 from lightning.utils.helpers import dm_user
 from lightning.utils.modlogformats import (base_user_format,
                                            construct_dm_message)
-from lightning.utils.time import add_tzinfo
+from lightning.utils.time import FutureTime, add_tzinfo
 
 if TYPE_CHECKING:
     from lightning.cogs.automod import AutoMod
@@ -42,7 +42,22 @@ class ReasonModal(discord.ui.Modal, title="Message Report"):
         # return await interaction.response.send_message("I got your response!", ephemeral=True)
 
 
-action_options = [discord.SelectOption(label="Warn", value="warn", emoji="\N{WARNING SIGN}"),
+class ActionOptionsModal(discord.ui.Modal, title="Action Options"):
+    duration = discord.ui.TextInput(label="Duration", style=discord.TextStyle.short)
+    dt = None
+
+    async def on_submit(self, interaction: discord.Interaction[LightningBot]) -> None:
+        try:
+            self.dt = FutureTime(self.duration.value)
+        except Exception as e:
+            await interaction.response.send_message(e, ephemeral=True)
+            return
+
+        return await interaction.response.defer()
+
+
+action_options = [discord.SelectOption(label="Delete", value="delete", emoji="<:delete:1099772388448673972>"),
+                  discord.SelectOption(label="Warn", value="warn", emoji="\N{WARNING SIGN}"),
                   discord.SelectOption(label="Mute", value="mute", emoji="\N{SPEAKER WITH CANCELLATION STROKE}"),
                   discord.SelectOption(label="Kick", value="kick", emoji="\N{WOMANS BOOTS}"),
                   discord.SelectOption(label="Ban", value="ban", emoji="\N{HAMMER}")]
@@ -63,11 +78,15 @@ class ActionDashboard(BaseView):
         self.reason_button.disabled = False
         self.notify_button.disabled = False
         self.action = select.values[0]
+
+        if self.action in ("mute", "ban"):
+            self.duration_button.disabled = False
+
         await interaction.response.edit_message(content=f"You selected {self.action.capitalize()}. "
                                                         "Press Confirm once you're done configuring any other options.",
                                                 view=self)
 
-    @discord.ui.button(label="Reason", disabled=True)
+    @discord.ui.button(label="Reason", disabled=True, emoji="\N{MEMO}")
     async def reason_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         modal = ReasonModal()
         modal.reason.required = True
@@ -76,7 +95,18 @@ class ActionDashboard(BaseView):
         await modal.wait()
         self.reason = modal.reason.value
 
-    @discord.ui.button(label="Notify", style=discord.ButtonStyle.blurple, disabled=True)
+    @discord.ui.button(label="Duration", disabled=True, emoji="\N{HOURGLASS WITH FLOWING SAND}")
+    async def duration_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        modal = ActionOptionsModal()
+        await interaction.response.send_modal(modal)
+        await modal.wait()
+
+        if not modal.dt:
+            return
+
+        self.duration = modal.dt.delta
+
+    @discord.ui.button(label="Notify", style=discord.ButtonStyle.blurple, disabled=True, emoji="\N{BELL}")
     async def notify_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         self.notify = not self.notify
 
@@ -90,11 +120,14 @@ class ActionDashboard(BaseView):
         await interaction.response.edit_message(view=self)
         await interaction.followup.send(content, ephemeral=True)
 
-    def member_actionable(self):
+    def member_unactionable(self):
         return self.message.guild.owner_id == self.message.author.id or \
             self.message.guild.me.top_role <= self.message.author.top_role
 
-    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green, disabled=True)
+    def calculate_duration(self):
+        return datetime.now(timezone.utc) + self.duration if self.duration else None
+
+    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green, disabled=True, row=2)
     async def confirm_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         # I don't wanna repeat these again
         cog: Optional[AutoMod] = interaction.client.get_cog("AutoMod")
@@ -102,12 +135,17 @@ class ActionDashboard(BaseView):
             await interaction.response.send_message("Unable to action on reports at this time!", ephemeral=True)
             return
 
-        if not self.member_actionable():
+        if self.member_unactionable():
             await interaction.response.send_message("Unable to action on the message author due to role hierarchy!",
                                                     ephemeral=True)
             return
 
-        func = getattr(cog, f"_{self.action.lower()}_punishment")
+        func = getattr(cog, f"_{self.action}_punishment")
+
+        if self.duration:
+            args = (self.message, self.calculate_duration())
+        else:
+            args = (self.message, )
 
         if self.notify:
             if self.action in ("warn", "mute"):
@@ -122,12 +160,12 @@ class ActionDashboard(BaseView):
                                               middle=f" due to a message you posted. ({self.message.jump_url})")
             await dm_user(self.message.author, dm_message)
 
-        await func(self.message, reason=self.reason)
+        await func(*args, reason=self.reason)
 
         await interaction.response.edit_message(content="Successfully completed action!", view=None)
         self.stop()
 
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red, row=2)
     async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message()
         await interaction.delete_original_response()
