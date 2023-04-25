@@ -120,7 +120,7 @@ class API(LightningCog):
         contents = {}
         divs = soup.find("div", id="BOOKINDEX").find_all("dt")
         for x in divs:
-            links = [f"https://www.postgresql.org/docs/14/{x['href']}" for x in x.find_all("a", class_="indexterm")]
+            links = [f"https://www.postgresql.org/docs/15/{x['href']}" for x in x.find_all("a", class_="indexterm")]
             for name in x.text.split(","):
                 contents[name.strip()] = links
         self.pg_rtfm_cache: Dict[str, str] = contents
@@ -128,7 +128,7 @@ class API(LightningCog):
 
     async def search_pg_docs(self, entry: str) -> Optional[Tuple[str, str]]:
         if not self.pg_rtfm_cache:
-            raw = await helpers.request("https://www.postgresql.org/docs/14/bookindex.html", self.bot.aiosession,
+            raw = await helpers.request("https://www.postgresql.org/docs/15/bookindex.html", self.bot.aiosession,
                                         return_text=True)
             entries = self._build_pg_cache(raw)
         else:
@@ -145,13 +145,13 @@ class API(LightningCog):
     async def rtfm(self, ctx: LightningContext, *, entity: Optional[str] = None):
         """Searches PostgreSQL docs for an entity"""
         if not entity:
-            await ctx.send("https://www.postgresql.org/docs/14/bookindex.html")
+            await ctx.send("https://www.postgresql.org/docs/15/bookindex.html")
             return
 
         r = await self.search_pg_docs(entity)
 
         if not r:
-            await ctx.send("https://www.postgresql.org/docs/14/bookindex.html")
+            await ctx.send("https://www.postgresql.org/docs/15/bookindex.html")
             return
 
         links = '\n'.join(r[1])
