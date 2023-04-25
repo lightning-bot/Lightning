@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -15,9 +15,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import discord
+from discord import app_commands
 from discord.ext import commands
 
-from lightning import errors
+from lightning import LightningBot, errors
+from lightning.commands import CommandLevel
 
 
 def is_guild(guild_id):
@@ -32,6 +34,7 @@ def is_guild(guild_id):
 
 
 def is_one_of_guilds(*guilds):
+    """A command check to allow a command to be used in one of specified guilds"""
     async def predicate(ctx) -> bool:
         if not ctx.guild:
             return False
@@ -61,9 +64,29 @@ def has_guild_permissions(**permissions):
             return True
 
         return await check.predicate(ctx)
-    # Note to myself: Change these to __lightning_user_guild_requires__ when rewriting.
+
     predicate.guild_permissions = list(permissions.keys())
     return commands.check(predicate)
+
+
+def hybrid_guild_permissions(**permissions: bool):
+    async def predicate(ctx):
+        if ctx.interaction is not None:
+            return True
+
+        if await ctx.bot.is_owner(ctx.author):
+            return True
+
+        f = commands.has_guild_permissions(**permissions)
+        predicate.guild_permissions = list(permissions.keys())
+        return await f.predicate(ctx)
+
+    def deco(func):
+        commands.check(predicate)(func)
+        app_commands.default_permissions(**permissions)(func)
+        return func
+
+    return deco
 
 
 def no_threads():
@@ -74,3 +97,25 @@ def no_threads():
 
         return True
     return commands.check(predicate)
+
+
+async def get_member_level(bot: LightningBot, author: discord.Member):
+    cfg = await bot.get_guild_bot_config(author.guild.id)
+    if not cfg or not cfg.permissions or not cfg.permissions.levels:
+        return CommandLevel.User
+
+    return cfg.permissions.levels.get_user_level(author.id, [i.id for i in author.roles])
+
+
+async def has_required_level(level: CommandLevel, **permissions: bool):
+    """Checks if the invoking user has permissions to use the app command"""
+    async def predicate(interaction: discord.Interaction):
+        # We'll prioritize discord guild permissions...
+        try:
+            return app_commands.checks.has_permissions(**permissions).predicate(interaction)
+        except app_commands.CheckFailure:
+            pass
+
+        user = await get_member_level(interaction.client, interaction.user)  # type: ignore
+        return user.value >= level.value
+    return app_commands.check(predicate)
