@@ -37,7 +37,8 @@ from lightning.constants import (AUTOMOD_EVENT_NAMES_LITERAL,
                                  COMMON_HOIST_CHARACTERS)
 from lightning.enums import ActionType
 from lightning.models import GuildAutoModRulePunishment, PartialGuild
-from lightning.utils.checks import has_guild_permissions
+from lightning.utils.checks import (has_guild_permissions,
+                                    hybrid_guild_permissions)
 from lightning.utils.paginator import Paginator
 from lightning.utils.time import ShortTime
 
@@ -67,7 +68,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
     @hybrid_group(level=CommandLevel.Admin)
     @app_commands.guild_only()
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def automod(self, ctx: GuildContext) -> None:
         """Commands to configure Lightning's Auto-Moderation"""
         if ctx.invoked_subcommand is None:
