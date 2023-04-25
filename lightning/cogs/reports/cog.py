@@ -27,7 +27,7 @@ from lightning.cache import registry as cache_registry
 from lightning.cogs.reports.ui import (ReasonModal, ReportConfiguration,
                                        ReportDashboard)
 from lightning.models import GuildModConfig
-from lightning.utils.checks import has_guild_permissions
+from lightning.utils.checks import hybrid_guild_permissions
 
 if TYPE_CHECKING:
     from lightning.cogs.mod import Mod
@@ -171,7 +171,7 @@ class Reports(LightningCog):
         record = await self.bot.api.create_guild_message_report(guild.id, payload)
 
     @hybrid_command(name='reportsetup', level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def report_setup(self, ctx: GuildContext):
         """Configure the message report feature"""
         view = ReportConfiguration(context=ctx, delete_message_after=True)

@@ -28,7 +28,8 @@ from lightning.cache import Strategy, cached
 from lightning.cogs.modlog import ui
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils import modlogformats
-from lightning.utils.checks import has_guild_permissions
+from lightning.utils.checks import (has_guild_permissions,
+                                    hybrid_guild_permissions)
 from lightning.utils.emitters import TextChannelEmitter
 from lightning.utils.time import ShortTime
 
@@ -55,7 +56,7 @@ class ModLog(LightningCog):
     @app_commands.guild_only()
     @app_commands.describe(channel="The channel to configure, defaults to the current one")
     @commands.bot_has_permissions(manage_messages=True, view_audit_log=True, send_messages=True)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def modlog(self, ctx: GuildContext, *, channel: discord.TextChannel = commands.CurrentChannel):
         """Sets up mod logging for a channel"""
         await ui.Logging(channel, context=ctx, timeout=180.0).start(wait=False)
