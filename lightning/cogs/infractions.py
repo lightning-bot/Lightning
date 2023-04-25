@@ -173,6 +173,7 @@ class Infractions(LightningCog, required=['Moderation']):
 
     # Context menu
     @app_commands.guild_only()
+    @app_commands.default_permissions(kick_members=True)
     @app_commands.checks.has_permissions(kick_members=True)
     async def infraction_list(self, interaction: discord.Interaction, member: discord.Member):
         try:
