@@ -78,15 +78,19 @@ def hybrid_guild_permissions(**permissions: bool):
             return True
 
         f = commands.has_guild_permissions(**permissions)
-        predicate.guild_permissions = list(permissions.keys())
         return await f.predicate(ctx)
 
     def deco(func):
+        predicate.guild_permissions = list(permissions.keys())
         commands.check(predicate)(func)
         app_commands.default_permissions(**permissions)(func)
         return func
 
     return deco
+
+
+def is_server_manager():
+    return hybrid_guild_permissions(manage_guild=True)
 
 
 def no_threads():
