@@ -21,10 +21,11 @@ from io import StringIO
 from typing import TYPE_CHECKING, Union
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
-from lightning import (Flag, HybridFlagCommand, LightningCog, command,
-                       hybrid_command)
+from lightning import (Flag, GuildContext, HybridFlagCommand, LightningCog,
+                       command, hybrid_command)
 from lightning.converters import Snowflake, SnowflakeDT
 from lightning.utils.time import format_timestamp
 
@@ -54,8 +55,10 @@ class Utilities(LightningCog):
 
     @hybrid_command(cls=HybridFlagCommand, name="archive", flags=ARCHIVE_FLAGS, flag_consume_rest=False)
     @commands.bot_has_permissions(read_message_history=True)
+    @commands.guild_only()
+    @app_commands.guild_only()
     @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
-    async def archive_custom(self, ctx: LightningContext, *, flags):
+    async def archive_custom(self, ctx: GuildContext, *, flags):
         """An advanced message archive command
 
         This command uses "command line" syntax."""
@@ -67,7 +70,16 @@ class Utilities(LightningCog):
         if flags['after']:
             args['after'] = flags['after']
 
-        channel: discord.TextChannel = flags['channel'] or ctx.channel
+        channel: Union[discord.TextChannel, discord.Thread] = flags['channel'] or ctx.channel
+
+        if channel.permissions_for(ctx.author).read_message_history is False:
+            await ctx.send("You can't archive messages from that channel!")
+            return
+
+        if channel.permissions_for(ctx.me).read_message_history is False:
+            await ctx.send("I can't archive messages from that channel. "
+                           "Please give me Read Message History permissions in that channel")
+            return
 
         messages = []
         async for msg in channel.history(**args):
