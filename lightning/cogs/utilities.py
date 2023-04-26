@@ -23,10 +23,9 @@ from typing import TYPE_CHECKING, Union
 import discord
 from discord.ext import commands
 
-from lightning import (Flag, FlagCommand, LightningCog, command, group,
+from lightning import (Flag, HybridFlagCommand, LightningCog, command,
                        hybrid_command)
-from lightning.converters import (ReadableTextChannel, ReadableThread,
-                                  Snowflake, SnowflakeDT)
+from lightning.converters import Snowflake, SnowflakeDT
 from lightning.utils.time import format_timestamp
 
 if TYPE_CHECKING:
@@ -38,7 +37,7 @@ ARCHIVE_FLAGS = [Flag("--reverse", "-r", help="Reverses the messages to oldest m
                  Flag("--user", converter=discord.User, help="The user to archive messages from"),
                  Flag("--before", converter=Snowflake, help="Archives messages before a message ID"),
                  Flag("--after", converter=Snowflake, help="Archives messages after a message ID"),
-                 Flag("--channel", "-c", converter=Union[ReadableTextChannel, ReadableThread],
+                 Flag("--channel", "-c", converter=Union[discord.TextChannel, discord.Thread],
                       help="The channel to archive messages from")]
 
 
@@ -53,42 +52,11 @@ class Utilities(LightningCog):
         await asyncio.gather(msg.add_reaction("\N{THUMBS UP SIGN}"), msg.add_reaction("\N{THUMBS DOWN SIGN}"),
                              msg.add_reaction("\N{SHRUG}"))
 
-    @group(invoke_without_command=True)
-    @commands.bot_has_permissions(read_message_history=True)
-    @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
-    async def archive(self, ctx: LightningContext, limit: int,
-                      channel: Union[ReadableTextChannel, ReadableThread] = commands.CurrentChannel) -> None:
-        """Archives a channel's contents to a text file."""
-        if limit > 250:
-            await ctx.send("You can only archive 250 messages.")
-            return
-
-        async with ctx.typing():
-            messages = []
-            async for msg in channel.history(limit=limit):
-                messages.append(f"[{msg.created_at}]: {msg.author} - {msg.clean_content}")
-
-                if msg.attachments:
-                    for attachment in msg.attachments:
-                        messages.append(f"{attachment.url}\n")
-                else:
-                    messages.append("\n")
-
-            text = f"Archive of {channel} (ID: {channel.id}) "\
-                   f"made at {ctx.message.created_at}\n\n\n{''.join(messages)}"
-
-            _bytes = StringIO(text)
-            _bytes.seek(0)
-
-            fp = discord.File(_bytes, filename=f"message_archive_{str(channel)}.txt")
-
-        await ctx.send(file=fp)
-
-    @archive.command(cls=FlagCommand, name="custom", flags=ARCHIVE_FLAGS, flag_consume_rest=False)
+    @hybrid_command(cls=HybridFlagCommand, name="archive", flags=ARCHIVE_FLAGS, flag_consume_rest=False)
     @commands.bot_has_permissions(read_message_history=True)
     @commands.cooldown(rate=3, per=150.0, type=commands.BucketType.guild)
     async def archive_custom(self, ctx: LightningContext, *, flags):
-        """An advanced archive command
+        """An advanced message archive command
 
         This command uses "command line" syntax."""
         args = {'limit': flags['limit']}
