@@ -37,8 +37,7 @@ from lightning.constants import (AUTOMOD_EVENT_NAMES_LITERAL,
                                  COMMON_HOIST_CHARACTERS)
 from lightning.enums import ActionType
 from lightning.models import GuildAutoModRulePunishment, PartialGuild
-from lightning.utils.checks import (has_guild_permissions,
-                                    hybrid_guild_permissions)
+from lightning.utils.checks import is_server_manager
 from lightning.utils.paginator import Paginator
 from lightning.utils.time import ShortTime
 
@@ -68,14 +67,14 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
     @hybrid_group(level=CommandLevel.Admin)
     @app_commands.guild_only()
-    @hybrid_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def automod(self, ctx: GuildContext) -> None:
         """Commands to configure Lightning's Auto-Moderation"""
         if ctx.invoked_subcommand is None:
             await ctx.send_help(ctx.command)
 
     @automod.command(level=CommandLevel.Admin, name='view')
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def automod_view(self, ctx: GuildContext):
         """Allows you to view the current AutoMod configuration"""
         try:
@@ -111,7 +110,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await ctx.send(embed=embed)
 
     @automod.command(level=CommandLevel.Admin, name='ignore')
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def automod_default_ignores(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]):
         """Specifies what roles, members, or channels will be ignored by AutoMod by default."""
         try:
@@ -126,7 +125,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await self.get_automod_config.invalidate(ctx.guild.id)
 
     @automod.command(level=CommandLevel.Admin, name='unignore')
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def automod_default_unignore(self, ctx: GuildContext, entities: commands.Greedy[IgnorableEntities]) -> None:
         """Specify roles, members, or channels to remove from AutoMod default ignores."""
         try:
@@ -167,7 +166,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         return resolved
 
     @automod.command(level=CommandLevel.Admin, name='ignored')
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def automod_ignored(self, ctx: GuildContext):
         """Shows what roles, members, or channels are ignored by AutoMod"""
         try:
@@ -189,12 +188,12 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await pages.start()
 
     @automod.group(level=CommandLevel.Admin, name='rules')
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def automod_rules(self, ctx: GuildContext):
         ...
 
     @automod_rules.command(level=CommandLevel.Admin, name="add")
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     @app_commands.describe(type="The AutoMod rule to set up",
                            interval="The interval of when the rule should be triggered")
     async def add_automod_rules(self, ctx: GuildContext, type: AUTOMOD_EVENT_NAMES_LITERAL,
@@ -249,7 +248,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await self.get_automod_config.invalidate(ctx.guild.id)
 
     @automod_rules.command(level=CommandLevel.Admin, name="remove")
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     @app_commands.describe(rule="The AutoMod rule to remove")
     async def remove_automod_rule(self, ctx: GuildContext, rule: AUTOMOD_EVENT_NAMES_LITERAL):
         """Removes an existing automod rule"""
@@ -263,7 +262,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await self.get_automod_config.invalidate(ctx.guild.id)
 
     # @automod_rules.command(level=CommandLevel.Admin, name="sync", enabled=False, hidden=True)
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def sync_automod_rule(self, ctx: GuildContext, rule: Literal['mass-mentions']):
         """
         "Syncs" an AutoMod rule with Discord's AutoMod
