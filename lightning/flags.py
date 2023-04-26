@@ -380,6 +380,10 @@ class FlagCommand(LightningCommand):
         if not self.ignore_extra and not view.eof:
             raise commands.TooManyArguments(f'Too many arguments passed to {self.qualified_name}')
 
+    @property
+    def flag_parser(self) -> FlagParser:
+        return self.callback.__lightning_argparser__
+
 
 def replace_parameters(
     parameters: Dict[str, commands.Parameter], callback, signature: inspect.Signature
@@ -405,6 +409,7 @@ def replace_parameters(
 
         if hasattr(callback, '__lightning_argparser__') and name == 'flags' and converter == str:
             parser: FlagParser = callback.__lightning_argparser__
+            descriptions = {}
             for flag in parser.get_all_unique_flags():
                 transformed = inspect.Parameter(flag.attribute, parameter.kind, default=flag.default,
                                                 annotation=bool if flag.is_bool_flag else flag.converter)
@@ -413,9 +418,17 @@ def replace_parameters(
 
                 params[flag.attribute] = param
 
+                if flag.help:
+                    descriptions[flag.attribute] = flag.help
+
             if parser.consume_rest_flag:
                 params[parser.consume_rest_flag.attribute] = param.replace(
                     name=parser.consume_rest_flag.attribute, default=None, annotation=str)
+
+                if parser.consume_rest_flag.help:
+                    descriptions[parser.consume_rest_flag.attribute] = parser.consume_rest_flag.help
+
+            app_commands.describe(**descriptions)(callback)
 
             del params[name]
             continue
