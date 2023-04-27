@@ -189,6 +189,7 @@ class Infractions(LightningCog, required=['Moderation']):
     @app_commands.guild_only()
     @is_server_manager()
     async def infraction(self, ctx: GuildContext) -> None:
+        """Commands to manage the server's infractions"""
         await ctx.send_help("infraction")
 
     @infraction.command(level=CommandLevel.Mod)
