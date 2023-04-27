@@ -25,7 +25,6 @@ from datetime import datetime
 from io import BytesIO
 from typing import List, Optional, Union
 
-import asyncpg
 import dateutil.parser
 import discord
 import feedparser
@@ -41,7 +40,7 @@ from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
 from lightning.cogs.homebrew import ui
 from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
-from lightning.utils.checks import has_channel_permissions
+from lightning.utils.checks import hybrid_guild_permissions
 from lightning.utils.helpers import request as make_request
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -149,62 +148,12 @@ class Homebrew(LightningCog):
     def cog_unload(self) -> None:
         self.do_ninupdates.stop()
 
-    @group(aliases=['nuf', 'stability'], invoke_without_command=True, level=CommandLevel.Admin)
+    @hybrid_command(aliases=['nuf'], level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
-    @has_channel_permissions(manage_webhooks=True)
-    async def nintendoupdatesfeed(self, ctx: GuildContext) -> None:
-        """Manages the guild's configuration for Nintendo console update alerts.
-
-        If invoked with no subcommands, this will start an interactive menu."""
+    @hybrid_guild_permissions(manage_webhooks=True)
+    async def nintendoupdatealerts(self, ctx: GuildContext) -> None:
+        """Manages the server's configuration for Nintendo console update alerts"""
         await ui.NinUpdates(context=ctx).start(wait=False)
-
-    @nintendoupdatesfeed.command(name="setup", level=CommandLevel.Admin)
-    @commands.bot_has_permissions(manage_webhooks=True)
-    @has_channel_permissions(manage_webhooks=True)
-    async def nuf_configure(self, ctx: GuildContext, *,
-                            channel: discord.TextChannel = commands.CurrentChannel) -> None:
-        """Sets up a webhook in the specified channel that will send Nintendo console updates."""
-        record = await self.bot.pool.fetchval("SELECT id FROM nin_updates WHERE guild_id=$1", ctx.guild.id)
-        if record:
-            await ctx.send("This server has already configured Nintendo console updates!")
-            return
-
-        try:
-            webhook = await channel.create_webhook(name="Nintendo Console Updates")
-        except discord.HTTPException as e:
-            await ctx.send(f"Failed to create webhook. `{e}`")
-            return
-
-        query = """INSERT INTO nin_updates (guild_id, id, webhook_token)
-                   VALUES ($1, $2, $3);"""
-        try:
-            await self.bot.pool.execute(query, ctx.guild.id, webhook.id, webhook.token)
-        except asyncpg.UniqueViolationError:
-            await ctx.send("This server has already configured Nintendo console updates!")
-        else:
-            await ctx.send(f"Successfully created webhook in {channel.mention}")
-
-    @nintendoupdatesfeed.command(name="delete", level=CommandLevel.Admin)
-    @commands.bot_has_permissions(manage_webhooks=True)
-    @has_channel_permissions(manage_webhooks=True)
-    async def nuf_delete(self, ctx: GuildContext) -> None:
-        """Deletes the configuration of Nintendo console updates."""
-        record = await self.bot.pool.fetchrow("SELECT * FROM nin_updates WHERE guild_id=$1", ctx.guild.id)
-        if record is None:
-            await ctx.send("Nintendo console updates are currently not configured!")
-            return
-
-        webhook = discord.utils.get(await ctx.guild.webhooks(), id=record['id'])
-        query = 'DELETE FROM nin_updates WHERE guild_id=$1;'
-
-        if webhook is None:
-            await self.bot.pool.execute(query, ctx.guild.id)
-            await ctx.send("Successfully deleted configuration!")
-            return
-
-        await webhook.delete()
-        await self.bot.pool.execute(query, ctx.guild.id)
-        await ctx.send("Successfully deleted webhook and configuration!")
 
     async def check_ninupdate_feed(self):
         feed_url = 'https://yls8.mtheall.com/ninupdates/feed.php'
