@@ -150,6 +150,7 @@ class Homebrew(LightningCog):
 
     @hybrid_command(aliases=['nuf'], level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_webhooks=True)
+    @app_commands.guild_only()
     @hybrid_guild_permissions(manage_webhooks=True)
     async def nintendoupdatealerts(self, ctx: GuildContext) -> None:
         """Manages the server's configuration for Nintendo console update alerts"""
