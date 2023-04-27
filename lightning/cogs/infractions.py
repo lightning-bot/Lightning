@@ -31,12 +31,12 @@ from matplotlib.ticker import MaxNLocator
 from sanctum.exceptions import NotFound
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
-                       group, hybrid_command)
+                       hybrid_command, hybrid_group)
 from lightning.converters import TargetMember
 from lightning.enums import ActionType
 from lightning.errors import LightningCommandError
 from lightning.formatters import truncate_text
-from lightning.utils.checks import has_guild_permissions
+from lightning.utils.checks import is_server_manager
 from lightning.utils.helpers import ticker
 from lightning.utils.modlogformats import base_user_format
 from lightning.utils.paginator import Paginator
@@ -185,13 +185,14 @@ class Infractions(LightningCog, required=['Moderation']):
         menu = InfractionPaginator(InfractionSource(records, member=member), ctx, timeout=60.0)
         await menu.start(wait=False, ephemeral=True)
 
-    @group(aliases=['inf'], invoke_without_command=True, level=CommandLevel.Mod)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_group(aliases=['inf'], invoke_without_command=True, level=CommandLevel.Mod)
+    @app_commands.guild_only()
+    @is_server_manager()
     async def infraction(self, ctx: GuildContext) -> None:
         await ctx.send_help("infraction")
 
     @infraction.command(level=CommandLevel.Mod)
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def view(self, ctx: GuildContext, infraction_id: int) -> None:
         """Views an infraction"""
         try:
@@ -210,7 +211,7 @@ class Infractions(LightningCog, required=['Moderation']):
         await ctx.send(embed=embed)
 
     @infraction.command(level=CommandLevel.Mod)
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def claim(self, ctx: GuildContext, infraction_id: int) -> None:
         """Claims responsibility for an infraction"""
         try:
@@ -222,7 +223,7 @@ class Infractions(LightningCog, required=['Moderation']):
         await ctx.send(f"Claimed {infraction_id}")
 
     @infraction.command(level=CommandLevel.Mod)
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def edit(self, ctx: GuildContext, infraction_id: int, *, reason: str) -> None:
         """Edits the reason for an infraction"""
         try:
@@ -235,7 +236,7 @@ class Infractions(LightningCog, required=['Moderation']):
         await ctx.send(f"Edited {infraction_id}")
 
     @infraction.command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def transfer(self, ctx: GuildContext, old_user: TargetMember, new_user: TargetMember) -> None:
         """Transfers a user's infractions to another user"""
         confirm = await ctx.confirm(f"Are you sure you want to transfer infractions from {old_user} to {new_user}?")
@@ -249,7 +250,7 @@ class Infractions(LightningCog, required=['Moderation']):
         await ctx.send(f"Transferred {resp[-1]} infractions to {new_user.mention}")
 
     @infraction.command(aliases=['remove'], level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def delete(self, ctx: GuildContext, infraction_id: int) -> None:
         """Deletes an infraction"""
         try:
@@ -273,7 +274,7 @@ class Infractions(LightningCog, required=['Moderation']):
         await ctx.reply("Infraction deleted!")
 
     @infraction.command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     @commands.bot_has_permissions(attach_files=True)
     async def export(self, ctx: GuildContext) -> None:
         """Exports the server's infractions to a JSON"""
@@ -294,7 +295,7 @@ class Infractions(LightningCog, required=['Moderation']):
             raise LightningCommandError("Couldn't find any infractions matching your criteria!")
 
     @infraction.command(name='list', invoke_without_command=True, level=CommandLevel.Mod)
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     async def list_infractions(self, ctx: GuildContext, member: Optional[discord.User]) -> None:
         """Lists infractions that were done in the server with optional filter(s)"""
         if member:
@@ -372,7 +373,7 @@ class Infractions(LightningCog, required=['Moderation']):
         return discord.File(fp, 'plot.png')
 
     @infraction.command(name="stats", level=CommandLevel.Mod)
-    @has_guild_permissions(manage_guild=True)
+    @is_server_manager()
     @commands.bot_has_permissions(attach_files=True)
     async def infraction_stats(self, ctx: GuildContext, moderator: Optional[discord.Member]) -> None:
         """Shows some stats about this guild's infractions"""
