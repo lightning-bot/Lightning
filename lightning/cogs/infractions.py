@@ -294,7 +294,7 @@ class Infractions(LightningCog, required=['Moderation']):
         except NotFound:
             raise LightningCommandError("Couldn't find any infractions matching your criteria!")
 
-    @infraction.command(name='list', invoke_without_command=True, level=CommandLevel.Mod)
+    @infraction.command(name='list', level=CommandLevel.Mod)
     @is_server_manager()
     async def list_infractions(self, ctx: GuildContext, member: Optional[discord.User]) -> None:
         """Lists infractions that were done in the server with optional filter(s)"""
