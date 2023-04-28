@@ -721,9 +721,9 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         await ctx.send(f"Dehoisted {len(dehoists)}/{len(ctx.guild.members)}\n{len(failed_dehoist)} failed.")
 
-    @hybrid_guild_permissions(manage_nicknames=True)
-    @commands.bot_has_guild_permissions(manage_nicknames=True)
     @hybrid_command(level=CommandLevel.Mod)
+    @commands.bot_has_guild_permissions(manage_nicknames=True)
+    @hybrid_guild_permissions(manage_nicknames=True)
     async def normalize(self, ctx: GuildContext, member: discord.Member):
         """Normalizes a member's name"""
         normalized = unidecode(member.display_name)
