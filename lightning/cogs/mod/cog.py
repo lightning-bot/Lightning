@@ -677,8 +677,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         await ctx.send("\N{OK HAND SIGN}", delete_after=15)
 
-    async def dehoist_member(self, member: discord.Member, moderator, characters: list):
-        old_nick = member.display_name
+    async def dehoist_member(self, member: discord.Member, moderator, characters: list, *, normalize: bool = False):
+        old_nick = unidecode(member.display_name) if normalize else member.display_name
         new_nick = old_nick
 
         for char in old_nick:
