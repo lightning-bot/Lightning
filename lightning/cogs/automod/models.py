@@ -71,8 +71,8 @@ class AutomodConfig:
         self.message_content_spam: Optional[SpamConfig] = None
         self.invite_spam: Optional[SpamConfig] = None
         self.url_spam: Optional[SpamConfig] = None
-        # "Features"
-        self.auto_dehoist: Optional[BasicFeature] = None
+        # "Basic Features"
+        self.auto_dehoist: bool = False
 
         self.load_rules(rules)
 
@@ -90,7 +90,7 @@ class AutomodConfig:
             if rule['type'] == "url-spam":
                 self.url_spam = SpamConfig.from_model(rule, BucketType.member, self, check=url_check)
             if rule['type'] == "auto-dehoist":
-                self.auto_dehoist = BasicFeature(rule)
+                self.auto_dehoist = True
 
     def is_ignored(self, message: discord.Message):
         if not self.default_ignores:
