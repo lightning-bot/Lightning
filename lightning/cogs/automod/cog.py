@@ -24,6 +24,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from sanctum.exceptions import DataConflict, NotFound
+from unidecode import unidecode
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, cache, hybrid_group)
@@ -512,6 +513,27 @@ class AutoMod(LightningCog, required=["Moderation"]):
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:
         await self.get_automod_config.invalidate(guild.id)
 
+    async def handle_name_changing(self, member: discord.Member, record: AutomodConfig):
+        if record.auto_normalize is False and record.auto_dehoist is False:
+            return
+
+        if record.auto_normalize is True and record.auto_dehoist is False:
+            try:
+                await member.edit(nick=unidecode(member.display_name), reason="Auto normalize")
+            except discord.HTTPException:
+                pass
+
+        cog: Moderation = self.bot.get_cog("Moderation")  # type: ignore
+        await cog.dehoist_member(member, self.bot.user, COMMON_HOIST_CHARACTERS, normalize=record.auto_normalize)
+
+    @LightningCog.listener()
+    async def on_member_join(self, member: discord.Member):
+        record = await self.get_automod_config(member.guild.id)
+        if not record:
+            return
+
+        await self.handle_name_changing(member, record)
+
     @LightningCog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         if before.display_name == after.display_name:
@@ -521,11 +543,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         if not record:
             return
 
-        if record.auto_dehoist is False:
-            return
-
-        cog: Moderation = self.bot.get_cog("Moderation")  # type: ignore
-        await cog.dehoist_member(after, self.bot.user, COMMON_HOIST_CHARACTERS)
+        await self.handle_name_changing(after, record)
 
     # Remove ids from config
     @LightningCog.listener('on_member_remove')
