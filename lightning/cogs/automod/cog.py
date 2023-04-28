@@ -33,7 +33,9 @@ from lightning.cogs.automod.converters import (AutoModDuration,
                                                AutoModDurationResponse,
                                                IgnorableEntities)
 from lightning.cogs.automod.models import AutomodConfig, SpamConfig
-from lightning.constants import (AUTOMOD_EVENT_NAMES_LITERAL,
+from lightning.constants import (AUTOMOD_ALL_EVENT_NAMES_LITERAL,
+                                 AUTOMOD_BASIC_EVENTS_LITERAL,
+                                 AUTOMOD_EVENT_NAMES_LITERAL,
                                  AUTOMOD_EVENT_NAMES_MAPPING,
                                  COMMON_HOIST_CHARACTERS)
 from lightning.enums import ActionType
@@ -248,11 +250,31 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await ctx.reply(f"Successfully set up {AUTOMOD_EVENT_NAMES_MAPPING[type]}!")
         await self.get_automod_config.invalidate(ctx.guild.id)
 
+    @automod_rules.command(level=CommandLevel.Admin, name="addbasic")
+    @is_server_manager()
+    @app_commands.describe(rule="The AutoMod rule to add")
+    async def add_basic_automod_rule(self, ctx: GuildContext, rule: AUTOMOD_BASIC_EVENTS_LITERAL):
+        """Adds a new basic rule to AutoMod"""
+        payload = {"guild_id": ctx.guild.id,
+                   "type": rule,
+                   "count": 0,
+                   "seconds": 0}
+
+        try:
+            await self.bot.api.create_guild_automod_rule(ctx.guild.id, payload)
+        except DataConflict:
+            await ctx.reply("This rule has already been set up!\nIf you want to edit this rule, please remove it and"
+                            " then re-run this command again!")
+            return
+
+        await ctx.reply(f'Successfully set up {AUTOMOD_EVENT_NAMES_MAPPING[rule]}!')
+        await self.get_automod_config.invalidate(ctx.guild.id)
+
     @automod_rules.command(level=CommandLevel.Admin, name="remove")
     @is_server_manager()
     @app_commands.describe(rule="The AutoMod rule to remove")
-    async def remove_automod_rule(self, ctx: GuildContext, rule: AUTOMOD_EVENT_NAMES_LITERAL):
-        """Removes an existing automod rule"""
+    async def remove_automod_rule(self, ctx: GuildContext, rule: AUTOMOD_ALL_EVENT_NAMES_LITERAL):
+        """Removes an existing AutoMod rule"""
         try:
             await self.bot.api.delete_guild_automod_rule(ctx.guild.id, rule)
         except NotFound:
