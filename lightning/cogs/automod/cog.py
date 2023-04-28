@@ -514,14 +514,14 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
     @LightningCog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        if before.name == after.name:
+        if before.display_name == after.display_name:
             return
 
         record = await self.get_automod_config(after.guild.id)
         if not record:
             return
 
-        if not record.auto_dehoist:
+        if record.auto_dehoist is False:
             return
 
         cog: Moderation = self.bot.get_cog("Moderation")  # type: ignore
