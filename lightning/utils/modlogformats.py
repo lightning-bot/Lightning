@@ -351,7 +351,7 @@ class MinimalisticFormat(BaseFormat):
     @staticmethod
     def nick_change(member, previous: str, current: Optional[str], moderator=None, *, with_timestamp: bool = True):
         if with_timestamp:
-            base = [f"[{format_timestamp(discord.utils.utcnow())}]"]
+            base = [f"[{format_timestamp(discord.utils.utcnow())}] "]
         else:
             base = []
 
