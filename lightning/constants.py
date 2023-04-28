@@ -51,9 +51,14 @@ AUTOMOD_EVENT_NAMES_MAPPING = {"message-spam": "Message Spam",
                                "mass-mentions": "Mass Mentions",
                                "url-spam": "URL Spam",
                                "invite-spam": "Invite Spam",
-                               "message-content-spam": "Repetitive Message Spam"}
+                               "message-content-spam": "Repetitive Message Spam",
+                               "auto-dehoist": "Auto Dehoist",
+                               "auto-normalize": "Auto Normalize"}
 AUTOMOD_EVENT_NAMES = list(AUTOMOD_EVENT_NAMES_MAPPING.keys())
 AUTOMOD_EVENT_NAMES_LITERAL = Literal['message-spam', 'mass-mentions', 'url-spam', 'invite-spam',
                                       'message-content-spam']
+AUTOMOD_BASIC_EVENTS_LITERAL = Literal['auto-dehoist', 'auto-normalize']
+AUTOMOD_ALL_EVENT_NAMES_LITERAL = Literal['message-spam', 'mass-mentions', 'url-spam', 'invite-spam',
+                                          'message-content-spam', 'auto-dehoist', 'auto-normalize']
 
 AUTOMOD_COMMAND_CONFIG_REGEX = re.compile(r"(?P<count>[0-9]+)/(?P<seconds>[0-9]+)s")
