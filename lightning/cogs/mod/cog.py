@@ -23,11 +23,12 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 import discord
 from discord.ext import commands
+from unidecode import unidecode
 
 from lightning import (CommandLevel, GuildContext, LightningCog,
                        LightningContext, ModFlags, cache, command, converters)
 from lightning import flags as lflags
-from lightning import group
+from lightning import group, hybrid_command
 from lightning.cogs.mod.converters import BannedMember
 from lightning.cogs.mod.flags import BaseModParser
 from lightning.constants import COMMON_HOIST_CHARACTERS
@@ -38,7 +39,8 @@ from lightning.formatters import plural, truncate_text
 from lightning.models import GuildModConfig, PartialGuild, Timer
 from lightning.utils import helpers, modlogformats
 from lightning.utils.checks import (has_channel_permissions,
-                                    has_guild_permissions)
+                                    has_guild_permissions,
+                                    hybrid_guild_permissions)
 from lightning.utils.time import (FutureTime, get_utc_timestamp,
                                   natural_timedelta)
 
@@ -718,6 +720,21 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                     dehoists.append(member)
 
         await ctx.send(f"Dehoisted {len(dehoists)}/{len(ctx.guild.members)}\n{len(failed_dehoist)} failed.")
+
+    @hybrid_guild_permissions(manage_nicknames=True)
+    @commands.bot_has_guild_permissions(manage_nicknames=True)
+    @hybrid_command(level=CommandLevel.Mod)
+    async def normalize(self, ctx: GuildContext, member: discord.Member):
+        """Normalizes a member's name"""
+        normalized = unidecode(member.display_name)
+        try:
+            await member.edit(nick=normalized, reason=self.format_reason(ctx.author, None,
+                                                                         action_text="Normalize done by"))
+        except discord.HTTPException as e:
+            await ctx.send(f"I had an issue trying to normalize their name {str(e)}")
+            return
+
+        await ctx.send(f"Normalized {member.mention}")
 
     @LightningCog.listener()
     async def on_lightning_timeban_complete(self, timer: Timer):
