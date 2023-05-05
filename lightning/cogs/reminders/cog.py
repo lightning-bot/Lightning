@@ -70,7 +70,7 @@ class Reminders(LightningCog):
         self.bot.dispatch(f'lightning_{record.event}_complete', record)
         await self.bot.api.delete_timer(record.id)
 
-    async def wait_for_timers(self) -> Optional[Timer]:
+    async def wait_for_timers(self) -> Timer:
         record = await self.get_next_timer()
 
         if not record:
@@ -171,14 +171,12 @@ class Reminders(LightningCog):
         _id = await self.add_timer("reminder", ctx.message.created_at, when.dt, reminder_text=when.arg,
                                    author=ctx.author.id, channel=channel, message_id=ctx.message.id)
 
-        duration_text = ltime.natural_timedelta(when.dt, source=ctx.message.created_at)
-
         if type(_id) == int:
-            content = f"Ok {ctx.author.mention}, I'll remind you in {'your DMs in ' if not channel else ''}"\
-                      f"{duration_text} about {when.arg}. (#{_id})"
+            content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
+                      f" {discord.utils.format_dt(when.dt)} about {when.arg}. (#{_id})"
         else:
-            content = f"Ok {ctx.author.mention}, I'll remind you in {'your DMs in ' if not channel else ''}"\
-                      f"{duration_text} about {when.arg}."
+            content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
+                      f" {discord.utils.format_dt(when.dt)} about {when.arg}."
 
         if channel is None:
             embed = discord.Embed().set_footer(text="Make sure to have your DMs open so you can receive your reminder"
