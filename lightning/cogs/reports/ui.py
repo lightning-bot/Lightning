@@ -231,10 +231,9 @@ class ReportDashboard(discord.ui.View):
         if timed_out is True or view.action is None:
             return
 
-        self.dismissed = not self.dismissed
         self.actioned = True
         await interaction.client.api.edit_guild_message_report(interaction.guild.id, self.message_id,
-                                                               {"dismissed": self.dismissed, "actioned": True})
+                                                               {"actioned": True})
         self.update_buttons()
         await interaction.message.edit(view=self)
 
