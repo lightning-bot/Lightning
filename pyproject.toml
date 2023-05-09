@@ -33,7 +33,6 @@ uvloop = {version = "^0.17.0", platform = "linux"}
 orjson = "^3.6.0"
 beautifulsoup4 = "^4.9.3"
 lxml = "^4.9.2"
-pydantic = "^1.8.2"
 sanctum-tc = "^0.7.0"
 objgraph = "^3.5.0"
 asyncpg-stubs = "^0.27.0"
