@@ -105,6 +105,7 @@ class LightningBot(commands.AutoShardedBot):
 
     def __init__(self, config: Config, **kwargs):
         intents = discord.Intents.all()
+        intents.presences = False
         intents.invites = False
         intents.voice_states = False
 
