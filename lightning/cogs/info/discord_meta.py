@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-import collections
 from typing import Union
 
 import discord
@@ -26,7 +25,6 @@ from lightning import LightningCog, LightningContext, command
 from lightning.cogs.info.converters import ReadableChannel
 from lightning.converters import GuildorNonGuildUser
 from lightning.utils.checks import no_threads
-from lightning.utils.helpers import Emoji
 from lightning.utils.time import natural_timedelta
 
 query_member = commands.Author.replace(annotation=GuildorNonGuildUser)
@@ -153,18 +151,9 @@ class DiscordMeta(LightningCog):
         if guild.chunked is False:
             await guild.chunk()
 
-        member_by_status = collections.Counter()
-        for m in guild.members:
-            member_by_status[str(m.status)] += 1
-            if m.bot:
-                member_by_status["bots"] += 1
-        fmt = f'{Emoji.online} {member_by_status["online"]} ' \
-              f'{Emoji.idle} {member_by_status["idle"]} ' \
-              f'{Emoji.do_not_disturb} {member_by_status["dnd"]} ' \
-              f'{Emoji.offline}{member_by_status["offline"]}\n' \
-              f'{Emoji.bot_tag} {member_by_status["bots"]}\n'\
-              f'Total: {guild.member_count}'
-        embed.add_field(name="Members", value=fmt, inline=False)
+        embed.add_field(name="Members",
+                        value=f'Total: {guild.member_count} ({sum(m.bot for m in guild.members)} bots)',
+                        inline=False)
 
         features = {"VIP_REGIONS": "VIP Voice Servers",
                     "DISCOVERABLE": "Server Discovery",
