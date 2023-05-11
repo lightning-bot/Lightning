@@ -265,7 +265,7 @@ class Configuration(LightningCog):
     async def permissions_remove(self, ctx: GuildContext, level: Literal['trusted', 'mod', 'admin'],
                                  _id: Union[discord.Member, discord.Role, int]) -> None:
         """Removes a user or a role from a level"""
-        added = await self.adjust_level(ctx.guild.id, _id, level, adjuster="remove")
+        added = await self.adjust_level(ctx.guild.id, level, _id, adjuster="remove")
         if not added:
             await ctx.send(f"{_id} was never added to that level.")
             return
