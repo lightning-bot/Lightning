@@ -23,10 +23,10 @@ from typing import TYPE_CHECKING
 import discord
 from discord.ext import menus
 
+from lightning.cogs.api.models import CratesIOResponse
+
 if TYPE_CHECKING:
     import aiohttp
-
-    from lightning.cogs.api.models import CratesIOResponse
 
 
 class CrateViewer(menus.KeysetPageSource):
