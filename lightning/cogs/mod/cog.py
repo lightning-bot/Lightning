@@ -14,11 +14,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 from __future__ import annotations
 
 import contextlib
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import discord
@@ -665,14 +666,15 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         messages from the channel the command was run in.
 
         If a search number is specified, it will search \
-        that many messages from the bot in the specified channel and clean them."""
+        that many messages from the bot in the specified channel and clean them.
+        """
         if (search > 100):
             raise commands.BadArgument("Cannot purge more than 100 messages.")
 
         has_perms = ctx.channel.permissions_for(ctx.guild.me).manage_messages
-        await channel.purge(limit=search, check=lambda b: b.author == ctx.bot.user,
+        await channel.purge(limit=search, check=lambda b: b.author.id == ctx.bot.user.id,
                             before=ctx.message.created_at,
-                            after=datetime.utcnow() - timedelta(days=14),
+                            after=datetime.now(timezone.utc) - timedelta(days=14),
                             bulk=has_perms)
 
         await ctx.send("\N{OK HAND SIGN}", delete_after=15)
