@@ -316,7 +316,7 @@ class ReportConfiguration(UpdateableMenu, ExitableMenu):
             self.set_channel_button.disabled = True
 
     async def invalidate_config(self, guild_id: int):
-        if c := cache_registry.get("guild_mod_config"):
+        if c := cache_registry.get("mod_config"):
             await c.invalidate(str(guild_id))
 
     @discord.ui.button(label="Set report channel", style=discord.ButtonStyle.blurple)

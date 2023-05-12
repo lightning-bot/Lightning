@@ -89,7 +89,7 @@ class Reports(LightningCog):
         query = "DELETE FROM message_reports WHERE guild_id=$1;"
         await self.bot.pool.execute(query, channel.guild.id)
 
-        if c := cache_registry.get("guild_mod_config"):
+        if c := cache_registry.get("mod_config"):
             await c.invalidate(str(channel.guild.id))
 
         # Stop listening to views from that channel.
