@@ -378,10 +378,10 @@ class Stats(LightningCog):
         embed.add_field(name='Guild Name', value=guild.name)
         embed.add_field(name='Guild ID', value=guild.id)
 
-        if hasattr(guild, 'members'):
-            bots = sum(member.bot for member in guild.members)
-            humans = getattr(guild, "member_count", len(guild.members)) - bots
-            embed.add_field(name='Member Count', value=f"Bots: {bots}\nHumans: {humans}\nTotal: {len(guild.members)}")
+        if members := getattr(guild, 'members', []):
+            bots = sum(member.bot for member in members)
+            humans = sum(not member.bot for member in members) - bots
+            embed.add_field(name='Member Count', value=f"Bots: {bots}\nHumans: {humans}\nTotal: {len(members)}")
 
         owner = getattr(guild, 'owner', guild.owner_id)
         embed.add_field(name='Owner', value=base_user_format(owner), inline=False)
