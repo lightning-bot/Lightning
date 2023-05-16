@@ -17,7 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from typing import Literal
 
-COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">", "_", ".", "$", "\"", "?", "'"]
+COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">", "_", ".", "$", "\"", "?", "'",
+                           ","]
 
 
 class Emoji:
