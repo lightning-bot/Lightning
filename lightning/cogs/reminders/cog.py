@@ -297,7 +297,8 @@ class Reminders(LightningCog):
             await dm_user(user, message)
             return
 
-        kwargs: Dict[str, Any] = {"allowed_mentions": discord.AllowedMentions(users=[user])}
+        kwargs: Dict[str, Any] = {"allowed_mentions": discord.AllowedMentions(users=[user], roles=False,
+                                                                              everyone=False)}
 
         if "message_id" in timer.extra:
             _id = channel.guild.id if hasattr(channel, 'guild') else None
