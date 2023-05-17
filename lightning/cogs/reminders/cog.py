@@ -279,8 +279,15 @@ class Reminders(LightningCog):
             return
 
         dt_format = discord.utils.format_dt(ltime.add_tzinfo(timer.created_at), style="R")
+
+        if len(timer.extra['reminder_text']) >= 1800 and "message_id" not in timer.extra:
+            paste = await self.bot.api.create_paste(timer.extra['reminder_text'])
+            reminder_content = f"This content was too long for me to send. You can see it at {paste['full_url']}"
+        else:
+            reminder_content = timer.extra['reminder_text'][:1800]
+
         message = f"<@!{user.id}> You asked to be reminded "\
-                  f"{dt_format} about {timer.extra['reminder_text']}"
+                  f"{dt_format} about {reminder_content}"
         secret = timer.extra.pop("secret", False)
 
         # The reminder will be DM'd on one of the following conditions
