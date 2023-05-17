@@ -20,7 +20,7 @@ from __future__ import annotations
 import contextlib
 from collections import Counter
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Annotated, List, Optional, Union
 
 import discord
 from discord.ext import commands
@@ -210,7 +210,9 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @has_guild_permissions(ban_members=True)
     @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason",
              raise_bad_flag=False)
-    async def ban(self, ctx: GuildContext, target: converters.TargetMember, *, flags) -> None:
+    async def ban(self, ctx: GuildContext,
+                  target: Annotated[Union[discord.Member, discord.User], converters.TargetMember],
+                  *, flags) -> None:
         """Bans a user from the server."""
         if flags['delete_messages'] < 0:
             raise commands.BadArgument("You can't delete a negative amount of messages.")
@@ -727,7 +729,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(manage_nicknames=True)
     @hybrid_guild_permissions(manage_nicknames=True)
     async def normalize(self, ctx: GuildContext, member: discord.Member):
-        """Normalizes a member's name"""
+        """Transliterates a member's name into ASCII"""
         normalized = unidecode(member.display_name)
         try:
             await member.edit(nick=normalized, reason=self.format_reason(ctx.author, None,
