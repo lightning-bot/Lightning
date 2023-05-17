@@ -13,7 +13,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8.1,<3.11"
+python = ">=3.9.0,<3.11"
 "discord.py" = {git = "https://github.com/Rapptz/discord.py.git", branch="master", extras = ["speed"]}
 python-dateutil = "^2.8.1"
 parsedatetime = "^2.6"
