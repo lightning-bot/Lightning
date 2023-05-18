@@ -902,3 +902,24 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:
         await self.get_mod_config.invalidate(guild.id)
+
+    # Role state listeners
+    @LightningCog.listener('on_member_join')
+    async def reapply_role_state_on_join(self, member: discord.Member):
+        query = "SELECT punishment_roles FROM roles WHERE guild_id=$1 AND user_id=$2;"
+        record = await self.bot.pool.fetchval(query, member.guild.id, member.id)
+        if not record:
+            return
+
+        with contextlib.suppress(discord.HTTPException):
+            await member.add_roles(*[discord.Object(id=i) for i in record], reason="Role persist")
+
+    @LightningCog.listener('on_guild_role_delete')
+    async def remove_role_from_role_states_on_delete(self, role: discord.Role):
+        query = "SELECT COUNT(*) FROM roles WHERE guild_id=$1 AND $2 = ANY(punishment_roles);"
+        check = await self.bot.pool.fetchval(query, role.guild.id, role.id)
+        if not check:
+            return
+
+        query = "UPDATE roles SET punishment_roles = array_remove(punishment_roles, $1) WHERE guild_id=$2;"
+        await self.bot.pool.execute(query, role.id, role.guild.id)
