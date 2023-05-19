@@ -33,7 +33,9 @@ from lightning.cogs.automod.converters import (AutoModDuration,
                                                AutoModDurationResponse,
                                                IgnorableEntities)
 from lightning.cogs.automod.models import AutomodConfig, SpamConfig
-from lightning.constants import (AUTOMOD_ALL_EVENT_NAMES_LITERAL,
+from lightning.constants import (AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING,
+                                 AUTOMOD_ALL_EVENT_NAMES_LITERAL,
+                                 AUTOMOD_BASIC_EVENT_NAMES_MAPPING,
                                  AUTOMOD_BASIC_EVENTS_LITERAL,
                                  AUTOMOD_EVENT_NAMES_LITERAL,
                                  AUTOMOD_EVENT_NAMES_MAPPING,
@@ -199,6 +201,8 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @is_server_manager()
     @app_commands.describe(type="The AutoMod rule to set up",
                            interval="The interval of when the rule should be triggered")
+    @app_commands.choices(type=[app_commands.Choice(name=x,
+                                                    value=y) for y, x in AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING.items()])
     async def add_automod_rules(self, ctx: GuildContext, type: AUTOMOD_EVENT_NAMES_LITERAL,
                                 *, interval: str):
         """Adds a new rule to AutoMod.
@@ -253,6 +257,8 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @automod_rules.command(level=CommandLevel.Admin, name="addbasic")
     @is_server_manager()
     @app_commands.describe(rule="The AutoMod rule to add")
+    @app_commands.choices(rule=[app_commands.Choice(name=x,
+                                                    value=y) for y, x in AUTOMOD_BASIC_EVENT_NAMES_MAPPING.items()])
     async def add_basic_automod_rule(self, ctx: GuildContext, rule: AUTOMOD_BASIC_EVENTS_LITERAL):
         """Adds a new basic rule to AutoMod"""
         payload = {"guild_id": ctx.guild.id,
@@ -273,6 +279,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @automod_rules.command(level=CommandLevel.Admin, name="remove")
     @is_server_manager()
     @app_commands.describe(rule="The AutoMod rule to remove")
+    @app_commands.choices(rule=[app_commands.Choice(name=x, value=y) for y, x in AUTOMOD_EVENT_NAMES_MAPPING.items()])
     async def remove_automod_rule(self, ctx: GuildContext, rule: AUTOMOD_ALL_EVENT_NAMES_LITERAL):
         """Removes an existing AutoMod rule"""
         try:

@@ -48,14 +48,16 @@ class Emoji:
 
 
 # Human-readable names
-AUTOMOD_EVENT_NAMES_MAPPING = {"message-spam": "Message Spam",
-                               "mass-mentions": "Mass Mentions",
-                               "url-spam": "URL Spam",
-                               "invite-spam": "Invite Spam",
-                               "message-content-spam": "Repetitive Message Spam",
-                               "auto-dehoist": "Auto Dehoist",
-                               "auto-normalize": "Auto Normalize"}
+AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING = {"message-spam": "Message Spam",
+                                        "mass-mentions": "Mass Mentions",
+                                        "url-spam": "URL Spam",
+                                        "invite-spam": "Invite Spam",
+                                        "message-content-spam": "Repetitive Message Spam"}
+AUTOMOD_BASIC_EVENT_NAMES_MAPPING = {"auto-dehoist": "Auto Dehoist",
+                                     "auto-normalize": "Auto Normalize"}
+AUTOMOD_EVENT_NAMES_MAPPING = AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING | AUTOMOD_BASIC_EVENT_NAMES_MAPPING
 AUTOMOD_EVENT_NAMES = list(AUTOMOD_EVENT_NAMES_MAPPING.keys())
+# Literals
 AUTOMOD_EVENT_NAMES_LITERAL = Literal['message-spam', 'mass-mentions', 'url-spam', 'invite-spam',
                                       'message-content-spam']
 AUTOMOD_BASIC_EVENTS_LITERAL = Literal['auto-dehoist', 'auto-normalize']
