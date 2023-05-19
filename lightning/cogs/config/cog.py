@@ -91,10 +91,10 @@ class Configuration(LightningCog):
     @LightningCog.listener('on_member_join')
     async def apply_auto_role_on_join(self, member: discord.Member):
         record = await self.bot.get_guild_bot_config(member.guild.id)
-        if not record or not record.auto_role:
+        if not record or not record.autorole:
             return
 
-        await member.add_roles(record.auto_role, reason="Applying configured autorole")
+        await member.add_roles(record.autorole, reason="Applying configured autorole")
 
     # Mute role
 
