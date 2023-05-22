@@ -40,7 +40,7 @@ from lightning.constants import (AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING,
                                  AUTOMOD_EVENT_NAMES_LITERAL,
                                  AUTOMOD_EVENT_NAMES_MAPPING,
                                  COMMON_HOIST_CHARACTERS)
-from lightning.enums import ActionType
+from lightning.enums import ActionType, AutoModPunishmentType
 from lightning.models import GuildAutoModRulePunishment, PartialGuild
 from lightning.utils.checks import is_server_manager
 from lightning.utils.paginator import Paginator
@@ -200,11 +200,17 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @automod_rules.command(level=CommandLevel.Admin, name="add")
     @is_server_manager()
     @app_commands.describe(rule="The AutoMod rule to set up",
-                           interval="The interval of when the rule should be triggered, i.e. 5/10s")
+                           interval="The interval of when the rule should be triggered, i.e. 5/10s",
+                           punishment="The punishment when the user goes over the limit",
+                           punishment_duration="The duration to set for the punishment's mute or ban")
     @app_commands.choices(rule=[app_commands.Choice(name=x,
-                                                    value=y) for y, x in AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING.items()])
+                                                    value=y) for y, x in AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING.items()],
+                          punishment=[app_commands.Choice(name=x.name.capitalize(),
+                                                          value=x.name.lower()) for x in AutoModPunishmentType])
     async def add_automod_rules(self, ctx: GuildContext, rule: AUTOMOD_EVENT_NAMES_LITERAL,
-                                *, interval: Annotated[AutoModDurationResponse, AutoModDuration]):
+                                interval: Annotated[AutoModDurationResponse, AutoModDuration],
+                                punishment: Literal['delete', 'warn', 'mute', 'kick', 'ban'],  # type: ignore
+                                punishment_duration: Optional[ShortTime] = None):
         """Adds a new rule to AutoMod.
 
         You can provide the interval in the following ways
@@ -212,23 +218,11 @@ class AutoMod(LightningCog, required=["Moderation"]):
         - "5/10s"
         - "5 10"
         """
-        punishment = await ui.prompt_for_automod_punishments(ctx)
-        if punishment is None:
-            return
+        punishment: AutoModPunishmentType = AutoModPunishmentType[punishment.upper()]
+        punishment_payload: Dict[str, Any] = {"type": punishment.name}
 
-        punishment_payload: Dict[str, Any] = {"type": punishment[0]}
-
-        # Discord removed selects so blame them for this
-        if punishment[0] in ("BAN", "MUTE"):
-            darg = await ctx.confirm("This punishment supports temporary actions!\nWould you like to set a duration for"
-                                     " this rule?")
-            if darg:
-                m = await ctx.ask("What would you like the duration to be?")
-                if not m:
-                    return
-
-                duration = ShortTime(m.content)
-                punishment_payload['duration'] = duration.delta.seconds
+        if punishment.name in ("BAN", "MUTE") and punishment_duration:
+            punishment_payload['duration'] = punishment_duration.delta.seconds
 
         payload = {"guild_id": ctx.guild.id,
                    "type": rule,
