@@ -17,8 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import datetime
-from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Literal,
-                    Optional, TypedDict, Union)
+from typing import (TYPE_CHECKING, Annotated, Any, Callable, Dict, List,
+                    Literal, Optional, TypedDict, Union)
 
 import discord
 from discord import app_commands
@@ -204,7 +204,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @app_commands.choices(type=[app_commands.Choice(name=x,
                                                     value=y) for y, x in AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING.items()])
     async def add_automod_rules(self, ctx: GuildContext, type: AUTOMOD_EVENT_NAMES_LITERAL,
-                                *, interval: str):
+                                *, interval: Annotated[AutoModDurationResponse, AutoModDuration]):
         """Adds a new rule to AutoMod.
 
         You can provide the interval in the following ways
@@ -212,8 +212,6 @@ class AutoMod(LightningCog, required=["Moderation"]):
         - "5/10s"
         - "5 10"
         """
-        result: AutoModDurationResponse = await AutoModDuration().convert(ctx, interval)
-
         punishment = await ui.prompt_for_automod_punishments(ctx)
         if punishment is None:
             return
@@ -234,8 +232,8 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         payload = {"guild_id": ctx.guild.id,
                    "type": type,
-                   "count": result.count,
-                   "seconds": result.seconds,
+                   "count": interval.count,
+                   "seconds": interval.seconds,
                    "punishment": punishment_payload}
         try:
             await self.bot.api.create_guild_automod_rule(ctx.guild.id, payload)
