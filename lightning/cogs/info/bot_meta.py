@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -18,14 +18,11 @@ from __future__ import annotations
 
 import inspect
 import os
-from typing import TYPE_CHECKING
+from typing import Optional
 
 import discord
 
-from lightning import LightningCog, command
-
-if TYPE_CHECKING:
-    from lightning import LightningContext
+from lightning import LightningCog, LightningContext, command, hybrid_command
 
 
 class BotMeta(LightningCog):
@@ -87,8 +84,8 @@ class BotMeta(LightningCog):
                               color=discord.Color(0xf74b06))
         await ctx.send(embed=embed)
 
-    @command()
-    async def source(self, ctx: LightningContext, *, command: str = None) -> None:
+    @hybrid_command()
+    async def source(self, ctx: LightningContext, *, command: Optional[str] = None) -> None:
         """Gives a link to the source code for a command."""
         source = self.bot.config['bot'].get("git_repo_url", "https://github.com/lightning-bot/Lightning")
         if command is None:
