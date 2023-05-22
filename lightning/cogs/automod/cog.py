@@ -199,11 +199,11 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
     @automod_rules.command(level=CommandLevel.Admin, name="add")
     @is_server_manager()
-    @app_commands.describe(type="The AutoMod rule to set up",
-                           interval="The interval of when the rule should be triggered")
-    @app_commands.choices(type=[app_commands.Choice(name=x,
+    @app_commands.describe(rule="The AutoMod rule to set up",
+                           interval="The interval of when the rule should be triggered, i.e. 5/10s")
+    @app_commands.choices(rule=[app_commands.Choice(name=x,
                                                     value=y) for y, x in AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING.items()])
-    async def add_automod_rules(self, ctx: GuildContext, type: AUTOMOD_EVENT_NAMES_LITERAL,
+    async def add_automod_rules(self, ctx: GuildContext, rule: AUTOMOD_EVENT_NAMES_LITERAL,
                                 *, interval: Annotated[AutoModDurationResponse, AutoModDuration]):
         """Adds a new rule to AutoMod.
 
@@ -231,7 +231,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
                 punishment_payload['duration'] = duration.delta.seconds
 
         payload = {"guild_id": ctx.guild.id,
-                   "type": type,
+                   "type": rule,
                    "count": interval.count,
                    "seconds": interval.seconds,
                    "punishment": punishment_payload}
@@ -242,7 +242,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
                             " then re-run this command again!")
             return
 
-        await ctx.reply(f"Successfully set up {AUTOMOD_EVENT_NAMES_MAPPING[type]}!")
+        await ctx.reply(f"Successfully set up {AUTOMOD_EVENT_NAMES_MAPPING[rule]}!")
         await self.get_automod_config.invalidate(ctx.guild.id)
 
     @automod_rules.command(level=CommandLevel.Admin, name="addbasic")
