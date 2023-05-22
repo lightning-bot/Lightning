@@ -212,14 +212,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         - "5/10s"
         - "5 10"
         """
-        if type == "mass-mentions":
-            try:
-                result = AutoModDurationResponse(int(interval), 0)
-            except ValueError:
-                await ctx.send("Could not convert to an integer")
-                return
-        else:
-            result: AutoModDurationResponse = await AutoModDuration().convert(ctx, interval)
+        result: AutoModDurationResponse = await AutoModDuration().convert(ctx, interval)
 
         punishment = await ui.prompt_for_automod_punishments(ctx)
         if punishment is None:

@@ -126,8 +126,8 @@ class SpamConfig:
         self.check = check
 
     @classmethod
-    def from_model(cls, record: AutoModRulePayload, bucket_type: Union[BucketType, Callable], config: AutomodConfig,
-                   *, check=None):
+    def from_model(cls, record: AutoModRulePayload, bucket_type: Union[BucketType, Callable[[discord.Message], str]],
+                   config: AutomodConfig, *, check=None):
         return cls(record['count'], record['seconds'], record["punishment"], bucket_type,
                    f"automod:{record['type']}:{config.guild_id}", config.bot.redis_pool, check=check)
 
