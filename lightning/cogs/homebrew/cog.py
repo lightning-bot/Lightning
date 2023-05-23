@@ -219,7 +219,7 @@ class Homebrew(LightningCog):
         for record in records:
             webhook = discord.Webhook.partial(record['id'], record['webhook_token'], session=self.bot.aiosession)
             try:
-                await webhook.send(text)
+                await webhook.send(text, avatar_url="https://i.imgur.com/GydiXTi")
             except (discord.Forbidden, discord.NotFound):
                 bad_webhooks.append(record['webhook_token'])
 
