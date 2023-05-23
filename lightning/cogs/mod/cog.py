@@ -232,8 +232,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                             delete_message_days=min(flags['delete_messages'], 7))
         await self.confirm_and_log_action(ctx, target, "BAN")
 
-    @has_guild_permissions(manage_messages=True)
-    @group(cls=lflags.FlagGroup, invoke_without_command=True, level=CommandLevel.Mod, parser=BaseModParser)
+    @hybrid_command(cls=lflags.HybridFlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
+    @hybrid_guild_permissions(manage_messages=True)
     async def warn(self, ctx: GuildContext,
                    target: Union[discord.Member, discord.User] = commands.param(
                        converter=converters.TargetMember(fetch_user=False)),
@@ -251,96 +251,6 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
         warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, ActionType.WARN.value) or 0
         await self.confirm_and_log_action(ctx, target, "WARN", warning_text=f"{plural(warns + 1):warning} {emoji}")
-
-    @has_guild_permissions(manage_guild=True)
-    @warn.group(name="punishments", aliases=['punishment'], invoke_without_command=True, level=CommandLevel.Admin)
-    async def warn_punish(self, ctx: GuildContext) -> None:
-        """Configures warn punishments for the server."""
-        record = await self.get_mod_config(ctx.guild.id)
-        if not record:
-            await ctx.send("Warn punishments have not been setup.")
-            return
-
-        if record.warn_kick is None and record.warn_ban is None:
-            await ctx.send("Warn punishments have not been setup.")
-            return
-
-        msg = ""
-        if record.warn_kick:
-            msg += f"Kick: at {record.warn_kick} warns\n"
-        if record.warn_ban:
-            msg += f"Ban: at {record.warn_ban}+ warns\n"
-        await ctx.send(msg)
-
-    @commands.bot_has_guild_permissions(kick_members=True)
-    @has_guild_permissions(manage_guild=True)
-    @warn_punish.command(name="kick", level=CommandLevel.Admin)
-    async def warn_kick(self, ctx: GuildContext, number: converters.InbetweenNumber(1, 100)) -> None:
-        """Configures the warn kick punishment.
-
-        This kicks the member after acquiring a certain amount of warns."""
-        query = """SELECT warn_ban
-                   FROM guild_mod_config
-                   WHERE guild_id=$1;"""
-        ban_count = await self.bot.pool.fetchval(query, ctx.guild.id)
-        if ban_count and number >= ban_count:
-            await ctx.send("You cannot set the same or a higher value "
-                           "for warn kick punishment "
-                           "as the warn ban punishment.")
-            return
-
-        query = """INSERT INTO guild_mod_config (guild_id, warn_kick)
-                   VALUES ($1, $2)
-                   ON CONFLICT (guild_id)
-                   DO UPDATE SET warn_kick = EXCLUDED.warn_kick;
-                """
-        await self.bot.pool.execute(query, ctx.guild.id, number)
-        await self.get_mod_config.invalidate(ctx.guild.id)
-        await ctx.send(f"Users will now get kicked if they reach "
-                       f"{number} warns.")
-
-    @commands.bot_has_guild_permissions(ban_members=True)
-    @has_guild_permissions(manage_guild=True)
-    @warn_punish.command(name="ban", level=CommandLevel.Admin)
-    async def warn_ban(self, ctx: GuildContext, number: converters.InbetweenNumber(1, 100)) -> None:
-        """Configures the warn ban punishment.
-
-        This bans the member after acquiring a certain amount of warns or higher."""
-        query = """SELECT warn_kick
-                   FROM guild_mod_config
-                   WHERE guild_id=$1;"""
-        kick_count = await self.bot.pool.fetchval(query, ctx.guild.id)
-        if kick_count and number <= kick_count:
-            await ctx.send("You cannot set the same or a lesser value for warn ban punishment "
-                           "as the warn kick punishment.")
-            return
-
-        query = """INSERT INTO guild_mod_config (guild_id, warn_ban)
-                   VALUES ($1, $2)
-                   ON CONFLICT (guild_id)
-                   DO UPDATE SET warn_ban = EXCLUDED.warn_ban;
-                """
-        await self.bot.pool.execute(query, ctx.guild.id, number)
-        await self.get_mod_config.invalidate(ctx.guild.id)
-        await ctx.send("Users will now get banned if they reach "
-                       f"{number} or a higher amount of warns.")
-
-    @has_guild_permissions(manage_guild=True)
-    @warn_punish.command(name="clear", level=CommandLevel.Admin)
-    async def warn_remove(self, ctx: GuildContext) -> None:
-        """Removes all warn punishment configuration."""
-        query = """UPDATE guild_mod_config
-                   SET warn_ban=NULL,
-                   warn_kick=NULL
-                   WHERE guild_id=$1;
-                """
-        ret = await self.bot.pool.execute(query, ctx.guild.id)
-        await self.get_mod_config.invalidate(ctx.guild.id)
-        if ret == "DELETE 0":
-            await ctx.send("Warn punishments were never configured!")
-            return
-
-        await ctx.send("Removed warn punishment configuration!")
 
     async def do_message_purge(self, ctx: GuildContext, limit: int, predicate, *, before=None, after=None) -> None:
         if limit >= 150:
