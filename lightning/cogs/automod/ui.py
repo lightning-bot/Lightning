@@ -169,3 +169,25 @@ class AutoModIgnoredPages(menus.ListPageSource):
     async def format_page(self, menu: Paginator, entries: List[str]):
         desc = [f'{idx + 1}. {entry}' for idx, entry in enumerate(entries, menu.current_page * self.per_page)]
         return discord.Embed(title="Ignores", description="\n".join(desc), color=discord.Color.greyple())
+
+
+class AutoModWarnThresholdMigration(discord.ui.View):
+    def __init__(self, *, context: GuildContext):
+        super().__init__(timeout=180)
+        self.context = context
+        self.choice = None
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        return self.context.author.id == interaction.user.id
+
+    @discord.ui.button(label="Warn Kick")
+    async def warn_kick(self, itx: discord.Interaction, button: discord.ui.Button):
+        self.choice = "warn_kick"
+        await itx.response.edit_message(view=None)
+        self.stop()
+
+    @discord.ui.button(label="Warn Ban")
+    async def warn_ban(self, itx: discord.Interaction, button: discord.ui.Button):
+        self.choice = "warn_ban"
+        await itx.response.edit_message(view=None)
+        self.stop()

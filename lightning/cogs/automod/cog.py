@@ -287,20 +287,65 @@ class AutoMod(LightningCog, required=["Moderation"]):
         """Manages the threshold for warns"""
         ...
 
-    @automod_warn_threshold.command(name='set', level=CommandLevel.Admin)
-    @is_server_manager()
-    @app_commands.describe(limit="The limit of warns")
-    async def automod_warn_threshold_set(self, ctx: GuildContext, limit: commands.Range[int, 1, 10],
-                                         punishment: Literal['kick', 'ban']):
-        """Sets a threshold for warns"""
+    async def set_warn_threshold(self, guild: discord.Guild, limit: int, punishment: str):
         query = """INSERT INTO guild_automod_config (guild_id, warn_threshold, warn_punishment)
                    VALUES ($1, $2, $3)
                    ON CONFLICT (guild_id)
                    DO UPDATE SET
                        warn_threshold=EXCLUDED.warn_threshold,
                        warn_punishment=EXCLUDED.warn_punishment;"""
-        await self.bot.pool.execute(query, ctx.guild.id, limit, punishment.upper())
+        await self.bot.pool.execute(query, guild.id, limit, punishment.upper())
+
+    @automod_warn_threshold.command(name='set', level=CommandLevel.Admin)
+    @is_server_manager()
+    @app_commands.describe(limit="The limit of warns")
+    async def automod_warn_threshold_set(self, ctx: GuildContext, limit: commands.Range[int, 1, 10],
+                                         punishment: Literal['kick', 'ban']):
+        """Sets a threshold for warns"""
+        await self.set_warn_threshold(ctx.guild, limit, punishment)
         await ctx.send(f"Set the warn threshold to {limit}!")
+        await self.get_automod_config.invalidate(ctx.guild.id)
+
+    @automod_warn_threshold.command(name='migrate', level=CommandLevel.Admin)
+    @is_server_manager()
+    async def automod_warn_threshold_transfer(self, ctx: GuildContext):
+        """Migrates your server's old warn threshold configuration to the new configuration"""
+        cog: Optional[Moderation] = self.bot.get_cog("Moderation")  # type: ignore
+        if not cog:
+            await ctx.send("Unable to migrate warn thresholds at this time!")
+            return
+
+        record = await cog.get_mod_config(ctx.guild.id)
+        if not record or (record.warn_ban is None and record.warn_kick is None):
+            await ctx.send("There is nothing to migrate!")
+            return
+
+        if record.warn_ban and record.warn_kick:
+            view = ui.AutoModWarnThresholdMigration(context=ctx)
+            await ctx.send("Which would you like to migrate?\n\n> *Warn thresholds only support one threshold!*",
+                           view=view)
+            await view.wait()
+            if not view.choice:
+                await ctx.reply("You didn't select anything! Exiting...")
+                return
+
+            limit = getattr(record, view.choice)
+            punishment = view.choice.strip('warn_')
+        elif record.warn_ban:
+            limit = record.warn_ban
+            punishment = "ban"
+        elif record.warn_kick:
+            limit = record.warn_kick
+            punishment = "kick"
+
+        await self.set_warn_threshold(ctx.guild, limit, punishment)
+
+        # Remove old configuration
+        query = "UPDATE guild_mod_config SET warn_ban=NULL, warn_kick=NULL WHERE guild_id=$1;"
+        await self.bot.pool.execute(query, ctx.guild.id)
+        await cog.get_mod_config.invalidate(ctx.guild.id)
+
+        await ctx.send("Migrated to the new warn thresholds!")
         await self.get_automod_config.invalidate(ctx.guild.id)
 
     @automod_warn_threshold.command(name='remove', level=CommandLevel.Admin)
