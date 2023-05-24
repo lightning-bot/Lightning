@@ -31,6 +31,8 @@ if TYPE_CHECKING:
     class AutoModGuildConfig(TypedDict):
         guild_id: int
         default_ignores: List[int]
+        warn_threshold: Optional[int]
+        warn_punishment: Optional[str]
 
     class AutoModRulePunishmentPayload(TypedDict):
         type: str
@@ -63,6 +65,8 @@ class AutomodConfig:
     def __init__(self, bot: LightningBot, config: AutoModGuildConfig, rules: Dict[str, Any]) -> None:
         self.guild_id: int = config["guild_id"]
         self.default_ignores: set[int] = set(config.get("default_ignores", []))
+        self.warn_threshold = config['warn_threshold']
+        self.warn_punishment = config['warn_punishment']
 
         self.bot = bot
 
