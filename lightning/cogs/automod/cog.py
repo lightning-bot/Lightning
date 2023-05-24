@@ -112,6 +112,11 @@ class AutoMod(LightningCog, required=["Moderation"]):
         else:
             embed.add_field(name="Ignores", value="None")
 
+        if threshold := config.get("warn_threshold"):
+            embed.add_field(name="Warn Threshold",
+                            value=f"Limit: {threshold}+\nPunishment: {config['warn_punishment']}",
+                            inline=False)
+
         await ctx.send(embed=embed)
 
     @automod.command(level=CommandLevel.Admin, name='ignore')
@@ -276,17 +281,41 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await ctx.send(f"{AUTOMOD_EVENT_NAMES_MAPPING[rule]} was removed.")
         await self.get_automod_config.invalidate(ctx.guild.id)
 
-    # @automod_rules.command(level=CommandLevel.Admin, name="sync", enabled=False, hidden=True)
+    @automod.group(name='warnthreshold', level=CommandLevel.Admin)
     @is_server_manager()
-    async def sync_automod_rule(self, ctx: GuildContext, rule: Literal['mass-mentions']):
-        """
-        "Syncs" an AutoMod rule with Discord's AutoMod
-        """
-        try:
-            await self.bot.api.get_guild_automod_rules(ctx.guild.id)
-        except NotFound:
-            await ctx.send("No AutoMod rules are set up for this server!")
+    async def automod_warn_threshold(self, ctx: GuildContext):
+        """Manages the threshold for warns"""
+        ...
+
+    @automod_warn_threshold.command(name='set', level=CommandLevel.Admin)
+    @is_server_manager()
+    @app_commands.describe(limit="The limit of warns")
+    async def automod_warn_threshold_set(self, ctx: GuildContext, limit: commands.Range[int, 1, 10],
+                                         punishment: Literal['kick', 'ban']):
+        """Sets a threshold for warns"""
+        query = """INSERT INTO guild_automod_config (guild_id, warn_threshold, warn_punishment)
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET
+                       warn_threshold=EXCLUDED.warn_threshold,
+                       warn_punishment=EXCLUDED.warn_punishment;"""
+        await self.bot.pool.execute(query, ctx.guild.id, limit, punishment.upper())
+        await ctx.send(f"Set the warn threshold to {limit}!")
+        await self.get_automod_config.invalidate(ctx.guild.id)
+
+    @automod_warn_threshold.command(name='remove', level=CommandLevel.Admin)
+    @is_server_manager()
+    async def automod_warn_threshold_remove(self, ctx: GuildContext):
+        """Removes the current warn threshold"""
+        query = "UPDATE guild_automod_config SET warn_threshold=NULL, warn_punishment=NULL WHERE guild_id=$1;"
+        resp = await self.bot.pool.execute(query, ctx.guild.id)
+
+        if resp == "UPDATE 0":
+            await ctx.send("This server never had a warn threshold set up!")
             return
+
+        await ctx.send("Removed warn threshold!")
+        await self.get_automod_config.invalidate(ctx.guild.id)
 
     @cache.cached('guild_automod', cache.Strategy.raw)
     async def get_automod_config(self, guild_id: int) -> Optional[AutomodConfig]:
