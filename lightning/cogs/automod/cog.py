@@ -369,7 +369,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         except NotFound:
             return
 
-        return AutomodConfig(self.bot, config, config['rules'])
+        return AutomodConfig(self.bot, config)
 
     async def add_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection=None) -> str:
         return await self.bot.get_cog("Moderation").add_punishment_role(guild_id, user_id, role_id,

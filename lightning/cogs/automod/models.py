@@ -17,8 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import re
-from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional,
-                    TypedDict, Union)
+from typing import TYPE_CHECKING, Callable, List, Optional, TypedDict, Union
 
 import discord
 import redis.asyncio as aioredis
@@ -33,6 +32,7 @@ if TYPE_CHECKING:
         default_ignores: List[int]
         warn_threshold: Optional[int]
         warn_punishment: Optional[str]
+        rules: List[AutoModRulePayload]
 
     class AutoModRulePunishmentPayload(TypedDict):
         type: str
@@ -62,11 +62,11 @@ def url_check(message):
 
 
 class AutomodConfig:
-    def __init__(self, bot: LightningBot, config: AutoModGuildConfig, rules: Dict[str, Any]) -> None:
+    def __init__(self, bot: LightningBot, config: AutoModGuildConfig) -> None:
         self.guild_id: int = config["guild_id"]
         self.default_ignores: set[int] = set(config.get("default_ignores", []))
-        self.warn_threshold = config['warn_threshold']
-        self.warn_punishment = config['warn_punishment']
+        self.warn_threshold = config.get('warn_threshold')
+        self.warn_punishment = config.get('warn_punishment')
 
         self.bot = bot
 
@@ -79,7 +79,7 @@ class AutomodConfig:
         self.auto_dehoist: bool = False
         self.auto_normalize: bool = False
 
-        self.load_rules(rules)
+        self.load_rules(config['rules'])
 
     def load_rules(self, rules):
         for rule in rules:
