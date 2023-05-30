@@ -83,25 +83,20 @@ class AutoMod(LightningCog, required=["Moderation"]):
     async def automod_view(self, ctx: GuildContext):
         """Allows you to view the current AutoMod configuration"""
         try:
-            rules = await ctx.bot.api.get_guild_automod_rules(ctx.guild.id)
+            config = await ctx.bot.api.get_guild_automod_config(ctx.guild.id)
         except NotFound:
             await ctx.send("This server has not set up Lightning AutoMod yet!")
             return
 
         fmt = []
-        for record in rules:
+        for record in config['rules']:
             if record['type'] == "mass-mentions":
                 fmt.append(f"{AUTOMOD_EVENT_NAMES_MAPPING[record['type']]}: {record['count']}")
             else:
                 fmt.append(f"{AUTOMOD_EVENT_NAMES_MAPPING[record['type']]}: {record['count']}/{record['seconds']}s")
 
         embed = discord.Embed(color=0xf74b06, title="Lightning AutoMod")
-        embed.add_field(name="Rules", value="\n".join(fmt))
-
-        try:
-            config = await self.bot.api.get_guild_automod_config(ctx.guild.id)
-        except NotFound:
-            config = {}
+        embed.add_field(name="Rules", value="\n".join(fmt) if fmt else "None")
 
         if default_ignores := config.get("default_ignores"):
             ignores = await self.verify_default_ignores(ctx, default_ignores)
@@ -309,7 +304,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @automod_warn_threshold.command(name='migrate', level=CommandLevel.Admin)
     @is_server_manager()
     async def automod_warn_threshold_transfer(self, ctx: GuildContext):
-        """Migrates your server's old warn threshold configuration to the new configuration"""
+        """Migrates your server's old warn punishment configuration to the new configuration"""
         cog: Optional[Moderation] = self.bot.get_cog("Moderation")  # type: ignore
         if not cog:
             await ctx.send("Unable to migrate warn thresholds at this time!")
