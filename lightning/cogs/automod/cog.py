@@ -366,16 +366,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
     async def get_automod_config(self, guild_id: int) -> Optional[AutomodConfig]:
         try:
             config = await self.bot.api.get_guild_automod_config(guild_id)
-            rules = await self.bot.api.get_guild_automod_rules(guild_id)
         except NotFound:
-            rules = None
+            return
 
-            if not rules:
-                return
-
-            config = {"guild_id": guild_id}
-
-        return AutomodConfig(self.bot, config, rules) if rules else None
+        return AutomodConfig(self.bot, config, config['rules'])
 
     async def add_punishment_role(self, guild_id: int, user_id: int, role_id: int, *, connection=None) -> str:
         return await self.bot.get_cog("Moderation").add_punishment_role(guild_id, user_id, role_id,
