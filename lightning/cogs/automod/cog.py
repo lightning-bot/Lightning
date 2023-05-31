@@ -41,6 +41,7 @@ from lightning.constants import (AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING,
                                  AUTOMOD_EVENT_NAMES_MAPPING,
                                  COMMON_HOIST_CHARACTERS)
 from lightning.enums import ActionType, AutoModPunishmentType
+from lightning.events import InfractionEvent
 from lightning.models import GuildAutoModRulePunishment, PartialGuild
 from lightning.utils.checks import is_server_manager
 from lightning.utils.paginator import Paginator
@@ -621,6 +622,33 @@ class AutoMod(LightningCog, required=["Moderation"]):
             return
 
         await self.handle_name_changing(after, record)
+
+    async def get_warn_count(self, guild_id: int, user_id: int) -> int:
+        query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
+        rev = await self.bot.pool.fetchval(query, user_id, guild_id,
+                                           ActionType.WARN.value)
+        return rev or 0
+
+    # Warn Thresholds
+    @LightningCog.listener('on_lightning_member_warn')
+    async def handle_warn_thresholds(self, event: InfractionEvent):
+        record = await self.get_automod_config(event.guild.id)
+
+        if not record or not record.warn_threshold:
+            return
+
+        count = await self.get_warn_count(event.guild.id, event.member.id)
+
+        if record.warn_threshold > count:
+            return
+
+        if record.warn_punishment.lower() == "kick":
+            await event.guild.kick(event.member, reason="Warn Threshold reached")
+        else:  # ban
+            await event.guild.ban(event.member, reason="Warn Threshold reached", delete_message_days=0)
+
+        await self.log_manual_action(event.guild, event.member, self.bot.user, record.warn_punishment.upper(),
+                                     reason="Warn Threshold reached")
 
     # Remove ids from config
     @LightningCog.listener('on_member_remove')

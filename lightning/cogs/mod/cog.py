@@ -770,45 +770,6 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                 await self.log_manual_action(event.guild, event.after, event.moderator, "MUTE", reason=reason,
                                              connection=conn)
 
-    # Automod features tm
-
-    async def get_warn_count(self, guild_id: int, user_id: int) -> int:
-        query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
-        rev = await self.bot.pool.fetchval(query, user_id, guild_id,
-                                           ActionType.WARN.value)
-        return rev or 0
-
-    async def _kick_punishment(self, target):
-        reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
-        await target.kick(reason=reason)
-        await self.log_manual_action(target.guild, target, self.bot.user, "KICK", reason="Member triggered automod")
-
-    async def _ban_punishment(self, target):
-        reason = modlogformats.action_format(self.bot.user, reason="Automod triggered")
-        await target.ban(reason=reason)
-        await self.log_manual_action(target.guild, target, self.bot.user, "BAN", reason=reason)
-
-    async def _delete_punishment(self, message):
-        try:
-            await message.delete()
-        except discord.HTTPException:
-            pass
-
-    @LightningCog.listener("on_lightning_member_warn")
-    async def handle_warn_punishments(self, event):
-        record = await self.get_mod_config(event.guild.id)
-
-        if not record or not record.warn_ban or not record.warn_kick:
-            return
-
-        count = await self.get_warn_count(event.guild.id, event.member.id)
-
-        if record.warn_kick and record.warn_kick == count:
-            await self._kick_punishment(event.member)
-
-        if record.warn_ban and record.warn_ban <= count:
-            await self._ban_punishment(event.member)
-
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:
         await self.get_mod_config.invalidate(guild.id)
