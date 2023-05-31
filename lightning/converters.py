@@ -19,10 +19,11 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Union
 
 import discord
 import yarl
+from discord import app_commands
 from discord.ext import commands
 
 from lightning.commands import CommandLevel
@@ -45,30 +46,45 @@ class GuildorNonGuildUser(commands.Converter):
         return target
 
 
-class TargetMember(commands.Converter):
+# At some point, we'll separate this into two converters.
+class TargetMember(commands.Converter, app_commands.Transformer):
     def __init__(self, *, fetch_user=True):
         if fetch_user:
             self.user_converter = GuildorNonGuildUser()
         else:
             self.user_converter = commands.MemberConverter()
 
-    async def check_member(self, ctx: LightningContext, member: Union[discord.User, discord.Member]):
-        if member.id == ctx.me.id:
+    @property
+    def type(self):
+        return discord.AppCommandOptionType.user
+
+    async def check_member(self, author: discord.Member, guild: discord.Guild,
+                           member: Union[discord.User, discord.Member]):
+        if member.id == guild.me.id:
             raise commands.BadArgument("Bots can't do actions on themselves.")
 
-        if member.id == ctx.author.id:
+        if member.id == author.id:
             raise commands.BadArgument("You can't do actions on yourself.")
 
         if isinstance(member, discord.Member):
-            if member.id == ctx.guild.owner_id:
+            if member.id == guild.owner_id:
                 raise commands.BadArgument("You can't do actions on the server owner.")
 
-            if member.top_role >= ctx.author.top_role:
+            if member.top_role >= author.top_role:
                 raise commands.BadArgument("You can't do actions on this member due to hierarchy.")
+
+    async def transform(self, interaction: discord.Interaction, value: Any):
+        if isinstance(
+            self.user_converter, commands.MemberConverter
+        ) and not isinstance(value, discord.Member):
+            raise commands.MemberNotFound(value.id)
+
+        await self.check_member(interaction.user, interaction.guild, value)  # type: ignore
+        return value
 
     async def convert(self, ctx: LightningContext, argument: str) -> Union[discord.User, discord.Member]:
         target = await self.user_converter.convert(ctx, argument)
-        await self.check_member(ctx, target)
+        await self.check_member(ctx.author, ctx.guild, target)  # type: ignore
         return target
 
 
