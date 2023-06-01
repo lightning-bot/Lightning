@@ -464,10 +464,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
             Returns True if the bot can timeout a member
         """
         me = message.guild.me
-        if message.channel.permissions_for(me).moderate_members and \
-                duration <= (message.created_at + datetime.timedelta(days=28)):
-            return True
-        return False
+        return bool(
+            message.channel.permissions_for(me).moderate_members
+            and duration <= (message.created_at + datetime.timedelta(days=28))  # noqa: W503
+        )
 
     async def _time_mute_user(self, message: AutoModMessage, seconds: Union[int, datetime.datetime], *, reason: str):
         if isinstance(seconds, datetime.datetime):
