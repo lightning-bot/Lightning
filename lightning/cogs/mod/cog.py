@@ -23,6 +23,7 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Annotated, List, Optional, Union
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 from unidecode import unidecode
 
@@ -234,6 +235,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @hybrid_command(cls=lflags.HybridFlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
     @hybrid_guild_permissions(manage_messages=True)
+    @app_commands.describe(target="The member to warn", reason="The reason for the warn")
     async def warn(self, ctx: GuildContext,
                    target: Union[discord.Member, discord.User] = commands.param(
                        converter=converters.TargetMember(fetch_user=False)),
