@@ -167,7 +167,7 @@ class LightningBot(commands.AutoShardedBot):
         self._error_logger = WebhookEmbedEmitter(self.config.logging.bot_errors, session=self.aiosession)
         self._error_logger.start()
 
-    @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=64)
+    @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=128)
     async def get_guild_bot_config(self, guild_id: int) -> Optional[GuildBotConfig]:
         """Gets a guild's bot configuration from cache or fetches it from the database.
 
