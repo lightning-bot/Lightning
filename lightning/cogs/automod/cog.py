@@ -326,7 +326,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
                 return
 
             limit = getattr(record, view.choice)
-            punishment = view.choice.strip('warn_')
+            punishment = view.choice[5:]
         elif record.warn_ban:
             limit = record.warn_ban
             punishment = "ban"
