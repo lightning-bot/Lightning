@@ -106,7 +106,8 @@ async def launch_bot(config: Config) -> None:
     try:
         bot.pool = await create_pool(bot.config['tokens']['postgres']['uri'], command_timeout=60)
         bot.redis_pool = redis.Redis(host=bot.config.tokens.redis.host, port=bot.config.tokens.redis.port,
-                                     db=bot.config.tokens.redis.db, password=bot.config.tokens.redis.password)
+                                     db=bot.config.tokens.redis.db, password=bot.config.tokens.redis.password,
+                                     decode_responses=True)
         # Only way to ensure the pool is connected to redis
         await bot.redis_pool.ping()
     except asyncpg.PostgresConnectionError as e:
