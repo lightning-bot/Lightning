@@ -468,31 +468,33 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                 await self.log_action(ctx, member, "BAN", connection=con)
 
     @commands.bot_has_guild_permissions(ban_members=True)
-    @has_guild_permissions(ban_members=True)
-    @command(cls=lflags.FlagCommand, aliases=['tempban'], level=CommandLevel.Mod, parser=BaseModParser)
+    @command(cls=lflags.HybridFlagCommand, aliases=['tempban'], level=CommandLevel.Mod, parser=BaseModParser)
+    @hybrid_guild_permissions(ban_members=True)
+    @app_commands.describe(target="The member to ban",
+                           duration="The duration for the ban",
+                           reason="The reason for the timed ban")
     async def timeban(self, ctx: GuildContext, target: converters.TargetMember,
                       duration: FutureTime, *, flags) -> None:
         """Bans a user for a specified amount of time.
 
         The duration can be a short time format such as "30d", \
         a more human duration format such as "until Monday at 7PM", \
-        or a more concrete time format such as "2020-12-31".
-
-        Note that duration time is in UTC."""
+        or a more concrete time format such as "2020-12-31"."""
         await self.time_ban_user(ctx, target, ctx.author, flags['reason'], duration, dm_user=not flags['nodm'])
 
-    @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=lflags.FlagCommand, parser=BaseModParser)
+    @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=lflags.HybridFlagCommand, parser=BaseModParser)
     @commands.bot_has_guild_permissions(manage_roles=True)
-    @has_guild_permissions(manage_roles=True)
+    @hybrid_guild_permissions(manage_roles=True)
+    @app_commands.describe(target="The member to mute",
+                           duration="The duration for the mute",
+                           reason="The reason for the mute")
     async def timemute(self, ctx: GuildContext, target: converters.TargetMember,
                        duration: FutureTime, *, flags) -> None:
         """Mutes a user for a specified amount of time.
 
         The duration can be a short time format such as "30d", \
         a more human duration format such as "until Monday at 7PM", \
-        or a more concrete time format such as "2020-12-31".
-
-        Note that duration time is in UTC."""
+        or a more concrete time format such as "2020-12-31"."""
         await self.time_mute_user(ctx, target, flags['reason'], duration, dm_user=not flags['nodm'])
 
     @commands.bot_has_permissions(manage_channels=True)
