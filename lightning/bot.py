@@ -167,6 +167,8 @@ class LightningBot(commands.AutoShardedBot):
         self._error_logger = WebhookEmbedEmitter(self.config.logging.bot_errors, session=self.aiosession)
         self._error_logger.start()
 
+        await self.fill_redis_timezone_cache()
+
     @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=128)
     async def get_guild_bot_config(self, guild_id: int) -> Optional[GuildBotConfig]:
         """Gets a guild's bot configuration from cache or fetches it from the database.
@@ -184,6 +186,16 @@ class LightningBot(commands.AutoShardedBot):
         query = """SELECT * FROM guild_config WHERE guild_id=$1;"""
         record = await self.pool.fetchrow(query, guild_id)
         return GuildBotConfig(self, record) if record else None
+
+    async def fill_redis_timezone_cache(self):
+        records = await self.pool.fetch("SELECT * FROM user_settings;")
+        for record in records:
+            if record['timezone']:
+                await self.redis_pool.set(f"lightning:user_settings:{record['user_id']}:timezone", record['timezone'])
+
+    async def get_user_timezone(self, user_id: int) -> Optional[str]:
+        r: Optional[str] = await self.redis_pool.get(f"lightning:user_settings:{user_id}:timezone")
+        return r
 
     async def add_cog(self, cls: commands.Cog, /, *, override: bool = False, guild=discord.utils.MISSING,
                       guilds=discord.utils.MISSING) -> None:

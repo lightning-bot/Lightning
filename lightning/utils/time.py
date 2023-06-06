@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import datetime
 import re
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+from zoneinfo import ZoneInfo
 
 import parsedatetime as pdt
 from dateutil.relativedelta import relativedelta
@@ -30,6 +31,9 @@ from discord.ext import commands
 from discord.utils import format_dt
 
 from lightning.formatters import human_join, plural
+
+if TYPE_CHECKING:
+    from lightning import LightningContext
 
 
 class ShortTime:
@@ -42,28 +46,39 @@ class ShortTime:
                              (?:(?P<seconds>[0-9]{1,5})(?:seconds?|s))?    # e.g. 15s
                           """, re.VERBOSE)
 
-    def __init__(self, argument: str, *, now: Optional[datetime.datetime] = None):
+    def __init__(self, argument: str, *, now: Optional[datetime.datetime] = None,
+                 tz: datetime.tzinfo = datetime.timezone.utc):
         match = self.compiled.fullmatch(argument)
         if match is None or not match.group(0):
             raise commands.BadArgument('Invalid time provided')
 
         data = {k: int(v) for k, v in match.groupdict(default=0).items()}
-        now = now or datetime.datetime.now(datetime.timezone.utc)
+        now = now or datetime.datetime.now(tz)
         # Expose relativedelta as we may need this
         self.delta = relativedelta(**data)
         self.dt = now + relativedelta(**data)
 
+        if tz is not datetime.timezone.utc:
+            self.dt = self.dt.astimezone(tz)
+
     @classmethod
-    async def convert(cls, ctx, argument):
-        return cls(argument, now=ctx.message.created_at)
+    async def convert(cls, ctx: LightningContext, argument: str):
+        tzinfo = await ctx.bot.get_user_timezone(ctx.author.id)
+        if tzinfo:
+            tzinfo = ZoneInfo(tzinfo)
+        else:
+            tzinfo = datetime.timezone.utc
+
+        return cls(argument, now=ctx.message.created_at, tz=tzinfo)
 
 
 class HumanTime:
     calendar = pdt.Calendar(version=pdt.VERSION_CONTEXT_STYLE)
 
-    def __init__(self, argument: str, *, now=None):
-        now = now or datetime.datetime.now(datetime.timezone.utc)
-        dt, status = self.calendar.parseDT(argument, sourceTime=now, tzinfo=datetime.timezone.utc)
+    def __init__(self, argument: str, *, now=None,
+                 tz: datetime.tzinfo = datetime.timezone.utc):
+        now = now or datetime.datetime.now(tz)
+        dt, status = self.calendar.parseDT(argument, sourceTime=now, tzinfo=tz)
         if not status.hasDateOrTime:
             raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow" or "3 days"')
 
@@ -71,20 +86,27 @@ class HumanTime:
             # replace it with the current time
             dt = dt.replace(hour=now.hour, minute=now.minute, second=now.second, microsecond=now.microsecond)
 
-        self.dt = dt
-        self._past = dt < now
+        self.dt: datetime.datetime = dt
+        self._past: bool = self.dt < now
 
     @classmethod
-    async def convert(cls, ctx, argument: str):
-        return cls(argument, now=ctx.message.created_at)
+    async def convert(cls, ctx: LightningContext, argument: str):
+        tzinfo = await ctx.bot.get_user_timezone(ctx.author.id)
+        if tzinfo:
+            tzinfo = ZoneInfo(tzinfo)
+        else:
+            tzinfo = datetime.timezone.utc
+
+        return cls(argument, now=ctx.message.created_at, tz=tzinfo)
 
 
 class Time(HumanTime):
-    def __init__(self, argument: str, *, now=None):
+    def __init__(self, argument: str, *, now=None,
+                 tz: datetime.tzinfo = datetime.timezone.utc):
         try:
-            o = ShortTime(argument, now=now)
+            o = ShortTime(argument, now=now, tz=tz)
         except Exception:
-            super().__init__(argument)
+            super().__init__(argument, now=now, tz=tz)
         else:
             self.delta = o.delta
             self.dt = o.dt
@@ -92,8 +114,9 @@ class Time(HumanTime):
 
 
 class FutureTime(Time):
-    def __init__(self, argument, *, now=None):
-        super().__init__(argument, now=now)
+    def __init__(self, argument: str, *, now=None,
+                 tz: datetime.tzinfo = datetime.timezone.utc):
+        super().__init__(argument, now=now, tz=tz)
 
         if self._past:
             raise commands.BadArgument('This time is in the past')
@@ -118,7 +141,6 @@ class UserFriendlyTimeResult:
             self.arg = await time_cls.converter.convert(ctx, remaining)
         else:
             self.arg = remaining
-        return self
 
 
 class UserFriendlyTime(commands.Converter):
@@ -134,16 +156,23 @@ class UserFriendlyTime(commands.Converter):
         self.converter = converter
         self.default = default
 
-    async def convert(self, ctx, argument: str) -> UserFriendlyTimeResult:
+    async def convert(self, ctx: LightningContext, argument: str) -> UserFriendlyTimeResult:
         calendar = HumanTime.calendar
         regex = ShortTime.compiled
         now = ctx.message.created_at
+
+        tzinfo = await ctx.bot.get_user_timezone(ctx.author.id)
+        if tzinfo:
+            tzinfo = ZoneInfo(tzinfo)
+        else:
+            tzinfo = datetime.timezone.utc
 
         match = regex.match(argument)
         if match is not None and match.group(0):
             data = {k: int(v) for k, v in match.groupdict(default=0).items()}
             remaining = argument[match.end():].strip()
-            result = UserFriendlyTimeResult(now + relativedelta(**data))
+            dt = now + relativedelta(**data)
+            result = UserFriendlyTimeResult(dt.astimezone(tzinfo))
             await result.check_constraints(ctx, self, now, remaining)
             return result
 
@@ -152,7 +181,7 @@ class UserFriendlyTime(commands.Converter):
             if match:
                 remaining = argument[match.end():].strip()
                 result = UserFriendlyTimeResult(datetime.datetime.fromtimestamp(int(match['timestamp']),
-                                                tz=datetime.timezone.utc))
+                                                tz=datetime.timezone.utc).astimezone(tzinfo))
                 await result.check_constraints(ctx, self, now, remaining)
                 return result
 
@@ -166,6 +195,7 @@ class UserFriendlyTime(commands.Converter):
             if argument[0:6] in ('me to ', 'me in ', 'me at '):
                 argument = argument[6:]
 
+        now = now.astimezone(tzinfo)
         elements = calendar.nlp(argument, sourceTime=now)
         if elements is None or len(elements) == 0:
             raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow" or "3 days".')
@@ -194,9 +224,6 @@ class UserFriendlyTime(commands.Converter):
         if status.accuracy == pdt.pdtContext.ACU_HALFDAY:
             dt = dt.replace(day=now.day + 1)
 
-        if dt.tzinfo is None:
-            dt = add_tzinfo(dt)
-
         remaining = ''
 
         if begin in (0, 1):
@@ -214,7 +241,7 @@ class UserFriendlyTime(commands.Converter):
         elif len(argument) == end:
             remaining = argument[:begin].strip()
 
-        result = UserFriendlyTimeResult(dt)
+        result = UserFriendlyTimeResult(dt.replace(tzinfo=tzinfo))
         await result.check_constraints(ctx, self, now, remaining)
         return result
 

@@ -341,9 +341,10 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if not timer:
             raise TimersUnavailable
 
+        tzinfo = await timer.get_user_tzinfo(ctx.author.id)
         job_id = await timer.add_timer("timemute", ctx.message.created_at,
                                        duration.dt, guild_id=ctx.guild.id, user_id=target.id, role_id=role.id,
-                                       mod_id=ctx.author.id, force_insert=True)
+                                       mod_id=ctx.author.id, force_insert=True, timezone=tzinfo)
 
         if isinstance(target, discord.Member):
             if dm_user:

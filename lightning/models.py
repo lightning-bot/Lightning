@@ -252,19 +252,25 @@ class PartialGuild:
 
 
 class Timer:
-    __slots__ = ('extra', 'event', 'id', 'created_at', 'expiry')
+    __slots__ = ('extra', 'event', 'id', 'created_at', 'expiry', 'timezone')
 
-    def __init__(self, id: int, event: str, created_at: datetime.datetime, expiry: datetime.datetime,
+    def __init__(self, id: int, event: str, created_at: datetime.datetime, expiry: datetime.datetime, timezone: str,
                  extra: Optional[Dict[str, Any]]):
         self.id = id
         self.event = event
         self.created_at = created_at
         self.expiry = expiry
         self.extra = extra
+        self.timezone: str = timezone
 
     @classmethod
     def from_record(cls, record: dict):
-        return cls(record['id'], record['event'], record['created'], record['expiry'], record['extra'])
+        return cls(record['id'],
+                   record['event'],
+                   record['created'],
+                   record['expiry'],
+                   record['timezone'],
+                   record['extra'])
 
     @property
     def natural_td(self):

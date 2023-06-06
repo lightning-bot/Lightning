@@ -20,15 +20,18 @@ import asyncio
 import logging
 import traceback
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Annotated, Any, Dict, Optional, Union
+from zoneinfo import ZoneInfo, available_timezones
 
 import asyncpg
 import discord
+import rapidfuzz
 from discord import app_commands
 from discord.ext.commands import clean_content, parameter
 from sanctum.exceptions import NotFound
 
 from lightning import LightningCog, LightningContext, hybrid_group
+from lightning.cogs.reminders.converters import TimeZoneConverter
 from lightning.cogs.reminders.ui import ReminderEdit, ReminderPaginator
 from lightning.formatters import plural
 from lightning.models import Timer
@@ -51,12 +54,15 @@ class Reminders(LightningCog):
         self._current_task: Optional[Timer] = None
         self._task = self.bot.loop.create_task(self.handle_timers())
 
+        # Timezones
+        self.available_timezones = available_timezones()
+
     def cog_unload(self) -> None:
         self._task.cancel()
 
     async def get_next_timer(self) -> Optional[Timer]:
         query = """SELECT * FROM timers
-                   WHERE "expiry" < (CURRENT_DATE + $1::interval)
+                   WHERE (expiry AT TIME ZONE 'UTC' AT TIME ZONE timezone) < (NOW() + $1::interval)
                    ORDER BY "expiry" LIMIT 1;"""
         record = await self.bot.pool.fetchrow(query, timedelta(days=24))
         return Timer.from_record(record) if record else None
@@ -88,7 +94,7 @@ class Reminders(LightningCog):
         self._task = self.bot.loop.create_task(self.handle_timers())
 
     async def add_timer(self, event: str, created: datetime, expiry: datetime, *, force_insert: bool = False,
-                        **kwargs) -> Union[asyncpg.Record, asyncio.Task]:
+                        timezone: ZoneInfo, **kwargs) -> Union[asyncpg.Record, asyncio.Task]:
         """Adds a pending timer to the timer system
 
         Parameters
@@ -104,16 +110,18 @@ class Reminders(LightningCog):
         **kwargs
             Keyword arguments about the event that are passed to the database
         """
-        created = ltime.strip_tzinfo(created)
-        expiry = ltime.strip_tzinfo(expiry)  # Just in case
+        print(expiry.tzinfo)
+        created = ltime.strip_tzinfo(created.astimezone(ZoneInfo("UTC")))
+        expiry = ltime.strip_tzinfo(expiry.astimezone(ZoneInfo("UTC")))
 
         delta = (expiry - created).total_seconds()
-        if delta <= 60 and force_insert is False:
-            # A loop for small timers
-            return self.bot.loop.create_task(self.short_timers(delta, Timer(None, event, created, expiry, kwargs)),
+        if delta <= 60 and not force_insert:
+            return self.bot.loop.create_task(self.short_timers(delta, Timer(None, event, created, expiry, timezone.key,
+                                                                            kwargs)),
                                              name=f"lightning-{event}-timer")
 
-        payload = {"event": event, "created": created.isoformat(), "expiry": expiry.isoformat(), "extra": dict(kwargs)}
+        payload = {"event": event, "created": created.isoformat(), "expiry": expiry.isoformat(),
+                   "timezone": timezone.key, "extra": dict(kwargs)}
         record = await self.bot.api.create_timer(payload)
 
         if delta <= (86400 * 24):  # 24 days
@@ -123,7 +131,7 @@ class Reminders(LightningCog):
             # Cancel the task and re-run it
             self.restart_timer_task()
 
-        return record['id']
+        return record
 
     async def handle_timers(self) -> None:
         await self.bot.wait_until_ready()
@@ -146,13 +154,18 @@ class Reminders(LightningCog):
             embed = discord.Embed(title="Timer Error", description=f"```{exc}```")
             await self.bot._error_logger.put(embed)
 
+    async def get_user_tzinfo(self, user_id: int) -> ZoneInfo:
+        timezone = await self.bot.get_user_timezone(user_id)
+        return ZoneInfo(timezone) if timezone else ZoneInfo("UTC")
+
     @hybrid_group(usage="<when>", aliases=["reminder"], invoke_without_command=True, fallback="set")
     @app_commands.describe(when="When to remind you of something, in UTC")
     async def remind(self, ctx: LightningContext, *,
                      when: ltime.UserFriendlyTimeResult =
                      parameter(converter=ltime.UserFriendlyTime(clean_content, default='something'))
                      ) -> None:  # noqa: F821
-        """Reminds you of something after a certain date.
+        """
+        Reminds you of something after a certain date.
 
         The input can be any direct date (e.g. YYYY-MM-DD), a human readable offset, or a Discord timestamp.
 
@@ -160,16 +173,20 @@ class Reminders(LightningCog):
         - "{prefix}remind in 2 days write essay" (2 days)
         - "{prefix}remind 1 hour do dishes" (1 hour)
         - "{prefix}remind 60s clean" (60 seconds)
-
-        Times are in UTC.
         """
         if ctx.interaction:
             channel = None
         else:
             channel = ctx.channel.id
 
-        _id = await self.add_timer("reminder", ctx.message.created_at, when.dt, reminder_text=when.arg,
-                                   author=ctx.author.id, channel=channel, message_id=ctx.message.id)
+        timezone = await self.get_user_tzinfo(ctx.author.id)
+
+        _id = await self.add_timer("reminder", ctx.message.created_at, when.dt,
+                                   timezone=timezone,
+                                   reminder_text=when.arg,
+                                   author=ctx.author.id,
+                                   channel=channel,
+                                   message_id=ctx.message.id)
 
         if type(_id) == int:
             content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
@@ -266,6 +283,69 @@ class Reminders(LightningCog):
             self.restart_timer_task()
 
         await ctx.send("Cleared all of your reminders.")
+
+    @hybrid_group(name="timezone")
+    async def reminder_timezone(self, ctx: LightningContext):
+        """Commands to manage your timezone in the bot"""
+        ...
+
+    @reminder_timezone.command(name='set')
+    async def set_reminder_timezone(self, ctx: LightningContext, timezone: Annotated[ZoneInfo, TimeZoneConverter]):
+        """
+        Sets your timezone in the bot
+
+        When you set your timezone, the bot will use your timezone for timed moderation commands and reminders.
+        """
+        query = """INSERT INTO user_settings (user_id, timezone)
+                   VALUES ($1, $2)
+                   ON CONFLICT (user_id)
+                   DO UPDATE SET timezone=EXCLUDED.timezone;"""
+        await self.bot.pool.execute(query, ctx.author.id, timezone.key)
+
+        await self.bot.redis_pool.set(f"lightning:user_settings:{ctx.author.id}:timezone", timezone.key)
+        await ctx.send(f"I set your timezone! IANA key: {timezone.key}", ephemeral=True)
+
+    @set_reminder_timezone.autocomplete('timezone')
+    async def set_timezone_autocomplete(self, itx: discord.Interaction, string: str):
+        if len(string) == 0:
+            # This really doesn't do much...
+            string = itx.locale.name
+
+        return [app_commands.Choice(name=x, value=x) for x, y, z in rapidfuzz.process.extract(string,
+                                                                                              self.available_timezones,
+                                                                                              limit=25,
+                                                                                              score_cutoff=60)]
+
+    @reminder_timezone.command(name='get')
+    async def get_reminder_timezone(self, ctx: LightningContext):
+        """
+        Shows your configured timezone
+        """
+        query = """SELECT * FROM user_settings WHERE user_id=$1;"""
+        record = await self.bot.pool.fetchrow(query, ctx.author.id)
+        if not record:
+            await ctx.send(f"You haven't set a timezone yet!\n> You can set one with {ctx.prefix}timezone set",
+                           ephemeral=True)
+            return
+
+        dt = discord.utils.utcnow().astimezone(ZoneInfo(record['timezone'])).strftime('%b %d, %Y %I:%M %p')
+
+        await ctx.send(f"Your timezone is {record['timezone']}! "
+                       f"The current time for you is {dt}",
+                       ephemeral=True)
+
+    @reminder_timezone.command(name='remove')
+    async def remove_timezone(self, ctx: LightningContext):
+        """Removes your configured timezone"""
+        # await self.bot.api.edit_user_settings(ctx.author.id, {"timezone": None})
+        query = "UPDATE user_settings SET timezone=NULL WHERE user_id=$1;"
+        r = await self.bot.pool.execute(query, ctx.author.id)
+        if r == "UPDATE 0":
+            await ctx.send("You never had a timezone set!", ephemeral=True)
+            return
+
+        await self.bot.redis_pool.delete(f"lightning:user_settings:{ctx.author.id}:timezone")
+        await ctx.send("I removed your timezone", ephemeral=True)
 
     @LightningCog.listener()
     async def on_lightning_reminder_complete(self, timer: Timer) -> None:
