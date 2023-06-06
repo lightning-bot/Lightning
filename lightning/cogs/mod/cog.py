@@ -618,10 +618,10 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if old_nick != new_nick:
             return True
 
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_command(level=CommandLevel.Mod)
+    @hybrid_guild_permissions(manage_guild=True, manage_nicknames=True)
     @commands.bot_has_guild_permissions(manage_nicknames=True)
     @commands.cooldown(1, 300.0, commands.BucketType.guild)
-    @command(level=CommandLevel.Mod)
     async def dehoist(self, ctx: GuildContext, character: Optional[str]):
         """Dehoists members with an optional specified character in the beginning of their name"""
         char: List[str] = [character] if character else COMMON_HOIST_CHARACTERS
