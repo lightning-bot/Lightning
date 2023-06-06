@@ -183,8 +183,9 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if not cog:
             raise TimersUnavailable
 
+        tzinfo = await cog.get_user_tzinfo(ctx.author.id)
         job_id = await cog.add_timer("timeban", ctx.message.created_at, duration.dt, guild_id=ctx.guild.id,
-                                     user_id=target.id, mod_id=moderator.id, force_insert=True)
+                                     user_id=target.id, mod_id=moderator.id, force_insert=True, timezone=tzinfo)
 
         if dm_user and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason,
