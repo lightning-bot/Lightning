@@ -83,9 +83,7 @@ class Configuration(LightningCog):
     @commands.bot_has_permissions(manage_roles=True)
     @has_guild_permissions(manage_roles=True)
     async def autorole(self, ctx: GuildContext) -> None:
-        """Manages the server's autorole
-
-        If this command is called alone, an interactive menu will start."""
+        """Manages the server's autorole configuration"""
         await ui.AutoRole(context=ctx, timeout=180).start()
 
     @LightningCog.listener('on_member_join')
