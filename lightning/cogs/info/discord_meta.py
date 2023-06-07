@@ -19,9 +19,11 @@ from __future__ import annotations
 from typing import Union
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
-from lightning import LightningCog, LightningContext, command
+from lightning import (GuildContext, LightningCog, LightningContext, command,
+                       hybrid_command)
 from lightning.cogs.info.converters import ReadableChannel
 from lightning.converters import GuildorNonGuildUser
 from lightning.utils.checks import no_threads
@@ -105,9 +107,10 @@ class DiscordMeta(LightningCog):
         embed.description = "\n".join(desc)
         await ctx.send(embed=embed)
 
-    @command()
+    @hybrid_command()
     @commands.guild_only()
-    async def roleinfo(self, ctx: LightningContext, *, role: discord.Role) -> None:
+    @app_commands.guild_only()
+    async def roleinfo(self, ctx: GuildContext, *, role: discord.Role) -> None:
         """Gives information for a role"""
         em = discord.Embed(title=role.name, color=role.color)
         desc = [f"**Creation**: {natural_timedelta(role.created_at, accuracy=3)}",
@@ -130,7 +133,7 @@ class DiscordMeta(LightningCog):
 
     @commands.guild_only()
     @command(aliases=['guildinfo'], usage='')
-    async def serverinfo(self, ctx: LightningContext, guild: discord.Guild = commands.CurrentGuild) -> None:
+    async def serverinfo(self, ctx: GuildContext, guild: discord.Guild = commands.CurrentGuild) -> None:
         """Shows information about the server"""
         guild = guild if await self.bot.is_owner(ctx.author) else ctx.guild
 
