@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from typing import Union
+from typing import Annotated, Union
 
 import discord
 from discord import app_commands
@@ -29,14 +29,17 @@ from lightning.converters import GuildorNonGuildUser
 from lightning.utils.checks import no_threads
 from lightning.utils.time import natural_timedelta
 
-query_member = commands.Author.replace(annotation=GuildorNonGuildUser)
-
 
 class DiscordMeta(LightningCog):
-    @command(aliases=['avy'])
+    @hybrid_command(aliases=['avy'], usage='[member=<you>]')
+    @app_commands.describe(member="The person to look up the avatar for (defaults to you)")
     async def avatar(self, ctx: LightningContext, *,
-                     member: Union[discord.Member, discord.User] = query_member) -> None:
+                     member: Annotated[Union[discord.Member, discord.User],
+                                       GuildorNonGuildUser] = None) -> None:
         """Displays a user's avatar"""
+        if member is None:
+            member = ctx.author
+
         parts = []
         if hasattr(member, 'guild_avatar') and member.guild_avatar:
             parts.append(f"[Link to guild avatar]({member.guild_avatar.with_static_format('png')})")
@@ -49,23 +52,15 @@ class DiscordMeta(LightningCog):
         embed.set_image(url=member.display_avatar.url)
         await ctx.send(embed=embed)
 
-    def _determine_activity(self, activity: discord.ActivityType) -> str:
-        if isinstance(activity, discord.Spotify):
-            artists = ', '.join(activity.artists)
-            return f"Listening to [{activity.title}]"\
-                f"(https://open.spotify.com/track/{activity.track_id}) by {artists}"
-        elif isinstance(activity, discord.Streaming):
-            return f"Streaming [{activity.name}]({activity.url})"
-        elif isinstance(activity, discord.CustomActivity):
-            act_name = activity.name if activity.name is not None else ""
-            return f"{activity.emoji} {act_name}" if activity.emoji else act_name
-        else:
-            return activity.name
-
-    @command(aliases=['ui'])
+    @hybrid_command(aliases=['ui'], usage='[member=<you>]')
+    @app_commands.describe(member="The person to look up information for (defaults to you)")
     async def userinfo(self, ctx: LightningContext, *,
-                       member: Union[discord.User, discord.Member] = query_member) -> None:
+                       member: Annotated[Union[discord.Member, discord.User],
+                                         GuildorNonGuildUser] = None) -> None:
         """Gives information about a member or a user"""
+        if member is None:
+            member = ctx.author
+
         embed = discord.Embed(title=member, color=member.colour)
         desc = [f"**ID**: {member.id}",
                 f"**Account Creation**: {discord.utils.format_dt(member.created_at)} "
@@ -79,11 +74,6 @@ class DiscordMeta(LightningCog):
 
         if not isinstance(member, discord.Member):
             embed.set_footer(text='This user is not in this server.')
-
-        activities = getattr(member, 'activities', None)
-        if activities:
-            activities_fmt = '\N{BULLET} '.join([f"{self._determine_activity(a)}\n" for a in activities])
-            desc.append(f"**Activities**: {activities_fmt.strip()}")
 
         if hasattr(member, 'joined_at'):
             desc.append(f"**Joined**: {discord.utils.format_dt(member.joined_at)} "

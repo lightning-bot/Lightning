@@ -37,13 +37,20 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class GuildorNonGuildUser(commands.Converter):
+class GuildorNonGuildUser(commands.Converter, app_commands.Transformer):
     async def convert(self, ctx: LightningContext, argument):
         try:
             target = await commands.MemberConverter().convert(ctx, argument)
         except commands.BadArgument:
             target = await commands.UserConverter().convert(ctx, argument)
         return target
+
+    @property
+    def type(self):
+        return discord.AppCommandOptionType.user
+
+    async def transform(self, interaction: discord.Interaction, value: Any):
+        return value
 
 
 # At some point, we'll separate this into two converters.
