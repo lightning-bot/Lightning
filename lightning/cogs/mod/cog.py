@@ -28,7 +28,7 @@ from discord.ext import commands
 from unidecode import unidecode
 
 from lightning import (CommandLevel, GuildContext, LightningCog,
-                       LightningContext, ModFlags, cache, command, converters)
+                       LightningContext, cache, command, converters)
 from lightning import flags as lflags
 from lightning import group, hybrid_command
 from lightning.cogs.mod.converters import BannedMember
@@ -135,27 +135,10 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             for target in targets:
                 await self.log_action(ctx, target, action, connection=conn, **kwargs)
 
+    # TODO: Make this a decorator?
     async def confirm_and_log_action(self, ctx: GuildContext, target, action: str, **kwargs) -> None:
         duration_text = kwargs.pop("duration_text", None)
         warning_text = kwargs.pop("warning_text", None)
-
-        record = await self.get_mod_config(ctx.guild.id)
-        if not record:
-            await ctx.send(confirmations.get(action.lower(), "Done!").format(target=target,
-                                                                             expiry=duration_text,
-                                                                             count=warning_text))
-            await self.log_action(ctx, target, action, **kwargs)
-            return
-
-        if record.flags and ModFlags.react_only_confirmation in record.flags:
-            with contextlib.suppress(discord.HTTPException):
-                await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
-            await self.log_action(ctx, target, action, **kwargs)
-            return
-
-        if record.flags and ModFlags.hide_confirmation_message in record.flags:
-            await self.log_action(ctx, target, action, **kwargs)
-            return
 
         await ctx.send(confirmations.get(action.lower(), "Done!").format(target=target, expiry=duration_text,
                                                                          count=warning_text))
@@ -174,7 +157,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await ctx.guild.kick(target, reason=self.format_reason(ctx.author, flags.reason))
         await self.confirm_and_log_action(ctx, target, "KICK")
 
-    async def time_ban_user(self, ctx, target, moderator, reason, duration, *, dm_user=False,
+    async def time_ban_user(self, ctx: GuildContext, target, moderator, reason, duration, *, dm_user=False,
                             delete_message_days=0) -> None:
         duration_text = f"{natural_timedelta(duration.dt, source=ctx.message.created_at)} ("\
                         f"{discord.utils.format_dt(duration.dt)})"
@@ -725,8 +708,6 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         record = await self.get_mod_config(event.guild.id)
         if not record or not record.mute_role_id:
             return
-
-        # TODO: Handle temp mute role
 
         previously_muted = event.before._roles.has(record.mute_role_id)
         currently_muted = event.after._roles.has(record.mute_role_id)
