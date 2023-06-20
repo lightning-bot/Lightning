@@ -60,7 +60,7 @@ class ModLog(LightningCog):
         """Sets up mod logging for a channel"""
         await ui.Logging(channel, context=ctx, timeout=180.0).start(wait=False)
 
-    @modlog.command(name='shush', level=CommandLevel.Admin)
+    # @modlog.command(name='shush', level=CommandLevel.Admin)
     @app_commands.describe(channel="The channel to shush")
     @hybrid_guild_permissions(manage_channels=True)
     async def modlog_shush(self, ctx: GuildContext, channel: discord.TextChannel, duration: ShortTime):
