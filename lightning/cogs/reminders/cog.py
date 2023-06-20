@@ -110,7 +110,6 @@ class Reminders(LightningCog):
         **kwargs
             Keyword arguments about the event that are passed to the database
         """
-        print(expiry.tzinfo)
         created = ltime.strip_tzinfo(created.astimezone(ZoneInfo("UTC")))
         expiry = ltime.strip_tzinfo(expiry.astimezone(ZoneInfo("UTC")))
 
