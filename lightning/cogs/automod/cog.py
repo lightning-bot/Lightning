@@ -419,7 +419,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         cog: Reminders = self.bot.get_cog("Reminders")  # type: ignore
         timer_id = await cog.add_timer("timeban", message.created_at, duration, guild_id=message.guild.id,
                                        user_id=message.author.id, mod_id=self.bot.user.id, force_insert=True,
-                                       timezone=datetime.timezone.utc)
+                                       timezone=duration.tzinfo or datetime.timezone.utc)
         await self.log_manual_action(message.guild, message.author, self.bot.user, "TIMEBAN", expiry=duration,
                                      timer_id=timer_id, reason=reason)
 
@@ -491,7 +491,8 @@ class AutoMod(LightningCog, required=["Moderation"]):
         cog: Reminders = self.bot.get_cog('Reminders')  # type: ignore
         job_id = await cog.add_timer("timemute", message.created_at, duration,
                                      guild_id=message.guild.id, user_id=message.author.id, role_id=role.id,
-                                     mod_id=self.bot.user.id, force_insert=True, timezone=datetime.timezone.utc)
+                                     mod_id=self.bot.user.id, force_insert=True,
+                                     timezone=duration.tzinfo or datetime.timezone.utc)
         await message.author.add_roles(role, reason=reason)
 
         await self.add_punishment_role(message.guild.id, message.author.id, role.id)
