@@ -59,7 +59,7 @@ class Reports(LightningCog):
         for record in records:
             # Skip any reports that we can't manage...
             if not self.bot.get_guild(record['guild_id']):
-                return
+                continue
 
             view = ReportDashboard.from_record(record)
             self.bot.add_view(view, message_id=record['report_message_id'])
