@@ -91,8 +91,8 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         fmt = []
         for record in config['rules']:
-            if record['type'] == "mass-mentions":
-                fmt.append(f"{AUTOMOD_EVENT_NAMES_MAPPING[record['type']]}: {record['count']}")
+            if record['type'] in AUTOMOD_BASIC_EVENT_NAMES_MAPPING:
+                fmt.append(f"{AUTOMOD_EVENT_NAMES_MAPPING[record['type']]}: Enabled")
             else:
                 fmt.append(f"{AUTOMOD_EVENT_NAMES_MAPPING[record['type']]}: {record['count']}/{record['seconds']}s")
 
