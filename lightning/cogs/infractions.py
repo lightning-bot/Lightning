@@ -250,6 +250,22 @@ class Infractions(LightningCog, required=['Moderation']):
 
         await ctx.send(f"Transferred {resp[-1]} infractions to {new_user.mention}")
 
+    @infraction.command(level=CommandLevel.Mod)
+    @is_server_manager()
+    async def pardon(self, ctx: GuildContext, infraction_id: int):
+        """
+        Pardons an infraction
+
+        This sets an infraction's active status to false.
+        """
+        query = "UPDATE infractions SET active='f' WHERE id=$1 AND guild_id=$2;"
+        resp = await self.bot.pool.execute(query, infraction_id, ctx.guild.id)
+        if resp == "UPDATE 0":
+            await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
+            return
+
+        await ctx.send(f"Pardoned {infraction_id}")
+
     @infraction.command(aliases=['remove'], level=CommandLevel.Admin)
     @is_server_manager()
     async def delete(self, ctx: GuildContext, infraction_id: int) -> None:
