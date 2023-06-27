@@ -90,6 +90,7 @@ def hybrid_guild_permissions(**permissions: bool):
 
 
 def is_server_manager():
+    """A shortcut for hybrid_guild_permissions with Manage Guild as True"""
     return hybrid_guild_permissions(manage_guild=True)
 
 
@@ -103,7 +104,7 @@ def no_threads():
     return commands.check(predicate)
 
 
-async def get_member_level(bot: LightningBot, author: discord.Member):
+async def get_member_level(bot: LightningBot, author: discord.Member) -> CommandLevel:
     cfg = await bot.get_guild_bot_config(author.guild.id)
     if not cfg or not cfg.permissions or not cfg.permissions.levels:
         return CommandLevel.User

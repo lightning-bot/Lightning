@@ -224,7 +224,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                    target: Union[discord.Member, discord.User] = commands.param(
                        converter=converters.TargetMember(fetch_user=False)),
                    *, flags) -> None:
-        """Warns a user"""
+        """Warns a member"""
         emoji = "\N{OPEN MAILBOX WITH LOWERED FLAG}"
 
         if not flags.nodm and isinstance(target, discord.Member):
