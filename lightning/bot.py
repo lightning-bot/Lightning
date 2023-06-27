@@ -57,18 +57,13 @@ ERROR_HANDLER_MESSAGES = {
 
 
 async def _callable_prefix(bot: LightningBot, message: discord.Message):
-    if bot.config.bot.beta_prefix:
-        return bot.config.bot.beta_prefix
-
     prefixes = [f'<@!{bot.user.id}> ', f'<@{bot.user.id}> ']
     if message.guild is None:
         generic_defaults = ['!', '.', '?']
         return prefixes + generic_defaults
 
     record = await bot.get_guild_bot_config(message.guild.id)
-    prefix = getattr(record, "prefixes", None)
-
-    if prefix:
+    if prefix := getattr(record, "prefixes", None):
         prefixes.extend(prefix)
 
     return prefixes
@@ -374,7 +369,6 @@ class LightningBot(commands.AutoShardedBot):
         return token
 
     async def on_command_error(self, ctx: LightningContext, error: Exception) -> None:
-
         # Check if command has an error handler first
         if ctx.command.has_error_handler():
             return

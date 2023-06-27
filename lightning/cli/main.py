@@ -103,6 +103,9 @@ async def launch_bot(config: Config) -> None:
     bot = LightningBot(config, **kwargs)
     bot.commit_hash = commit
 
+    if config.bot.beta_prefix:
+        bot.command_prefix = config.bot.beta_prefix
+
     try:
         bot.pool = await create_pool(bot.config['tokens']['postgres']['uri'], command_timeout=60)
         bot.redis_pool = redis.Redis(host=bot.config.tokens.redis.host, port=bot.config.tokens.redis.port,
