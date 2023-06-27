@@ -197,6 +197,10 @@ class Roles(LightningCog):
     @has_guild_permissions(manage_roles=True)
     async def purge_toggleable_roles(self, ctx: GuildContext) -> None:
         """Deletes all the toggleable roles you have set in this server"""
+        confirm = await ctx.confirm("Are you sure you want to remove all the self-assignable roles?")
+        if not confirm:
+            return
+
         query = """UPDATE guild_config
                    SET toggleroles=NULL
                    WHERE guild_id=$1;"""
