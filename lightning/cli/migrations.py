@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -134,3 +134,18 @@ async def display_log():
             style = typer.style("Pending", fg='red')
 
         typer.echo(f"{style} {str(rev)}")
+
+
+@parser.command('reset')
+@asyncd
+async def reset_migrations():
+    """Resets your applied migrations list"""
+    m = Migrator()
+
+    if m.config["applied"] == []:
+        typer.echo("No migrations have been applied yet!")
+        return
+
+    m.config["applied"] = []
+    m.save()
+    typer.echo("Reset your migrations config")
