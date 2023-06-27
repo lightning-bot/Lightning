@@ -27,7 +27,7 @@ from lightning.constants import AUTOMOD_EVENT_NAMES_LITERAL
 from lightning.context import LightningContext
 from lightning.enums import (ActionType, AutoModPunishmentType, LoggingType,
                              ModFlags)
-from lightning.utils.time import natural_timedelta, strip_tzinfo
+from lightning.utils.time import strip_tzinfo
 
 if TYPE_CHECKING:
     from lightning import LightningBot
@@ -271,10 +271,6 @@ class Timer:
                    record['expiry'],
                    record['timezone'],
                    record['extra'])
-
-    @property
-    def natural_td(self):
-        return natural_timedelta(self.created_at, source=self.expiry)
 
     def __int__(self):
         return self.id
