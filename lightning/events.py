@@ -20,7 +20,7 @@ from typing import List, Optional, Union
 
 import discord
 
-from lightning.models import Action
+from lightning.models import Action, InfractionRecord
 
 # These are event models that'll be passed for listeners cog
 
@@ -157,6 +157,15 @@ class GuildRoleDeleteEvent(BaseAuditLogEvent):
     @property
     def guild_id(self) -> int:
         return self.role.guild.id
+
+
+# lightning_infraction_update
+class InfractionUpdateEvent:
+    __slots__ = ("before", "after")
+
+    def __init__(self, before: InfractionRecord, after: InfractionRecord) -> None:
+        self.before = before
+        self.after = after
 
 # These won't be used yet until I do a refactor of modlogformats for single param events
 

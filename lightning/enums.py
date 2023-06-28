@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2021 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -71,6 +71,9 @@ class LoggingType(BaseFlags):
     MEMBER_ROLE_REMOVE = 1 << 10
     MEMBER_NICK_CHANGE = 1 << 11
     MEMBER_SCREENING_COMPLETE = 1 << 12
+
+    # Infraction Events
+    INFRACTION_UPDATE = 1 << 13
 
 
 class ActionType(Enum):
