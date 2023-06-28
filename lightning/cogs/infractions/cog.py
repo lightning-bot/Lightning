@@ -16,15 +16,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Optional
 
 import discord
 import matplotlib
 import orjson
 from discord import app_commands
-from discord.ext import commands, menus
+from discord.ext import commands
 from jishaku.functools import executor_function
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
@@ -32,101 +31,21 @@ from sanctum.exceptions import NotFound
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        hybrid_command, hybrid_group)
+from lightning.cogs.infractions.converters import InfractionConverter
+from lightning.cogs.infractions.ui import (InfractionPaginator,
+                                           InfractionSource,
+                                           SingularInfractionSource)
 from lightning.converters import TargetMember
 from lightning.enums import ActionType
 from lightning.errors import LightningCommandError
-from lightning.formatters import truncate_text
+from lightning.events import InfractionUpdateEvent
+from lightning.models import InfractionRecord
 from lightning.utils.checks import is_server_manager
 from lightning.utils.helpers import ticker
 from lightning.utils.modlogformats import base_user_format
-from lightning.utils.paginator import Paginator
-from lightning.utils.time import add_tzinfo, natural_timedelta
+from lightning.utils.time import add_tzinfo
 
 matplotlib.use('Agg')
-
-
-class InfractionRecord:
-    def __init__(self, bot: LightningBot, record: Dict[str, Any]):
-        self.id: int = record['id']
-
-        self.guild = bot.get_guild(record['guild_id']) or record['guild_id']
-        self.user = bot.get_user(record['user_id']) or record['user_id']
-        self.moderator = bot.get_user(record['moderator_id']) or record['user_id']
-
-        self.action = ActionType(record['action'])
-        self.reason: str = record['reason']
-        self.created_at = datetime.fromisoformat(record['created_at'])
-        self.active: bool = record['active']
-        self.extra: dict[str, Any] = record['extra']
-
-    @property
-    def guild_id(self) -> int:
-        return self.guild.id if hasattr(self.guild, 'id') else self.guild
-
-    @property
-    def user_id(self) -> int:
-        return self.user.id if hasattr(self.user, 'id') else self.user
-
-
-class InfractionPaginator(Paginator):
-    def __init__(self, source: menus.PageSource, context: GuildContext, /, *, timeout: Optional[float] = 90):
-        super().__init__(source, context=context, timeout=timeout)
-        self.bot = context.bot
-
-
-class InfractionSource(menus.ListPageSource):
-    def __init__(self, entries, *, member: Union[discord.User, discord.Member] = None):
-        super().__init__(entries, per_page=5)
-        self.member = member
-
-    async def format_member_page(self, menu: InfractionPaginator, entries):
-        embed = discord.Embed(color=discord.Color.dark_gray(), title=f"Infractions for {self.member}")
-        for entry in entries:
-            moderator = menu.bot.get_user(entry['moderator_id']) or entry['moderator_id']
-            reason = entry['reason'] or 'No reason provided.'
-            embed.add_field(name=f"{entry['id']}: {natural_timedelta(datetime.fromisoformat(entry['created_at']))}",
-                            value=f"**Moderator**: {base_user_format(moderator)}\n"
-                                  f"**Reason**: {truncate_text(reason, 45)}", inline=False)
-        return embed
-
-    async def format_all_page(self, menu: InfractionPaginator, entries):
-        embed = discord.Embed(color=discord.Color.dark_gray())
-        for entry in entries:
-            user = menu.bot.get_user(entry['user_id']) or entry['user_id']
-            mod = menu.bot.get_user(entry['moderator_id']) or entry['moderator_id']
-            reason = entry['reason'] or 'No reason provided.'
-            embed.add_field(name=f"{entry['id']}: {natural_timedelta(datetime.fromisoformat(entry['created_at']))}",
-                            value=f"**User**: {base_user_format(user)}\n**Moderator**: {base_user_format(mod)}"
-                                  f"\n**Reason**: {truncate_text(reason, 45)}",
-                            inline=False)
-        return embed
-
-    async def format_page(self, menu: InfractionPaginator, entries):
-        if self.member:
-            return await self.format_member_page(menu, entries)
-        else:
-            return await self.format_all_page(menu, entries)
-
-
-class SingularInfractionSource(menus.ListPageSource):
-    def __init__(self, entries):
-        super().__init__(entries, per_page=1)
-
-    async def format_page(self, menu: InfractionPaginator, entry: Dict[str, Any]):
-        color = discord.Color.green() if entry['active'] else discord.Color.dark_gray()
-        record = InfractionRecord(menu.bot, entry)
-        embed = discord.Embed(color=color, title=str(record.action).capitalize(),
-                              timestamp=add_tzinfo(record.created_at))
-        embed.description = record.reason or "No reason provided"
-        embed.set_footer(text="Infraction created at")
-        return embed
-
-
-class InfractionFilterFlags(commands.FlagConverter):
-    member: discord.Member
-    active: bool = commands.flag(default=True)
-    moderator: Optional[discord.Member]
-    type: Optional[Literal['WARN', 'KICK', 'BAN', 'TEMPBAN', 'TEMPMUTE', 'MUTE']]
 
 
 class Infractions(LightningCog, required=['Moderation']):
@@ -194,47 +113,50 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @infraction.command(level=CommandLevel.Mod)
     @is_server_manager()
-    async def view(self, ctx: GuildContext, infraction_id: int) -> None:
+    async def view(self, ctx: GuildContext, infraction: Annotated[InfractionRecord, InfractionConverter]) -> None:
         """Views an infraction"""
-        try:
-            record = await self.bot.api.get_infraction(ctx.guild.id, infraction_id)
-        except NotFound:
-            await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
-            return
-
-        record = InfractionRecord(self.bot, record)
-        embed = discord.Embed(title=str(record.action).capitalize(), description=record.reason or "No reason provided",
-                              timestamp=add_tzinfo(record.created_at))
-        embed.add_field(name="User", value=base_user_format(record.user))
-        embed.add_field(name="Moderator", value=base_user_format(record.moderator))
-        embed.add_field(name="Active", value=ticker(record.active), inline=False)
+        embed = discord.Embed(title=str(infraction.action).capitalize(),
+                              description=infraction.reason or "No reason provided",
+                              timestamp=add_tzinfo(infraction.created_at))
+        embed.add_field(name="User", value=base_user_format(infraction.user))
+        embed.add_field(name="Moderator", value=base_user_format(infraction.moderator))
+        embed.add_field(name="Active", value=ticker(infraction.active), inline=False)
         embed.set_footer(text="Infraction created at")
         await ctx.send(embed=embed)
 
+    def dispatch_edit_event(self, before: InfractionRecord, after: InfractionRecord):
+        self.bot.dispatch("lightning_infraction_update", InfractionUpdateEvent(before, after))
+
     @infraction.command(level=CommandLevel.Mod)
     @is_server_manager()
-    async def claim(self, ctx: GuildContext, infraction_id: int) -> None:
+    @app_commands.describe(infraction="The infraction's ID")
+    async def claim(self, ctx: GuildContext, infraction: Annotated[InfractionRecord, InfractionConverter]) -> None:
         """Claims responsibility for an infraction"""
         try:
-            await self.bot.api.edit_infraction(ctx.guild.id, infraction_id, {"moderator_id": ctx.author.id})
+            after = await self.bot.api.edit_infraction(ctx.guild.id, infraction.id, {"moderator_id": ctx.author.id})
         except NotFound:
-            await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
+            await ctx.send(f"An infraction with ID {infraction.id} does not exist.")
             return
 
-        await ctx.send(f"Claimed {infraction_id}")
+        await ctx.send(f"Claimed {infraction.id}")
+        self.dispatch_edit_event(infraction, InfractionRecord(self.bot, after))
 
     @infraction.command(level=CommandLevel.Mod)
     @is_server_manager()
-    async def edit(self, ctx: GuildContext, infraction_id: int, *, reason: str) -> None:
-        """Edits the reason for an infraction"""
+    @app_commands.describe(infraction="The infraction's ID", reason="The new reason for the infraction")
+    async def edit(self, ctx: GuildContext,
+                   infraction: Annotated[InfractionRecord, InfractionConverter],
+                   *, reason: str) -> None:
+        """Edits the reason for an infraction by its ID"""
         try:
-            await self.bot.api.edit_infraction(ctx.guild.id, infraction_id,
-                                               {"moderator_id": ctx.author.id, "reason": reason})
+            after = await self.bot.api.edit_infraction(ctx.guild.id, infraction.id,
+                                                       {"moderator_id": ctx.author.id, "reason": reason})
         except NotFound:
-            await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
+            await ctx.send(f"An infraction with ID {infraction.id} does not exist.")
             return
 
-        await ctx.send(f"Edited {infraction_id}")
+        await ctx.send(f"Edited {infraction.id}")
+        self.dispatch_edit_event(infraction, InfractionRecord(self.bot, after))
 
     @infraction.command(level=CommandLevel.Admin)
     @is_server_manager()
@@ -431,7 +353,3 @@ class Infractions(LightningCog, required=['Moderation']):
         f = await self.create_guild_graph([record['count'] for record in records], labels, typesc)
         embed.set_image(url="attachment://plot.png")
         await ctx.send(embed=embed, file=f)
-
-
-async def setup(bot: LightningBot) -> None:
-    await bot.add_cog(Infractions(bot))

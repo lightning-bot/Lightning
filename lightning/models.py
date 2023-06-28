@@ -374,3 +374,30 @@ class GuildAutoModRule:
         self.seconds: int = record['seconds']
         self.ignores: List[int] = record['ignores']
         self.punishment = GuildAutoModRulePunishment(record['punishment'])
+
+
+class InfractionRecord:
+    def __init__(self, bot: LightningBot, record: Dict[str, Any]):
+        self.id: int = record['id']
+
+        self.guild = bot.get_guild(record['guild_id']) or record['guild_id']
+        self.user = bot.get_user(record['user_id']) or record['user_id']
+        self.moderator = bot.get_user(record['moderator_id']) or record['user_id']
+
+        self.action = ActionType(record['action'])
+        self.reason: str = record['reason']
+        self.created_at = datetime.datetime.fromisoformat(record['created_at'])
+        self.active: bool = record['active']
+        self.extra: dict[str, Any] = record['extra']
+
+    @property
+    def guild_id(self) -> int:
+        return self.guild.id if hasattr(self.guild, 'id') else self.guild
+
+    @property
+    def user_id(self) -> int:
+        return self.user.id if hasattr(self.user, 'id') else self.user
+
+    @property
+    def moderator_id(self) -> int:
+        return self.moderator.id if hasattr(self.moderator, 'id') else self.moderator
