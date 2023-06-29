@@ -94,7 +94,7 @@ class Reminders(LightningCog):
         self._task = self.bot.loop.create_task(self.handle_timers())
 
     async def add_timer(self, event: str, created: datetime, expiry: datetime, *, force_insert: bool = False,
-                        timezone: ZoneInfo, **kwargs) -> Union[asyncpg.Record, asyncio.Task]:
+                        timezone: ZoneInfo, **kwargs) -> Union[dict[str, Any], asyncio.Task]:
         """Adds a pending timer to the timer system
 
         Parameters
