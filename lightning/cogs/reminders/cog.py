@@ -154,6 +154,11 @@ class Reminders(LightningCog):
             await self.bot._error_logger.put(embed)
 
     async def get_user_tzinfo(self, user_id: int) -> ZoneInfo:
+        """
+        Gets a user's timezone.
+
+        If one is not found, defaults to UTC
+        """
         timezone = await self.bot.get_user_timezone(user_id)
         return ZoneInfo(timezone) if timezone else ZoneInfo("UTC")
 
@@ -187,9 +192,9 @@ class Reminders(LightningCog):
                                    channel=channel,
                                    message_id=ctx.message.id)
 
-        if type(_id) == int:
+        if type(_id) == dict:
             content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
-                      f" {discord.utils.format_dt(when.dt)} about {when.arg}. (#{_id})"
+                      f" {discord.utils.format_dt(when.dt)} about {when.arg}. (#{_id['id']})"
         else:
             content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
                       f" {discord.utils.format_dt(when.dt)} about {when.arg}."
