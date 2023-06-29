@@ -221,7 +221,7 @@ class Reminders(LightningCog):
             return
 
         prompt = ReminderEdit(reminder_id, context=ctx)
-        await prompt.start()
+        await prompt.start(wait=False)
 
     @remind.command(name='list')
     async def listreminders(self, ctx: LightningContext) -> None:
