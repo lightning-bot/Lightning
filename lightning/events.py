@@ -21,6 +21,9 @@ from typing import List, Optional, Union
 import discord
 
 from lightning.models import Action, InfractionRecord
+from lightning.utils.helpers import ticker
+from lightning.utils.modlogformats import base_user_format
+from lightning.utils.time import add_tzinfo
 
 # These are event models that'll be passed for listeners cog
 
@@ -166,6 +169,28 @@ class InfractionUpdateEvent:
     def __init__(self, before: InfractionRecord, after: InfractionRecord) -> None:
         self.before = before
         self.after = after
+
+
+# lightning_infraction_delete
+class InfractionDeleteEvent:
+    __slots__ = ("moderator", "infraction")
+
+    def __init__(self, infraction: InfractionRecord, moderator: discord.Member) -> None:
+        self.infraction = infraction
+        self.moderator = moderator
+
+    def format_infraction(self) -> discord.Embed:
+        infraction = self.infraction
+
+        embed = discord.Embed(title=str(infraction.action).capitalize(),
+                              description=infraction.reason or "No reason provided",
+                              timestamp=add_tzinfo(infraction.created_at))
+        embed.add_field(name="User", value=base_user_format(infraction.user))
+        embed.add_field(name="Moderator", value=base_user_format(infraction.moderator))
+        embed.add_field(name="Active", value=ticker(infraction.active), inline=False)
+        embed.set_footer(text="Infraction created at")
+
+        return embed
 
 # These won't be used yet until I do a refactor of modlogformats for single param events
 

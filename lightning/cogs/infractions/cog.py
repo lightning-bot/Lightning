@@ -38,7 +38,7 @@ from lightning.cogs.infractions.ui import (InfractionPaginator,
 from lightning.converters import TargetMember
 from lightning.enums import ActionType
 from lightning.errors import LightningCommandError
-from lightning.events import InfractionUpdateEvent
+from lightning.events import InfractionDeleteEvent, InfractionUpdateEvent
 from lightning.models import InfractionRecord
 from lightning.utils.checks import is_server_manager
 from lightning.utils.helpers import ticker
@@ -186,7 +186,7 @@ class Infractions(LightningCog, required=['Moderation']):
             await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
             return
 
-        await ctx.send(f"Pardoned {infraction_id}")
+        await ctx.reply(f"Pardoned {infraction_id}")
 
     @infraction.command(aliases=['remove'], level=CommandLevel.Admin)
     @is_server_manager()
@@ -206,6 +206,8 @@ class Infractions(LightningCog, required=['Moderation']):
             return
 
         await ctx.reply("Infraction deleted!")
+        self.bot.dispatch("lightning_infraction_delete",
+                          InfractionDeleteEvent(infraction, ctx.author))
 
     @infraction.command(level=CommandLevel.Admin)
     @is_server_manager()

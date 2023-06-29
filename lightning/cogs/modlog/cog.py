@@ -33,8 +33,8 @@ from lightning.utils.emitters import TextChannelEmitter
 from lightning.utils.time import ShortTime
 
 if TYPE_CHECKING:
-    from lightning.events import (AuditLogModAction, InfractionEvent,
-                                  InfractionUpdateEvent,
+    from lightning.events import (AuditLogModAction, InfractionDeleteEvent,
+                                  InfractionEvent, InfractionUpdateEvent,
                                   MemberRolesUpdateEvent, MemberUpdateEvent)
 
 
@@ -277,6 +277,22 @@ class ModLog(LightningCog):
             elif record['format'] == "embed":
                 embed = modlogformats.EmbedFormat.infraction_update(event)
                 await emitter.put(embed=embed)
+
+    @LightningCog.listener()
+    async def on_lightning_infraction_delete(self, event: InfractionDeleteEvent):
+        details = event.format_infraction()
+        async for emitter, record in self.get_records(event.moderator.guild, LoggingType.INFRACTION_DELETE):
+            if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
+                arg = record['format'] != "minimal without timestamp"
+                message = modlogformats.MinimalisticFormat.infraction_delete(event, with_timestamp=arg)
+                await emitter.put(message, embed=details)
+            elif record['format'] == "emoji":
+                message = modlogformats.EmojiFormat.infraction_delete(event)
+                await emitter.put(message, embed=details,
+                                  allowed_mentions=discord.AllowedMentions(users=[event.moderator]))
+            elif record['format'] == "embed":
+                embed = modlogformats.EmbedFormat.infraction_delete(event)
+                await emitter.put(embeds=[embed, details])
 
     def _close_emitter(self, channel_id: int) -> None:
         emitter = self._emitters.pop(channel_id, None)

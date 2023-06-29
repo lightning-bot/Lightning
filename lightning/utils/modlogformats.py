@@ -27,7 +27,8 @@ from lightning.utils.helpers import Emoji
 from lightning.utils.time import get_utc_timestamp, natural_timedelta
 
 if TYPE_CHECKING:
-    from lightning.events import InfractionUpdateEvent, MemberRolesUpdateEvent
+    from lightning.events import (InfractionDeleteEvent, InfractionUpdateEvent,
+                                  MemberRolesUpdateEvent)
 
 
 class BaseFormat:
@@ -240,6 +241,12 @@ class EmojiFormat(BaseFormat):
 
         return ''.join(base)
 
+    @staticmethod
+    def infraction_delete(event: InfractionDeleteEvent):
+        msg = f"\N{PUT LITTER IN ITS PLACE SYMBOL} **Infraction deleted** "\
+              f"{event.moderator.mention} deleted #{event.infraction.id}"
+        return msg
+
 
 def escape_markdown_and_mentions(text) -> str:
     """Helper function to escape mentions and markdown from a string
@@ -401,6 +408,18 @@ class MinimalisticFormat(BaseFormat):
 
         return ''.join(base)
 
+    @staticmethod
+    def infraction_delete(event: InfractionDeleteEvent, *, with_timestamp: bool = True):
+        if with_timestamp:
+            base = [f"[{format_timestamp(discord.utils.utcnow())}] "]
+        else:
+            base = []
+
+        base.append(f"**Infraction Delete**\n**ID**: {event.infraction.id}\n"
+                    f"**Moderator**: {MinimalisticFormat.format_user(event.moderator)}")
+
+        return ''.join(base)
+
     def format_message(self, *, with_timestamp: bool = True) -> str:
         """Formats a log entry."""
         log_action = log_actions[str(self.log_action).lower()]
@@ -542,5 +561,14 @@ class EmbedFormat(BaseFormat):
             embed.add_field(name="Reason",
                             value=f"**Old**: {truncate_text(event.before.reason, limit=200)}\n**New**: "
                                   f"{truncate_text(event.after.reason, limit=200)}")
+
+        return embed
+
+    @staticmethod
+    def infraction_delete(event: InfractionDeleteEvent) -> discord.Embed:
+        embed = discord.Embed(color=discord.Color.red(),
+                              title="Infraction Delete",
+                              description=f"**ID**: {event.infraction.id}\n**Moderator**: "
+                                          f"{base_user_format(event.moderator)}")
 
         return embed

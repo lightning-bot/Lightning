@@ -74,6 +74,7 @@ class LoggingType(BaseFlags):
 
     # Infraction Events
     INFRACTION_UPDATE = 1 << 13
+    INFRACTION_DELETE = 1 << 14
 
 
 class ActionType(Enum):
