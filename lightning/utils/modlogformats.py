@@ -27,7 +27,7 @@ from lightning.utils.helpers import Emoji
 from lightning.utils.time import get_utc_timestamp, natural_timedelta
 
 if TYPE_CHECKING:
-    from lightning.events import MemberRolesUpdateEvent
+    from lightning.events import InfractionUpdateEvent, MemberRolesUpdateEvent
 
 
 class BaseFormat:
@@ -226,6 +226,20 @@ class EmojiFormat(BaseFormat):
 
         return ''.join(msg)
 
+    @staticmethod
+    def infraction_update(event: InfractionUpdateEvent) -> str:
+        base = [f"\N{MEMO} **Infraction update**: ID: {event.after.id}"]
+
+        if event.before.moderator_id != event.after.moderator_id:
+            base.append(f"\n__Old Moderator__: {escape_markdown_and_mentions(event.before.moderator)}"
+                        f"\n__New Moderator__: {escape_markdown_and_mentions(event.after.moderator)}")
+
+        if event.before.reason != event.after.reason:
+            base.append(f"\n__Old Reason__: {truncate_text(event.before.reason, limit=200)}"
+                        f"\n__New Reason__: {truncate_text(event.after.reason, limit=200)}")
+
+        return ''.join(base)
+
 
 def escape_markdown_and_mentions(text) -> str:
     """Helper function to escape mentions and markdown from a string
@@ -369,6 +383,24 @@ class MinimalisticFormat(BaseFormat):
 
         return ''.join(base)
 
+    @staticmethod
+    def infraction_update(event: InfractionUpdateEvent, *,
+                          with_timestamp: bool = True) -> str:
+        if with_timestamp:
+            base = [f"[{format_timestamp(discord.utils.utcnow())}] **Infraction Update**\n**ID**: {event.after.id}"]
+        else:
+            base = [f"**Infraction Update**\n**ID**: {event.after.id}"]
+
+        if event.before.moderator_id != event.after.moderator_id:
+            base.append(f"\n**Old Moderator**: {MinimalisticFormat.format_user(event.before.moderator)}"
+                        f"\n**New Moderator**: {MinimalisticFormat.format_user(event.after.moderator)}")
+
+        if event.before.reason != event.after.reason:
+            base.append(f"\n**Old Reason**: {truncate_text(event.before.reason, limit=200)}"
+                        f"\n**New Reason**: {truncate_text(event.after.reason, limit=200)}")
+
+        return ''.join(base)
+
     def format_message(self, *, with_timestamp: bool = True) -> str:
         """Formats a log entry."""
         log_action = log_actions[str(self.log_action).lower()]
@@ -495,3 +527,20 @@ class EmbedFormat(BaseFormat):
     def completed_screening(member: discord.Member):
         return discord.Embed(title="Member Passed Screening", description=f"**Member**: {base_user_format(member)}",
                              color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
+
+    @staticmethod
+    def infraction_update(event: InfractionUpdateEvent) -> discord.Embed:
+        embed = discord.Embed(color=discord.Color.yellow(), timestamp=discord.utils.utcnow(), title="Infraction Update")
+        embed.set_footer(text=f"Infraction ID: {event.after.id}")
+
+        if event.before.moderator_id != event.after.moderator_id:
+            embed.add_field(name="Moderator",
+                            value=f"**Old**: {base_user_format(event.before.moderator)}\n**New**: "
+                                  f"{base_user_format(event.after.moderator)}")
+
+        if event.before.reason != event.after.reason:
+            embed.add_field(name="Reason",
+                            value=f"**Old**: {truncate_text(event.before.reason, limit=200)}\n**New**: "
+                                  f"{truncate_text(event.after.reason, limit=200)}")
+
+        return embed
