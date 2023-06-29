@@ -49,8 +49,13 @@ class InfractionConverter(commands.Converter, app_commands.Transformer):
 
     async def convert(self, ctx: GuildContext, argument: str) -> InfractionRecord:
         try:
-            record = await ctx.bot.api.get_infraction(ctx.guild.id, int(argument))
+            num = int(argument)
+        except ValueError:
+            raise commands.UserInputError("Your input must be a number")
+
+        try:
+            record = await ctx.bot.api.get_infraction(ctx.guild.id, num)
         except NotFound:
-            raise commands.UserInputError(f"An infraction with ID {argument} was not found!")
+            raise commands.UserInputError(f"An infraction with ID {num} was not found!")
 
         return InfractionRecord(ctx.bot, record)
