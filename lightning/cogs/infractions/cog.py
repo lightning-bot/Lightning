@@ -190,24 +190,19 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @infraction.command(aliases=['remove'], level=CommandLevel.Admin)
     @is_server_manager()
-    async def delete(self, ctx: GuildContext, infraction_id: int) -> None:
+    @app_commands.describe(infraction="The infraction's ID")
+    async def delete(self, ctx: GuildContext, infraction: Annotated[InfractionRecord, InfractionConverter]) -> None:
         """Deletes an infraction"""
-        try:
-            await self.bot.api.get_infraction(ctx.guild.id, infraction_id)
-        except NotFound:
-            await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
-            return
-
-        confirmation = await ctx.confirm(f"Are you sure you want to delete {infraction_id}? "
+        confirmation = await ctx.confirm(f"Are you sure you want to delete {infraction.id}? "
                                          "**This infraction cannot be restored once deleted!**")
         if not confirmation:
             return
 
         # I guess there could be instances where two people are running the same command...
         try:
-            await self.bot.api.delete_infraction(ctx.guild.id, infraction_id)
+            await self.bot.api.delete_infraction(ctx.guild.id, infraction.id)
         except NotFound:
-            await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
+            await ctx.send(f"An infraction with ID {infraction.id} does not exist.")
             return
 
         await ctx.reply("Infraction deleted!")
@@ -235,6 +230,7 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @infraction.command(name='list', level=CommandLevel.Mod)
     @is_server_manager()
+    @app_commands.describe(member="The member to look up infractions for")
     async def list_infractions(self, ctx: GuildContext, member: Optional[discord.User]) -> None:
         """Lists infractions that were done in the server with optional filter(s)"""
         if member:
