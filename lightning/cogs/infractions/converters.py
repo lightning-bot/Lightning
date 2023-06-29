@@ -51,7 +51,7 @@ class InfractionConverter(commands.Converter, app_commands.Transformer):
         try:
             num = int(argument)
         except ValueError:
-            raise commands.UserInputError("Your input must be a number")
+            raise commands.BadArgument(f"Converting to \"int\" failed for parameter \"{ctx.current_parameter}\"")
 
         try:
             record = await ctx.bot.api.get_infraction(ctx.guild.id, num)
