@@ -750,7 +750,7 @@ voice = ["PyNaCl (>=1.3.0,<1.6)"]
 type = "git"
 url = "https://github.com/Rapptz/discord.py.git"
 reference = "master"
-resolved_reference = "646ab85bb62244666f092adb8683d2890f953664"
+resolved_reference = "0871b34fc86af49deb6db2436d3e77f5516fdcba"
 
 [[package]]
 name = "distlib"
