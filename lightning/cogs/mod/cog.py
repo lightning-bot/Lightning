@@ -467,7 +467,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=lflags.HybridFlagCommand, parser=BaseModParser)
     @commands.bot_has_guild_permissions(manage_roles=True)
-    @hybrid_guild_permissions(manage_roles=True)
+    @hybrid_guild_permissions(moderate_members=True)
     @app_commands.describe(target="The member to mute",
                            duration="The duration for the mute",
                            reason="The reason for the mute")
