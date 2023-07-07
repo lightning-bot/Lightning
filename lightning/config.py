@@ -41,7 +41,7 @@ class Config(TOMLStorage):
 
 
 class TokensConfig:
-    __slots__ = ('discord', 'sentry', 'postgres', 'redis', 'api', 'dbots', 'topgg')
+    __slots__ = ('discord', 'sentry', 'postgres', 'redis', 'api', 'prometheus', 'dbots', 'topgg')
 
     def __init__(self, data: Dict[str, Any]) -> None:
         self.discord: str = data['discord']
@@ -49,6 +49,7 @@ class TokensConfig:
         self.postgres = PostgresConfig(data['postgres'])
         self.redis = RedisConfig(data['redis'])
         self.api = SanctumConfig(data['api'])
+        self.prometheus = PrometheusConfig(data['prometheus'])
         # Bot listings
         self.dbots: Optional[str] = transform_key(data.pop('dbots', ""))
         self.topgg: Optional[str] = transform_key(data.pop('topgg', ""))
@@ -77,6 +78,13 @@ class SanctumConfig:
     def __init__(self, data: Dict[str, Any]) -> None:
         self.url = data['url']
         self.key = data['key']
+
+
+class PrometheusConfig:
+    __slots__ = ("port",)
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.port: int = data.pop('port', 8050)
 
 
 class LoggingConfig:
