@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import asyncio
-import collections
 import io
 import logging
 import time
@@ -53,10 +52,6 @@ class Stats(LightningCog):
         self._lock = asyncio.Lock()
         self.bulk_command_insertion.start()
 
-        self._socket_stats = collections.Counter()
-        self._socket_lock = asyncio.Lock()
-        self.bulk_socket_stats_loop.start()
-
         self.number_places: Tuple[str, ...] = (
             '\N{FIRST PLACE MEDAL}',
             '\N{SECOND PLACE MEDAL}',
@@ -73,7 +68,6 @@ class Stats(LightningCog):
 
     def cog_unload(self) -> None:
         self.bulk_command_insertion.stop()
-        self.bulk_socket_stats_loop.stop()
 
         if hasattr(self, 'guild_stats_bulker'):
             self.guild_stats_bulker.close()
@@ -111,18 +105,6 @@ class Stats(LightningCog):
                 log.info(f'{total} commands were added to the database.')
             self._command_inserts.clear()
 
-    async def bulk_socket_stats_insert(self) -> None:
-        query = """INSERT INTO socket_stats (event, count)
-                   VALUES ($1, $2::bigint)
-                   ON CONFLICT (event)
-                   DO UPDATE SET count = socket_stats.count + $2::bigint;"""
-        if self._socket_stats:
-            items = self._socket_stats.items()
-            await self.bot.pool.executemany(query, items)
-            # This gets spammy fast so it's logged at the DEBUG level
-            log.debug(f"{len(self._socket_stats)} socket events were added to the database.")
-            self._socket_stats.clear()
-
     @tasks.loop(seconds=15.0)
     async def bulk_command_insertion(self):
         async with self._lock:
@@ -158,16 +140,6 @@ class Stats(LightningCog):
                 'failure': interaction.command_failed,
                 'application_command': True
             })
-
-    @tasks.loop(seconds=10.0)
-    async def bulk_socket_stats_loop(self):
-        async with self._socket_lock:
-            await self.bulk_socket_stats_insert()
-
-    @LightningCog.listener()
-    async def on_socket_event_type(self, event):
-        async with self._socket_lock:
-            self._socket_stats[event] += 1
 
     def format_stat_description(self, records, *, none_msg: str = "Nothing found yet."):
         x = '\n'.join(f'{self.number_places[index]}: {command_name} ({cmd_uses} times)'
@@ -364,15 +336,6 @@ class Stats(LightningCog):
         fp = io.StringIO(fmt)
         fp.seek(0)
         await ctx.send(file=discord.File(fp, filename="recents.txt"))
-
-    @command()
-    @commands.cooldown(1, 60.0, commands.BucketType.member)
-    async def socketstats(self, ctx):
-        """Shows a count of all tracked socket events"""
-        records = await self.bot.pool.fetch("SELECT * FROM socket_stats ORDER BY count DESC;")
-        table = tabulate.tabulate(records, headers='keys', tablefmt="psql")
-        total = sum(x['count'] for x in records)
-        await ctx.send(f"{total} socket events recorded.```\n{table}```")
 
     async def put_guild_info(self, embed: discord.Embed, guild: Union[PartialGuild, discord.Guild]) -> None:
         embed.add_field(name='Guild Name', value=guild.name)
