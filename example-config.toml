@@ -41,5 +41,8 @@ spam_count = 5
 # Startup game
 game = "rewrite is the future!"
 
+# Prometheus plugin is disabled by default, remove it from the list below if you want to enable it
+disabled_cogs = ['lightning.cogs.prometheus']
+
 # Support server invite
 support_server_invite = "https://discord.gg/SpFjsy3"
