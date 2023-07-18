@@ -16,8 +16,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Optional
+from zoneinfo import ZoneInfo
 
 import discord
 from sanctum.exceptions import NotFound
@@ -44,19 +45,32 @@ class ReasonModal(discord.ui.Modal, title="Message Report"):
 
 class ActionOptionsModal(discord.ui.Modal, title="Action Options"):
     duration = discord.ui.TextInput(label="Duration", style=discord.TextStyle.short)
-    dt = None
+    dt: Optional[FutureTime] = None
 
     async def on_submit(self, interaction: discord.Interaction[LightningBot]) -> None:
+        tzinfo = await interaction.client.get_user_timezone(interaction.user.id)
+        if tzinfo:
+            tzinfo = ZoneInfo(tzinfo)
+        else:
+            tzinfo = timezone.utc
+
         try:
-            self.dt = FutureTime(self.duration.value)
+            dt = FutureTime(self.duration.value, tz=tzinfo)
         except Exception as e:
             await interaction.response.send_message(e, ephemeral=True)
             return
 
+        if dt.dt < (interaction.created_at + timedelta(minutes=5)):
+            await interaction.response.send_message(content="The duration must be at least 5 minutes!", ephemeral=True)
+            return
+
+        self.dt = dt
+
         return await interaction.response.defer()
 
 
-action_options = [discord.SelectOption(label="Delete", value="delete", emoji="<:delete:1099772388448673972>"),
+action_options = [discord.SelectOption(label="No action", value="no_action"),
+                  discord.SelectOption(label="Delete", value="delete", emoji="<:delete:1099772388448673972>"),
                   discord.SelectOption(label="Warn", value="warn", emoji="\N{WARNING SIGN}"),
                   discord.SelectOption(label="Mute", value="mute", emoji="\N{SPEAKER WITH CANCELLATION STROKE}"),
                   discord.SelectOption(label="Kick", value="kick", emoji="\N{WOMANS BOOTS}"),
@@ -69,15 +83,17 @@ class ActionDashboard(BaseView):
         self.action = None
         self.reason = "No reason provided."
         self.notify = False
-        self.duration = None
+        self.duration: Optional[datetime] = None
         super().__init__(timeout=timeout)
 
     @discord.ui.select(options=action_options, min_values=1, max_values=1, placeholder="Select a punishment")
     async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
-        self.confirm_button.disabled = False
-        self.reason_button.disabled = False
-        self.notify_button.disabled = False
         self.action = select.values[0]
+        self.confirm_button.disabled = False
+
+        if self.action != "no_action":
+            self.reason_button.disabled = False
+            self.notify_button.disabled = False
 
         if self.action in ("mute", "ban"):
             self.duration_button.disabled = False
@@ -104,7 +120,7 @@ class ActionDashboard(BaseView):
         if not modal.dt:
             return
 
-        self.duration = modal.dt.delta
+        self.duration = modal.dt.dt
 
     @discord.ui.button(label="Notify", style=discord.ButtonStyle.blurple, disabled=True, emoji="\N{BELL}")
     async def notify_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
@@ -124,15 +140,17 @@ class ActionDashboard(BaseView):
         return self.message.guild.owner_id == self.message.author.id or \
             self.message.guild.me.top_role <= self.message.author.top_role
 
-    def calculate_duration(self):
-        return datetime.now(timezone.utc) + self.duration if self.duration else None
-
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green, disabled=True, row=2)
     async def confirm_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         # I don't wanna repeat these again
         cog: Optional[AutoMod] = interaction.client.get_cog("AutoMod")
         if not cog:
             await interaction.response.send_message("Unable to action on reports at this time!", ephemeral=True)
+            return
+
+        if self.action == "no_action":
+            await interaction.response.edit_message(content="Successfully completed action!", view=None)
+            self.stop()
             return
 
         if self.member_unactionable():
@@ -142,11 +160,7 @@ class ActionDashboard(BaseView):
 
         func = getattr(cog, f"_{self.action}_punishment")
 
-        if self.duration:
-            args = (self.message, self.calculate_duration())
-        else:
-            args = (self.message, )
-
+        args = (self.message, self.duration) if self.duration else (self.message, )
         if self.notify:
             if self.action in ("warn", "mute"):
                 v, loc = f"{self.action}ed", "in"
