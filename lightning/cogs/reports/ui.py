@@ -210,7 +210,7 @@ class ReportDashboard(discord.ui.View):
         self.action_button.disabled = self.actioned or self.dismissed
 
     async def fetch_message(self, interaction: discord.Interaction[LightningBot]) -> Optional[discord.Message]:
-        channel = interaction.guild.get_channel(self.channel_id)
+        channel = interaction.guild.get_channel_or_thread(self.channel_id)
         if not channel:
             return
 
