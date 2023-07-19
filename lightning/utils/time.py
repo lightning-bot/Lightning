@@ -75,10 +75,10 @@ class ShortTime:
 class HumanTime:
     calendar = pdt.Calendar(version=pdt.VERSION_CONTEXT_STYLE)
 
-    def __init__(self, argument: str, *, now=None,
+    def __init__(self, argument: str, *, now: Optional[datetime.datetime] = None,
                  tz: datetime.tzinfo = datetime.timezone.utc):
         now = now or datetime.datetime.now(tz)
-        dt, status = self.calendar.parseDT(argument, sourceTime=now, tzinfo=tz)
+        dt, status = self.calendar.parseDT(argument, sourceTime=now)
         if not status.hasDateOrTime:
             raise commands.BadArgument('Invalid time provided, try e.g. "tomorrow" or "3 days"')
 
@@ -86,7 +86,7 @@ class HumanTime:
             # replace it with the current time
             dt = dt.replace(hour=now.hour, minute=now.minute, second=now.second, microsecond=now.microsecond)
 
-        self.dt: datetime.datetime = dt
+        self.dt: datetime.datetime = dt.replace(tzinfo=tz)
         self._past: bool = self.dt < now
 
     @classmethod

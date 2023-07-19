@@ -160,7 +160,10 @@ class DiscordMeta(LightningCog):
                     "MEMBER_VERIFICATION_GATE_ENABLED": "Membership Screening",
                     "THREADS_ENABLED": "Threads",
                     "PRIVATE_THREADS": "Private Threads",
-                    "ROLE_ICONS": "Role Icons"}
+                    "ROLE_ICONS": "Role Icons",
+                    "DEVELOPER_SUPPORT_SERVER": "Application Support Server",
+                    "ROLE_SUBSCRIPTIONS_ENABLED": "Role Subscriptions",
+                    "TICKETED_EVENTS_ENABLED": "Ticketed Events"}
         if guild_features := [
             value for key, value in features.items() if key in guild.features
         ]:
