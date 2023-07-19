@@ -55,7 +55,7 @@ class DiscordMeta(LightningCog):
     @hybrid_command(aliases=['ui'], usage='[member=<you>]')
     @app_commands.describe(member="The person to look up information for (defaults to you)")
     async def userinfo(self, ctx: LightningContext, *,
-                       member: Annotated[Union[discord.Member, discord.User],
+                       member: Annotated[Union[discord.Member, discord.User, None],
                                          GuildorNonGuildUser] = None) -> None:
         """Gives information about a member or a user"""
         if member is None:
@@ -87,9 +87,7 @@ class DiscordMeta(LightningCog):
                 else:
                     fmt = " ".join(revrole)
 
-                embed.add_field(name=f"Roles [{len(roles)}]",
-                                value=fmt,
-                                inline=False)
+                desc.append(f"**Roles**: {fmt}")
 
         if member.bot:
             desc.append("\nThis user is a bot.")
