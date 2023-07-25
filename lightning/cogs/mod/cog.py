@@ -578,6 +578,9 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if old_nick == new_nick and not normalize:
             return False
 
+        if old_nick == new_nick and member.nick is None:
+            return False
+
         await member.edit(nick=new_nick, reason=self.format_reason(moderator, None, action_text="Dehoist done by"))
 
         if old_nick != new_nick:
