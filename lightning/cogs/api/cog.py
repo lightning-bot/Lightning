@@ -35,6 +35,9 @@ if TYPE_CHECKING:
     from lightning import LightningBot, LightningContext
 
 
+SPACE_ID = "JJ4jkpoAhx9Lyu6LuBJs"
+
+
 class API(LightningCog):
     """Commands that interact with different APIs"""
     def __init__(self, bot: LightningBot):
@@ -157,3 +160,25 @@ class API(LightningCog):
         links = '\n'.join(r[1])
 
         await ctx.send(f"> {r[0]}\n{links}")
+
+    @hybrid_command()
+    async def faq(self, ctx: LightningContext, *, question: str):
+        """Searches for something in the bot's documentation"""
+        await ctx.defer()
+
+        payload = {"query": question}
+        async with self.bot.aiosession.post(f"https://api.gitbook.com/v1/spaces/{SPACE_ID}/search/ask",
+                                            json=payload, headers={"Content-Type": "application/json"}) as r:
+            data = await r.json()
+
+        if not data:
+            async with self.bot.aiosession.get(f"https://api.gitbook.com/v1/spaces/{SPACE_ID}/search/questions",
+                                               headers={"Content-Type": "application/json"}) as r:
+                query = await r.json()
+            rec = '\n'.join(query['questions'][:3])
+            await ctx.send(f"**Please ask a more specific question. Some examples include**:\n{rec}")
+            return
+
+        embed = discord.Embed()
+        embed.set_footer(text="💡 This answer is powered by AI, so it may or may not be wrong.")
+        await ctx.send(data['answer']['text'], embed=embed, ephemeral=True)
