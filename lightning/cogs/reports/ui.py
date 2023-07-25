@@ -33,6 +33,7 @@ from lightning.utils.time import FutureTime, add_tzinfo
 
 if TYPE_CHECKING:
     from lightning.cogs.automod import AutoMod
+    from lightning.cogs.reports.cog import Reports as ReportsCog
 
 
 class ReasonModal(discord.ui.Modal, title="Message Report"):
@@ -239,6 +240,10 @@ class ReportDashboard(discord.ui.View):
             await interaction.response.send_message("This message was deleted!", ephemeral=True)
             return
 
+        if not msg:
+            await interaction.response.send_message("I was unable to fetch the message", ephemeral=True)
+            return
+
         view = ActionDashboard(msg)
         await interaction.response.send_message(content="Select a punishment below", view=view, ephemeral=True)
         timed_out = await view.wait()
@@ -298,8 +303,12 @@ class ChannelSelect(MenuLikeView):
         return
 
 
+class CogGuildContext(GuildContext):
+    cog: ReportsCog
+
+
 class ReportConfiguration(UpdateableMenu, ExitableMenu):
-    ctx: GuildContext
+    ctx: CogGuildContext
 
     async def format_initial_message(self, ctx: GuildContext):
         try:
@@ -322,12 +331,14 @@ class ReportConfiguration(UpdateableMenu, ExitableMenu):
         except NotFound:
             record = None
 
-        if not record:
+        if not record or record["message_report_channel_id"] is None:
             self.set_channel_button.disabled = False
+            self.remove_report_channel_button.disabled = True
             return
 
         if self.ctx.guild.get_channel(record['message_report_channel_id']):
             self.set_channel_button.disabled = True
+            self.remove_report_channel_button.disabled = False
 
     async def invalidate_config(self, guild_id: int):
         if c := cache_registry.get("mod_config"):
@@ -356,4 +367,29 @@ class ReportConfiguration(UpdateableMenu, ExitableMenu):
         await interaction.client.pool.execute(query, interaction.guild.id, channel.id)
         await self.invalidate_config(interaction.guild.id)
 
+        await self.update()
+
+    @discord.ui.button(label="Remove report channel", style=discord.ButtonStyle.red)
+    @lock_when_pressed
+    async def remove_report_channel_button(self, interaction: discord.Interaction[LightningBot],
+                                           button: discord.ui.Button):
+        record = await self.ctx.bot.api.get_guild_moderation_config(interaction.guild.id)
+        channel = interaction.guild.get_channel(record['message_report_channel_id'])
+        if not channel:
+            await interaction.response.send_message("The configuration has already been removed!")
+            return
+
+        await self.ctx.cog.on_guild_channel_delete(channel)
+
+        try:
+            await channel.delete(reason="Removing report configuration")
+            cd = True
+        except discord.HTTPException:
+            cd = False
+
+        content = "Removed all configuration and reports!"
+        if cd:
+            content = "Removed the reports channel, configuration, and reports!"
+
+        await interaction.response.send_message(content, ephemeral=True)
         await self.update()
