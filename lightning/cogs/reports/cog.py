@@ -92,9 +92,9 @@ class Reports(LightningCog):
         if c := cache_registry.get("mod_config"):
             await c.invalidate(str(channel.guild.id))
 
-        # Stop listening to views from that channel.
+        # Stop listening to views from that guild.
         for view in self.bot.persistent_views:
-            if isinstance(view, ReportDashboard) and view.channel_id == channel.id:
+            if isinstance(view, ReportDashboard) and view.guild_id == channel.guild.id:
                 view.stop()
 
     @LightningCog.listener()
