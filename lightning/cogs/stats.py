@@ -28,7 +28,7 @@ import tabulate
 from discord.ext import commands, tasks
 
 from lightning import (CommandLevel, GuildContext, LightningCog,
-                       LightningContext, command, group)
+                       LightningContext, command, group, hybrid_command)
 from lightning.converters import InbetweenNumber
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.emitters import WebhookEmbedEmitter
@@ -389,7 +389,7 @@ class Stats(LightningCog):
         user = self.bot.get_user(376012343777427457)
         return user or await self.bot.fetch_user(376012343777427457)
 
-    @command()
+    @hybrid_command()
     async def about(self, ctx: LightningContext) -> None:
         """Gives information about the bot."""
         embed = discord.Embed(title="Lightning", color=0xf74b06, url=self.bot.config.bot.git_repo)
