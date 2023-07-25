@@ -32,7 +32,7 @@ from lightning import (CommandLevel, GuildContext, LightningCog,
 from lightning import flags as lflags
 from lightning import group, hybrid_command
 from lightning.cogs.mod.converters import BannedMember
-from lightning.cogs.mod.flags import BaseModParser
+from lightning.cogs.mod.flags import BaseModParser, PurgeFlags
 from lightning.constants import COMMON_HOIST_CHARACTERS
 from lightning.enums import ActionType
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
@@ -238,19 +238,39 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, ActionType.WARN.value) or 0
         await self.confirm_and_log_action(ctx, target, "WARN", warning_text=f"{plural(warns + 1):warning} {emoji}")
 
-    async def do_message_purge(self, ctx: GuildContext, limit: int, predicate, *, before=None, after=None) -> None:
-        if limit >= 150:
-            resp = await ctx.confirm(f"Are you sure you want to purge {limit} messages?", delete_after=True)
+    @hybrid_command(level=CommandLevel.Mod)
+    @commands.bot_has_permissions(manage_messages=True)
+    @hybrid_guild_permissions(manage_messages=True)
+    @app_commands.guild_only()
+    @app_commands.describe(search="The amount of messages to search")
+    async def purge(self, ctx: GuildContext, search: commands.Range[int, 1, 300], *, flags: PurgeFlags) -> None:
+        """Purges messages that meet a certain criteria"""
+        predicates = []
+        if flags.attachments:
+            predicates.append(lambda x: len(x.attachments))
+
+        if flags.user:
+            predicates.append(lambda m: m.author.id == flags.user.id)
+
+        if flags.bots:
+            predicates.append(lambda m: m.author.bot)
+
+        if search >= 150:
+            resp = await ctx.confirm(f"Are you sure you want to purge {search} messages?", delete_after=True)
             if not resp:
                 await ctx.send("Cancelled")
                 return
 
-        before = ctx.message if before is None else discord.Object(id=before)
-        if after is not None:
-            after = discord.Object(id=after)
+        before = ctx.message if flags.before is None else discord.Object(id=flags.before)
+        after = discord.Object(id=flags.after) if flags.after else None
+
+        await ctx.defer()
 
         try:
-            purged = await ctx.channel.purge(limit=limit, before=before, after=after, check=predicate)
+            purged = await ctx.channel.purge(limit=search,
+                                             before=before,
+                                             after=after,
+                                             check=lambda m: all(p(m) for p in predicates))
         except discord.Forbidden:
             raise commands.MissingPermissions([])
         except discord.HTTPException as e:
@@ -265,48 +285,6 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             messages.extend(f'{name}: {count}' for name, count in spam)
         msg = '\n'.join(messages)
         await ctx.send(msg, delete_after=40)
-
-    @commands.bot_has_permissions(manage_messages=True)
-    @has_channel_permissions(manage_messages=True)
-    @commands.group(invoke_without_command=True, aliases=['clear'], level=CommandLevel.Mod)
-    async def purge(self, ctx: GuildContext, search: int) -> None:
-        """Purges messages that meet a certain criteria.
-
-        If called without a subcommand, the bot will remove all messages."""
-        await self.do_message_purge(ctx, search, lambda m: True)
-
-    @purge.error
-    async def purge_error(self, ctx, error):
-        if isinstance(error, LightningError):
-            await ctx.send(error)
-        elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("You need to provide a number of messages to search!")
-        elif isinstance(error, commands.BotMissingPermissions):
-            await ctx.send("Bot is missing Manage Messages permission")
-
-    @commands.bot_has_permissions(manage_messages=True)
-    @has_channel_permissions(manage_messages=True)
-    @purge.command(name="user", level=CommandLevel.Mod)
-    async def purge_from_user(self, ctx: GuildContext, member: discord.Member, search: int = 100) -> None:
-        """Removes messages from a member"""
-        await self.do_message_purge(ctx, search, lambda m: m.author == member)
-
-    @commands.bot_has_permissions(manage_messages=True)
-    @has_channel_permissions(manage_messages=True)
-    @purge.command(name="attachments", aliases=['files'], level=CommandLevel.Mod)
-    async def purge_files(self, ctx: GuildContext, search: int = 100) -> None:
-        """Removes messages that contains attachments in the message."""
-        await self.do_message_purge(ctx, search, lambda e: len(e.attachments))
-
-    @commands.bot_has_permissions(manage_messages=True)
-    @has_channel_permissions(manage_messages=True)
-    @purge.command(name='contains', level=CommandLevel.Mod)
-    async def purge_contains(self, ctx: GuildContext, *, string: str) -> None:
-        """Removes messages containing a certain substring."""
-        if len(string) < 5:
-            raise commands.BadArgument("The string length must be at least 5 characters!")
-        else:
-            await self.do_message_purge(ctx, 100, lambda e: string in e.content)
 
     async def get_mute_role(self, ctx: GuildContext) -> discord.Role:
         """Gets the guild's mute role if it exists"""
