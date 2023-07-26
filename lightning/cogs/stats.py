@@ -20,6 +20,7 @@ import asyncio
 import io
 import logging
 import time
+from datetime import timedelta
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import discord
@@ -361,10 +362,16 @@ class Stats(LightningCog):
         embed = discord.Embed(title="Joined New Guild", color=discord.Color.blue())
         log.info(f"Joined Guild | {guild.name} | {guild.id}")
         await self.put_guild_info(embed, guild)
+        await self.bot.redis_pool.set(f"lightning:guild-joins:{guild.id}", value=1, ex=timedelta(minutes=15))
 
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]):
-        embed = discord.Embed(title="Left Guild", color=discord.Color.red())
+        quick = await self.bot.redis_pool.getdel(f"lightning:guild-joins:{guild.id}")
+        if quick:
+            embed = discord.Embed(title="\N{RACING CAR} Left Guild", color=discord.Color.orange())
+        else:
+            embed = discord.Embed(title="Left Guild", color=discord.Color.red())
+
         log.info(f"Left Guild | {guild.name} | {guild.id}")
         await self.put_guild_info(embed, guild)
 
