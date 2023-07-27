@@ -47,6 +47,7 @@ class ReasonModal(discord.ui.Modal, title="Message Report"):
 class ActionOptionsModal(discord.ui.Modal, title="Action Options"):
     duration = discord.ui.TextInput(label="Duration", style=discord.TextStyle.short)
     dt: Optional[FutureTime] = None
+    msg_content: str
 
     async def on_submit(self, interaction: discord.Interaction[LightningBot]) -> None:
         tzinfo = await interaction.client.get_user_timezone(interaction.user.id)
@@ -67,7 +68,8 @@ class ActionOptionsModal(discord.ui.Modal, title="Action Options"):
 
         self.dt = dt
 
-        return await interaction.response.defer()
+        await interaction.response.edit_message(content=f"{self.msg_content}\n\n**Duration**: "
+                                                        f"{discord.utils.format_dt(dt.dt)}")
 
 
 action_options = [discord.SelectOption(label="No action", value="no_action"),
@@ -115,6 +117,8 @@ class ActionDashboard(BaseView):
     @discord.ui.button(label="Duration", disabled=True, emoji="\N{HOURGLASS WITH FLOWING SAND}")
     async def duration_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         modal = ActionOptionsModal()
+        modal.msg_content = f"You selected {self.action.capitalize()}. "\
+                            "Press Confirm once you're done configuring any other options."
         await interaction.response.send_modal(modal)
         await modal.wait()
 
