@@ -17,7 +17,11 @@ db = 1
 
 [tokens.api]
 url = "http://api:8000"
-key = "some-key"
+key = "supersecretkey"
+
+[tokens.prometheus]
+# Uncomment below when you want to use prometheus for metrics
+# port = 8000
 
 [logging]
 # Any bot errors either command errors or internal errors. Should be a webhook url
