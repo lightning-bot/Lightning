@@ -18,8 +18,7 @@ from discord import Enum
 from discord.ext.commands import BadArgument
 from flags import Flags
 
-__all__ = ("ModFlags",
-           "LoggingType",
+__all__ = ("LoggingType",
            "PunishmentType")
 
 
@@ -34,18 +33,6 @@ class BaseFlags(Flags):
 
     def __str__(self) -> str:
         return self.name
-
-
-class ModFlags(BaseFlags):
-    # Deletes messages over 2000 characters
-    # This probably isn't a "moderation" thing but w/e
-    delete_longer_messages = 1 << 0
-    # Reacts only when e.g. ban is used
-    react_only_confirmation = 1 << 1
-    # Hides the confirmation message
-    hide_confirmation_message = 1 << 2
-    # Deletes stickers
-    delete_stickers = 1 << 3
 
 
 class LoggingType(BaseFlags):

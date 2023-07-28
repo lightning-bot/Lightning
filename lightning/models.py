@@ -25,8 +25,7 @@ from lightning import errors
 from lightning.commands import CommandLevel
 from lightning.constants import AUTOMOD_EVENT_NAMES_LITERAL
 from lightning.context import LightningContext
-from lightning.enums import (ActionType, AutoModPunishmentType, LoggingType,
-                             ModFlags)
+from lightning.enums import ActionType, AutoModPunishmentType, LoggingType
 from lightning.utils.time import strip_tzinfo
 
 if TYPE_CHECKING:
@@ -34,7 +33,7 @@ if TYPE_CHECKING:
 
 
 class GuildModConfig:
-    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban", "flags",
+    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban",
                  "bot", "message_report_channel_id")
 
     def __init__(self, record, bot):
@@ -42,7 +41,6 @@ class GuildModConfig:
         self.mute_role_id: Optional[int] = record['mute_role_id']
         self.warn_kick: Optional[int] = record['warn_kick']
         self.warn_ban: Optional[int] = record['warn_ban']
-        self.flags: ModFlags = ModFlags(record['flags'] or 0)
         self.bot: LightningBot = bot
         # Adding message report config to here for now. It might evolve as time goes on.
         self.message_report_channel_id: Optional[int] = record['message_report_channel_id']
