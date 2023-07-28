@@ -119,6 +119,7 @@ class Prefix(UpdateableMenu, ExitableMenu):
 
         prefixes.append(modal.prefix.value)
         await self.ctx.bot.api.bulk_upsert_guild_prefixes(self.ctx.guild.id, prefixes)
+        await self.ctx.bot.get_guild_bot_config.invalidate(self.ctx.guild.id)
 
     @discord.ui.button(label="Remove prefix", style=discord.ButtonStyle.danger)
     @lock_when_pressed
@@ -135,3 +136,4 @@ class Prefix(UpdateableMenu, ExitableMenu):
 
         prefixes.remove(select.values[0])
         await self.ctx.bot.api.bulk_upsert_guild_prefixes(self.ctx.guild.id, prefixes)
+        await self.ctx.bot.get_guild_bot_config.invalidate(self.ctx.guild.id)
