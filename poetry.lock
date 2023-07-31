@@ -726,7 +726,7 @@ resolved_reference = "e3ae37ed587f9c686e3845afd933afa49a968b98"
 
 [[package]]
 name = "discord.py"
-version = "2.4.0a4884+g5e9f6791"
+version = "2.4.0a4885+gad28fdc1"
 description = "A Python wrapper for the Discord API"
 optional = false
 python-versions = ">=3.8.0"
@@ -750,7 +750,7 @@ voice = ["PyNaCl (>=1.3.0,<1.6)"]
 type = "git"
 url = "https://github.com/Rapptz/discord.py.git"
 reference = "master"
-resolved_reference = "5e9f679178f7b795e555e619f7f00cd8559d8d75"
+resolved_reference = "ad28fdc15469b9349ae794f2937e2dc3e6fd64ff"
 
 [[package]]
 name = "distlib"
@@ -2449,13 +2449,13 @@ widechars = ["wcwidth"]
 
 [[package]]
 name = "tomlkit"
-version = "0.11.8"
+version = "0.12.1"
 description = "Style preserving TOML library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "tomlkit-0.11.8-py3-none-any.whl", hash = "sha256:8c726c4c202bdb148667835f68d68780b9a003a9ec34167b6c673b38eff2a171"},
-    {file = "tomlkit-0.11.8.tar.gz", hash = "sha256:9330fc7faa1db67b541b28e62018c17d20be733177d290a13b24c62d1614e0c3"},
+    {file = "tomlkit-0.12.1-py3-none-any.whl", hash = "sha256:712cbd236609acc6a3e2e97253dfc52d4c2082982a88f61b640ecf0817eab899"},
+    {file = "tomlkit-0.12.1.tar.gz", hash = "sha256:38e1ff8edb991273ec9f6181244a6a391ac30e9f5098e7535640ea6be97a7c86"},
 ]
 
 [[package]]
@@ -2799,4 +2799,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.12"
-content-hash = "cfee17ddcaf9c00c970817bf0958e9cc63b2e0bbcfbed6c1d29e74344598dc16"
+content-hash = "0231835acd6c8b6d14a35c237193ce59ed9056d42f2b37f9406fe43ed2a756c1"
