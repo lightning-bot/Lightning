@@ -70,7 +70,7 @@ class Logging(UpdateableMenu, ExitableMenu):
         async with self.lock(interaction=interaction):
             view = SelectSubMenu(*[x.name for x in LoggingType.all], max_options=len(LoggingType.all), context=self.ctx)
             view.add_item(discord.ui.Button(label="Documentation",
-                                            url="https://lightning-bot.gitlab.io/bot-configuration/#events"))
+                                            url="https://lightning.lightsage.dev/guide/modlog#events"))
             await interaction.response.defer()
             msg = await interaction.followup.send(content='Select the events you wish to log', view=view, wait=True)
             await view.wait()
