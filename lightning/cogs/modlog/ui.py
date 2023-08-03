@@ -61,7 +61,7 @@ class Logging(UpdateableMenu, ExitableMenu):
                    VALUES ($1, $2, $3)
                    ON CONFLICT (channel_id)
                    DO UPDATE SET types = EXCLUDED.types;"""
-        await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, int(LoggingType.all))
+        await self.ctx.bot.pool.execute(query, self.ctx.guild.id, self.log_channel.id, -1)
         self.invalidate()
         await self.update(interaction=interaction)
 
