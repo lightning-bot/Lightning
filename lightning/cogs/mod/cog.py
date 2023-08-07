@@ -167,8 +167,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             raise TimersUnavailable
 
         tzinfo = await cog.get_user_tzinfo(ctx.author.id)
-        job_id = await cog.add_timer("timeban", ctx.message.created_at, duration.dt, guild_id=ctx.guild.id,
-                                     user_id=target.id, mod_id=moderator.id, force_insert=True, timezone=tzinfo)
+        created_timer = await cog.add_timer("timeban", ctx.message.created_at, duration.dt, guild_id=ctx.guild.id,
+                                            user_id=target.id, mod_id=moderator.id, force_insert=True, timezone=tzinfo)
 
         if dm_user and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason,
@@ -183,7 +183,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await ctx.guild.ban(target, reason=self.format_reason(ctx.author, opt_reason),
                             delete_message_days=delete_message_days)
         await self.confirm_and_log_action(ctx, target, "TIMEBAN", duration_text=duration_text,
-                                          expiry=duration.dt, timer_id=job_id)
+                                          expiry=duration.dt, timer=created_timer['id'])
 
     @lflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
                      help="Bot does not DM the user the reason for the action.")
