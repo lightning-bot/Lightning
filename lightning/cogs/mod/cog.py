@@ -49,12 +49,17 @@ from lightning.utils.time import (FutureTime, get_utc_timestamp,
 if TYPE_CHECKING:
     from lightning.cogs.reminders.cog import Reminders
 
+    class ModContext(GuildContext):
+        config: Optional[GuildModConfig]
+
+
 confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
                  "timeban": "{target} was banned. \N{THUMBS UP SIGN} It will expire in {expiry}.",
                  "kick": "{target} was kicked. \N{OK HAND SIGN}",
                  "warn": "{target} was warned. ({count})",
                  "mute": "{target} can no longer speak.",
                  "timemute": "{target} can no longer speak. It will expire in {expiry}.",
+                 "timeout": "{target} was put in timeout. It will expire in {expiry}.",
                  "unmute": "{target} can now speak again.",
                  "unban": "\N{OK HAND SIGN} {target} is now unbanned."}
 
@@ -72,6 +77,11 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if ctx.guild is None:
             raise commands.NoPrivateMessage()
         return True
+
+    async def cog_before_invoke(self, ctx: GuildContext) -> ModContext:
+        record = await self.get_mod_config(ctx.guild.id)
+        ctx.config = record
+        return ctx  # type: ignore
 
     def format_reason(self, author, reason: Optional[str], *, action_text=None) -> str:
         if action_text:
@@ -357,16 +367,16 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         val = await connection.fetchval(query, guild_id, target_id, role_id)
         return bool(val)
 
-    async def update_last_mute(self, guild_id, user_id, *, connection=None):
+    async def update_last_mute(self, guild_id, user_id, *, action: int = 6, connection=None):
         connection = connection or self.bot.pool
         query = """SELECT id FROM infractions
                    WHERE guild_id=$1
                    AND user_id=$2
-                   AND action='6'
+                   AND action=$3
                    ORDER BY created_at DESC
                    LIMIT 1;
                 """
-        val = await connection.fetchval(query, guild_id, user_id)
+        val = await connection.fetchval(query, guild_id, user_id, action)
 
         query = """UPDATE infractions
                    SET active=false
@@ -375,11 +385,16 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         return await connection.execute(query, guild_id, val)
 
     @command(level=CommandLevel.Mod)
-    @commands.bot_has_guild_permissions(manage_roles=True)
+    @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @has_guild_permissions(manage_roles=True)
     async def unmute(self, ctx: GuildContext, target: discord.Member, *,
                      reason: Optional[str]) -> None:
         """Unmutes a user"""
+        if target.is_timed_out():
+            await target.edit(timed_out_until=None, reason=self.format_reason(ctx.author, reason))
+            await ctx.send(f"Removed {target} from timeout.")
+            return
+
         role = await self.get_mute_role(ctx)
         check = await self.punishment_role_check(ctx.guild.id, target.id, role.id)
         if role not in target.roles or check is False:
@@ -444,12 +459,12 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await self.time_ban_user(ctx, target, ctx.author, flags['reason'], duration, dm_user=not flags['nodm'])
 
     @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=lflags.HybridFlagCommand, parser=BaseModParser)
-    @commands.bot_has_guild_permissions(manage_roles=True)
+    @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @hybrid_guild_permissions(moderate_members=True)
     @app_commands.describe(target="The member to mute",
                            duration="The duration for the mute",
                            reason="The reason for the mute")
-    async def timemute(self, ctx: GuildContext, target: converters.TargetMember,
+    async def timemute(self, ctx: ModContext, target: converters.TargetMember,
                        duration: FutureTime, *, flags) -> None:
         """Mutes a user for a specified amount of time.
 
