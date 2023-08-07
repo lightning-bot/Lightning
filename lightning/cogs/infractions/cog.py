@@ -244,6 +244,12 @@ class Infractions(LightningCog, required=['Moderation']):
 
         await self.start_infraction_pages(ctx, src)
 
+    @LightningCog.listener('on_lightning_timemute_complete')
+    @LightningCog.listener('on_lightning_timeban_complete')
+    async def deactivate_infractions_on_timer_completion(self, timer):
+        query = "UPDATE infractions SET active='f' WHERE extra -> 'timer' = $1;"
+        await self.bot.pool.execute(query, timer.id)
+
     async def detailed_moderator_stats(self, ctx: GuildContext, moderator: discord.Member):
         embed = discord.Embed(title="Detailed Infraction Stats")
         query = """SELECT COUNT (*) as "infractions"
