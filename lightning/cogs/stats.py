@@ -418,11 +418,9 @@ class Stats(LightningCog):
                            f"{natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}\n"
                            f"**Servers**: {len(self.bot.guilds):,}\n**Shards**: {len(self.bot.shards)}")
 
-        query = """SELECT COUNT(*) AS total_commands, (SELECT sum(count) FROM socket_stats) AS total_socket_stats
-                   FROM command_stats;"""
-        amounts = await self.bot.pool.fetchrow(query)
-        description.append(f"{amounts['total_commands']:,} commands ran.\n{amounts['total_socket_stats']:,} "
-                           "socket events recorded.")
+        query = "SELECT COUNT(*) FROM command_stats;"
+        total_cmds = await self.bot.pool.fetchval(query)
+        description.append(f"{total_cmds:,} commands ran.")
 
         embed.add_field(name="Links", value="[Support Server]"
                                             f"({self.bot.config.bot.support_server_invite}) | "
