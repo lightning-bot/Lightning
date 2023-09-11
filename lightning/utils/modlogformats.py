@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -73,7 +73,8 @@ log_actions = {
     "timeban": CompactModAction("temporarily banned", "\N{NO ENTRY}", "Timed Ban", 0xC7031E),
     "mute": CompactModAction("muted", "\N{SPEAKER WITH CANCELLATION STROKE}", "Mute", 0x7c7b82),
     "timemute": CompactModAction("temporarily muted", "\N{SPEAKER WITH CANCELLATION STROKE}", "Timed Mute", 0x7c7b82),
-    "unmute": CompactModAction("umuted", "\N{SPEAKER}", "Unmute", 0xFFFFFF)
+    "unmute": CompactModAction("umuted", "\N{SPEAKER}", "Unmute", 0xFFFFFF),
+    "timeout": CompactModAction("timed out", "\N{SPEAKER WITH CANCELLATION STROKE}", "Timeout", 0x7c7b82)
 }
 
 
@@ -461,8 +462,8 @@ class EmbedFormat(BaseFormat):
         embed = discord.Embed(title=action.title, color=action.color)
         reason = truncate_text(self.reason, 512)
 
-        base = [f"**User**: {str(self.target)} <@!{self.target.id}>\n"
-                f"**Moderator**: {str(self.moderator)} <@!{self.moderator.id}>"]
+        base = [f"**User**: {base_user_format(self.target)} <@!{self.target.id}>\n"
+                f"**Moderator**: {base_user_format(self.moderator)} <@!{self.moderator.id}>"]
 
         if self.expiry:
             base.append(f"\n**Expiry**: {self.expiry}")
