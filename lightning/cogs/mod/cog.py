@@ -296,16 +296,52 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         msg = '\n'.join(messages)
         await ctx.send(msg, delete_after=40)
 
-    async def get_mute_role(self, ctx: GuildContext) -> discord.Role:
+    def can_timeout(self, ctx: ModContext, duration: datetime):
+        me = ctx.message.guild.me
+        return bool(
+            ctx.message.channel.permissions_for(me).moderate_members
+            and duration <= (ctx.message.created_at + timedelta(days=28))  # noqa: W503
+        )
+
+    async def get_mute_role(self, ctx: ModContext) -> discord.Role:
         """Gets the guild's mute role if it exists"""
-        config = await self.get_mod_config(ctx.guild.id)
-        if not config:
+        if not ctx.config:
             raise MuteRoleError("You do not have a mute role set.")
 
-        return config.get_mute_role()
+        return ctx.config.get_mute_role()
 
-    async def time_mute_user(self, ctx, target, reason, duration, *, dm_user=False):
-        role = await self.get_mute_role(ctx)
+    async def timeout_member(self, ctx, target: discord.Member, reason: str, duration: FutureTime, *, dm_user=False):
+        # self.bot.ignore_modlog_event(ctx.guild.id, "on_lightning_member_timeout", f"{target.id}")
+
+        try:
+            await target.edit(timed_out_until=duration.dt, reason=reason)
+        except discord.HTTPException as e:
+            raise MuteRoleError(f"Unable to timeout {target} ({str(e)})")
+
+        dt_text = discord.utils.format_dt(duration.dt)
+        if dm_user:
+            msg = modlogformats.construct_dm_message(target, "timed out", "in", reason=reason,
+                                                     ending="\n\nThis timeout will expire at "
+                                                            f"{dt_text}.")
+            await helpers.dm_user(target, msg)
+
+        await self.confirm_and_log_action(ctx, target, "TIMEOUT", duration_text=dt_text, expiry=duration.dt)
+
+    async def time_mute_user(self, ctx: ModContext, target: Union[discord.User, discord.Member], reason: str,
+                             duration: FutureTime, *, dm_user=False):
+        eligible = self.can_timeout(ctx, duration.dt)
+        if not ctx.config and isinstance(target, discord.Member) and eligible is True:
+            await self.timeout_member(ctx, target, reason, duration, dm_user=dm_user)
+            return
+
+        try:
+            role = await self.get_mute_role(ctx)
+        except MuteRoleError as e:
+            if eligible and isinstance(target, discord.Member):
+                await self.timeout_member(ctx, target, reason, duration, dm_user=dm_user)
+                return
+            raise e
+
         duration_text = f"{natural_timedelta(duration.dt, source=ctx.message.created_at)} ("\
                         f"{discord.utils.format_dt(duration.dt)})"
 
@@ -314,9 +350,9 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             raise TimersUnavailable
 
         tzinfo = await timer.get_user_tzinfo(ctx.author.id)
-        job_id = await timer.add_timer("timemute", ctx.message.created_at,
-                                       duration.dt, guild_id=ctx.guild.id, user_id=target.id, role_id=role.id,
-                                       mod_id=ctx.author.id, force_insert=True, timezone=tzinfo)
+        created_timer = await timer.add_timer("timemute", ctx.message.created_at,
+                                              duration.dt, guild_id=ctx.guild.id, user_id=target.id, role_id=role.id,
+                                              mod_id=ctx.author.id, force_insert=True, timezone=tzinfo)
 
         if isinstance(target, discord.Member):
             if dm_user:
@@ -332,15 +368,15 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         await self.add_punishment_role(ctx.guild.id, target.id, role.id)
         await self.confirm_and_log_action(ctx, target, "TIMEMUTE", duration_text=duration_text, expiry=duration.dt,
-                                          timer_id=job_id)
+                                          timer=created_timer['id'])
 
     @lflags.add_flag("--duration", "-D", converter=FutureTime, help="Duration for the mute", required=False)
     @lflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
                      help="Bot does not DM the user the reason for the action.")
-    @commands.bot_has_guild_permissions(manage_roles=True)
+    @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @has_guild_permissions(manage_roles=True)
     @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason", raise_bad_flag=False)
-    async def mute(self, ctx: GuildContext, target: converters.TargetMember, *, flags) -> None:
+    async def mute(self, ctx: ModContext, target: converters.TargetMember, *, flags) -> None:
         """Mutes a user"""
         role = await self.get_mute_role(ctx)
         if flags['duration']:
