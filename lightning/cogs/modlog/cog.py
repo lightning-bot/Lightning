@@ -145,6 +145,7 @@ class ModLog(LightningCog):
     @LightningCog.listener('on_lightning_member_unban')
     @LightningCog.listener('on_lightning_member_mute')
     @LightningCog.listener('on_lightning_member_unmute')
+    @LightningCog.listener('on_lightning_member_timeout')
     async def on_lightning_member_action(self, event: Union[AuditLogModAction, InfractionEvent]):
         if not event.action.is_logged():
             await event.action.add_infraction(self.bot.pool)

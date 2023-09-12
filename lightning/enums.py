@@ -63,6 +63,11 @@ class LoggingType(BaseFlags):
     INFRACTION_UPDATE = 1 << 13
     INFRACTION_DELETE = 1 << 14
 
+    # Timeout Events
+    MEMBER_TIMEOUT = 1 << 15
+    MEMBER_TIMEOUT_UPDATE = 1 << 16
+    MEMBER_TIMEOUT_REMOVE = 1 << 17
+
 
 class ActionType(Enum):
     WARN = 1
@@ -74,6 +79,8 @@ class ActionType(Enum):
     UNMUTE = 7
     TIMEMUTE = 8
     TEMPROLE = 9
+    TIMEOUT = 10
+    UNTIMEOUT = 11
 
     def __str__(self):
         return self.name

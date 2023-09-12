@@ -23,9 +23,10 @@ from typing import Callable, Optional
 import discord
 
 from lightning import LightningBot, LightningCog
-from lightning.events import (AuditLogModAction, GuildRoleDeleteEvent,
-                              MemberRolesUpdateEvent, MemberRoleUpdateEvent,
-                              MemberUpdateEvent)
+from lightning.enums import ActionType
+from lightning.events import (AuditLogModAction, AuditLogTimeoutEvent,
+                              GuildRoleDeleteEvent, MemberRolesUpdateEvent,
+                              MemberRoleUpdateEvent, MemberUpdateEvent)
 
 
 def match_attribute(attr, before, after):
@@ -55,8 +56,10 @@ class ListenerEvents(LightningCog):
     """Cog that's meant to give us nicer events to use.
 
     Based off of Mousey's event system"""
+    def __init__(self, bot: LightningBot):
+        super().__init__(bot)
+        self.ignored = set()
 
-    # TODO: A temp ignored cache.
     # TODO: Don't fetch entries if no logging is enabled???
 
     async def fetch_audit_log_entry(self, guild: discord.Guild, action: discord.AuditLogAction, *,
@@ -190,6 +193,21 @@ class ListenerEvents(LightningCog):
 
         for role in event.removed_roles:
             self.bot.dispatch("lightning_member_role_remove", MemberRoleUpdateEvent(role, event.entry))
+
+    @LightningCog.listener('on_audit_log_entry_create')
+    async def on_member_timeout(self, entry: discord.AuditLogEntry):
+        if entry.action is not discord.AuditLogAction.member_update:
+            return
+
+        if entry.before.timed_out_until is None and entry.after.timed_out_until is not None:
+            if f"{entry.guild.id}:on_lightning_member_timeout:{entry.target.id}" in self.ignored:
+                return
+
+            self.bot.dispatch("lightning_member_timeout", AuditLogTimeoutEvent(ActionType.TIMEOUT, entry,
+                                                                               guild=entry.guild))
+        elif entry.before.timed_out_until is not None and entry.after.timed_out_until is None:
+            self.bot.dispatch("lightning_member_timeout_remove", AuditLogTimeoutEvent(ActionType.UNTIMEOUT,
+                                                                                      entry, guild=entry.guild))
 
 
 async def setup(bot: LightningBot) -> None:
