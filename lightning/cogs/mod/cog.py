@@ -311,7 +311,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         return ctx.config.get_mute_role()
 
     async def timeout_member(self, ctx, target: discord.Member, reason: str, duration: FutureTime, *, dm_user=False):
-        # self.bot.ignore_modlog_event(ctx.guild.id, "on_lightning_member_timeout", f"{target.id}")
+        self.bot.ignore_modlog_event(ctx.guild.id, "on_lightning_member_timeout", f"{target.id}")
 
         try:
             await target.edit(timed_out_until=duration.dt, reason=reason)
