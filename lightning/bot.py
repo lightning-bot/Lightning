@@ -25,7 +25,7 @@ import secrets
 import sys
 import traceback
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import aiohttp
 import asyncpg
@@ -43,6 +43,9 @@ from lightning.meta import __version__ as version
 from lightning.models import GuildBotConfig
 from lightning.storage import Storage
 from lightning.utils.emitters import WebhookEmbedEmitter
+
+if TYPE_CHECKING:
+    from lightning.cogs.listeners.events import ListenerEvents
 
 __all__ = ("LightningBot", )
 log = logging.getLogger(__name__)
@@ -191,6 +194,12 @@ class LightningBot(commands.AutoShardedBot):
     async def get_user_timezone(self, user_id: int) -> Optional[str]:
         r: Optional[str] = await self.redis_pool.get(f"lightning:user_settings:{user_id}:timezone")
         return r
+
+    def ignore_modlog_event(self, guild_id: int, event_name: str, key: str):
+        cog: ListenerEvents = self.get_cog("ListenerEvents")  # type: ignore
+        key = f"{guild_id}:{event_name}:{key}"
+        cog.ignored.add(key)
+        self.loop.call_later(5, cog.ignored.discard, key)
 
     async def add_cog(self, cls: commands.Cog, /, *, override: bool = False, guild=discord.utils.MISSING,
                       guilds=discord.utils.MISSING) -> None:
