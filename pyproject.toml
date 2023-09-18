@@ -40,7 +40,7 @@ Wand = "^0.6.11"
 rich = "^13.3.2"
 setuptools = "^67.6.0"
 wheel = "^0.40.0"
-matplotlib = "^3.7.0"
+matplotlib = "^3.8.0"
 numpy = "^1.24.2"
 redis = {extras = ["hiredis"], version = "^4.5.4"}
 unidecode = "^1.3.6"
