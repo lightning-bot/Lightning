@@ -246,6 +246,7 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @LightningCog.listener('on_lightning_timemute_complete')
     @LightningCog.listener('on_lightning_timeban_complete')
+    @LightningCog.listener('on_lightning_timeout_complete')
     async def deactivate_infractions_on_timer_completion(self, timer):
         query = "UPDATE infractions SET active='f' WHERE extra -> 'timer' = $1;"
         await self.bot.pool.execute(query, timer.id)

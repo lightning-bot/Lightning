@@ -311,12 +311,19 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         return ctx.config.get_mute_role()
 
     async def timeout_member(self, ctx, target: discord.Member, reason: str, duration: FutureTime, *, dm_user=False):
+        timer: Optional[Reminders] = self.bot.get_cog('Reminders')
+        if not timer:
+            raise TimersUnavailable
+
         self.bot.ignore_modlog_event(ctx.guild.id, "on_lightning_member_timeout", f"{target.id}")
 
         try:
             await target.edit(timed_out_until=duration.dt, reason=reason)
         except discord.HTTPException as e:
             raise MuteRoleError(f"Unable to timeout {target} ({str(e)})")
+
+        rec = await timer.add_timer("timeout", ctx.message.created_at, duration.dt, force_insert=True,
+                                    timezone=duration.dt.tzinfo)
 
         dt_text = discord.utils.format_dt(duration.dt)
         if dm_user:
@@ -325,7 +332,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                                                             f"{dt_text}.")
             await helpers.dm_user(target, msg)
 
-        await self.confirm_and_log_action(ctx, target, "TIMEOUT", duration_text=dt_text, expiry=duration.dt)
+        await self.confirm_and_log_action(ctx, target, "TIMEOUT", duration_text=dt_text, expiry=duration.dt,
+                                          timer=rec['id'])
 
     async def time_mute_user(self, ctx: ModContext, target: Union[discord.User, discord.Member], reason: str,
                              duration: FutureTime, *, dm_user=False):
@@ -423,7 +431,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @has_guild_permissions(manage_roles=True)
-    async def unmute(self, ctx: GuildContext, target: discord.Member, *,
+    async def unmute(self, ctx: ModContext, target: discord.Member, *,
                      reason: Optional[str]) -> None:
         """Unmutes a user"""
         if target.is_timed_out():
