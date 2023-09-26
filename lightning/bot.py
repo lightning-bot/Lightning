@@ -257,8 +257,7 @@ class LightningBot(commands.AutoShardedBot):
             return
 
         bucket = self.command_spam_cooldown.get_bucket(message)
-        retry_after = bucket.update_rate_limit()
-        if retry_after:
+        if retry_after := bucket.update_rate_limit():
             # User hit the ratelimit
             self.command_spammers[author] += 1
             if self.command_spammers[author] >= self.config.bot.spam_count:
@@ -302,11 +301,10 @@ class LightningBot(commands.AutoShardedBot):
 
         if ctx.message.content:
             fmt.append(f"\"{ctx.message.content}\" ")
+        elif vars(ctx.interaction.namespace):
+            fmt.append(f"\"/{ctx.command.qualified_name} {vars(ctx.interaction.namespace)}\" ")
         else:
-            if vars(ctx.interaction.namespace):
-                fmt.append(f"\"/{ctx.command.qualified_name} {vars(ctx.interaction.namespace)}\" ")
-            else:
-                fmt.append(f"\"{ctx.command.qualified_name}\" ")
+            fmt.append(f"\"{ctx.command.qualified_name}\" ")
 
         if ctx.guild:
             fmt.append(f"in \"{ctx.channel.name}\" ({ctx.channel.id}) "
@@ -391,9 +389,7 @@ class LightningBot(commands.AutoShardedBot):
         error = getattr(error, "original", error)
         error_text = str(error)
 
-        # Generic error handler messages
-        handled = ERROR_HANDLER_MESSAGES.get(type(error), None)
-        if handled:
+        if handled := ERROR_HANDLER_MESSAGES.get(type(error), None):
             await ctx.send(handled)
             return
 

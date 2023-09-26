@@ -129,7 +129,7 @@ class ModLog(LightningCog):
 
         async for emitter, record in self.get_records(ctx.guild, LoggingType.COMMAND_RAN):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
-                arg = False if record['format'] == "minimal without timestamp" else True
+                arg = record['format'] != "minimal without timestamp"
                 fmt = modlogformats.MinimalisticFormat.command_ran(ctx, with_timestamp=arg)
                 await emitter.send(fmt)
             elif record['format'] == "emoji":
@@ -156,7 +156,7 @@ class ModLog(LightningCog):
         async for emitter, record in self.get_records(event.guild, LoggingType(event_name)):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
                 fmt = modlogformats.MinimalisticFormat.from_action(event.action)
-                arg = False if record['format'] == "minimal without timestamp" else True
+                arg = record['format'] != "minimal without timestamp"
                 msg = fmt.format_message(with_timestamp=arg)
                 await emitter.send(msg)
             elif record['format'] == "emoji":
@@ -174,7 +174,7 @@ class ModLog(LightningCog):
     async def on_lightning_timed_moderation_action_done(self, action, guild_id, user, moderator, timer):
         async for emitter, record in self.get_records(guild_id, LoggingType(f"MEMBER_{action.upper()}")):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
-                arg = False if record['format'] == "minimal without timestamp" else True
+                arg = record['format'] != "minimal without timestamp"
                 message = modlogformats.MinimalisticFormat.timed_action_expired(action.lower(), user, moderator,
                                                                                 timer.created_at, timer.expiry,
                                                                                 with_timestamp=arg)
@@ -216,7 +216,7 @@ class ModLog(LightningCog):
     async def on_lightning_member_passed_screening(self, member):
         async for emitter, record in self.get_records(member.guild, LoggingType.MEMBER_SCREENING_COMPLETE):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
-                arg = False if record['format'] == "minimal without timestamp" else True
+                arg = record['format'] != "minimal without timestamp"
                 message = modlogformats.MinimalisticFormat.completed_screening(member, with_timestamp=arg)
                 await emitter.put(message)
             elif record['format'] == "emoji":
@@ -229,7 +229,7 @@ class ModLog(LightningCog):
     async def _log_role_changes(self, ltype: LoggingType, event: MemberRolesUpdateEvent) -> None:
         async for emitter, record in self.get_records(event.guild.id, ltype):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
-                arg = False if record['format'] == "minimal without timestamp" else True
+                arg = record['format'] != "minimal without timestamp"
                 message = modlogformats.MinimalisticFormat.role_change(event,
                                                                        with_timestamp=arg)
                 await emitter.send(message)
@@ -253,7 +253,7 @@ class ModLog(LightningCog):
         guild = event.guild
         async for emitter, record in self.get_records(guild, LoggingType.MEMBER_NICK_CHANGE):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
-                arg = False if record['format'] == "minimal without timestamp" else True
+                arg = record['format'] != "minimal without timestamp"
                 message = modlogformats.MinimalisticFormat.nick_change(event.after, event.before.nick, event.after.nick,
                                                                        event.moderator, with_timestamp=arg)
                 await emitter.put(message)
@@ -316,8 +316,7 @@ class ModLog(LightningCog):
                 await emitter.put(embeds=[embed])
 
     def _close_emitter(self, channel_id: int) -> None:
-        emitter = self._emitters.pop(channel_id, None)
-        if emitter:
+        if emitter := self._emitters.pop(channel_id, None):
             emitter.close()
 
     @LightningCog.listener()

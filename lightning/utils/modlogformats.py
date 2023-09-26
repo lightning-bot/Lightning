@@ -147,15 +147,15 @@ class EmojiFormat(BaseFormat):
             removed = event.removed_roles
             added = event.added_roles
 
-        msg = ["\n👑__Role change__: "]
         if len(added) != 0 or len(removed) != 0:
-            roles = []
-            for role in removed:
-                roles.append(f"_~~{escape_markdown_and_mentions(role.name)}~~_")
-
-            for role in added:
-                roles.append(f"__**{escape_markdown_and_mentions(role.name)}**__")
-
+            roles = [
+                f"_~~{escape_markdown_and_mentions(role.name)}~~_"
+                for role in removed
+            ]
+            roles.extend(
+                f"__**{escape_markdown_and_mentions(role.name)}**__"
+                for role in added
+            )
             for role in event.after.roles:
                 if role.name == "@everyone":
                     continue
@@ -163,7 +163,7 @@ class EmojiFormat(BaseFormat):
                 if role not in added and role not in removed:
                     roles.append(escape_markdown_and_mentions(role.name))
 
-        msg.append(", ".join(roles))
+        msg = ["\n👑__Role change__: ", ", ".join(roles)]
         msg = [f"\N{INFORMATION SOURCE} **Member update**: {escape_markdown_and_mentions(str(event.after))} | "
                f"{event.after.id} {''.join(msg)}"]
 
@@ -191,25 +191,16 @@ class EmojiFormat(BaseFormat):
     @staticmethod
     def join_leave(log_type: str, member) -> str:
         safe_name = escape_markdown_and_mentions(str(member))
-        if log_type == "MEMBER_JOIN":
-            msg = f"{Emoji.member_join}"\
-                  f" **Member Join**: {member.mention} | "\
-                  f"{safe_name}\n"\
-                  f"\N{CLOCK FACE FOUR OCLOCK} __Account Creation__: {discord.utils.format_dt(member.created_at)}\n"\
-                  f"\N{LABEL} __User ID__: {member.id}"
-        else:
-            msg = f"{Emoji.member_leave} "\
-                  f"**Member Leave**: {member.mention} | "\
-                  f"{safe_name}\n"\
-                  f"\N{LABEL} __User ID__: {member.id}"
-        return msg
+        return (
+            f"{Emoji.member_join} **Member Join**: {member.mention} | {safe_name}\n\N{CLOCK FACE FOUR OCLOCK} __Account Creation__: {discord.utils.format_dt(member.created_at)}\n\N{LABEL} __User ID__: {member.id}"
+            if log_type == "MEMBER_JOIN"
+            else f"{Emoji.member_leave} **Member Leave**: {member.mention} | {safe_name}\n\N{LABEL} __User ID__: {member.id}"
+        )
 
     @staticmethod
     def command_ran(ctx) -> str:
         command = ctx.command
-        msg = f"\N{CLIPBOARD} **Command Used**: {ctx.author.mention} ran `{command.qualified_name}`\n"\
-              f"__Channel__: {ctx.channel.mention} | {ctx.channel.name}"
-        return msg
+        return f"\N{CLIPBOARD} **Command Used**: {ctx.author.mention} ran `{command.qualified_name}`\n__Channel__: {ctx.channel.mention} | {ctx.channel.name}"
 
     @staticmethod
     def nick_change(member, previous, current, moderator=None):
@@ -217,7 +208,7 @@ class EmojiFormat(BaseFormat):
             msg = f"\N{LABEL} __Nickname added__: None -> {current}"
         elif previous is not None and current is not None:
             msg = f"\N{LABEL} __Nickname changed__: {previous} -> {current}"
-        elif previous is not None and current is None:
+        elif previous is not None:
             msg = f"\N{LABEL} __Nickname removed__: {previous} -> None"
 
         msg = [f"\N{INFORMATION SOURCE} **Member update**: {member} | "
@@ -256,9 +247,7 @@ class EmojiFormat(BaseFormat):
 
     @staticmethod
     def infraction_delete(event: InfractionDeleteEvent):
-        msg = f"\N{PUT LITTER IN ITS PLACE SYMBOL} **Infraction deleted** "\
-              f"{event.moderator.mention} deleted #{event.infraction.id}"
-        return msg
+        return f"\N{PUT LITTER IN ITS PLACE SYMBOL} **Infraction deleted** {event.moderator.mention} deleted #{event.infraction.id}"
 
 
 def escape_markdown_and_mentions(text) -> str:
@@ -316,12 +305,15 @@ class MinimalisticFormat(BaseFormat):
                     f"{escape_markdown_and_mentions(str(event.after))} ({event.after.id})\n"]
 
         if event.added_roles != 0:
-            for role in event.added_roles:
-                base.append(f"**Role Added**: {escape_markdown_and_mentions(str(role))} ({role.id})\n")
+            base.extend(
+                f"**Role Added**: {escape_markdown_and_mentions(str(role))} ({role.id})\n"
+                for role in event.added_roles
+            )
         if event.removed_roles != 0:
-            for role in event.removed_roles:
-                base.append(f"**Role Removed**: {escape_markdown_and_mentions(str(role))} ({role.id})\n")
-
+            base.extend(
+                f"**Role Removed**: {escape_markdown_and_mentions(str(role))} ({role.id})\n"
+                for role in event.removed_roles
+            )
         if event.moderator is not None:
             base.append(f"**Moderator**: {escape_markdown_and_mentions(str(event.moderator))} ({event.moderator.id})")
 
@@ -360,15 +352,11 @@ class MinimalisticFormat(BaseFormat):
 
     @staticmethod
     def join_leave(log_type: str, member) -> str:
-        if log_type == "MEMBER_JOIN":
-            msg = f"[{format_timestamp(member.joined_at)}]"\
-                  f" **Member Join**: {discord.utils.escape_markdown(str(member))} ({member.id})\n"\
-                  "__Account Creation Date__: "\
-                  f"{discord.utils.format_dt(member.created_at)}"
-        else:
-            msg = f"[{format_timestamp(discord.utils.utcnow())}]"\
-                  f" **Member Leave**: {discord.utils.escape_markdown(str(member))} ({member.id})"
-        return msg
+        return (
+            f"[{format_timestamp(member.joined_at)}] **Member Join**: {discord.utils.escape_markdown(str(member))} ({member.id})\n__Account Creation Date__: {discord.utils.format_dt(member.created_at)}"
+            if log_type == "MEMBER_JOIN"
+            else f"[{format_timestamp(discord.utils.utcnow())}] **Member Leave**: {discord.utils.escape_markdown(str(member))} ({member.id})"
+        )
 
     @staticmethod
     def completed_screening(member, *, with_timestamp: bool = True):
@@ -448,11 +436,7 @@ class MinimalisticFormat(BaseFormat):
         """Formats a log entry."""
         log_action = log_actions[str(self.log_action).lower()]
 
-        if with_timestamp:
-            base = [f"[{format_timestamp(self.timestamp)}] "]
-        else:
-            base = []
-
+        base = [f"[{format_timestamp(self.timestamp)}] "] if with_timestamp else []
         base.append(f"**{log_action.title}** | Infraction ID {self.infraction_id}"
                     f"\n**User**: {self.format_user(self.target)}\n**Moderator**: {self.format_user(self.moderator)}")
 
@@ -599,9 +583,9 @@ class EmbedFormat(BaseFormat):
 
     @staticmethod
     def infraction_delete(event: InfractionDeleteEvent) -> discord.Embed:
-        embed = discord.Embed(color=discord.Color.red(),
-                              title="Infraction Delete",
-                              description=f"**ID**: {event.infraction.id}\n**Moderator**: "
-                                          f"{base_user_format(event.moderator)}")
-
-        return embed
+        return discord.Embed(
+            color=discord.Color.red(),
+            title="Infraction Delete",
+            description=f"**ID**: {event.infraction.id}\n**Moderator**: "
+            f"{base_user_format(event.moderator)}",
+        )
