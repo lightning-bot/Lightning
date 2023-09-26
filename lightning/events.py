@@ -58,6 +58,11 @@ class MemberUpdateEvent(BaseAuditLogEvent):
         """A shortcut for MemberUpdateEvent.after.guild"""
         return self.after.guild
 
+    @property
+    def member(self) -> discord.Member:
+        """A shortcut for MemberUpdateEvent.after"""
+        return self.after
+
 
 # lightning_member_role_change
 class MemberRolesUpdateEvent(MemberUpdateEvent):

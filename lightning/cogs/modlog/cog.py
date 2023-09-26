@@ -33,8 +33,9 @@ from lightning.utils.emitters import TextChannelEmitter
 from lightning.utils.time import ShortTime
 
 if TYPE_CHECKING:
-    from lightning.events import (AuditLogModAction, InfractionDeleteEvent,
-                                  InfractionEvent, InfractionUpdateEvent,
+    from lightning.events import (AuditLogModAction, AuditLogTimeoutEvent,
+                                  InfractionDeleteEvent, InfractionEvent,
+                                  InfractionUpdateEvent,
                                   MemberRolesUpdateEvent, MemberUpdateEvent)
 
 
@@ -294,6 +295,25 @@ class ModLog(LightningCog):
             elif record['format'] == "embed":
                 embed = modlogformats.EmbedFormat.infraction_delete(event)
                 await emitter.put(embeds=[embed, details])
+
+    @LightningCog.listener()
+    async def on_lightning_member_timeout_remove(self, event: AuditLogTimeoutEvent | MemberUpdateEvent):
+        query = "UPDATE infractions SET active='f' WHERE action='10' AND guild_id=$1 AND user_id=$2;"
+        await self.bot.pool.execute(query, event.guild.id, event.member.id)
+
+        async for emitter, record in self.get_records(event.guild, LoggingType.MEMBER_TIMEOUT_REMOVE):
+            if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
+                arg = record['format'] != "minimal without timestamp"
+                message = modlogformats.MinimalisticFormat.timeout_expired(event,
+                                                                           with_timestamp=arg)
+                await emitter.put(message)
+            elif record['format'] == "emoji":
+                message = modlogformats.EmojiFormat.timeout_expired(event)
+                await emitter.put(message,
+                                  allowed_mentions=discord.AllowedMentions(users=[event.member]))
+            elif record['format'] == "embed":
+                embed = modlogformats.EmbedFormat.timeout_expired(event)
+                await emitter.put(embeds=[embed])
 
     def _close_emitter(self, channel_id: int) -> None:
         emitter = self._emitters.pop(channel_id, None)
