@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -17,18 +17,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional, Union
 
 import discord
 
 from lightning.formatters import truncate_text
+from lightning.models import Action
 from lightning.utils.helpers import Emoji
 from lightning.utils.time import get_utc_timestamp, natural_timedelta
 
 if TYPE_CHECKING:
-    from lightning.events import (InfractionDeleteEvent, InfractionUpdateEvent,
-                                  MemberRolesUpdateEvent)
+    from lightning.events import (AuditLogTimeoutEvent, InfractionDeleteEvent,
+                                  InfractionUpdateEvent,
+                                  MemberRolesUpdateEvent, MemberUpdateEvent)
 
 
 class BaseFormat:
@@ -39,11 +41,11 @@ class BaseFormat:
         self.infraction_id = infraction_id
         self.reason = reason or "no reason given"
         self.timestamp = kwargs.pop("timestamp", discord.utils.utcnow())
-        self.expiry = expiry
+        self.expiry: datetime | None = expiry
         self.kwargs = kwargs
 
     @classmethod
-    def from_action(cls, action):
+    def from_action(cls, action: Action):
         if not action.is_logged():
             raise  # TODO
 
@@ -73,7 +75,8 @@ log_actions = {
     "timeban": CompactModAction("temporarily banned", "\N{NO ENTRY}", "Timed Ban", 0xC7031E),
     "mute": CompactModAction("muted", "\N{SPEAKER WITH CANCELLATION STROKE}", "Mute", 0x7c7b82),
     "timemute": CompactModAction("temporarily muted", "\N{SPEAKER WITH CANCELLATION STROKE}", "Timed Mute", 0x7c7b82),
-    "unmute": CompactModAction("umuted", "\N{SPEAKER}", "Unmute", 0xFFFFFF)
+    "unmute": CompactModAction("umuted", "\N{SPEAKER}", "Unmute", 0xFFFFFF),
+    "timeout": CompactModAction("timed out", "\N{SPEAKER WITH CANCELLATION STROKE}", "Timeout", 0x7c7b82)
 }
 
 
@@ -242,6 +245,16 @@ class EmojiFormat(BaseFormat):
         return ''.join(base)
 
     @staticmethod
+    def timeout_expired(event: AuditLogTimeoutEvent | MemberUpdateEvent) -> str:
+        text = [f"\N{WARNING SIGN} **Timeout expired** <@!{event.member.id}>"]
+
+        if hasattr(event, 'moderator'):
+            text.append(f"\N{BLUE BOOK} __Moderator__: "
+                        f"{escape_markdown_and_mentions(str(event.moderator))} ({event.moderator.id})")
+
+        return ''.join(text)
+
+    @staticmethod
     def infraction_delete(event: InfractionDeleteEvent):
         msg = f"\N{PUT LITTER IN ITS PLACE SYMBOL} **Infraction deleted** "\
               f"{event.moderator.mention} deleted #{event.infraction.id}"
@@ -324,6 +337,17 @@ class MinimalisticFormat(BaseFormat):
         text.append(f"**{action.capitalize()} expired**\n**User**: "
                     f"{MinimalisticFormat.format_user(user)}\n**Moderator**: {MinimalisticFormat.format_user(mod)}"
                     f"\n**Created at**: {discord.utils.format_dt(creation)}")
+        return ''.join(text)
+
+    @staticmethod
+    def timeout_expired(event: AuditLogTimeoutEvent | MemberUpdateEvent, *, with_timestamp: bool = True) -> str:
+        text = [f"[{format_timestamp(datetime.now(timezone.utc))}] "] if with_timestamp else []
+
+        text.append(f"**Timeout expired**\n**User**: {MinimalisticFormat.format_user(event.member)}\n")
+
+        if hasattr(event, 'moderator'):
+            text.append(f"**Moderator**: {MinimalisticFormat.format_user(event.moderator)}")
+
         return ''.join(text)
 
     @staticmethod
@@ -461,8 +485,8 @@ class EmbedFormat(BaseFormat):
         embed = discord.Embed(title=action.title, color=action.color)
         reason = truncate_text(self.reason, 512)
 
-        base = [f"**User**: {str(self.target)} <@!{self.target.id}>\n"
-                f"**Moderator**: {str(self.moderator)} <@!{self.moderator.id}>"]
+        base = [f"**User**: {base_user_format(self.target)} <@!{self.target.id}>\n"
+                f"**Moderator**: {base_user_format(self.moderator)} <@!{self.moderator.id}>"]
 
         if self.expiry:
             base.append(f"\n**Expiry**: {self.expiry}")
@@ -479,6 +503,15 @@ class EmbedFormat(BaseFormat):
         embed.add_field(name="Moderator", value=base_user_format(moderator))
         embed.timestamp = created_at
         embed.set_footer(text=f"Time {action} was made at")
+        return embed
+
+    @staticmethod
+    def timeout_expired(event: AuditLogTimeoutEvent | MemberUpdateEvent) -> discord.Embed:
+        embed = discord.Embed(description=f"Timeout for {base_user_format(event.member)} expired")
+
+        if hasattr(event, 'moderator'):
+            embed.add_field(name="Moderator", value=base_user_format(event.moderator))
+
         return embed
 
     @staticmethod

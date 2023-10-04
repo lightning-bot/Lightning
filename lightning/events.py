@@ -20,6 +20,7 @@ from typing import List, Optional, Union
 
 import discord
 
+from lightning.enums import ActionType
 from lightning.models import Action, InfractionRecord
 from lightning.utils.helpers import ticker
 from lightning.utils.modlogformats import base_user_format
@@ -57,6 +58,11 @@ class MemberUpdateEvent(BaseAuditLogEvent):
         """A shortcut for MemberUpdateEvent.after.guild"""
         return self.after.guild
 
+    @property
+    def member(self) -> discord.Member:
+        """A shortcut for MemberUpdateEvent.after"""
+        return self.after
+
 
 # lightning_member_role_change
 class MemberRolesUpdateEvent(MemberUpdateEvent):
@@ -88,13 +94,23 @@ class AuditLogModAction(BaseAuditLogEvent):
     This will also build the Action class from the parameters given."""
     __slots__ = ("member", "guild", "action")
 
-    def __init__(self, event, member: Union[discord.User, discord.Member], entry: discord.AuditLogEntry,
-                 *, guild: Optional[discord.Guild] = None):
+    def __init__(self, event: Union[ActionType, str], member: Union[discord.User, discord.Member],
+                 entry: discord.AuditLogEntry, *, guild: Optional[discord.Guild] = None):
         super().__init__(entry)
         self.member = member
 
         self.guild = guild or member.guild
         self.action = Action(self.guild.id, event, member, self.moderator, self.reason)
+
+
+# lightning_member_timeout_remove
+class AuditLogTimeoutEvent(AuditLogModAction):
+    def __init__(self, event: Union[ActionType, str],
+                 entry: discord.AuditLogEntry, *, guild: Optional[discord.Guild] = None):
+        super().__init__(event, entry.target, entry, guild=guild)
+        self.before = entry.before
+        self.after = entry.after
+        self.entry = entry
 
 
 # lightning_member_mute
