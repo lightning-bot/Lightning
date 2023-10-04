@@ -16,7 +16,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, TypedDict
 
@@ -36,8 +38,29 @@ class Revision:
     def __init__(self, file: Path) -> None:
         self.file = file
 
+    async def forward(self, conn: asyncpg.Connection):
+        sql = self.file.read_text("utf-8")
+        await conn.execute(sql)
+
     def __str__(self) -> str:
         return str(self.file)
+
+
+class PYRevision(Revision):
+    """A .py revision file"""
+    def __init__(self, file: Path) -> None:
+        super().__init__(file)
+        spec = importlib.util.spec_from_file_location(str(file), file)
+
+        if not spec:
+            raise Exception("Missing spec")
+
+        self.module = importlib.util.module_from_spec(spec)
+        sys.modules[str(file)] = self.module
+        spec.loader.exec_module(self.module)
+
+    async def forward(self, conn: asyncpg.Connection):
+        await self.module.start(conn)
 
 
 class Migrator:
@@ -53,6 +76,9 @@ class Migrator:
         fps: List[Revision] = []
         for file in self.root.glob("*.sql"):
             fps.append(Revision(file))
+
+        for file in self.root.glob("*.py"):
+            fps.append(PYRevision(file))
         return fps
 
     @property
