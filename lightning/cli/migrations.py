@@ -71,12 +71,8 @@ class Migrator:
         self.config = self.load_config()
 
     def load_migrations(self):
-        fps: List[Revision] = []
-        for file in self.root.glob("*.sql"):
-            fps.append(Revision(file))
-
-        for file in self.root.glob("*.py"):
-            fps.append(PYRevision(file))
+        fps: List[Revision] = [Revision(file) for file in self.root.glob("*.sql")]
+        fps.extend(PYRevision(file) for file in self.root.glob("*.py"))
         return fps
 
     @property
