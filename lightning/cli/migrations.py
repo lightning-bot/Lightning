@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, TypedDict
 
@@ -56,7 +55,6 @@ class PYRevision(Revision):
             raise Exception("Missing spec")
 
         self.module = importlib.util.module_from_spec(spec)
-        sys.modules[str(file)] = self.module
         spec.loader.exec_module(self.module)
 
     async def forward(self, conn: asyncpg.Connection):
@@ -98,16 +96,16 @@ class Migrator:
             json.dump(self.config, fp)
 
     async def apply_revisions(self, conn: asyncpg.Connection):
-        files = self.sorted_revisions
+        revisions = self.sorted_revisions
         applied: List[Revision] = []
         async with conn.transaction():
-            for rev in files:
-                if str(rev) in self.config['applied']:
+            for revision in revisions:
+                if str(revision) in self.config['applied']:
                     continue
-                sql = rev.file.read_text("utf-8")
-                await conn.execute(sql)
-                typer.secho(f"Applied {str(rev)}!", fg=typer.colors.GREEN)
-                applied.append(rev)
+
+                await revision.forward(conn)
+                typer.secho(f"Applied {str(revision)}!", fg=typer.colors.GREEN)
+                applied.append(revision)
 
         self.config['applied'].extend([str(a) for a in applied])
         self.save()
