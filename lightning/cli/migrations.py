@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, TypedDict
@@ -36,8 +37,28 @@ class Revision:
     def __init__(self, file: Path) -> None:
         self.file = file
 
+    async def forward(self, conn: asyncpg.Connection):
+        sql = self.file.read_text("utf-8")
+        await conn.execute(sql)
+
     def __str__(self) -> str:
         return str(self.file)
+
+
+class PYRevision(Revision):
+    """A .py revision file"""
+    def __init__(self, file: Path) -> None:
+        super().__init__(file)
+        spec = importlib.util.spec_from_file_location(str(file), file)
+
+        if not spec:
+            raise Exception("Missing spec")
+
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+
+    async def forward(self, conn: asyncpg.Connection):
+        await self.module.start(conn)
 
 
 class Migrator:
@@ -53,6 +74,9 @@ class Migrator:
         fps: List[Revision] = []
         for file in self.root.glob("*.sql"):
             fps.append(Revision(file))
+
+        for file in self.root.glob("*.py"):
+            fps.append(PYRevision(file))
         return fps
 
     @property
@@ -72,16 +96,16 @@ class Migrator:
             json.dump(self.config, fp)
 
     async def apply_revisions(self, conn: asyncpg.Connection):
-        files = self.sorted_revisions
+        revisions = self.sorted_revisions
         applied: List[Revision] = []
         async with conn.transaction():
-            for rev in files:
-                if str(rev) in self.config['applied']:
+            for revision in revisions:
+                if str(revision) in self.config['applied']:
                     continue
-                sql = rev.file.read_text("utf-8")
-                await conn.execute(sql)
-                typer.secho(f"Applied {str(rev)}!", fg=typer.colors.GREEN)
-                applied.append(rev)
+
+                await revision.forward(conn)
+                typer.secho(f"Applied {str(revision)}!", fg=typer.colors.GREEN)
+                applied.append(revision)
 
         self.config['applied'].extend([str(a) for a in applied])
         self.save()
