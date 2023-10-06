@@ -199,6 +199,9 @@ class ListenerEvents(LightningCog):
         if entry.action is not discord.AuditLogAction.member_update:
             return
 
+        if not hasattr(entry.before, "timed_out_until"):
+            return
+
         if entry.before.timed_out_until is None and entry.after.timed_out_until is not None:
             if f"{entry.guild.id}:on_lightning_member_timeout:{entry.target.id}" in self.ignored:
                 return
