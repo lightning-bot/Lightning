@@ -47,6 +47,8 @@ class CommandBug:
 
 class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
     """Commands that manage the bot"""
+    bot: LightningBot
+
     @Feature.Command(parent="jsk", name="leaveguild")
     async def jsk_leaveguild(self, ctx: LightningContext, guild: discord.Guild) -> None:
         """Leaves a guild that the bot is in"""
