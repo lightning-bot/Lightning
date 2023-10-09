@@ -43,7 +43,7 @@ wheel = "^0.40.0"
 matplotlib = "^3.7.0"
 numpy = "^1.24.2"
 redis = {extras = ["hiredis"], version = "^4.5.4"}
-unidecode = "^1.3.6"
+unidecode = "^1.3.7"
 prometheus-async = "^22.2.0"
 
 [tool.poetry.dev-dependencies]
