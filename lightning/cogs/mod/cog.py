@@ -457,6 +457,15 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         await self.log_action(ctx, target, "UNMUTE")
 
+    @command(level=CommandLevel.Mod, cls=lflags.HybridFlagCommand, parser=BaseModParser)
+    @commands.bot_has_guild_permissions(moderate_members=True)
+    @has_guild_permissions(moderate_members=True)
+    async def timeout(self, ctx: ModContext,
+                      target: converters.TargetMember(fetch_user=False), duration: FutureTime,
+                      *, flags):
+        """Timeout a member"""
+        await self.timeout_member(ctx, target, flags['reason'], duration, dm_user=not flags['nodm'])
+
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
