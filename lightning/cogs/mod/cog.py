@@ -466,6 +466,18 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         """Timeout a member"""
         await self.timeout_member(ctx, target, flags['reason'], duration, dm_user=not flags['nodm'])
 
+    @hybrid_command(level=CommandLevel.Mod)
+    @commands.bot_has_guild_permissions(moderate_members=True)
+    @hybrid_guild_permissions(moderate_members=True)
+    async def untimeout(self, ctx: ModContext, target: discord.Member, *, reason: Optional[str] = None):
+        if not target.is_timed_out():
+            await ctx.send(f"{target.mention} is not in time out!", ephemeral=True)
+            return
+
+        await target.edit(timed_out_until=None, reason=self.format_reason(ctx.author, reason))
+
+        await ctx.send(f"Removed {target} from time out!")
+
     @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
