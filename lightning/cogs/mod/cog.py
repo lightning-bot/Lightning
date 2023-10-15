@@ -430,7 +430,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @hybrid_command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
-    @has_guild_permissions(manage_roles=True)
+    @hybrid_guild_permissions(manage_roles=True)
     async def unmute(self, ctx: ModContext, target: discord.Member, *,
                      reason: Optional[str]) -> None:
         """Unmutes a user"""
@@ -459,7 +459,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @command(level=CommandLevel.Mod, cls=lflags.HybridFlagCommand, parser=BaseModParser)
     @commands.bot_has_guild_permissions(moderate_members=True)
-    @has_guild_permissions(moderate_members=True)
+    @hybrid_guild_permissions(moderate_members=True)
     async def timeout(self, ctx: ModContext,
                       target: converters.TargetMember(fetch_user=False), duration: FutureTime,
                       *, flags):
