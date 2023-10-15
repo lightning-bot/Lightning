@@ -428,7 +428,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                 """
         return await connection.execute(query, guild_id, val)
 
-    @command(level=CommandLevel.Mod)
+    @hybrid_command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @has_guild_permissions(manage_roles=True)
     async def unmute(self, ctx: ModContext, target: discord.Member, *,
