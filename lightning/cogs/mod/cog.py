@@ -464,6 +464,12 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                       target: converters.TargetMember(fetch_user=False), duration: FutureTime,
                       *, flags):
         """Timeout a member"""
+        if not self.can_timeout(ctx, duration.dt):
+            await ctx.send("Timeouts only support up to 28 days. "
+                           f"Please use a lower duration or use `{ctx.clean_prefix}timemute`",
+                           ephemeral=True)
+            return
+
         await self.timeout_member(ctx, target, flags['reason'], duration, dm_user=not flags['nodm'])
 
     @hybrid_command(level=CommandLevel.Mod)
