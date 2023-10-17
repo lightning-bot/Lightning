@@ -30,7 +30,7 @@ class BannedMember(commands.IDConverter):
             except discord.NotFound as e:
                 raise commands.BadArgument("This member has not been banned before.") from e
 
-        entity = discord.utils.find(lambda u: str(u.user) == argument, ctx.guild.bans())
+        entity = await discord.utils.find(lambda u: str(u.user) == argument, ctx.guild.bans(limit=None))
 
         if entity is None:
             raise commands.BadArgument("This member has not been banned before.")
