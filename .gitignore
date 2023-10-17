@@ -125,6 +125,7 @@ lightning/resources/fonts
 lightning/resources/templates
 /config.toml
 resources/nindy_data.json
+docker-data/
 # Migrations
 migratory.json
 
