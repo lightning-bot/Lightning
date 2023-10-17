@@ -429,6 +429,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         return await connection.execute(query, guild_id, val)
 
     @hybrid_command(level=CommandLevel.Mod)
+    @app_commands.describe(target="The member to unmute", reason="The reason for the unmute")
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @hybrid_guild_permissions(manage_roles=True)
     async def unmute(self, ctx: ModContext, target: discord.Member, *,
@@ -460,6 +461,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @command(level=CommandLevel.Mod, cls=lflags.HybridFlagCommand, parser=BaseModParser)
     @commands.bot_has_guild_permissions(moderate_members=True)
     @hybrid_guild_permissions(moderate_members=True)
+    @app_commands.describe(target="The member to timeout", duration="The duration for the timeout (max 28 days)",
+                           reason="The reason for the timeout")
     async def timeout(self, ctx: ModContext,
                       target: converters.TargetMember(fetch_user=False), duration: FutureTime,
                       *, flags):
@@ -475,6 +478,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @hybrid_command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(moderate_members=True)
     @hybrid_guild_permissions(moderate_members=True)
+    @app_commands.describe(target="The member to remove from timeout", reason="The reason for the untimeout")
     async def untimeout(self, ctx: ModContext, target: discord.Member, *, reason: Optional[str] = None):
         """Removes a member from time out"""
         if not target.is_timed_out():
