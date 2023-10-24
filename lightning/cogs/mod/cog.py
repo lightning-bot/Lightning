@@ -719,10 +719,6 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     async def on_lightning_timeban_complete(self, timer: Timer):
         assert timer.extra is not None
 
-        # We need to update timeban status first. Eventually, we need to move this over to infractions cog but idk
-        query = "UPDATE infractions SET active=false WHERE guild_id=$1 AND user_id=$2 AND expiry=$3 AND action='4';"
-        await self.bot.pool.execute(query, timer.extra['guild_id'], timer.extra['user_id'], timer.expiry)
-
         guild = self.bot.get_guild(timer.extra['guild_id'])
         if guild is None:
             # Bot was kicked.
@@ -751,8 +747,6 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
             await self.remove_punishment_role(timer.extra['guild_id'], timer.extra['user_id'],
                                               timer.extra['role_id'], connection=connection)
-            query = "UPDATE infractions SET active=false WHERE guild_id=$1 AND user_id=$2 AND expiry=$3 AND action='8';"
-            await connection.execute(query, timer.extra['guild_id'], timer.extra['user_id'], timer.expiry)
 
         guild = self.bot.get_guild(timer.extra['guild_id'])
         if guild is None:
