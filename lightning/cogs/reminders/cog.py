@@ -192,7 +192,7 @@ class Reminders(LightningCog):
                                    channel=channel,
                                    message_id=ctx.message.id)
 
-        if type(_id) == dict:
+        if type(_id) is dict:
             content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
                       f" {discord.utils.format_dt(when.dt)} about {when.arg}. (#{_id['id']})"
         else:
