@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2022 LightSage
+Copyright (C) 2019-2023 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -24,7 +24,7 @@ class LightningError(Exception):
     """Base class for custom errors"""
 
 
-class LightningCommandError(LightningError):
+class LightningCommandError(LightningError, commands.CommandError):
     """Error class for if something internal broke with the command."""
     ...
 
