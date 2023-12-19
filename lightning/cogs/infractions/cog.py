@@ -31,7 +31,8 @@ from sanctum.exceptions import NotFound
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        hybrid_command, hybrid_group)
-from lightning.cogs.infractions.converters import InfractionConverter
+from lightning.cogs.infractions.converters import (InfractionConverter,
+                                                   InfractionTypeConverter)
 from lightning.cogs.infractions.ui import (InfractionPaginator,
                                            InfractionSource,
                                            SingularInfractionSource)
@@ -232,14 +233,19 @@ class Infractions(LightningCog, required=['Moderation']):
 
     @infraction.command(name='list', level=CommandLevel.Mod)
     @is_server_manager()
-    @app_commands.describe(member="The member to look up infractions for")
-    async def list_infractions(self, ctx: GuildContext, member: Optional[discord.User]) -> None:
+    @app_commands.describe(member="The member to look up infractions for",
+                           action="The action to filter infractions for")
+    @app_commands.choices(action=[app_commands.Choice(name=x.capitalize(),
+                                                      value=x) for x, _ in ActionType])
+    async def list_infractions(self, ctx: GuildContext, member: Optional[discord.User],
+                               action: Annotated[Optional[int], InfractionTypeConverter] = None) -> None:
         """Lists infractions that were done in the server with optional filter(s)"""
         if member:
-            infs = await self.wrap_request(self.bot.api.get_user_infractions(ctx.guild.id, member.id))
+            infs = await self.wrap_request(self.bot.api.get_user_infractions(ctx.guild.id, member.id,
+                                                                             action_num=action))
             src = InfractionSource(infs, member=member)
         else:
-            infs = await self.wrap_request(self.bot.api.get_infractions(ctx.guild.id))
+            infs = await self.wrap_request(self.bot.api.get_infractions(ctx.guild.id, action_num=action))
             src = InfractionSource(infs)
 
         await self.start_infraction_pages(ctx, src)

@@ -655,7 +655,7 @@ voice = ["PyNaCl (>=1.3.0,<1.6)"]
 type = "git"
 url = "https://github.com/Rapptz/discord.py.git"
 reference = "master"
-resolved_reference = "50190e088e38257016e69b9b0004f17b814b4478"
+resolved_reference = "2a59e0286ef796aefa11ff1e4e9a442717af82e2"
 
 [[package]]
 name = "distlib"
@@ -2153,13 +2153,13 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "sanctum-tc"
-version = "0.7.0"
+version = "0.8.0"
 description = "Library for interacting with the Sanctum API"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "sanctum_tc-0.7.0-py3-none-any.whl", hash = "sha256:ecabcb606e642e6779e6fce25eb723fa61c66439aeed2b5dc687e057fd6609c4"},
-    {file = "sanctum_tc-0.7.0.tar.gz", hash = "sha256:9be0a65f56ca9a7f98a730a12576d4195ae99dce7a34ec65f026a381943b31fa"},
+    {file = "sanctum_tc-0.8.0-py3-none-any.whl", hash = "sha256:ab459ea9d373a1b41fa6ae5b1749175a1be7a6178608dfd17923b5615c5d4762"},
+    {file = "sanctum_tc-0.8.0.tar.gz", hash = "sha256:a8a5dd790c3c58a18fe8872db3d36753481c91ab997b74269c058afdd7422439"},
 ]
 
 [package.dependencies]
@@ -2658,4 +2658,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.12"
-content-hash = "8f7975ba54a0aa488ba491f43aa4d6fb53f2fecd6c231d6f5ea9315185d20872"
+content-hash = "8719c631747d66b267584c3e632b3f2e10969524f39f2b4872a284e4b529aae6"

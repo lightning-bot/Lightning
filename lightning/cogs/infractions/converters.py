@@ -24,6 +24,7 @@ from discord.ext import commands
 from sanctum.exceptions import NotFound
 
 from lightning import GuildContext, LightningBot
+from lightning.enums import ActionType
 from lightning.models import InfractionRecord
 
 
@@ -32,6 +33,17 @@ class InfractionFilterFlags(commands.FlagConverter):
     active: bool = commands.flag(default=True)
     moderator: Optional[discord.Member]
     type: Optional[Literal['WARN', 'KICK', 'BAN', 'TEMPBAN', 'TEMPMUTE', 'MUTE']]
+
+
+class InfractionTypeConverter(commands.Converter):
+    async def convert(self, ctx: GuildContext, argument: str):
+        argument = argument.upper().strip()
+        try:
+            action = ActionType[argument]
+        except KeyError:
+            raise commands.BadArgument(f"Unable to convert \"{argument}\".")
+
+        return action.value
 
 
 class InfractionConverter(commands.Converter, app_commands.Transformer):
