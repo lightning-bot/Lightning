@@ -90,6 +90,9 @@ class Tree(app_commands.CommandTree):
             p = ', '.join(error.missing_permissions).replace('_', ' ').replace('guild', 'server').title()
             await messagable(f"You are missing {p} permissions to use this command!", ephemeral=True)
             return
+        elif isinstance(error, errors.LightningCommandError):
+            await messagable(str(error))
+            return
 
         return await super().on_error(interaction, error)
 
