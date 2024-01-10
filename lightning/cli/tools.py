@@ -97,6 +97,7 @@ COPYRIGHT_REGEX = re.compile(r"(Copyright\s\(C\)\s[0-9].+-)[0-9].+(\s\w+)")
 def update_copyright(year: str = typer.Argument(..., help="The new year to write to every file"),
                      directory: pathlib.Path = typer.Option(..., help="Directory to look in",
                                                             exists=True, file_okay=False, dir_okay=True)):
+    applied = []
     for file in directory.glob("**/*.py"):
 
         with open(file, mode="r", encoding='utf-8', newline="\n") as fp:
@@ -104,7 +105,11 @@ def update_copyright(year: str = typer.Argument(..., help="The new year to write
 
         with open(file, mode="w", encoding='utf-8', newline="\n") as fp:
             fp.write(w)
-        return
+
+        typer.echo(str(file))
+        applied.append(file)
+
+    typer.secho(f"Updated copyright for {len(applied)} files!", fg=typer.colors.GREEN)
 
 
 param_name_lookup = {"HumanTime": "Time", "FutureTime": "Time"}
