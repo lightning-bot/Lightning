@@ -21,11 +21,12 @@ import discord
 from discord.ext import menus
 
 from lightning import GuildContext
+from lightning.enums import ActionType
 from lightning.formatters import truncate_text
 from lightning.models import InfractionRecord
 from lightning.utils.modlogformats import base_user_format
 from lightning.utils.paginator import Paginator
-from lightning.utils.time import add_tzinfo, natural_timedelta
+from lightning.utils.time import add_tzinfo
 
 
 class InfractionPaginator(Paginator):
@@ -44,7 +45,10 @@ class InfractionSource(menus.ListPageSource):
         for entry in entries:
             moderator = menu.bot.get_user(entry['moderator_id']) or entry['moderator_id']
             reason = entry['reason'] or 'No reason provided.'
-            embed.add_field(name=f"{entry['id']}: {natural_timedelta(datetime.fromisoformat(entry['created_at']))}",
+            action = str(ActionType(entry['action'])).capitalize()
+            dt = add_tzinfo(datetime.fromisoformat(entry['created_at']))
+            embed.add_field(name=f"{entry['id']}: {action} at "
+                                 f"{discord.utils.format_dt(dt)}",
                             value=f"**Moderator**: {base_user_format(moderator)}\n"
                                   f"**Reason**: {truncate_text(reason, 45)}", inline=False)
         return embed
@@ -55,7 +59,10 @@ class InfractionSource(menus.ListPageSource):
             user = menu.bot.get_user(entry['user_id']) or entry['user_id']
             mod = menu.bot.get_user(entry['moderator_id']) or entry['moderator_id']
             reason = entry['reason'] or 'No reason provided.'
-            embed.add_field(name=f"{entry['id']}: {natural_timedelta(datetime.fromisoformat(entry['created_at']))}",
+            action = str(ActionType(entry['action'])).capitalize()
+            dt = add_tzinfo(datetime.fromisoformat(entry['created_at']))
+            embed.add_field(name=f"{entry['id']}: {action} at "
+                                 f"{discord.utils.format_dt(dt)}",
                             value=f"**User**: {base_user_format(user)}\n**Moderator**: {base_user_format(mod)}"
                                   f"\n**Reason**: {truncate_text(reason, 45)}",
                             inline=False)
