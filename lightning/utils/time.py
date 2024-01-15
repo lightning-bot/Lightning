@@ -195,6 +195,11 @@ class UserFriendlyTime(commands.Converter):
             if argument[0:6] in ('me to ', 'me in ', 'me at '):
                 argument = argument[6:]
 
+        # Remove "set" from the argument since some people expect this to work
+        # to remove if I ever have a use case from a "remind set" command
+        if argument[0:3] == 'set':
+            argument = argument[3:]
+
         now = now.astimezone(tzinfo)
         elements = calendar.nlp(argument, sourceTime=now)
         if elements is None or len(elements) == 0:
