@@ -198,7 +198,7 @@ class UserFriendlyTime(commands.Converter):
         # Remove "set" from the argument since some people expect this to work
         # to remove if I ever have a use case from a "remind set" command
         if argument[0:3] == 'set':
-            argument = argument[3:]
+            argument = argument[3:].lstrip()
 
         now = now.astimezone(tzinfo)
         elements = calendar.nlp(argument, sourceTime=now)
