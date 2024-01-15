@@ -1,7 +1,7 @@
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C06AS9P)
 [![Discord](https://img.shields.io/discord/527887739178188830.svg)](https://short.lightsage.dev/discord)
 [![Pipeline Status](https://img.shields.io/github/checks-status/lightning-bot/Lightning/master)](https://github.com/lightning-bot/Lightning/actions)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f6090efb0b7f4fd6b601adc8733d000e)](https://www.codacy.com/gh/lightning-bot/Lightning/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=lightning-bot/Lightning&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f6090efb0b7f4fd6b601adc8733d000e)](https://app.codacy.com/gh/lightning-bot/Lightning/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 ---
