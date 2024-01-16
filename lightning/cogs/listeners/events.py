@@ -59,13 +59,32 @@ class ListenerEvents(LightningCog):
     def __init__(self, bot: LightningBot):
         super().__init__(bot)
         self.ignored = set()
+        self._cached_audit_logs: dict[int, list[discord.AuditLogEntry]] = {}
 
     # TODO: Don't fetch entries if no logging is enabled???
+
+    # 10 second cache for audit logs to reduce the number of requests to the audit log endpoint
+    @LightningCog.listener('on_audit_log_entry_create')
+    async def cache_audit_logs(self, entry: discord.AuditLogEntry):
+        # I don't care about anything else other than the actions below
+        if entry.action not in (discord.AuditLogAction.member_update, discord.AuditLogAction.role_delete,
+                                discord.AuditLogAction.member_role_update):
+            return
+
+        if entry.guild.id not in self._cached_audit_logs:
+            self._cached_audit_logs[entry.guild.id] = [entry]
+        else:
+            self._cached_audit_logs[entry.guild.id].append(entry)
+
+        self.bot.loop.call_later(10, self._cached_audit_logs[entry.guild.id].remove, entry)
 
     async def fetch_audit_log_entry(self, guild: discord.Guild, action: discord.AuditLogAction, *,
                                     target: Optional[discord.abc.Snowflake] = None, limit: int = 50,
                                     check: Optional[Callable] = None) -> Optional[discord.AuditLogEntry]:
-        async for entry in guild.audit_logs(limit=limit, action=action):
+        for entry in self._cached_audit_logs.get(guild.id, []):
+            if entry.action is not action:
+                continue
+
             td = discord.utils.utcnow() - entry.created_at
             if td < timedelta(seconds=10):
                 if target is not None and entry.target.id == target.id:
