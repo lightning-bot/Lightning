@@ -21,10 +21,11 @@ import enum
 import inspect
 import time
 from functools import wraps
-from typing import Optional
+from typing import Any, Callable, Optional, TypeVar
 
 import redis.asyncio as aioredis
 from lru import LRU
+from typing_extensions import ParamSpec
 
 from lightning.config import Config
 
@@ -187,29 +188,33 @@ def key_builder(args, kwargs, *, ignore_kwargs=False) -> str:
     return ':'.join(key)
 
 
+RT = TypeVar("RT")
+P = ParamSpec("P")
+
+
 class cached:
-    def __init__(self, name, strategy=Strategy.raw, *, rename_to_func=False, ignore_kwargs=False, **kwargs):
+    def __init__(self, name: str, strategy=Strategy.raw, *, rename_to_func=False, ignore_kwargs=False, **kwargs):
         self.rename_to_func = rename_to_func
         self.ignore_kwargs = ignore_kwargs
         self.key_builder = key_builder
 
         self.cache = strategy.value[1](name, **kwargs)
 
-    def __call__(self, func):
+    def __call__(self, func: Callable[P, RT]) -> Callable[P, RT]:
         if self.rename_to_func is True:
             registry.rename(self.cache.name, f'{func.__module__}.{func.__name__}')
 
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: P.args, **kwargs: P.kwargs):
             return await self.decorator(func, *args, **kwargs)
 
-        async def _invalidate(*args, **kwargs):
+        async def _invalidate(*args: P.args, **kwargs: P.kwargs):
             return await self.cache.invalidate(self.key_builder(args, kwargs, ignore_kwargs=self.ignore_kwargs))
 
         wrapper.invalidate = _invalidate
         return wrapper
 
-    async def decorator(self, func, *args, **kwargs):
+    async def decorator(self, func, *args, **kwargs) -> Any:
         key = self.key_builder(args, kwargs, ignore_kwargs=self.ignore_kwargs)
         try:
             value = await self.cache.get(key)
