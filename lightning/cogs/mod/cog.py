@@ -83,7 +83,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         ctx.config = record
         return ctx  # type: ignore
 
-    def format_reason(self, author, reason: Optional[str], *, action_text=None) -> str:
+    def format_reason(self, author, reason: Optional[str], *, action_text: Optional[str] = None) -> str:
         if action_text:
             return truncate_text(modlogformats.action_format(author, action_text, reason=reason), 512)
         else:
@@ -318,7 +318,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         self.bot.ignore_modlog_event(ctx.guild.id, "on_lightning_member_timeout", f"{target.id}")
 
         try:
-            await target.edit(timed_out_until=duration.dt, reason=reason)
+            await target.edit(timed_out_until=duration.dt, reason=self.format_reason(ctx.author, reason))
         except discord.HTTPException as e:
             raise MuteRoleError(f"Unable to timeout {target} ({str(e)})")
 
