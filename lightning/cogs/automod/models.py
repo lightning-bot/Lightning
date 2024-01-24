@@ -140,9 +140,17 @@ class SpamConfig:
             return False
 
         ratelimited = await self.cooldown.hit(message, incr_amount=increment)
+        # Track message IDs to delete
+        await self.cooldown.redis.sadd(f"{self.cooldown._key_maker(message)}:messages",
+                                       f"{message.channel.id}:{message.id}")
 
         return bool(ratelimited)
 
+    async def fetch_responsible_messages(self, message: discord.Message):
+        """Gets the message IDs that triggered this AutoMod rule"""
+        return await self.cooldown.redis.smembers(f"{self.cooldown._key_maker(message)}:messages")
+
     async def reset_bucket(self, message: discord.Message) -> None:
         # I wouldn't think there's a need for this but if you're using warn (for example), it'll double warn
-        await self.cooldown.redis.delete(self.cooldown._key_maker(message))
+        await self.cooldown.redis.delete(self.cooldown._key_maker(message),
+                                         f"{self.cooldown._key_maker(message)}:messages")

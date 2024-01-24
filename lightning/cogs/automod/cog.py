@@ -14,8 +14,10 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 from __future__ import annotations
 
+import contextlib
 import datetime
 from typing import (TYPE_CHECKING, Annotated, Any, Callable, Dict, List,
                     Literal, Optional, TypedDict, Union)
@@ -536,6 +538,24 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         await meth(self, message, options.duration, reason=reason)
 
+    async def _delete_tracked_messages(self, messages: set[str], guild: discord.Guild):
+        # Deletes message IDs tracked in AutoMod
+        tmp: Dict[str, List[discord.Object]] = {}
+        for message in messages:
+            channel_id, message_id = message.split(":")
+            if channel_id not in tmp:
+                tmp[channel_id] = [discord.Object(message_id)]
+            else:
+                tmp[channel_id].append(discord.Object(message_id))
+
+        for channel_id, message_ids in tmp.items():
+            channel = guild.get_channel_or_thread(int(channel_id))
+            if not channel:
+                continue
+
+            with contextlib.suppress(discord.HTTPException):
+                await channel.delete_messages(message_ids, reason="Clean up of recent AutoMod trigger")
+
     async def check_message(self, message: discord.Message, config: AutomodConfig):
         async def handle_bucket(attr_name: str, increment: Optional[Callable[[discord.Message], int]] = None):
             obj: Optional[SpamConfig] = getattr(config, attr_name, None)
@@ -550,8 +570,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
                 rl = await obj.update_bucket(message)
 
             if rl is True:
+                messages = await obj.fetch_responsible_messages(message)
                 await obj.reset_bucket(message)
                 await self._handle_punishment(obj.punishment, message, attr_name)
+                await self._delete_tracked_messages(messages, message.guild)
 
         await handle_bucket('mass_mentions', lambda m: len(m.mentions) + len(m.role_mentions))
         await handle_bucket('message_spam')
