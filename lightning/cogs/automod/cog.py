@@ -573,7 +573,8 @@ class AutoMod(LightningCog, required=["Moderation"]):
                 messages = await obj.fetch_responsible_messages(message)
                 await obj.reset_bucket(message)
                 await self._handle_punishment(obj.punishment, message, attr_name)
-                await self._delete_tracked_messages(messages, message.guild)
+                if obj.punishment.type != "BAN":
+                    await self._delete_tracked_messages(messages, message.guild)
 
         await handle_bucket('mass_mentions', lambda m: len(m.mentions) + len(m.role_mentions))
         await handle_bucket('message_spam')
