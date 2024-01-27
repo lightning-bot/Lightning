@@ -51,9 +51,9 @@ class Message(commands.Converter):
         # regex from d.py
         argument = argument[0]
         link_regex = re.compile(
-            r'^https?://(?:(ptb|canary)\.)?discord(?:app)?\.com/channels/'
-            r'(?:([0-9]{15,21})|(@me))'
-            r'/(?P<channel_id>[0-9]{15,21})/(?P<message_id>[0-9]{15,21})/?$'
+            r'https?://(?:(ptb|canary|www)\.)?discord(?:app)?\.com/channels/'
+            r'(?P<guild_id>[0-9]{15,20}|@me)'
+            r'/(?P<channel_id>[0-9]{15,20})/(?P<message_id>[0-9]{15,20})/?$'
         )
         match = link_regex.match(argument)
         if not match:
