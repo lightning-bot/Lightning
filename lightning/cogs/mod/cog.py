@@ -379,8 +379,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                                           timer=created_timer['id'])
 
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
-    @has_guild_permissions(manage_roles=True)
-    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
+    @hybrid_guild_permissions(manage_roles=True)
+    @command(cls=lflags.HybridFlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
     async def mute(self, ctx: ModContext, target: converters.TargetMember, *, flags) -> None:
         """Permanently mutes a user"""
         role = await self.get_mute_role(ctx)
