@@ -221,6 +221,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await self.confirm_and_log_action(ctx, target, "BAN")
 
     @hybrid_command(cls=lflags.HybridFlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
+    @app_commands.guild_only()
     @hybrid_guild_permissions(manage_messages=True)
     @app_commands.describe(target="The member to warn", reason="The reason for the warn")
     async def warn(self, ctx: GuildContext,
@@ -374,6 +375,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @command(cls=lflags.HybridFlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @hybrid_guild_permissions(manage_roles=True)
+    @app_commands.guild_only()
     async def mute(self, ctx: ModContext, target: converters.TargetMember, *, flags) -> None:
         """Permanently mutes a user"""
         role = await self.get_mute_role(ctx)
@@ -419,6 +421,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @app_commands.describe(target="The member to unmute", reason="The reason for the unmute")
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @hybrid_guild_permissions(manage_roles=True)
+    @app_commands.guild_only()
     async def unmute(self, ctx: ModContext, target: discord.Member, *,
                      reason: Optional[str]) -> None:
         """Unmutes a user"""
@@ -466,6 +469,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(moderate_members=True)
     @hybrid_guild_permissions(moderate_members=True)
     @app_commands.describe(target="The member to remove from timeout", reason="The reason for the untimeout")
+    @app_commands.guild_only()
     async def untimeout(self, ctx: ModContext, target: discord.Member, *, reason: Optional[str] = None):
         """Removes a member from time out"""
         if not target.is_timed_out():
@@ -512,6 +516,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @app_commands.describe(target="The member to ban",
                            duration="The duration for the ban",
                            reason="The reason for the timed ban")
+    @app_commands.guild_only()
     async def timeban(self, ctx: GuildContext, target: converters.TargetMember,
                       duration: FutureTime, *, flags) -> None:
         """Bans a user for a specified amount of time.
@@ -527,6 +532,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @app_commands.describe(target="The member to mute",
                            duration="The duration for the mute",
                            reason="The reason for the mute")
+    @app_commands.guild_only()
     async def timemute(self, ctx: ModContext, target: converters.TargetMember,
                        duration: FutureTime, *, flags) -> None:
         """Mutes a user for a specified amount of time.
@@ -668,6 +674,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @hybrid_guild_permissions(manage_guild=True, manage_nicknames=True)
     @commands.bot_has_guild_permissions(manage_nicknames=True)
     @commands.cooldown(1, 300.0, commands.BucketType.guild)
+    @app_commands.guild_only()
     async def dehoist(self, ctx: GuildContext, character: Optional[str]):
         """Dehoists members with an optional specified character in the beginning of their name"""
         char: List[str] = [character] if character else COMMON_HOIST_CHARACTERS
@@ -690,6 +697,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @hybrid_command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(manage_nicknames=True)
     @hybrid_guild_permissions(manage_nicknames=True)
+    @app_commands.guild_only()
     async def normalize(self, ctx: GuildContext, member: discord.Member):
         """Transliterates a member's name into ASCII"""
         normalized = unidecode(member.display_name)

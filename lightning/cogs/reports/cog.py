@@ -172,6 +172,7 @@ class Reports(LightningCog):
 
     @hybrid_command(name='reportsetup', level=CommandLevel.Admin)
     @is_server_manager()
+    @app_commands.guild_only()
     async def report_setup(self, ctx: GuildContext):
         """Configure the message report feature"""
         view = ReportConfiguration(context=ctx, delete_message_after=True)
