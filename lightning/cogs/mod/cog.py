@@ -197,8 +197,6 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @lflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
                      help="Bot does not DM the user the reason for the action.")
-    @lflags.add_flag("--duration", "--time", "-t", converter=FutureTime, help="Duration for the ban",
-                     required=False)
     @lflags.add_flag("--delete-messages", converter=int, default=0,
                      help="Delete message history from a specified amount of days (Max 7)")
     @commands.bot_has_guild_permissions(ban_members=True)
@@ -213,11 +211,6 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             raise commands.BadArgument("You can't delete a negative amount of messages.")
 
         reason = flags['reason']
-
-        if flags['duration']:
-            return await self.time_ban_user(ctx, target, ctx.author, reason, flags['duration'],
-                                            dm_user=not flags['nodm'],
-                                            delete_message_days=min(flags['delete_messages'], 7))
 
         if not flags['nodm'] and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason)
