@@ -378,18 +378,12 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await self.confirm_and_log_action(ctx, target, "TIMEMUTE", duration_text=duration_text, expiry=duration.dt,
                                           timer=created_timer['id'])
 
-    @lflags.add_flag("--duration", "-D", converter=FutureTime, help="Duration for the mute", required=False)
-    @lflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
-                     help="Bot does not DM the user the reason for the action.")
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @has_guild_permissions(manage_roles=True)
-    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason", raise_bad_flag=False)
+    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
     async def mute(self, ctx: ModContext, target: converters.TargetMember, *, flags) -> None:
-        """Mutes a user"""
+        """Permanently mutes a user"""
         role = await self.get_mute_role(ctx)
-        if flags['duration']:
-            await self.time_mute_user(ctx, target, flags['reason'], flags['duration'], dm_user=not flags['nodm'])
-            return
 
         if not flags['nodm'] and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "muted", "in", reason=flags['reason'])
