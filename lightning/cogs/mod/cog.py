@@ -230,16 +230,18 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                    *, flags) -> None:
         """Warns a member"""
         emoji = "\N{OPEN MAILBOX WITH LOWERED FLAG}"
+        query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
+        warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, ActionType.WARN.value) or 0
 
         if not flags.nodm and isinstance(target, discord.Member):
-            dm_message = modlogformats.construct_dm_message(target, "warned", "in", reason=flags.reason)
+            dm_message = modlogformats.construct_dm_message(target, "warned", "in", reason=flags.reason,
+                                                            ending=f"You now have {plural(warns + 1):warning}!\nTo view"
+                                                                   f"your warns, use /mywarns in the server.")
             # ending="\n\nAdditional action may be taken against you if the server has set it up."
             indicator = await helpers.dm_user(target, dm_message)
             if indicator is True:
                 emoji = "\N{OPEN MAILBOX WITH RAISED FLAG}"
 
-        query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
-        warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, ActionType.WARN.value) or 0
         await self.confirm_and_log_action(ctx, target, "WARN", warning_text=f"{plural(warns + 1):warning} {emoji}")
 
     @hybrid_command(level=CommandLevel.Mod)
