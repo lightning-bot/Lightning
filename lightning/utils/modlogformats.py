@@ -85,7 +85,7 @@ def construct_dm_message(member, action_verb, location, *, middle=None, reason=N
     if middle:
         msg.append(middle)
     if reason:
-        msg.append(f"\n\nThe given reason is {reason}")
+        msg.append(f"\n\n**Reason**: {reason}")
     if ending:
         msg.append(ending)
     return ''.join(msg)
