@@ -270,7 +270,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         before = ctx.message if flags.before is None else discord.Object(id=flags.before)
         after = discord.Object(id=flags.after) if flags.after else None
 
-        await ctx.defer()
+        if ctx.interaction and ctx.interaction.response.is_done() is False:
+            await ctx.defer()
 
         try:
             purged = await ctx.channel.purge(limit=search,
