@@ -32,7 +32,7 @@ tomlkit = "^0.12.1"
 uvloop = {version = "^0.17.0", platform = "linux"}
 orjson = "^3.6.0"
 beautifulsoup4 = "^4.9.3"
-lxml = "^4.9.2"
+lxml = "^5.1.0"
 sanctum-tc = "^0.8.0"
 objgraph = "^3.5.0"
 asyncpg-stubs = "^0.27.0"
