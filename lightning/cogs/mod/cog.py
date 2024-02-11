@@ -172,7 +172,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         duration_text = f"{natural_timedelta(duration.dt, source=ctx.message.created_at)} ("\
                         f"{discord.utils.format_dt(duration.dt)})"
 
-        cog: Optional[Reminders] = self.bot.get_cog('Reminders')
+        cog: Optional[Reminders] = self.bot.get_cog('Reminders')  # type: ignore
         if not cog:
             raise TimersUnavailable
 
@@ -307,8 +307,9 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         return ctx.config.get_mute_role()
 
-    async def timeout_member(self, ctx, target: discord.Member, reason: str, duration: FutureTime, *, dm_user=False):
-        timer: Optional[Reminders] = self.bot.get_cog('Reminders')
+    async def timeout_member(self, ctx: ModContext, target: discord.Member, reason: str, duration: FutureTime,
+                             *, dm_user=False):
+        timer: Optional[Reminders] = self.bot.get_cog('Reminders')  # type: ignore
         if not timer:
             raise TimersUnavailable
 
