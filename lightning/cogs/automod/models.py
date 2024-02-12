@@ -154,3 +154,25 @@ class SpamConfig:
         # I wouldn't think there's a need for this but if you're using warn (for example), it'll double warn
         await self.cooldown.redis.delete(self.cooldown._key_maker(message),
                                          f"{self.cooldown._key_maker(message)}:messages")
+
+
+class GateKeeperConfig:
+    def __init__(self, bot, record, members) -> None:
+        self.bot: LightningBot = bot
+        self.guild_id = record['guild_id']
+        self.active = record['active']
+        self.role_id = record['role_id']
+        self.members = {r['member_id'] for r in members if r['pending_automod_action'] is None}
+
+    @property
+    def role(self) -> discord.Role:
+        guild = self.bot.get_guild(self.guild_id)  # should never be None
+        return guild.get_role(self.role_id)  # type: ignore
+
+    async def gatekeep_member(self, member: discord.Member):
+        await member.add_roles(self.role, reason="Gatekeeper active")
+        query = """INSERT INTO pending_gatekeeper_members (guild_id, member_id)
+                   VALUES ($1, $2)
+                   ON CONFLICT DO NOTHING;"""
+        await self.bot.pool.execute(query, member.guild.id, member.id)
+        self.members.add(member.id)
