@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import TYPE_CHECKING, Callable, List, Optional, TypedDict, Union
 
@@ -163,16 +164,26 @@ class GateKeeperConfig:
         self.active = record['active']
         self.role_id = record['role_id']
         self.members = {r['member_id'] for r in members if r['pending_automod_action'] is None}
+        self.lock = asyncio.Event()
 
     @property
     def role(self) -> discord.Role:
         guild = self.bot.get_guild(self.guild_id)  # should never be None
         return guild.get_role(self.role_id)  # type: ignore
 
+    async def _loop(self):
+        result = await self.bot.redis_pool.brpop([f"lightning:automod:gatekeeper:{self.guild_id}"], 0)
+
+        try:
+            await self.bot.http.add_role(self.guild_id, int(result[1]), self.role_id,
+                                         reason='Gatekeeper currently active')
+        except discord.HTTPException:
+            pass
+
     async def gatekeep_member(self, member: discord.Member):
-        await member.add_roles(self.role, reason="Gatekeeper active")
         query = """INSERT INTO pending_gatekeeper_members (guild_id, member_id)
                    VALUES ($1, $2)
                    ON CONFLICT DO NOTHING;"""
         await self.bot.pool.execute(query, member.guild.id, member.id)
         self.members.add(member.id)
+        await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}", member.id)
