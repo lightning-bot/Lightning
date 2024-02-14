@@ -160,11 +160,12 @@ class SpamConfig:
 class GateKeeperConfig:
     def __init__(self, bot, record, members) -> None:
         self.bot: LightningBot = bot
-        self.guild_id = record['guild_id']
+        self.guild_id: int = record['guild_id']
         self.active = record['active']
-        self.role_id = record['role_id']
-        self.members = {r['member_id'] for r in members if r['pending_automod_action'] is None}
-        self.lock = asyncio.Event()
+        self.role_id: Optional[int] = record['role_id']
+        self.verification_channel_id: Optional[int] = record['verification_channel_id']
+        self.members: set[int] = {r['member_id'] for r in members if r['pending_automod_action'] is None}
+        self.gtkp_loop = asyncio.create_task(self._loop())
 
     @property
     def role(self) -> discord.Role:
@@ -172,13 +173,33 @@ class GateKeeperConfig:
         return guild.get_role(self.role_id)  # type: ignore
 
     async def _loop(self):
-        result = await self.bot.redis_pool.brpop([f"lightning:automod:gatekeeper:{self.guild_id}"], 0)
+        # for quick ref, result is a list of [key, value]
+        while True:
+            result: List[str] = await self.bot.redis_pool.brpop([f"lightning:automod:gatekeeper:{self.guild_id}:add",
+                                                                f"lightning:automod:gatekeeper:{self.guild_id}:remove"],
+                                                                0)  # type: ignore
+            member_id = int(result[1])
+            state = result[0].split(":")[-1]
 
-        try:
-            await self.bot.http.add_role(self.guild_id, int(result[1]), self.role_id,
-                                         reason='Gatekeeper currently active')
-        except discord.HTTPException:
-            pass
+            if state == "remove":
+                role_method = self.bot.http.remove_role
+            else:
+                role_method = self.bot.http.add_role
+
+            try:
+                if state == "add":
+                    await role_method(self.guild_id, member_id, self.role_id,
+                                      reason='Gatekeeper currently active')
+                elif state == "remove":
+                    await role_method(self.guild_id, member_id, self.role_id,
+                                      reason='Completed Gatekeeper verification')
+                    await self.bot.pool.execute("DELETE FROM pending_gatekeeper_members WHERE guild_id=$1 AND "
+                                                "member_id=$2;",
+                                                self.guild_id, member_id)
+            except discord.DiscordServerError:
+                await self.bot.redis_pool.lpush(result[0], member_id)
+            except discord.HTTPException:
+                pass
 
     async def gatekeep_member(self, member: discord.Member):
         query = """INSERT INTO pending_gatekeeper_members (guild_id, member_id)
@@ -186,4 +207,15 @@ class GateKeeperConfig:
                    ON CONFLICT DO NOTHING;"""
         await self.bot.pool.execute(query, member.guild.id, member.id)
         self.members.add(member.id)
-        await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}", member.id)
+        await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}:add", member.id)
+
+    async def remove_member(self, member: discord.Member):
+        """Queues a member to be removed from verification (i.e. they verified themselves)"""
+        await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}:remove", member.id)
+        self.members.remove(member.id)
+
+    async def disable(self):
+        # Moves the members from the add list to the removal list
+        members = await self.bot.redis_pool.lrange(f"lightning:automod:gatekeeper:{self.guild_id}:add", 0, -1)
+        await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{self.guild_id}:remove", *members)
+        self.members.clear()
