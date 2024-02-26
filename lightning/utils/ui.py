@@ -58,10 +58,12 @@ class ConfirmationView(MenuLikeView):
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green, emoji=Emoji.greentick)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message()
         self.value = True
         self.stop()
 
     @discord.ui.button(label='Deny', style=discord.ButtonStyle.red, emoji=Emoji.redtick)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message()
         self.value = False
         self.stop()
