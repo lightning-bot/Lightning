@@ -124,3 +124,18 @@ async def has_required_level(level: CommandLevel, **permissions: bool):
         user = await get_member_level(interaction.client, interaction.user)  # type: ignore
         return user.value >= level.value
     return app_commands.check(predicate)
+
+# These are dangerous permissions, self assignable roles are meant to only give roles with basic permissions.
+# i.e. send_messages, read_message_history
+# This is used for permission checking when adding a new role to the list or toggling one.
+# I don't think anyone has used the bot yet to raid communities, but this is a safeguard for the future.
+DANGEROUS_PERMISSIONS = discord.Permissions(manage_threads=True, ban_members=True, manage_roles=True,
+                                            manage_guild=True, manage_messages=True, manage_channels=True,
+                                            administrator=True, kick_members=True, deafen_members=True,
+                                            manage_webhooks=True, manage_nicknames=True, mention_everyone=True,
+                                            move_members=True, moderate_members=True, manage_expressions=True)
+
+
+def has_dangerous_permissions(permissions: discord.Permissions):
+    """Returns True/False if the object has permissions that are deemed dangerous"""
+    return permissions.value & DANGEROUS_PERMISSIONS.value != 0
