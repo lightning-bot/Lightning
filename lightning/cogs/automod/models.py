@@ -162,6 +162,7 @@ class GateKeeperConfig:
         self.bot: LightningBot = bot
         self.guild_id: int = record['guild_id']
         self.active = record['active']
+        self.active_since = None
         self.role_id: Optional[int] = record['role_id']
         self.verification_channel_id: Optional[int] = record['verification_channel_id']
         self.members: set[int] = {r['member_id'] for r in members if r['pending_automod_action'] is None}
@@ -174,7 +175,7 @@ class GateKeeperConfig:
 
     async def _loop(self):
         # for quick ref, result is a list of [key, value]
-        while True:
+        while self.active:
             result: List[str] = await self.bot.redis_pool.brpop([f"lightning:automod:gatekeeper:{self.guild_id}:add",
                                                                 f"lightning:automod:gatekeeper:{self.guild_id}:remove"],
                                                                 0)  # type: ignore
@@ -215,6 +216,7 @@ class GateKeeperConfig:
         self.members.remove(member.id)
 
     async def disable(self):
+        self.active = False
         # Moves the members from the add list to the removal list
         members = await self.bot.redis_pool.lrange(f"lightning:automod:gatekeeper:{self.guild_id}:add", 0, -1)
         await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{self.guild_id}:remove", *members)
