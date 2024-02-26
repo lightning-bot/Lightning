@@ -21,6 +21,9 @@ services:
     environment:
       - POSTGRESQL_DSN=postgres://lightning:postgres@postgres/postgres
       - API_KEY=supersecretkey
+    depends_on:
+      - postgres
+      - redis
 
   bot:
     build: .
