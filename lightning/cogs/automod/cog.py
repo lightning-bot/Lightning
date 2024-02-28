@@ -319,7 +319,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
             return
 
         if record.warn_ban and record.warn_kick:
-            view = ui.AutoModWarnThresholdMigration(context=ctx)
+            view = ui.AutoModWarnThresholdMigration(author_id=ctx.author.id)
             await ctx.send("Which would you like to migrate?\n\n> *Warn thresholds only support one threshold!*",
                            view=view)
             await view.wait()
