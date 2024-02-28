@@ -172,13 +172,13 @@ class AutoModIgnoredPages(menus.ListPageSource):
 
 
 class AutoModWarnThresholdMigration(discord.ui.View):
-    def __init__(self, *, context: GuildContext):
+    def __init__(self, *, author_id: int):
         super().__init__(timeout=180)
-        self.context = context
+        self.author_id = author_id
         self.choice = None
 
     async def interaction_check(self, interaction: discord.Interaction):
-        return self.context.author.id == interaction.user.id
+        return self.author_id == interaction.user.id
 
     @discord.ui.button(label="Warn Kick")
     async def warn_kick(self, itx: discord.Interaction, button: discord.ui.Button):
