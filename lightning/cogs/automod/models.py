@@ -219,5 +219,6 @@ class GateKeeperConfig:
         self.active = False
         # Moves the members from the add list to the removal list
         members = await self.bot.redis_pool.lrange(f"lightning:automod:gatekeeper:{self.guild_id}:add", 0, -1)
-        await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{self.guild_id}:remove", *members)
+        if members:
+            await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{self.guild_id}:remove", *members)
         self.members.clear()
