@@ -16,14 +16,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import discord
 
-from lightning.ui import MenuLikeView
+from lightning.ui import BasicMenuLikeView
 from lightning.utils.helpers import Emoji
 
 
-class ConfirmationView(MenuLikeView):
+class ConfirmationView(BasicMenuLikeView):
     """A confirmation view.
-
-    This is similar to ConfirmationMenu, except it uses discord bot kit ui instead.
 
     Parameters
     ----------
@@ -34,7 +32,7 @@ class ConfirmationView(MenuLikeView):
     include_help_message : bool
         Whether to include a help message in the message sent
     **kwargs
-        Kwargs that are passed to MenuLikeView
+        Kwargs that are passed to BasicMenuLikeView
 
     Returns
     -------
@@ -44,8 +42,9 @@ class ConfirmationView(MenuLikeView):
         ``None`` if deny due to timeout
     """
 
-    def __init__(self, message: str, *, timeout=60.0, include_help_message: bool = False, **kwargs):
-        super().__init__(timeout=timeout, **kwargs)
+    def __init__(self, message: str, *, author_id: int, timeout=60.0, include_help_message: bool = False,
+                 **kwargs):
+        super().__init__(timeout=timeout, author_id=author_id, **kwargs)
         self.msg = message
         self.include_help_message = include_help_message
         self.value = None
@@ -60,10 +59,10 @@ class ConfirmationView(MenuLikeView):
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message()
         self.value = True
-        self.stop()
+        self.stop(interaction=interaction)
 
     @discord.ui.button(label='Deny', style=discord.ButtonStyle.red, emoji=Emoji.redtick)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message()
         self.value = False
-        self.stop()
+        self.stop(interaction=interaction)
