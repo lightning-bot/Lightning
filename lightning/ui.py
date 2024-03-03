@@ -176,7 +176,6 @@ class BasicMenuLikeView(discord.ui.View):
 
     async def cleanup(self, *, interaction: Optional[discord.Interaction] = None) -> None:
         # This is first for obvious reasons
-        print(type(self.message))
         if self.delete_message_after:
             if interaction:
                 if interaction.response.is_done() is False:
