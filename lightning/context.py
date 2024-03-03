@@ -59,9 +59,9 @@ class LightningContext(commands.Context):
                 await self.message.add_reaction(emoji)
 
     async def confirm(self, message: str, *, delete_after=True, include_help_message=False) -> Optional[bool]:
-        view = ConfirmationView(message, context=self, delete_message_after=delete_after,
+        view = ConfirmationView(message, author_id=self.author.id, delete_message_after=delete_after,
                                 include_help_message=include_help_message)
-        await view.start()
+        await view.start(self)
 
         return view.value
 
