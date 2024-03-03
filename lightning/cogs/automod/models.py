@@ -173,6 +173,11 @@ class GateKeeperConfig:
         guild = self.bot.get_guild(self.guild_id)  # should never be None
         return guild.get_role(self.role_id)  # type: ignore
 
+    @property
+    def verification_channel(self) -> discord.TextChannel:
+        guild = self.bot.get_guild(self.guild_id)
+        return guild.get_channel(self.verification_channel_id)  # type: ignore
+
     async def _loop(self):
         # for quick ref, result is a list of [key, value]
         while self.active:

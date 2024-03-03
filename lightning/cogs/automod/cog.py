@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 from __future__ import annotations
 
 import contextlib
@@ -34,7 +33,8 @@ from lightning.cogs.automod import ui
 from lightning.cogs.automod.converters import (AutoModDuration,
                                                AutoModDurationResponse,
                                                IgnorableEntities)
-from lightning.cogs.automod.models import AutomodConfig, SpamConfig
+from lightning.cogs.automod.models import (AutomodConfig, GateKeeperConfig,
+                                           SpamConfig)
 from lightning.constants import (AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING,
                                  AUTOMOD_ALL_EVENT_NAMES_LITERAL,
                                  AUTOMOD_BASIC_EVENT_NAMES_MAPPING,
@@ -66,7 +66,27 @@ class AutoMod(LightningCog, required=["Moderation"]):
     """Auto-moderation commands"""
     def __init__(self, bot: LightningBot):
         super().__init__(bot)
+        self.gatekeepers: dict[int, GateKeeperConfig] = {}
         # AutoMod stats?
+
+    async def get_gatekeeper_config(self, guild_id: int) -> Optional[GateKeeperConfig]:
+        if guild_id in self.gatekeepers:
+            return self.gatekeepers[guild_id]
+
+        query = "SELECT * FROM guild_gatekeeper_config WHERE guild_id=$1;"
+        record = await self.bot.pool.fetchrow(query, guild_id)
+        if not record:
+            return
+
+        query = "SELECT * FROM pending_gatekeeper_members WHERE guild_id=$1;"
+        mems = await self.bot.pool.fetch(query, guild_id)
+        self.gatekeepers[guild_id] = gatekeeper = GateKeeperConfig(self.bot, record, mems)
+        return gatekeeper
+
+    def invalidate_gatekeeper(self, guild_id: int):
+        gtkp = self.gatekeepers.pop(guild_id, None)
+        if gtkp:
+            gtkp.gtkp_loop.cancel()
 
     async def cog_check(self, ctx: LightningContext) -> bool:
         if ctx.guild is None:
