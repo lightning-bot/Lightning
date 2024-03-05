@@ -398,6 +398,26 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await ctx.send("Removed warn threshold!")
         await self.get_automod_config.invalidate(ctx.guild.id)
 
+    async def create_automod_config(self, guild: discord.Guild):
+        query = """INSERT INTO guild_automod_config (guild_id)
+                   VALUES ($1)
+                   ON CONFLICT (guild_id)
+                   DO NOTHING;"""
+        await self.bot.pool.execute(query, guild.id)
+
+    @automod.command(level=CommandLevel.Admin, name="gatekeeper")
+    @is_server_manager()
+    @commands.bot_has_guild_permissions(manage_channels=True)
+    async def gatekeeper_setup(self, ctx: GuildContext):
+        """Manages the gatekeeper"""
+        gatekeeper = await self.get_gatekeeper_config(ctx.guild.id)
+
+        if gatekeeper is None:
+            await self.create_automod_config(ctx.guild)
+
+        view = ui.GatekeeperSetup(gatekeeper, context=ctx)  # type: ignore
+        await view.start()
+
     @cache.cached('guild_automod', cache.Strategy.raw)
     async def get_automod_config(self, guild_id: int) -> Optional[AutomodConfig]:
         try:
