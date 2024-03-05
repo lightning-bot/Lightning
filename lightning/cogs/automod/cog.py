@@ -67,6 +67,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
     def __init__(self, bot: LightningBot):
         super().__init__(bot)
         self.gatekeepers: dict[int, GateKeeperConfig] = {}
+        self.bot.loop.create_task(self.load_all_gatekeepers())
         # AutoMod stats?
 
     async def get_gatekeeper_config(self, guild_id: int) -> Optional[GateKeeperConfig]:
@@ -92,6 +93,19 @@ class AutoMod(LightningCog, required=["Moderation"]):
         if ctx.guild is None:
             raise commands.NoPrivateMessage()
         return True
+
+    async def load_all_gatekeepers(self):
+        await self.bot.wait_until_ready()
+
+        async with self.bot.pool.acquire() as conn:
+            records = await conn.fetch("SELECT * FROM guild_gatekeeper_config")
+            for record in records:
+                guilds = (g.id for g in self.bot.guilds)
+                if record['guild_id'] not in guilds:
+                    continue
+                members = await conn.fetch("SELECT * FROM pending_gatekeeper_members WHERE guild_id=$1",
+                                           record['guild_id'])
+                self.gatekeepers[record['guild_id']] = GateKeeperConfig(self.bot, record, members)
 
     @hybrid_group(level=CommandLevel.Admin)
     @app_commands.guild_only()
@@ -134,6 +148,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
             embed.add_field(name="Warn Threshold",
                             value=f"Limit: {threshold}+\nPunishment: {config['warn_punishment']}",
                             inline=False)
+
+        if len(embed.fields) == 0:
+            await ctx.send("This server has not set up Lightning AutoMod yet!")
+            return
 
         await ctx.send(embed=embed)
 
