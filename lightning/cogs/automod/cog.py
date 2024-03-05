@@ -764,7 +764,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         if gatekeeper.role_id != role.id:
             return
 
-        query = "UPDATE guild_gatekeeper_config SET role_id=NULL WHERE guild_id=$1;"
+        query = "UPDATE guild_gatekeeper_config SET role_id=NULL, active='f' WHERE guild_id=$1;"
         await self.bot.pool.execute(query, role.guild.id)
         await gatekeeper.disable()
         gatekeeper.role_id = None
