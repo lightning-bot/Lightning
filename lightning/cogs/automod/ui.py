@@ -14,16 +14,28 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from typing import List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, List, Optional
 
 import discord
 from discord.ext import menus
 from sanctum.exceptions import NotFound
 
-from lightning import (ExitableMenu, GuildContext, SelectSubMenu,
-                       UpdateableMenu, lock_when_pressed)
+from lightning import (BasicMenuLikeView, ExitableMenu, GuildContext,
+                       LightningBot, SelectSubMenu, UpdateableMenu,
+                       lock_when_pressed)
 from lightning.constants import AUTOMOD_EVENT_NAMES_MAPPING
+from lightning.utils.checks import has_dangerous_permissions
 from lightning.utils.paginator import Paginator
+from lightning.utils.ui import ConfirmationView
+
+if TYPE_CHECKING:
+    from .cog import AutoMod as AutoModCog
+    from .models import GateKeeperConfig
+
+    class AutoModContext(GuildContext):
+        cog: AutoModCog
 
 automod_event_options = [discord.SelectOption(label="Message Spam", value="message-spam",
                                               description="Controls how many messages a user can send"),
@@ -191,3 +203,265 @@ class AutoModWarnThresholdMigration(discord.ui.View):
         self.choice = "warn_ban"
         await itx.response.edit_message(view=None)
         self.stop()
+
+
+class FakeCtx:
+    def __init__(self, member) -> None:
+        self.author = member
+
+
+class GatekeeperRoleView(BasicMenuLikeView):
+    @discord.ui.select(cls=discord.ui.RoleSelect, placeholder="Select a role", min_values=1, max_values=1)
+    async def callback(self, itx: discord.Interaction[LightningBot], select: discord.ui.RoleSelect):
+        assert itx.guild is not None
+
+        role = select.values[0]
+
+        if role >= itx.guild.me.top_role:
+            await itx.response.send_message("You cannot use this role because it is higher than my role!",
+                                            ephemeral=True)
+            return
+
+        if has_dangerous_permissions(role.permissions):
+            await itx.response.send_message("You cannot use this role because it contains permissions that are deemed"
+                                            " dangerous!", ephemeral=True)
+            return
+
+        await self.insert_role(itx, role)
+        await itx.response.send_message(f"Set {role.name} ({role.mention}) as the gatekeeper role!")
+        self.stop(interaction=itx)
+
+    async def insert_role(self, interaction: discord.Interaction[LightningBot], role: discord.Role):
+        query = """INSERT INTO guild_gatekeeper_config (guild_id, role_id)
+                   VALUES ($1, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET role_id=EXCLUDED.role_id;"""
+        await interaction.client.pool.execute(query, role.guild.id, role.id)
+
+    @staticmethod
+    async def create_permission_overwrites(guild: discord.Guild, role: discord.Role):
+        success = 0
+        failure = 0
+        skipped = 0
+        for channel in guild.text_channels:
+            if channel.permissions_for(guild.me).manage_roles:
+                overwrite = channel.overwrites_for(role)
+                overwrite.read_messages = False
+                overwrite.send_messages = False
+                overwrite.add_reactions = False
+                overwrite.create_public_threads = False
+                overwrite.create_private_threads = False
+                overwrite.send_messages_in_threads = False
+                overwrite.use_application_commands = False
+                try:
+                    await channel.set_permissions(role, overwrite=overwrite,
+                                                  reason='Creating permission overwrites for the gatekeeper role')
+                except discord.HTTPException:
+                    failure += 1
+                else:
+                    success += 1
+            else:
+                skipped += 1
+        return success, failure, skipped
+
+    @discord.ui.button(label="Create a new role")
+    async def create_new_role(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
+        try:
+            role = await itx.guild.create_role(name="Pending Verification",
+                                               reason=f"Requested role creation by {itx.user}")
+        except discord.Forbidden:
+            await itx.response.send_message("Unable to create a role because I am missing the Manage Roles permission!",
+                                            ephemeral=True)
+            return
+
+        await self.insert_role(itx, role)
+        view = ConfirmationView(message="", author_id=itx.user.id, delete_message_after=True)
+        await itx.response.edit_message(content="Created a new role. In order for this role to work "
+                                        "correctly, you must set permission overrides for every channel. "
+                                        "Would you like me to do this automatically?", view=view)
+        await view.wait()
+        if view.value is False:
+            # a message here
+            return
+
+        s, f, sk = await self.create_permission_overwrites(itx.guild, role)
+        if f >= 1:
+            content = f"Set {s+sk} permissions overwrites for this role. {f} channels failed to set permission "\
+                      "overrides!"
+        else:
+            content = f"Set {s+sk} permission overwrites for this role."
+
+        await itx.followup.send(content=content, ephemeral=True)
+        self.stop(interaction=itx)
+
+
+class GatekeeperChannelView(BasicMenuLikeView):
+    def __init__(self, role: discord.Role, channel: Optional[discord.TextChannel] = None, *,
+                 author_id: int, clear_view_after=False, delete_message_after=False,
+                 disable_components_after=True, timeout: float | None = 180):
+        super().__init__(author_id=author_id,
+                         clear_view_after=clear_view_after,
+                         delete_message_after=delete_message_after,
+                         disable_components_after=disable_components_after,
+                         timeout=timeout)
+        self.role = role
+        self.channel = channel
+
+        if channel:
+            self.select_callback.default_values = [channel]
+
+    @discord.ui.select(cls=discord.ui.ChannelSelect,
+                       channel_types=[discord.ChannelType.text, discord.ChannelType.private],
+                       min_values=1, max_values=1)
+    async def select_callback(self, itx: discord.Interaction[LightningBot], select: discord.ui.ChannelSelect):
+        channel = select.values[0].resolve()
+        await itx.response.defer()
+        if not channel:
+            await itx.followup.send("Unable to set the verification channel. Please try again!")
+            return
+
+        query = """INSERT INTO guild_gatekeeper_config (guild_id, verification_channel_id)
+                   VALUES ($1, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET verification_channel_id=EXCLUDED.verification_channel_id;"""
+        await itx.client.pool.execute(query, itx.guild_id, channel.id)
+        confirm = ConfirmationView("", author_id=itx.user.id)
+        msg = await itx.followup.send(f"Set the verification channel to {channel.mention}! Would you like me to "
+                                      "set up the channel permissions for you? Gatekeeper requires that everyone "
+                                      f"cannot read this channel, only the {self.role.mention} can read messages",
+                                      view=confirm, ephemeral=True, wait=True)
+        await confirm.wait()
+        if not confirm.value:
+            return
+
+        default_p = channel.permissions_for(itx.guild.default_role)
+        if default_p.read_messages:
+            overwrites = channel.overwrites_for(itx.guild.default_role)
+            overwrites.read_messages = False
+            await channel.set_permissions(itx.guild.default_role, overwrite=overwrites)
+        if not channel.permissions_for(self.role).read_messages:
+            overwrite = channel.overwrites_for(self.role)
+            overwrite.read_messages = True
+            overwrite.send_messages = False
+            overwrite.add_reactions = False
+            overwrite.create_public_threads = False
+            overwrite.create_private_threads = False
+            overwrite.send_messages_in_threads = False
+            overwrite.use_application_commands = False
+            await channel.set_permissions(self.role, overwrite=overwrite)
+
+        await msg.edit(content="Set the correct permissions for the verification channel!", view=None)
+        self.stop(interaction=itx)
+
+
+class GatekeeperSetup(UpdateableMenu, ExitableMenu):
+    ctx: AutoModContext
+    record: dict[str, Any]
+
+    def __init__(self, gatekeeper: Optional[GateKeeperConfig] = None, *, context: AutoModContext):
+        super().__init__(context=context,
+                         delete_message_after=True,
+                         timeout=180)
+
+        self.gatekeeper: Optional[GateKeeperConfig] = gatekeeper
+
+    async def format_initial_message(self, ctx: GuildContext):
+        query = "SELECT * FROM guild_gatekeeper_config WHERE guild_id=$1;"
+        record = await ctx.bot.pool.fetchrow(query, ctx.guild.id)
+
+        if record is None:
+            text = "Lightning Gatekeeper is not set up yet!"
+            self.set_gatekeeper_role.disabled = False
+            self.set_gatekeeper_channel.disabled = True
+            self.disable_gatekeeper.disabled = True
+        elif record['active']:
+            text = "Lightning Gatekeeper is currently active and will gatekeep every new member that joins!\n"\
+                   f"**Verification Role**: {self.gatekeeper.role.mention}\n"\
+                   f"**Verification Channel**: {self.gatekeeper.verification_channel.mention}"
+            self.set_switch_labels(True)
+        elif record['role_id'] is None:
+            text = "Lightning Gatekeeper is not fully set up!"
+            self.disable_gatekeeper.disabled = True
+            self.set_gatekeeper_channel.disabled = True
+            self.set_switch_labels(False)
+        elif record['verification_channel_id'] is None:
+            text = "Lightning Gatekeeper is not fully set up!"
+            self.set_gatekeeper_role.disabled = True
+            self.disable_gatekeeper.disabled = True
+            self.set_gatekeeper_channel.disabled = False
+            self.set_switch_labels(False)
+        elif record['active'] is False:
+            text = "Lightning Gatekeeper is currently disabled"
+            self.disable_gatekeeper.disabled = False
+            self.set_switch_labels(False)
+
+        self.record = record
+
+        return text
+
+    def invalidate_gatekeeper_cache(self):
+        self.ctx.cog.invalidate_gatekeeper(self.ctx.guild.id)
+
+    def set_switch_labels(self, status: bool):
+        if status:
+            self.disable_gatekeeper.label = "Disable"
+            self.disable_gatekeeper.style = discord.ButtonStyle.red
+        else:
+            self.disable_gatekeeper.label = "Enable"
+            self.disable_gatekeeper.style = discord.ButtonStyle.green
+
+    @discord.ui.button(label="Set a gatekeeper role", style=discord.ButtonStyle.blurple)
+    async def set_gatekeeper_role(self, itx: discord.Interaction, button: discord.ui.Button):
+        view = GatekeeperRoleView(author_id=itx.user.id, clear_view_after=True)
+        await itx.response.send_message(content='Select a role from the select menu below or '
+                                        'create a new role by clicking the "Create a New Role" button',
+                                        view=view, ephemeral=True)
+        await view.wait()
+        self.invalidate_gatekeeper_cache()
+        await self.update(interaction=itx)
+
+    @discord.ui.button(label="Set a verification channel", style=discord.ButtonStyle.blurple)
+    async def set_gatekeeper_channel(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
+        if self.gatekeeper and self.gatekeeper.verification_channel_id:
+            channel = self.gatekeeper.verification_channel
+            role = self.gatekeeper.role
+        else:
+            channel = None
+            role = itx.guild.get_role(self.record['role_id'])
+
+        if role is None:
+            await itx.response.send_message("Somehow you clicked this button without setting a role first!",
+                                            ephemeral=True)
+            return
+
+        view = GatekeeperChannelView(role, channel,
+                                     author_id=itx.user.id, delete_message_after=True)
+        async with self.sub_menu(view, interaction=itx):
+            await itx.response.send_message(content='Select a channel from the select menu below',
+                                            view=view, ephemeral=True)
+            await view.wait()
+
+            self.invalidate_gatekeeper_cache()
+
+    @discord.ui.button(label="Disable", style=discord.ButtonStyle.red)
+    async def disable_gatekeeper(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
+        self.gatekeeper = await self.ctx.cog.get_gatekeeper_config(itx.guild_id)  # type: ignore
+        if self.gatekeeper is None:
+            await itx.response.send_message("Somehow your gatekeeper isn't setup correctly!")
+            return
+
+        if button.style is discord.ButtonStyle.green:
+            self.gatekeeper.active = True
+            query = "UPDATE guild_gatekeeper_config SET active='t' WHERE guild_id=$1;"
+            await itx.client.pool.execute(query, itx.guild_id)
+            await itx.response.send_message("Enabled the gatekeeper. Every new member will be required to verify.",
+                                            ephemeral=True)
+            # self.gatekeeper.active_since = datetime.now()
+        else:
+            await self.gatekeeper.disable()
+            query = "UPDATE guild_gatekeeper_config SET active='f' WHERE guild_id=$1;"
+            await itx.client.pool.execute(query, itx.guild_id)
+            await itx.response.send_message("Disabled the gatekeeper. Removing members from the queue could take some "
+                                            "time!", ephemeral=True)
+
+        await self.update(interaction=itx)
