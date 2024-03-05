@@ -407,7 +407,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
     @automod.command(level=CommandLevel.Admin, name="gatekeeper")
     @is_server_manager()
-    @commands.bot_has_guild_permissions(manage_channels=True)
+    @commands.bot_has_guild_permissions(manage_channels=True, manage_roles=True)
     async def gatekeeper_setup(self, ctx: GuildContext):
         """Manages the gatekeeper"""
         gatekeeper = await self.get_gatekeeper_config(ctx.guild.id)
@@ -689,6 +689,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
     @LightningCog.listener()
     async def on_member_join(self, member: discord.Member):
+        gatekeeper = await self.get_gatekeeper_config(member.guild.id)
+        if gatekeeper:
+            await gatekeeper.gatekeep_member(member)
+
         record = await self.get_automod_config(member.guild.id)
         if not record:
             return
@@ -750,3 +754,17 @@ class AutoMod(LightningCog, required=["Moderation"]):
             return
 
         await self.bot.api.bulk_upsert_guild_automod_default_ignores(payload.guild.id, config.default_ignores)
+
+    @LightningCog.listener('on_guild_role_delete')
+    async def on_gatekeeper_role_removal(self, role: discord.Role):
+        gatekeeper = await self.get_gatekeeper_config(role.guild.id)
+        if gatekeeper is None:
+            return
+
+        if gatekeeper.role_id != role.id:
+            return
+
+        query = "UPDATE guild_gatekeeper_config SET role_id=NULL WHERE guild_id=$1;"
+        await self.bot.pool.execute(query, role.guild.id)
+        await gatekeeper.disable()
+        gatekeeper.role_id = None
