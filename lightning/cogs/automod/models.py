@@ -28,6 +28,8 @@ from lightning import AutoModCooldown, LightningBot
 from lightning.models import GuildAutoModRulePunishment
 
 if TYPE_CHECKING:
+    import asyncpg
+
     class AutoModGuildConfig(TypedDict):
         guild_id: int
         default_ignores: List[int]
@@ -158,7 +160,7 @@ class SpamConfig:
 
 
 class GateKeeperConfig:
-    def __init__(self, bot, record, members) -> None:
+    def __init__(self, bot: LightningBot, record: asyncpg.Record, members: list[asyncpg.Record]) -> None:
         self.bot: LightningBot = bot
         self.guild_id: int = record['guild_id']
         self.active = record['active']
@@ -180,6 +182,9 @@ class GateKeeperConfig:
 
     async def _loop(self):
         # for quick ref, result is a list of [key, value]
+        if self.role_id is None:
+            return
+
         while self.active:
             result: List[str] = await self.bot.redis_pool.brpop([f"lightning:automod:gatekeeper:{self.guild_id}:add",
                                                                 f"lightning:automod:gatekeeper:{self.guild_id}:remove"],
