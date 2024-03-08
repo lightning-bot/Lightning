@@ -243,7 +243,7 @@ class GatekeeperRoleView(BasicMenuLikeView):
         success = 0
         failure = 0
         skipped = 0
-        for channel in guild.text_channels:
+        for channel in guild.channels:
             if channel.permissions_for(guild.me).manage_roles:
                 overwrite = channel.overwrites_for(role)
                 overwrite.read_messages = False
@@ -342,6 +342,7 @@ class GatekeeperChannelView(BasicMenuLikeView):
         if not channel.permissions_for(self.role).read_messages:
             overwrite = channel.overwrites_for(self.role)
             overwrite.read_messages = True
+            overwrite.read_message_history = True  # sometimes a lil' silly permissions
             overwrite.send_messages = False
             overwrite.add_reactions = False
             overwrite.create_public_threads = False
@@ -411,7 +412,7 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
             self.disable_gatekeeper.style = discord.ButtonStyle.green
 
     @discord.ui.button(label="Set a gatekeeper role", style=discord.ButtonStyle.blurple)
-    async def set_gatekeeper_role(self, itx: discord.Interaction, button: discord.ui.Button):
+    async def set_gatekeeper_role(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
         view = GatekeeperRoleView(author_id=itx.user.id, clear_view_after=True)
         await itx.response.send_message(content='Select a role from the select menu below or '
                                         'create a new role by clicking the "Create a New Role" button',
