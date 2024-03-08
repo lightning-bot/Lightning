@@ -163,7 +163,7 @@ class GateKeeperConfig:
     def __init__(self, bot: LightningBot, record: asyncpg.Record, members: list[asyncpg.Record]) -> None:
         self.bot: LightningBot = bot
         self.guild_id: int = record['guild_id']
-        self.active = record['active']
+        self.active: bool = record['active']
         self.active_since = None
         self.role_id: Optional[int] = record['role_id']
         self.verification_channel_id: Optional[int] = record['verification_channel_id']
@@ -222,8 +222,12 @@ class GateKeeperConfig:
 
     async def remove_member(self, member: discord.Member):
         """Queues a member to be removed from verification (i.e. they verified themselves)"""
+        try:
+            self.members.remove(member.id)
+        except KeyError:
+            return
+
         await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}:remove", member.id)
-        self.members.remove(member.id)
 
     async def disable(self):
         self.active = False
