@@ -229,6 +229,14 @@ class GateKeeperConfig:
 
         await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}:remove", member.id)
 
+    async def enable(self):
+        query = "UPDATE guild_gatekeeper_config SET active='t' WHERE guild_id=$1;"
+        await self.bot.pool.execute(query, self.guild_id)
+        self.active = True
+
+        if self.gtkp_loop.done():
+            self.gtkp_loop = asyncio.create_task(self._loop())
+
     async def disable(self):
         self.active = False
         # Moves the members from the add list to the removal list
