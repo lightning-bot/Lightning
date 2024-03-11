@@ -317,7 +317,7 @@ class GatekeeperChannelView(BasicMenuLikeView):
         channel = select.values[0].resolve()
         await itx.response.defer()
         if not channel:
-            await itx.followup.send("Unable to set the verification channel. Please try again!")
+            await itx.followup.send("Unable to set the verification channel. Please try again!", ephemeral=True)
             return
 
         query = """INSERT INTO guild_gatekeeper_config (guild_id, verification_channel_id)
@@ -334,22 +334,26 @@ class GatekeeperChannelView(BasicMenuLikeView):
         if not confirm.value:
             return
 
-        default_p = channel.permissions_for(itx.guild.default_role)
-        if default_p.read_messages:
-            overwrites = channel.overwrites_for(itx.guild.default_role)
-            overwrites.read_messages = False
-            await channel.set_permissions(itx.guild.default_role, overwrite=overwrites)
-        if not channel.permissions_for(self.role).read_messages:
-            overwrite = channel.overwrites_for(self.role)
-            overwrite.read_messages = True
-            overwrite.read_message_history = True  # sometimes a lil' silly permissions
-            overwrite.send_messages = False
-            overwrite.add_reactions = False
-            overwrite.create_public_threads = False
-            overwrite.create_private_threads = False
-            overwrite.send_messages_in_threads = False
-            overwrite.use_application_commands = False
-            await channel.set_permissions(self.role, overwrite=overwrite)
+        try:
+            default_p = channel.permissions_for(itx.guild.default_role)
+            if default_p.read_messages:
+                overwrites = channel.overwrites_for(itx.guild.default_role)
+                overwrites.read_messages = False
+                await channel.set_permissions(itx.guild.default_role, overwrite=overwrites)
+            if not channel.permissions_for(self.role).read_messages:
+                overwrite = channel.overwrites_for(self.role)
+                overwrite.read_messages = True
+                overwrite.read_message_history = True  # sometimes a lil' silly permissions
+                overwrite.send_messages = False
+                overwrite.add_reactions = False
+                overwrite.create_public_threads = False
+                overwrite.create_private_threads = False
+                overwrite.send_messages_in_threads = False
+                overwrite.use_application_commands = False
+                await channel.set_permissions(self.role, overwrite=overwrite)
+        except discord.HTTPException as e:
+            await msg.edit(content=f"Unable to set channel permissions ({e})", view=None)
+            self.stop(interaction=itx)
 
         await msg.edit(content="Set the correct permissions for the verification channel!", view=None)
         self.stop(interaction=itx)
@@ -381,6 +385,8 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
                 button.disabled = True
             self.set_switch_labels(True)
             return text
+
+        self.send_verification_message.disabled = True
 
         if record is None:
             text = "Lightning Gatekeeper is not fully set up!"
@@ -467,9 +473,7 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
             return
 
         if button.style is discord.ButtonStyle.green:
-            self.gatekeeper.active = True
-            query = "UPDATE guild_gatekeeper_config SET active='t' WHERE guild_id=$1;"
-            await itx.client.pool.execute(query, itx.guild_id)
+            await self.gatekeeper.enable()
             await itx.response.send_message("Enabled the gatekeeper. Every new member will be required to verify.",
                                             ephemeral=True)
             # self.gatekeeper.active_since = datetime.now()
