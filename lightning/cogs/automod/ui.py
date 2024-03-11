@@ -369,34 +369,49 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
     async def format_initial_message(self, ctx: GuildContext):
         query = "SELECT * FROM guild_gatekeeper_config WHERE guild_id=$1;"
         record = await ctx.bot.pool.fetchrow(query, ctx.guild.id)
+        self.record = record
 
-        if record is None:
-            text = "Lightning Gatekeeper is not set up yet!"
-            self.set_gatekeeper_role.disabled = False
-            self.set_gatekeeper_channel.disabled = True
-            self.disable_gatekeeper.disabled = True
-        elif record['active']:
+        setup_buttons = (self.set_gatekeeper_role, self.set_gatekeeper_channel)
+
+        if record and record['active']:
             text = "Lightning Gatekeeper is currently active and will gatekeep every new member that joins!\n"\
                    f"**Verification Role**: {self.gatekeeper.role.mention}\n"\
                    f"**Verification Channel**: {self.gatekeeper.verification_channel.mention}"
+            for button in setup_buttons:
+                button.disabled = True
             self.set_switch_labels(True)
+            return text
+
+        if record is None:
+            text = "Lightning Gatekeeper is not fully set up!"
+            self.set_gatekeeper_role.disabled = False
+            self.set_gatekeeper_channel.disabled = True
+            self.disable_gatekeeper.disabled = True
+            return text
         elif record['role_id'] is None:
             text = "Lightning Gatekeeper is not fully set up!"
             self.disable_gatekeeper.disabled = True
             self.set_gatekeeper_channel.disabled = True
             self.set_switch_labels(False)
+            return text
         elif record['verification_channel_id'] is None:
             text = "Lightning Gatekeeper is not fully set up!"
             self.set_gatekeeper_role.disabled = True
             self.disable_gatekeeper.disabled = True
             self.set_gatekeeper_channel.disabled = False
             self.set_switch_labels(False)
+            return text
         elif record['active'] is False:
-            text = "Lightning Gatekeeper is currently disabled"
+            text = "Lightning Gatekeeper is currently disabled!\n"\
+                   "*Click the Enable button to enable the gatekeeper for everyone*"
             self.disable_gatekeeper.disabled = False
+            for button in setup_buttons:
+                button.disabled = False
             self.set_switch_labels(False)
 
-        self.record = record
+        if record['verification_channel_id'] and record['role_id']:
+            self.disable_gatekeeper.disabled = False
+            self.send_verification_message.disabled = False
 
         return text
 
@@ -466,3 +481,37 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
                                             "time!", ephemeral=True)
 
         await self.update(interaction=itx)
+
+
+class GatekeeperVerificationButton(discord.ui.DynamicItem[discord.ui.Button],
+                                   template='lightning:gatekeeper:verification:button'):
+    def __init__(self, gatekeeper: Optional[GateKeeperConfig] = None) -> None:
+        # Eventually this might be a URL button...
+        item = discord.ui.Button(style=discord.ButtonStyle.green, label="Verify Me",
+                                 custom_id="lightning:gatekeeper:verification:button")
+        super().__init__(item)
+        self.gatekeeper = gatekeeper
+
+    @classmethod
+    async def from_custom_id(cls, interaction: discord.Interaction[LightningBot],
+                             item: discord.ui.Button, match) -> GatekeeperVerificationButton:
+        cog: Optional[AutoModCog] = interaction.client.get_cog("AutoMod")  # type: ignore
+        if not cog:
+            await interaction.response.send_message("Somehow the Gatekeeper is not working at this moment!",
+                                                    ephemeral=True)
+            return
+
+        gatekeeper = await cog.get_gatekeeper_config(interaction.guild_id)
+        return cls(gatekeeper)
+
+    async def interaction_check(self, interaction: discord.Interaction[LightningBot]) -> bool:
+        if self.gatekeeper is None or self.gatekeeper.active is False:
+            await interaction.response.send_message("The gatekeeper is not enabled!", ephemeral=True)
+            return False
+
+        return True
+
+    async def callback(self, interaction: discord.Interaction[LightningBot]) -> None:
+        await self.gatekeeper.remove_member(interaction.user)
+        await interaction.response.send_message("Thanks for verifying yourself! Access will be granted momentarily",
+                                                ephemeral=True)
