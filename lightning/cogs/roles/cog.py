@@ -163,7 +163,7 @@ class Roles(LightningCog):
     async def set_toggleable_roles(self, ctx: GuildContext, *,
                                    role: discord.Role = commands.param(converter=Role)) -> None:
         """Adds a role to the list of toggleable roles for members"""
-        if self._has_dangerous_permissions(role.permissions):
+        if has_dangerous_permissions(role.permissions):
             await ctx.send(f"Unable to add {role.name} ({role.id}) because it has permissions that are deemed "
                            "dangerous.")
             return
@@ -344,7 +344,7 @@ class Roles(LightningCog):
             await interaction.response.send_message("This role is not toggleable.", ephemeral=True)
             return
 
-        if self._has_dangerous_permissions(role.permissions):
+        if has_dangerous_permissions(role.permissions):
             await interaction.response.send_message("This role has permissions that are deemed dangerous!",
                                                     ephemeral=True)
             return
