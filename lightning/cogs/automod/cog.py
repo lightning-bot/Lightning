@@ -68,6 +68,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         super().__init__(bot)
         self.gatekeepers: dict[int, GateKeeperConfig] = {}
         self.bot.loop.create_task(self.load_all_gatekeepers())
+        self.bot.add_dynamic_items(ui.GatekeeperVerificationButton)
         # AutoMod stats?
 
     async def get_gatekeeper_config(self, guild_id: int) -> Optional[GateKeeperConfig]:
@@ -690,7 +691,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @LightningCog.listener()
     async def on_member_join(self, member: discord.Member):
         gatekeeper = await self.get_gatekeeper_config(member.guild.id)
-        if gatekeeper:
+        if gatekeeper and gatekeeper.active:
             await gatekeeper.gatekeep_member(member)
 
         record = await self.get_automod_config(member.guild.id)
