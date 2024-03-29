@@ -458,12 +458,31 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
 
         view = GatekeeperChannelView(role, channel,
                                      author_id=itx.user.id, delete_message_after=True)
-        async with self.sub_menu(view, interaction=itx):
-            await itx.response.send_message(content='Select a channel from the select menu below',
-                                            view=view, ephemeral=True)
-            await view.wait()
+        await itx.response.send_message(content='Select a channel from the select menu below',
+                                        view=view, ephemeral=True)
+        await view.wait()
+        self.invalidate_gatekeeper_cache()
+        await self.update(interaction=itx)
 
-            self.invalidate_gatekeeper_cache()
+    @discord.ui.button(label="Send verification message", style=discord.ButtonStyle.blurple)
+    async def send_verification_message(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
+        self.gatekeeper = await self.ctx.cog.get_gatekeeper_config(itx.guild_id)
+        if self.gatekeeper is None:
+            await itx.response.send_message("Somehow your gatekeeper isn't setup correctly!")
+            return
+
+        embed = discord.Embed(title="Verification Required",
+                              description="This server requires you to verify yourself before you can talk!")
+
+        ch = self.gatekeeper.verification_channel
+
+        if ch is None:
+            await itx.response.send_message("Please set a verification channel before setting this up!", ephemeral=True)
+            return
+
+        view = discord.ui.View(timeout=None)
+        view.add_item(GatekeeperVerificationButton(self.gatekeeper))
+        await ch.send(embed=embed, view=view)
 
     @discord.ui.button(label="Disable", style=discord.ButtonStyle.red)
     async def disable_gatekeeper(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):

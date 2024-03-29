@@ -230,6 +230,11 @@ class GateKeeperConfig:
         await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}:remove", member.id)
 
     async def enable(self):
+        """
+        Enables the gatekeeper.
+
+        This method updates the config record in the database and restarts the gatekeeper loop if needed
+        """
         query = "UPDATE guild_gatekeeper_config SET active='t' WHERE guild_id=$1;"
         await self.bot.pool.execute(query, self.guild_id)
         self.active = True
@@ -238,6 +243,14 @@ class GateKeeperConfig:
             self.gtkp_loop = asyncio.create_task(self._loop())
 
     async def disable(self):
+        """
+        Disables the Gatekeeper.
+
+        This method sets the `active` attribute to False and moves the members from the add
+        list to the removal list in Redis.
+
+        Note: This method does not update the config record in the database!
+        """
         self.active = False
         # Moves the members from the add list to the removal list
         members = await self.bot.redis_pool.lrange(f"lightning:automod:gatekeeper:{self.guild_id}:add", 0, -1)
