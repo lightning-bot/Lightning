@@ -220,6 +220,23 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                             delete_message_days=min(flags['delete_messages'], 7))
         await self.confirm_and_log_action(ctx, target, "BAN")
 
+    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
+    @commands.bot_has_guild_permissions(ban_members=True)
+    @has_guild_permissions(ban_members=True)
+    async def bandel(self, ctx: GuildContext,
+                     target: Annotated[Union[discord.Member, discord.User], converters.TargetMember],
+                     *, flags) -> None:
+        """Bans a user from the server and deletes 1 day worth of messages."""
+        reason = flags['reason']
+
+        if not flags['nodm'] and isinstance(target, discord.Member):
+            dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason)
+            await helpers.dm_user(target, dm_message)
+
+        await ctx.guild.ban(target, reason=self.format_reason(ctx.author, reason),
+                            delete_message_days=1)
+        await self.confirm_and_log_action(ctx, target, "BAN")
+
     @hybrid_command(cls=lflags.HybridFlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
     @app_commands.guild_only()
     @hybrid_guild_permissions(manage_messages=True)
