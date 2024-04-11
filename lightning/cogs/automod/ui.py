@@ -335,12 +335,18 @@ class GatekeeperChannelView(BasicMenuLikeView):
             return
 
         try:
+            me_perms = channel.permissions_for(itx.guild.me)
+            if me_perms.read_messages is False or me_perms.send_messages is False:
+                overwrite = channel.overwrites_for(itx.guild.me)
+                overwrite.read_messages = True
+                overwrite.send_messages = True
+                await channel.set_permissions(itx.guild.me, overwrite=overwrite)
             default_p = channel.permissions_for(itx.guild.default_role)
             if default_p.read_messages:
                 overwrites = channel.overwrites_for(itx.guild.default_role)
                 overwrites.read_messages = False
                 await channel.set_permissions(itx.guild.default_role, overwrite=overwrites)
-            if not channel.permissions_for(self.role).read_messages:
+            if channel.permissions_for(self.role).read_messages is False:
                 overwrite = channel.overwrites_for(self.role)
                 overwrite.read_messages = True
                 overwrite.read_message_history = True  # sometimes a lil' silly permissions
@@ -354,6 +360,7 @@ class GatekeeperChannelView(BasicMenuLikeView):
         except discord.HTTPException as e:
             await msg.edit(content=f"Unable to set channel permissions ({e})", view=None)
             self.stop(interaction=itx)
+            return
 
         await msg.edit(content="Set the correct permissions for the verification channel!", view=None)
         self.stop(interaction=itx)
@@ -482,7 +489,13 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
 
         view = discord.ui.View(timeout=None)
         view.add_item(GatekeeperVerificationButton(self.gatekeeper))
-        await ch.send(embed=embed, view=view)
+        try:
+            await ch.send(embed=embed, view=view)
+        except discord.HTTPException as e:
+            await itx.response.send_message(f"I was unable to send the verification message. ({e})", ephemeral=True)
+            return
+
+        await itx.response.send_message("Sent the verification message!", ephemeral=True)
 
     @discord.ui.button(label="Disable", style=discord.ButtonStyle.red)
     async def disable_gatekeeper(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
