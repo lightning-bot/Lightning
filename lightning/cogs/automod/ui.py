@@ -228,7 +228,26 @@ class GatekeeperRoleView(BasicMenuLikeView):
             return
 
         await self.insert_role(itx, role)
-        await itx.response.send_message(f"Set {role.name} ({role.mention}) as the gatekeeper role!")
+
+        view = ConfirmationView(message="", author_id=itx.user.id, delete_message_after=True)
+        await itx.response.send_message(f"Set {role.name} ({role.mention}) as the gatekeeper role!"
+                                        "In order for this role to work correctly, you must set permission"
+                                        " overrides for every channel. Would you like me to this for you?",
+                                        ephemeral=True)
+        await view.wait()
+        if view.value is False:
+            # a message here
+            return
+
+        s, f, sk = await self.create_permission_overwrites(itx.guild, role)
+        if f >= 1:
+            content = f"Set {s+sk} permissions overwrites for this role. {f} channels failed to set permission "\
+                      "overrides!"
+        else:
+            content = f"Set {s+sk} permission overwrites for this role."
+
+        await itx.followup.send(content=content, ephemeral=True)
+
         self.stop(interaction=itx)
 
     async def insert_role(self, interaction: discord.Interaction[LightningBot], role: discord.Role):
