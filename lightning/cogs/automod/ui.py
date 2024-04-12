@@ -335,17 +335,19 @@ class GatekeeperChannelView(BasicMenuLikeView):
             return
 
         try:
-            me_perms = channel.permissions_for(itx.guild.me)
-            if me_perms.read_messages is False or me_perms.send_messages is False:
-                overwrite = channel.overwrites_for(itx.guild.me)
-                overwrite.read_messages = True
-                overwrite.send_messages = True
-                await channel.set_permissions(itx.guild.me, overwrite=overwrite)
+            # Since this is becoming a private channel, I need to give the bot access to the channel beforehand
+            overwrite = channel.overwrites_for(itx.guild.me)
+            overwrite.read_messages = True
+            overwrite.send_messages = True
+            overwrite.manage_channels = True
+            await channel.set_permissions(itx.guild.me, overwrite=overwrite)
+            # Now we set permissions for at-everyone role
             default_p = channel.permissions_for(itx.guild.default_role)
             if default_p.read_messages:
                 overwrites = channel.overwrites_for(itx.guild.default_role)
                 overwrites.read_messages = False
                 await channel.set_permissions(itx.guild.default_role, overwrite=overwrites)
+            # Set permissions for the configured join role
             if channel.permissions_for(self.role).read_messages is False:
                 overwrite = channel.overwrites_for(self.role)
                 overwrite.read_messages = True
