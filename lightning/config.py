@@ -106,7 +106,7 @@ class BotConfig:
         self.spam_count = data['spam_count']
         self.game = data.pop("game", None)
         self.edit_commands = data.pop('edit_commands', False)
-        self.support_server_invite = data.pop('support_server_invite', None)
+        self.support_server_invite = data.pop('support_server_invite', 'https://discord.gg/SpFjsy3')
         self.git_repo = data.pop('git_repo', 'https://github.com/lightning-bot/Lightning')
         self.user_agent = transform_key(data.pop('user_agent', None))
         self.beta_prefix = data.pop('beta_prefix', None)

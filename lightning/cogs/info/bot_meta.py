@@ -40,7 +40,7 @@ class BotMeta(LightningCog):
     async def support(self, ctx: LightningContext) -> None:
         """Sends an invite that goes to the support server"""
         await ctx.send("You can join this server to get support for this bot: "
-                       f"{self.bot.config['bot']['support_server_invite']}")
+                       f"{self.bot.config.bot.support_server_invite}")
 
     @command(aliases=['invite'])
     async def join(self, ctx: LightningContext, *ids: discord.Object) -> None:
@@ -62,6 +62,7 @@ class BotMeta(LightningCog):
             perms.read_messages = True
             perms.send_messages = True
             perms.read_message_history = True
+            perms.send_messages_in_threads = True
             perms.manage_webhooks = True
             perms.embed_links = True
             perms.manage_threads = True
@@ -118,3 +119,23 @@ class BotMeta(LightningCog):
             location = os.path.relpath(filename).replace("\\", "/")
 
         await ctx.send(f"<{source}/blob/master/{location}#L{firstlineno}-{firstlineno + len(lines) - 1}>")
+
+    @LightningCog.listener('on_lightning_guild_add')
+    async def send_guild_welcome_message(self, guild: discord.Guild):
+        msg = (f"Thanks for adding me to your server! By default my prefix is {self.bot.user.mention}, "
+               "but that can be changed! "
+               "To add a custom prefix, run @Lightning config prefix\n\n"
+               "To get a list of my commands, you can run the `help` command. For information about an individual"
+               " command, you can use `help [command]`"
+               "\n\n*If you need any help setting up this bot, please visit the support server at "
+               f"{self.bot.config.bot.support_server_invite} and someone will help!\nYou can additionally "
+               "visit <https://lightning.lightsage.dev/> for documentation to set up some of the bot's features!*")
+
+        default_channel = guild.system_channel
+        if default_channel and default_channel.permissions_for(guild.me).send_messages is True:
+            await default_channel.send(msg)
+            return
+
+        notice_channel = guild.public_updates_channel
+        if notice_channel and notice_channel.permissions_for(guild.me).send_messages is True:
+            await notice_channel.send(msg)
