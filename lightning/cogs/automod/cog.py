@@ -86,8 +86,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         return gatekeeper
 
     def invalidate_gatekeeper(self, guild_id: int):
-        gtkp = self.gatekeepers.pop(guild_id, None)
-        if gtkp:
+        if gtkp := self.gatekeepers.pop(guild_id, None):
             gtkp.gtkp_loop.cancel()
 
     async def cog_check(self, ctx: LightningContext) -> bool:
