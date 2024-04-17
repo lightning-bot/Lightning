@@ -233,10 +233,11 @@ class GatekeeperRoleView(BasicMenuLikeView):
         await itx.response.send_message(f"Set {role.name} ({role.mention}) as the gatekeeper role!"
                                         "In order for this role to work correctly, you must set permission"
                                         " overrides for every channel. Would you like me to this for you?",
-                                        ephemeral=True)
+                                        view=view, ephemeral=True)
         await view.wait()
         if view.value is False:
             # a message here
+            self.stop(interaction=itx)
             return
 
         s, f, sk = await self.create_permission_overwrites(itx.guild, role)

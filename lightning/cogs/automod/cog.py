@@ -767,7 +767,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         query = "UPDATE guild_gatekeeper_config SET role_id=NULL, active='f' WHERE guild_id=$1;"
         await self.bot.pool.execute(query, role.guild.id)
         await gatekeeper.disable()
-        gatekeeper.role_id = None
+        self.gatekeepers[role.guild.id].role_id = None
 
     @LightningCog.listener('on_guild_channel_delete')
     async def on_gatekeeper_channel_delete(self, channel: discord.TextChannel):
@@ -779,7 +779,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
             return
 
         query = "UPDATE guild_gatekeeper_config SET verification_channel_id=NULL, active='f' WHERE guild_id=$1;"
-        await self.bot.pool.execute(query, channel.id)
+        await self.bot.pool.execute(query, channel.guild.id)
         # In the future, the bot will notify admins that there are still <x> people waiting to verify themselves
         await gatekeeper.disable()
-        gatekeeper.verification_channel_id = None
+        self.gatekeepers[channel.guild.id].verification_channel_id = None
