@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import TYPE_CHECKING, Callable, List, Optional, TypedDict, Union
 
@@ -27,6 +28,8 @@ from lightning import AutoModCooldown, LightningBot
 from lightning.models import GuildAutoModRulePunishment
 
 if TYPE_CHECKING:
+    import asyncpg
+
     class AutoModGuildConfig(TypedDict):
         guild_id: int
         default_ignores: List[int]
@@ -154,3 +157,103 @@ class SpamConfig:
         # I wouldn't think there's a need for this but if you're using warn (for example), it'll double warn
         await self.cooldown.redis.delete(self.cooldown._key_maker(message),
                                          f"{self.cooldown._key_maker(message)}:messages")
+
+
+class GateKeeperConfig:
+    def __init__(self, bot: LightningBot, record: asyncpg.Record, members: list[asyncpg.Record]) -> None:
+        self.bot: LightningBot = bot
+        self.guild_id: int = record['guild_id']
+        self.active: bool = record['active']
+        self.active_since = None
+        self.role_id: Optional[int] = record['role_id']
+        self.verification_channel_id: Optional[int] = record['verification_channel_id']
+        self.members: set[int] = {r['member_id'] for r in members if r['pending_automod_action'] is None}
+        self.gtkp_loop = asyncio.create_task(self._loop())
+
+    @property
+    def role(self) -> discord.Role:
+        guild = self.bot.get_guild(self.guild_id)  # should never be None
+        return guild.get_role(self.role_id)  # type: ignore
+
+    @property
+    def verification_channel(self) -> discord.TextChannel:
+        guild = self.bot.get_guild(self.guild_id)
+        return guild.get_channel(self.verification_channel_id)  # type: ignore
+
+    async def _loop(self):
+        # for quick ref, result is a list of [key, value]
+        if self.role_id is None:
+            return
+
+        while self.active:
+            result: List[str] = await self.bot.redis_pool.brpop([f"lightning:automod:gatekeeper:{self.guild_id}:add",
+                                                                f"lightning:automod:gatekeeper:{self.guild_id}:remove"],
+                                                                0)  # type: ignore
+            member_id = int(result[1])
+            state = result[0].split(":")[-1]
+
+            if state == "remove":
+                role_method = self.bot.http.remove_role
+            else:
+                role_method = self.bot.http.add_role
+
+            try:
+                if state == "add":
+                    await role_method(self.guild_id, member_id, self.role_id,
+                                      reason='Gatekeeper currently active')
+                elif state == "remove":
+                    await role_method(self.guild_id, member_id, self.role_id,
+                                      reason='Completed Gatekeeper verification')
+                    await self.bot.pool.execute("DELETE FROM pending_gatekeeper_members WHERE guild_id=$1 AND "
+                                                "member_id=$2;",
+                                                self.guild_id, member_id)
+            except discord.DiscordServerError:
+                await self.bot.redis_pool.lpush(result[0], member_id)
+            except discord.HTTPException:
+                pass
+
+    async def gatekeep_member(self, member: discord.Member):
+        query = """INSERT INTO pending_gatekeeper_members (guild_id, member_id)
+                   VALUES ($1, $2)
+                   ON CONFLICT DO NOTHING;"""
+        await self.bot.pool.execute(query, member.guild.id, member.id)
+        self.members.add(member.id)
+        await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}:add", member.id)
+
+    async def remove_member(self, member: discord.Member):
+        """Queues a member to be removed from verification (i.e. they verified themselves)"""
+        try:
+            self.members.remove(member.id)
+        except KeyError:
+            return
+
+        await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}:remove", member.id)
+
+    async def enable(self):
+        """
+        Enables the gatekeeper.
+
+        This method updates the config record in the database and restarts the gatekeeper loop if needed
+        """
+        query = "UPDATE guild_gatekeeper_config SET active='t' WHERE guild_id=$1;"
+        await self.bot.pool.execute(query, self.guild_id)
+        self.active = True
+
+        if self.gtkp_loop.done():
+            self.gtkp_loop = asyncio.create_task(self._loop())
+
+    async def disable(self):
+        """
+        Disables the Gatekeeper.
+
+        This method sets the `active` attribute to False and moves the members from the add
+        list to the removal list in Redis.
+
+        Note: This method does not update the config record in the database!
+        """
+        self.active = False
+        # Moves the members from the add list to the removal list
+        members = await self.bot.redis_pool.lrange(f"lightning:automod:gatekeeper:{self.guild_id}:add", 0, -1)
+        if members:
+            await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{self.guild_id}:remove", *members)
+        self.members.clear()
