@@ -673,6 +673,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild: Union[PartialGuild, discord.Guild]) -> None:
         await self.get_automod_config.invalidate(guild.id)
+        self.invalidate_gatekeeper(guild.id)
 
     async def handle_name_changing(self, member: discord.Member, record: AutomodConfig):
         if record.auto_normalize is False and record.auto_dehoist is False:
@@ -687,6 +688,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
         cog: Moderation = self.bot.get_cog("Moderation")  # type: ignore
         await cog.dehoist_member(member, self.bot.user, COMMON_HOIST_CHARACTERS, normalize=record.auto_normalize)
 
+    # Gatekeeper & Auto-Dehoist/Normalize
     @LightningCog.listener()
     async def on_member_join(self, member: discord.Member):
         gatekeeper = await self.get_gatekeeper_config(member.guild.id)
@@ -699,6 +701,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         await self.handle_name_changing(member, record)
 
+    # Auto-Dehoist & Auto-Normalize
     @LightningCog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         if before.display_name == after.display_name:
