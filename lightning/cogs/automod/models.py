@@ -184,8 +184,8 @@ class GateKeeperConfig:
         # for quick ref, result is a list of [key, value]
         if self.role_id is None:
             return
-
-        while self.active:
+        # Members will not be added until the Gatekeeper is set to Active
+        while self.role_id is not None:
             result: List[str] = await self.bot.redis_pool.brpop([f"lightning:automod:gatekeeper:{self.guild_id}:add",
                                                                 f"lightning:automod:gatekeeper:{self.guild_id}:remove"],
                                                                 0)  # type: ignore
@@ -213,6 +213,7 @@ class GateKeeperConfig:
                 pass
 
     async def gatekeep_member(self, member: discord.Member):
+        """Queues a member to be verified."""
         query = """INSERT INTO pending_gatekeeper_members (guild_id, member_id)
                    VALUES ($1, $2)
                    ON CONFLICT DO NOTHING;"""
