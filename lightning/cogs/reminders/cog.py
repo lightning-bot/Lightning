@@ -185,6 +185,10 @@ class Reminders(LightningCog):
 
         timezone = await self.get_user_tzinfo(ctx.author.id)
 
+        if when.dt > ctx.message.created_at + timedelta(days=365 * 10):
+            await ctx.send("You cannot set a timer for longer than 10 years!", ephemeral=True)
+            return
+
         _id = await self.add_timer("reminder", ctx.message.created_at, when.dt,
                                    timezone=timezone,
                                    reminder_text=when.arg,
