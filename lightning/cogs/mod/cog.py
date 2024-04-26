@@ -741,7 +741,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         try:
             await self.dehoist_member(member, interaction.user, COMMON_HOIST_CHARACTERS, normalize=True)
         except discord.HTTPException as e:
-            await interaction.response.send_message(f"I was unable to sanitize {member.mention}. ({str(e)})")
+            await interaction.response.send_message(f"I was unable to sanitize {member.mention}. ({str(e)})",
+                                                    ephemeral=True)
             return
 
         await interaction.response.send_message(f"Sanitized {member.mention}", ephemeral=True)
