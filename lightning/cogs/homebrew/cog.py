@@ -197,7 +197,7 @@ class Homebrew(LightningCog):
                 pass
 
             hook_text = f"[{discord.utils.format_dt(timestamp, style='T')}] \N{POLICE CARS REVOLVING LIGHT} **System"\
-                        f" update detected for {console}: {version}**\nMore information at <{link}>"
+                f" update detected for {console}: {version}**\nMore information at <{link}>"
             await self.ninupdates_data.add(console, {"version": version,
                                            "last_updated": timestamp.isoformat()})
             await self.dispatch_message_to_guilds(console, hook_text)

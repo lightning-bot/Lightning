@@ -48,8 +48,8 @@ class ReminderEdit(ExitableMenu):
     async def format_initial_message(self, ctx):
         record = await ctx.bot.api.get_timer(self.timer_id)
         content = f"**Reminder #{self.timer_id}**:\nExpires: "\
-                  f"{discord.utils.format_dt(datetime.fromisoformat(record['expiry']))}\nText: "\
-                  f"{record['extra']['reminder_text']}"
+            f"{discord.utils.format_dt(datetime.fromisoformat(record['expiry']))}\nText: "\
+            f"{record['extra']['reminder_text']}"
 
         if ctx.interaction:
             return {"content": content, "ephemeral": True}

@@ -48,9 +48,9 @@ class InfractionSource(menus.ListPageSource):
             action = str(ActionType(entry['action'])).capitalize()
             dt = add_tzinfo(datetime.fromisoformat(entry['created_at']))
             embed.add_field(name=f"{entry['id']}: {action} at "
-                                 f"{discord.utils.format_dt(dt)}",
+                            f"{discord.utils.format_dt(dt)}",
                             value=f"**Moderator**: {base_user_format(moderator)}\n"
-                                  f"**Reason**: {truncate_text(reason, 45)}", inline=False)
+                            f"**Reason**: {truncate_text(reason, 45)}", inline=False)
         return embed
 
     async def format_all_page(self, menu: InfractionPaginator, entries):
@@ -62,9 +62,9 @@ class InfractionSource(menus.ListPageSource):
             action = str(ActionType(entry['action'])).capitalize()
             dt = add_tzinfo(datetime.fromisoformat(entry['created_at']))
             embed.add_field(name=f"{entry['id']}: {action} at "
-                                 f"{discord.utils.format_dt(dt)}",
+                            f"{discord.utils.format_dt(dt)}",
                             value=f"**User**: {base_user_format(user)}\n**Moderator**: {base_user_format(mod)}"
-                                  f"\n**Reason**: {truncate_text(reason, 45)}",
+                            f"\n**Reason**: {truncate_text(reason, 45)}",
                             inline=False)
         return embed
 

@@ -102,14 +102,14 @@ class BotHelpSource(menus.ListPageSource):
 
     async def format_page(self, menu: HelpPaginator, entry) -> str:
         description = f"Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.\nYou can also use \""\
-                      f"{menu.ctx.clean_prefix}help [category]\" for help about a category."
+            f"{menu.ctx.clean_prefix}help [category]\" for help about a category."
         if "support_server_invite" in menu.bot.config['bot']:
             description += "\nFor additional help, join the support server: "\
                            f"<{menu.bot.config['bot']['support_server_invite']}>"
 
         cmds = self.data.get(entry, [])
         value = f"**{entry}**\n{f'*{cmds[0].cog.description}*' if cmds[0].cog.description else ''}"\
-                f"\nYour current permissions allow you to run the following commands:\n{format_commands(cmds)}"
+            f"\nYour current permissions allow you to run the following commands:\n{format_commands(cmds)}"
 
         return f"{value}\n{description}"
 
@@ -127,9 +127,9 @@ class CogHelpSource(menus.ListPageSource):
                 f"{command.short_doc or 'No help found...'})\n" for command in entries]
 
         content = f"**{entries[0].cog.qualified_name}**\n*{entries[0].cog.description}*\n"\
-                  f"Your current permissions allow you to run the following commands:\n{''.join(cmds)}\n\n"\
-                  f"*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*"\
-                  f"\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"
+            f"Your current permissions allow you to run the following commands:\n{''.join(cmds)}\n\n"\
+            f"*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*"\
+            f"\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"
         return content
 
 
@@ -142,10 +142,10 @@ class GroupHelpSource(CogHelpSource):
         if menu.current_page == 0:
             if await self.group.can_run(menu.ctx):
                 content = f"Your current permissions allow you to run the following group command:\n"\
-                          f"{menu.help_command.common_command_formatting(self.group)}"
+                    f"{menu.help_command.common_command_formatting(self.group)}"
             else:
                 content = f"Your current permissions do not allow you to run the following group command:\n"\
-                          f"{menu.help_command.common_command_formatting(self.group)}"
+                    f"{menu.help_command.common_command_formatting(self.group)}"
         else:
             content = ""
 
@@ -153,9 +153,9 @@ class GroupHelpSource(CogHelpSource):
                 f"{command.short_doc or 'No help found...'})\n" for command in entries]
 
         content += f"\n\n**Subcommands**:\nYour current permissions allow you to run the following subcommands:\n"\
-                   f"{''.join(cmds)}\n\n"\
-                   f"*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*"\
-                   f"\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"
+            f"{''.join(cmds)}\n\n"\
+            f"*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*"\
+            f"\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"
         return content
 
 

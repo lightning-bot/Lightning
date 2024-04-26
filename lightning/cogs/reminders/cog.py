@@ -198,10 +198,10 @@ class Reminders(LightningCog):
 
         if type(_id) is dict:
             content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
-                      f" {discord.utils.format_dt(when.dt)} about {when.arg}. (#{_id['id']})"
+                f" {discord.utils.format_dt(when.dt)} about {when.arg}. (#{_id['id']})"
         else:
             content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
-                      f" {discord.utils.format_dt(when.dt)} about {when.arg}."
+                f" {discord.utils.format_dt(when.dt)} about {when.arg}."
 
         if channel is None:
             embed = discord.Embed().set_footer(text="Make sure to have your DMs open so you can receive your reminder"
@@ -375,7 +375,7 @@ class Reminders(LightningCog):
             reminder_content = timer.extra['reminder_text'][:1800]
 
         message = f"<@!{user.id}> You asked to be reminded "\
-                  f"{dt_format} about {reminder_content}"
+            f"{dt_format} about {reminder_content}"
         secret = timer.extra.pop("secret", False)
 
         # The reminder will be DM'd on one of the following conditions

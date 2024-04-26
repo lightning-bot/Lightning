@@ -51,8 +51,8 @@ class Logging(UpdateableMenu, ExitableMenu):
         else:
             types = LoggingType(record['types'])
             content = f"Configuration for {self.log_channel.mention}:\n\n"\
-                      f"Events: {types.to_simple_str().replace('|', ', ')}\n"\
-                      f"Log Format: {record['format'].title()}"
+                f"Events: {types.to_simple_str().replace('|', ', ')}\n"\
+                f"Log Format: {record['format'].title()}"
         return content
 
     @discord.ui.button(label="Log all events", style=discord.ButtonStyle.primary, emoji="\N{LEDGER}")

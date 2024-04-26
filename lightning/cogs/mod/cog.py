@@ -170,7 +170,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     async def time_ban_user(self, ctx: GuildContext, target, moderator, reason, duration, *, dm_user=False,
                             delete_message_days=0) -> None:
         duration_text = f"{natural_timedelta(duration.dt, source=ctx.message.created_at)} ("\
-                        f"{discord.utils.format_dt(duration.dt)})"
+            f"{discord.utils.format_dt(duration.dt)})"
 
         cog: Optional[Reminders] = self.bot.get_cog('Reminders')  # type: ignore
         if not cog:
@@ -253,7 +253,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if not flags.nodm and isinstance(target, discord.Member):
             dm_message = modlogformats.construct_dm_message(target, "warned", "in", reason=flags.reason,
                                                             ending=f"You now have {plural(warns + 1):warning}!\nTo view"
-                                                                   f"your warns, use /mywarns in the server.")
+                                                            f"your warns, use /mywarns in the server.")
             # ending="\n\nAdditional action may be taken against you if the server has set it up."
             indicator = await helpers.dm_user(target, dm_message)
             if indicator is True:
@@ -366,7 +366,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             raise e
 
         duration_text = f"{natural_timedelta(duration.dt, source=ctx.message.created_at)} ("\
-                        f"{discord.utils.format_dt(duration.dt)})"
+            f"{discord.utils.format_dt(duration.dt)})"
 
         timer: Optional[Reminders] = self.bot.get_cog('Reminders')
         if not timer:
@@ -782,7 +782,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             user = helpers.UserObject(timer.extra['user_id'])
         else:
             reason = f"Timed mute made by {modlogformats.base_user_format(moderator)} at "\
-                     f"{get_utc_timestamp(timer.created_at)} expired"
+                f"{get_utc_timestamp(timer.created_at)} expired"
             # I think I'll intentionally let it raise an error if bot missing perms or w/e...
             await user.remove_roles(role, reason=reason)
 

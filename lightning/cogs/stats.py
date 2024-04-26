@@ -309,7 +309,7 @@ class Stats(LightningCog):
                 today_total = await conn.fetchval(query)
                 embed = discord.Embed(title="Popular Commands", color=0x841d6e,
                                       description=f"Total commands used: {total}\nTotal commands used today: "
-                                                  f"{today_total}")
+                                      f"{today_total}")
                 commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (used {cmd_uses} times)'
                                               for (index, (command_name, cmd_uses)) in enumerate(records))
                 embed.add_field(name="All Time", value=commands_used_des)
@@ -428,7 +428,7 @@ class Stats(LightningCog):
                                             "(https://ko-fi.com/lightsage)",
                                             inline=False)
         embed.set_footer(text=f"Lightning v{self.bot.version} | Made with "
-                              f"discord.py {discord.__version__}")
+                         f"discord.py {discord.__version__}")
 
         embed.description = '\n'.join(description)
 

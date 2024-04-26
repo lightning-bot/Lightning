@@ -127,8 +127,8 @@ class DiscordMeta(LightningCog):
 
         embed = discord.Embed(title=guild.name)
         embed.description = f"**ID**: {guild.id}\n**Owner**: {str(guild.owner)}\n**Creation**: "\
-                            f"{discord.utils.format_dt(guild.created_at)} ("\
-                            f"{natural_timedelta(guild.created_at, accuracy=3)})"
+            f"{discord.utils.format_dt(guild.created_at)} ("\
+            f"{natural_timedelta(guild.created_at, accuracy=3)})"
 
         if guild.icon:
             if guild.icon.is_animated():
@@ -173,7 +173,7 @@ class DiscordMeta(LightningCog):
 
         if guild.premium_subscription_count:
             boosts = f"Tier: {guild.premium_tier}\n"\
-                     f"{guild.premium_subscription_count} boosts."
+                f"{guild.premium_subscription_count} boosts."
             embed.add_field(name="Server Boost", value=boosts)
 
         await ctx.send(embed=embed)

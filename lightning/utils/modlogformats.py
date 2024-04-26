@@ -131,12 +131,12 @@ class EmojiFormat(BaseFormat):
     @staticmethod
     def bot_addition(bot: discord.Member, mod) -> str:
         return f"\N{ROBOT FACE} **Bot Add** {mod.mention} added bot {bot.mention} | "\
-               f"{escape_markdown_and_mentions(str(bot))}"
+            f"{escape_markdown_and_mentions(str(bot))}"
 
     @staticmethod
     def completed_screening(member: discord.Member):
         return f"\N{PASSPORT CONTROL} **Member Completed Screening** {member.mention} | "\
-               f"({escape_markdown_and_mentions(str(member))}"
+            f"({escape_markdown_and_mentions(str(member))}"
 
     @staticmethod
     def role_change(event: MemberRolesUpdateEvent):
@@ -193,22 +193,22 @@ class EmojiFormat(BaseFormat):
         safe_name = escape_markdown_and_mentions(str(member))
         if log_type == "MEMBER_JOIN":
             msg = f"{Emoji.member_join}"\
-                  f" **Member Join**: {member.mention} | "\
-                  f"{safe_name}\n"\
-                  f"\N{CLOCK FACE FOUR OCLOCK} __Account Creation__: {discord.utils.format_dt(member.created_at)}\n"\
-                  f"\N{LABEL} __User ID__: {member.id}"
+                f" **Member Join**: {member.mention} | "\
+                f"{safe_name}\n"\
+                f"\N{CLOCK FACE FOUR OCLOCK} __Account Creation__: {discord.utils.format_dt(member.created_at)}\n"\
+                f"\N{LABEL} __User ID__: {member.id}"
         else:
             msg = f"{Emoji.member_leave} "\
-                  f"**Member Leave**: {member.mention} | "\
-                  f"{safe_name}\n"\
-                  f"\N{LABEL} __User ID__: {member.id}"
+                f"**Member Leave**: {member.mention} | "\
+                f"{safe_name}\n"\
+                f"\N{LABEL} __User ID__: {member.id}"
         return msg
 
     @staticmethod
     def command_ran(ctx) -> str:
         command = ctx.command
         msg = f"\N{CLIPBOARD} **Command Used**: {ctx.author.mention} ran `{command.qualified_name}`\n"\
-              f"__Channel__: {ctx.channel.mention} | {ctx.channel.name}"
+            f"__Channel__: {ctx.channel.mention} | {ctx.channel.name}"
         return msg
 
     @staticmethod
@@ -257,7 +257,7 @@ class EmojiFormat(BaseFormat):
     @staticmethod
     def infraction_delete(event: InfractionDeleteEvent):
         msg = f"\N{PUT LITTER IN ITS PLACE SYMBOL} **Infraction deleted** "\
-              f"{event.moderator.mention} deleted #{event.infraction.id}"
+            f"{event.moderator.mention} deleted #{event.infraction.id}"
         return msg
 
 
@@ -355,19 +355,19 @@ class MinimalisticFormat(BaseFormat):
         safe_name = escape_markdown_and_mentions(str(bot))
         safe_mod_name = escape_markdown_and_mentions(str(mod))
         return f"[{format_timestamp(time)}] **Bot Add**"\
-               f"\n**Bot**: {safe_name} ({bot.id})\n"\
-               f"**Moderator**: {safe_mod_name} ({mod.id})"
+            f"\n**Bot**: {safe_name} ({bot.id})\n"\
+            f"**Moderator**: {safe_mod_name} ({mod.id})"
 
     @staticmethod
     def join_leave(log_type: str, member) -> str:
         if log_type == "MEMBER_JOIN":
             msg = f"[{format_timestamp(member.joined_at)}]"\
-                  f" **Member Join**: {discord.utils.escape_markdown(str(member))} ({member.id})\n"\
-                  "__Account Creation Date__: "\
-                  f"{discord.utils.format_dt(member.created_at)}"
+                f" **Member Join**: {discord.utils.escape_markdown(str(member))} ({member.id})\n"\
+                "__Account Creation Date__: "\
+                f"{discord.utils.format_dt(member.created_at)}"
         else:
             msg = f"[{format_timestamp(discord.utils.utcnow())}]"\
-                  f" **Member Leave**: {discord.utils.escape_markdown(str(member))} ({member.id})"
+                f" **Member Leave**: {discord.utils.escape_markdown(str(member))} ({member.id})"
         return msg
 
     @staticmethod
@@ -477,7 +477,7 @@ class EmbedFormat(BaseFormat):
 
         embed.set_author(name=member, icon_url=member.avatar.url)
         embed.description = f"**User**: {member.mention} ({member.id}) \n**Created at**: "\
-                            f"{natural_timedelta(member.created_at)}"
+            f"{natural_timedelta(member.created_at)}"
         return embed
 
     def format_message(self) -> discord.Embed:
@@ -551,7 +551,7 @@ class EmbedFormat(BaseFormat):
         embed = discord.Embed(title="Command Ran", color=0xf74b06, timestamp=ctx.message.created_at)
         user = ctx.author
         embed.description = f"**Command**: {ctx.command.qualified_name}\n**User**: {user.mention} ({user.id})"\
-                            f"\n**Channel**: {ctx.channel.mention} ({ctx.channel.id})"
+            f"\n**Channel**: {ctx.channel.mention} ({ctx.channel.id})"
         return embed
 
     @staticmethod
@@ -588,12 +588,12 @@ class EmbedFormat(BaseFormat):
         if event.before.moderator_id != event.after.moderator_id:
             embed.add_field(name="Moderator",
                             value=f"**Old**: {base_user_format(event.before.moderator)}\n**New**: "
-                                  f"{base_user_format(event.after.moderator)}")
+                            f"{base_user_format(event.after.moderator)}")
 
         if event.before.reason != event.after.reason:
             embed.add_field(name="Reason",
                             value=f"**Old**: {truncate_text(event.before.reason, limit=200)}\n**New**: "
-                                  f"{truncate_text(event.after.reason, limit=200)}")
+                            f"{truncate_text(event.after.reason, limit=200)}")
 
         return embed
 
@@ -602,6 +602,6 @@ class EmbedFormat(BaseFormat):
         embed = discord.Embed(color=discord.Color.red(),
                               title="Infraction Delete",
                               description=f"**ID**: {event.infraction.id}\n**Moderator**: "
-                                          f"{base_user_format(event.moderator)}")
+                              f"{base_user_format(event.moderator)}")
 
         return embed

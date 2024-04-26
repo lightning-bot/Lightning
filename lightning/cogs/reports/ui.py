@@ -69,7 +69,7 @@ class ActionOptionsModal(discord.ui.Modal, title="Action Options"):
         self.dt = dt
 
         await interaction.response.edit_message(content=f"{self.msg_content}\n\n**Duration**: "
-                                                        f"{discord.utils.format_dt(dt.dt)}")
+                                                f"{discord.utils.format_dt(dt.dt)}")
 
 
 action_options = [discord.SelectOption(label="No action", value="no_action"),
@@ -102,7 +102,7 @@ class ActionDashboard(BaseView):
             self.duration_button.disabled = False
 
         await interaction.response.edit_message(content=f"You selected {self.action.capitalize()}. "
-                                                        "Press Confirm once you're done configuring any other options.",
+                                                "Press Confirm once you're done configuring any other options.",
                                                 view=self)
 
     @discord.ui.button(label="Reason", disabled=True, emoji="\N{MEMO}")
@@ -118,7 +118,7 @@ class ActionDashboard(BaseView):
     async def duration_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         modal = ActionOptionsModal()
         modal.msg_content = f"You selected {self.action.capitalize()}. "\
-                            "Press Confirm once you're done configuring any other options."
+            "Press Confirm once you're done configuring any other options."
         await interaction.response.send_modal(modal)
         await modal.wait()
 

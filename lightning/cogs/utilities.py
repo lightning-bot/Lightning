@@ -108,7 +108,7 @@ class Utilities(LightningCog):
             messages.reverse()
 
         text = f"Archive of {channel} (ID: {channel.id}) made at {discord.utils.utcnow()}\nConditions: {vars(flags)}"\
-               f"\n\n\n{''.join(messages)}"
+            f"\n\n\n{''.join(messages)}"
 
         _bytes = StringIO(text)
         _bytes.seek(0)

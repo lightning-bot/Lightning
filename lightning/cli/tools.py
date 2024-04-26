@@ -167,7 +167,7 @@ def format_subcommands(commands) -> str:
             cog = "not_categorized"
 
         return f'https://lightning-bot.gitlab.io/commands/{cog}/'\
-               f'{c.qualified_name.replace(" ", "_")}'
+            f'{c.qualified_name.replace(" ", "_")}'
 
     return ", ".join([f"[`{c.qualified_name}`]({make_link(c)})" for c in commands])
 
@@ -268,7 +268,7 @@ def build_cog_docs():
             description = command.help.replace('\n', '<br>') if command.help else None
 
             link = f'https://lightning-bot.gitlab.io/commands/{cog_name}/'\
-                   f'{command.qualified_name.lower().replace(" ", "_")}'
+                f'{command.qualified_name.lower().replace(" ", "_")}'
 
             cmds.append((f"[{command.qualified_name}]({link})", aliases, description, f"`{usage}`"))
 

@@ -242,10 +242,10 @@ class GatekeeperRoleView(BasicMenuLikeView):
 
         s, f, sk = await self.create_permission_overwrites(itx.guild, role)
         if f >= 1:
-            content = f"Set {s+sk} permissions overwrites for this role. {f} channels failed to set permission "\
-                      "overrides!"
+            content = f"Set {s + sk} permissions overwrites for this role. {f} channels failed to set permission "\
+                "overrides!"
         else:
-            content = f"Set {s+sk} permission overwrites for this role."
+            content = f"Set {s + sk} permission overwrites for this role."
 
         await itx.followup.send(content=content, ephemeral=True)
 
@@ -306,10 +306,10 @@ class GatekeeperRoleView(BasicMenuLikeView):
 
         s, f, sk = await self.create_permission_overwrites(itx.guild, role)
         if f >= 1:
-            content = f"Set {s+sk} permissions overwrites for this role. {f} channels failed to set permission "\
-                      "overrides!"
+            content = f"Set {s + sk} permissions overwrites for this role. {f} channels failed to set permission "\
+                "overrides!"
         else:
-            content = f"Set {s+sk} permission overwrites for this role."
+            content = f"Set {s + sk} permission overwrites for this role."
 
         await itx.followup.send(content=content, ephemeral=True)
         self.stop(interaction=itx)
