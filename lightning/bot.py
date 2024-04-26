@@ -325,7 +325,7 @@ class LightningBot(commands.AutoShardedBot):
     async def on_error(self, event: str, *args, **kwargs):
         exc = sys.exc_info()
 
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.new_scope() as scope:
             scope.set_tag("event", event)
             scope.set_extra("args", args)
             scope.set_extra("kwargs", kwargs)
