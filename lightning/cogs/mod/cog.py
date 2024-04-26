@@ -27,7 +27,7 @@ from discord import app_commands
 from discord.ext import commands
 from unidecode import unidecode
 
-from lightning import (CommandLevel, GuildContext, LightningCog,
+from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, cache, command, converters)
 from lightning import flags as lflags
 from lightning import group, hybrid_command
@@ -66,6 +66,10 @@ confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
 
 class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     """Moderation and server management commands."""
+    def __init__(self, bot: LightningBot):
+        super().__init__(bot)
+        self.sanitize_appcommand = app_commands.ContextMenu(name="Sanitize Member", callback=self.sanitize_ac)
+        bot.tree.add_command(self.sanitize_appcommand)
 
     @cache.cached('mod_config', cache.Strategy.lru)
     async def get_mod_config(self, guild_id: int) -> Optional[GuildModConfig]:
@@ -730,6 +734,17 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             return
 
         await ctx.send(f"Normalized {member.mention}")
+
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_nicknames=True)
+    async def sanitize_ac(self, interaction: discord.Interaction, member: discord.Member):
+        try:
+            await self.dehoist_member(member, interaction.user, COMMON_HOIST_CHARACTERS, normalize=True)
+        except discord.HTTPException as e:
+            await interaction.response.send_message(f"I was unable to sanitize {member.mention}. ({str(e)})")
+            return
+
+        await interaction.response.send_message(f"Sanitized {member.mention}", ephemeral=True)
 
     @LightningCog.listener()
     async def on_lightning_timeban_complete(self, timer: Timer):
