@@ -126,6 +126,9 @@ class AntiScam(LightningCog):
         if message.guild is None:
             return
 
+        if message.guild.id not in self.active_guilds:
+            return
+
         if message.author.bot:
             return
 
