@@ -31,7 +31,8 @@ from lightning.utils.checks import is_server_manager
 nlp = spacy.load("en_core_web_sm")
 INVITE_REGEX = re.compile(r"(?:https?://)?discord(?:app)?\.(?:com/invite|gg)/[a-zA-Z0-9]+/?")
 URL_REGEX = re.compile(r"https?:\/\/.*?$")
-MASKED_LINKS = re.compile(r"\[(\w+\.?)*]\((https?://)(\w+\.?)*\)")
+MASKED_LINKS = re.compile(r"\[[^\]]+\]\([^)]+\)")
+MENTIONS_EVERYONE_REGEX = re.compile(r"(?P<here>\@here)|(?P<everyone>\@everyone)", flags=re.MULTILINE)
 
 
 class AntiScamResult:
@@ -41,7 +42,7 @@ class AntiScamResult:
 
     def identify_OF_spams(self, content: spacy.tokens.Doc, score: int):
         # The messages I've seen don't use masked links at all for OF spam, I could be wrong though
-        for link in MASKED_LINKS.finditer(self.message.content):
+        for x, y in MASKED_LINKS.finditer(self.message.content):
             score -= 15
 
         if len(URL_REGEX.findall(self.message.content)) == 1:  # I have seen them only post 1 link
@@ -140,7 +141,7 @@ class AntiScam(LightningCog):
         if score < 60:
             try:
                 await message.author.timeout(message.created_at + timedelta(hours=12),
-                                             reason="AntiScam reported their message to be below the "
+                                             reason="AntiScam reported the message to be below the "
                                              f"safety rating ({score}%)")
                 await message.delete()
             except discord.HTTPException:
