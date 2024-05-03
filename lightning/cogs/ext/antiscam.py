@@ -133,6 +133,17 @@ class AntiScamResult:
         return score - nscore
 
 
+def get_timeout_score(score: int):
+    hours = 2
+    if score < 60:
+        hours += 1
+    if score <= 50:
+        hours += 2
+    if score <= 40:
+        hours += 3
+    return hours
+
+
 class AntiScam(LightningCog):
     """An experimental anti-scam"""
     def __init__(self, bot: LightningBot):
@@ -162,7 +173,7 @@ class AntiScam(LightningCog):
         score = res.calculate()
         if score < 60:
             try:
-                await message.author.timeout(message.created_at + timedelta(hours=12),
+                await message.author.timeout(message.created_at + timedelta(hours=get_timeout_score(score)),
                                              reason="AntiScam reported the message to be below the "
                                              f"safety rating ({score}%)")
                 await message.delete()
@@ -179,7 +190,8 @@ class AntiScam(LightningCog):
 
         Anti-scam currently supports OnlyFans scams and Steam scams.
         Once enabled, this feature will scan every new message to see if it contains a scam.
-        If the message's safety score reaches below 60%, the author of the message will be timed out for 12 hours.
+        If the message's safety score reaches below 60%, the author of the message will be timed out for a few hours.
+        The timeout interval varies based on the score of the safety message.
         """
         ...
 
