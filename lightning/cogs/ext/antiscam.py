@@ -31,37 +31,53 @@ from lightning.utils.checks import is_server_manager
 nlp = spacy.load("en_core_web_sm")
 INVITE_REGEX = re.compile(r"(?:https?://)?discord(?:app)?\.(?:com/invite|gg)/[a-zA-Z0-9]+/?")
 URL_REGEX = re.compile(r"https?:\/\/.*?$")
+DOMAIN_REGEX = re.compile(r"(?:[A-z0-9](?:[A-z0-9-]{0,61}[A-z0-9])?\.)+[A-z0-9][A-z0-9-]{0,61}[A-z0-9]")
 MASKED_LINKS = re.compile(r"\[[^\]]+\]\([^)]+\)")
 MENTIONS_EVERYONE_REGEX = re.compile(r"(?P<here>\@here)|(?P<everyone>\@everyone)", flags=re.MULTILINE)
 
 
 class AntiScamResult:
-    def __init__(self, message: discord.Message) -> None:
-        self.message = message
-        self.contains_everyone = message.mention_everyone
+    def __init__(self, content: str) -> None:
+        self.content = content
+        self.mentions_everyone = False
+        self.everyone_mention_count = 0
+        self.here_mention_count = 0
+
+        for match in MENTIONS_EVERYONE_REGEX.finditer(content):
+            self.mentions_everyone = True
+            if match.group("everyone"):
+                self.everyone_mention_count += 1
+            if match.group("here"):
+                self.here_mention_count += 1
+
+        self.author = None
+
+    @classmethod
+    def from_message(cls, message: discord.Message):
+        cls = cls(message.content)
+        cls.author = message.author
+        return cls
 
     def identify_OF_spams(self, content: spacy.tokens.Doc, score: int):
         # The messages I've seen don't use masked links at all for OF spam, I could be wrong though
-        for x, y in MASKED_LINKS.finditer(self.message.content):
+        for x, y in MASKED_LINKS.finditer(self.content):
             score -= 15
 
-        if len(URL_REGEX.findall(self.message.content)) == 1:  # I have seen them only post 1 link
+        if len(URL_REGEX.findall(self.content)) == 1:  # I have seen them only post 1 link
             score -= 20
 
         for token in content:
             if token.text in ("🍑", "🔞", "💦"):
                 score -= 10
+                continue
 
-            if token.lemma_.lower() == "leak":
-                score -= 5
-
-            if token.lemma_.lower() == "teen":
+            if token.lemma_.lower() in ("leak", "teen"):
                 score -= 5
 
         return score
 
     def identify_steam_scams(self, content: spacy.tokens.Doc, score: int):
-        if MASKED_LINKS.search(self.message.content):
+        if MASKED_LINKS.search(self.content):
             score -= 30
 
         for token in content:
@@ -77,13 +93,14 @@ class AntiScamResult:
         return score
 
     def calculate(self):
-        content = nlp(self.message.content)
+        content = nlp(self.content)
         score = 100
-        if self.contains_everyone:
+        if self.mentions_everyone:
             score -= 5
 
-        if self.message.author.joined_at >= discord.utils.utcnow() + timedelta(days=2):
-            score -= 5
+        if hasattr(self.author, "joined_at"):
+            if self.author.joined_at >= discord.utils.utcnow() + timedelta(days=2):
+                score -= 5
 
         # Go through named entities first
         for ent in content.ents:
@@ -136,7 +153,7 @@ class AntiScam(LightningCog):
         if message.author.top_role >= message.guild.me.top_role:
             return
 
-        res = AntiScamResult(message)
+        res = AntiScamResult.from_message(message)
         score = res.calculate()
         if score < 60:
             try:
@@ -192,7 +209,7 @@ class AntiScam(LightningCog):
     @is_server_manager()
     async def antiscam_test(self, ctx: GuildContext, *, message: str):
         """Tests to see if a message is safe"""
-        res = AntiScamResult(ctx.message)
+        res = AntiScamResult(message)
         score = res.calculate()
         await ctx.send(f"This message scored {score}% safe!")
 
