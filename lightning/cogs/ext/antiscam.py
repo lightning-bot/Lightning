@@ -61,7 +61,7 @@ class AntiScamResult:
         return score
 
     def identify_steam_scams(self, content: spacy.tokens.Doc, score: int):
-        if len(MASKED_LINKS.findall(self.message.content)) != 0:
+        if MASKED_LINKS.search(self.message.content):
             score -= 30
 
         for token in content:
@@ -229,7 +229,7 @@ if __name__ == "__main__":
         "@everyone\nBEST NUDES 💦 + Nitro Giveaway 🥳\nJOIN RIGHT NOW: https://discord.gg/123456",
         "50$ for Steam - [steamcommunity.com/gift/7441553](https://test.cloud/1234)"
     ]
-    test = ["did you see her onlyfans", "onlyfans lmao", "go away"]
+    test = ["did you see her onlyfans", "onlyfans lmao", "go away", "check out the new steam game"]
     multi = samples + test
     for sample in multi:
         class Message:
