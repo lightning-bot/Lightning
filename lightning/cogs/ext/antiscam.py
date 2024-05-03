@@ -23,12 +23,19 @@ import discord
 import spacy
 import spacy.tokens
 from discord.ext import commands
+from spacy.matcher import Matcher
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        group)
 from lightning.utils.checks import is_server_manager
 
 nlp = spacy.load("en_core_web_sm")
+matcher = Matcher(nlp.vocab)
+OF_PATTERNS = [[{"LOWER": "onlyfans"}], [{"LEMMA": "onlyfan"}]]
+STEAM_PATTERNS = [[{"LOWER": "steam"}], [{"LEMMA": "steam"}]]
+matcher.add("OnlyFans", OF_PATTERNS)
+matcher.add("Steam", STEAM_PATTERNS)
+
 INVITE_REGEX = re.compile(r"(?:https?://)?discord(?:app)?\.(?:com/invite|gg)/[a-zA-Z0-9]+/?")
 URL_REGEX = re.compile(r"https?:\/\/.*?$")
 DOMAIN_REGEX = re.compile(r"(?:[A-z0-9](?:[A-z0-9-]{0,61}[A-z0-9])?\.)+[A-z0-9][A-z0-9-]{0,61}[A-z0-9]")
@@ -102,28 +109,26 @@ class AntiScamResult:
             if self.author.joined_at >= discord.utils.utcnow() + timedelta(days=2):
                 score -= 5
 
-        # Go through named entities first
-        for ent in content.ents:
-            if ent.lemma_.lower in ("onlyfan", "onlyfans"):
+        matches = matcher(content)
+        for match_id, start, end in matches:
+            string_id = nlp.vocab.strings[match_id]  # string rep. of match
+            if string_id == "OnlyFans":
                 score -= 20
                 return self.identify_OF_spams(content, score)
 
-            if ent.lemma_.lower() == "steam":
+            if string_id == "Steam":
                 score -= 20
                 return self.identify_steam_scams(content, score)
 
         nscore = 0
         for token in content:
-            if token.lemma_.lower() in ("onlyfan", "onlyfans"):
-                score -= 20
-                return self.identify_OF_spams(content, score)
-
-            if token.lemma_.lower() == "steam":
-                score -= 20
-                return self.identify_steam_scams(content, score)
-
             if token.lemma_.lower() == "nude":
                 nscore += 5
+
+            if token.lemma_.lower() == "gift":
+                nscore += 5
+                # Potientially sus, run it through our steam identifier
+                score = self.identify_steam_scams(content, score)
 
         return score - nscore
 
