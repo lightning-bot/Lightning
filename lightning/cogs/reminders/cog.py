@@ -163,6 +163,7 @@ class Reminders(LightningCog):
         return ZoneInfo(timezone) if timezone else ZoneInfo("UTC")
 
     @hybrid_group(usage="<when>", aliases=["reminder"], invoke_without_command=True, fallback="set")
+    @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.describe(when="When to remind you of something, in UTC")
     async def remind(self, ctx: LightningContext, *,
                      when: ltime.UserFriendlyTimeResult =
