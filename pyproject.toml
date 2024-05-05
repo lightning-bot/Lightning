@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "Lightning.py"
-version = "4.8.1a"
-description = ""
+version = "4.8.1"
+description = "Powerful moderation & utilities Discord App (Bot)"
 authors = ["LightSage <lightsage01@gmail.com>"]
 license = "AGPL-3.0-or-later"
 readme = "README.md"
