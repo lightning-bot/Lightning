@@ -19,13 +19,19 @@ from typing import Annotated, Optional
 import discord
 from discord.ext import commands
 
-from lightning import flags
 from lightning.converters import Snowflake
 
-BaseModParser = flags.FlagParser([flags.Flag("--nodm", "--no-dm", is_bool_flag=True,
-                                             help="Bot does not DM the user the reason for the action."),
-                                  flags.Flag(attribute="reason", consume_rest=True)],
-                                 raise_on_bad_flag=False)
+
+class DefaultModFlags(commands.FlagConverter, prefix="--", delimiter=""):
+    reason: Optional[str] = commands.flag(positional=True, default=None, description="The reason for the action")
+    dm_user: Optional[bool] = commands.flag(name="dm", default=None,
+                                            description="Whether to notify the user of the action or not "
+                                            "(Overrides the guild settings)")
+
+
+class BanFlags(DefaultModFlags):
+    delete_messages: int = commands.flag(aliases=['delete'], default=0,
+                                         description="Delete message history from a specified amount of days (Max 7)")
 
 
 class PurgeFlags(commands.FlagConverter, prefix="--", delimiter=""):

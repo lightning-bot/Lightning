@@ -14,17 +14,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import discord
 from sanctum.exceptions import NotFound
 
-from lightning import ExitableMenu, SelectSubMenu, UpdateableMenu
+from lightning import ExitableMenu, LightningBot, SelectSubMenu, UpdateableMenu
 from lightning.converters import Role
 from lightning.ui import lock_when_pressed
 
 if TYPE_CHECKING:
     from lightning.cogs.config.cog import Configuration
+    from lightning.cogs.mod.cog import Mod
 
 
 class AutoRole(UpdateableMenu, ExitableMenu):
@@ -137,3 +138,72 @@ class Prefix(UpdateableMenu, ExitableMenu):
         prefixes.remove(select.values[0])
         await self.ctx.bot.api.bulk_upsert_guild_prefixes(self.ctx.guild.id, prefixes)
         await self.ctx.bot.get_guild_bot_config.invalidate(self.ctx.guild.id)
+
+
+class FooterModal(discord.ui.Modal, title="Set/Change your Footer"):
+    footer = discord.ui.TextInput(label="Footer", max_length=250, min_length=1,
+                                  style=discord.TextStyle.paragraph)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        await interaction.response.edit_message()
+
+
+class ModFooter(UpdateableMenu, ExitableMenu):
+    async def format_initial_message(self, ctx):
+        cog: Optional[Mod] = ctx.bot.get_cog("Moderation")  # type: ignore
+        if not cog:
+            self.stop()
+            return "Moderation cog is currently unavailable. Please try again later!"
+
+        config = await cog.get_mod_config(ctx.guild.id)
+        if not config:
+            return "A footer is currently not set up!"
+
+        if not config.footer_message:
+            self.remove_footer_button.disabled = True
+            return "A footer is not set up!"
+
+        self.remove_footer_button.disabled = False
+        return f"This server currently has a footer set up!\n\nThis is the current footer.\n{config.footer_message}"
+
+    @discord.ui.button(label="Set/Change the Footer")
+    async def change_footer_button(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
+        cog: Optional[Mod] = itx.client.get_cog("Moderation")  # type: ignore
+        if not cog:
+            return
+        rec = await cog.get_mod_config(itx.guild_id)
+
+        modal = FooterModal()
+        if rec is not None and rec.footer_message is not None:
+            modal.footer.default = rec.footer_message
+
+        await itx.response.send_modal(modal)
+        await modal.wait()
+
+        if modal.footer.value is None:
+            return
+
+        query = """INSERT INTO guild_mod_config (guild_id, footer_message)
+                   VALUES ($1, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET footer_message=EXCLUDED.footer_message;"""
+        await itx.client.pool.execute(query, itx.guild_id, modal.footer.value)
+        await itx.followup.send("Set the footer!", ephemeral=True)
+
+        await self.invalidate(itx)
+        await self.update(interaction=itx)
+
+    async def invalidate(self, itx: discord.Interaction[LightningBot]):
+        cog: Optional[Mod] = itx.client.get_cog("Moderation")  # type: ignore
+        if not cog:
+            return
+
+        await cog.get_mod_config.invalidate(itx.guild_id)
+
+    @discord.ui.button(label="Remove Footer", style=discord.ButtonStyle.red)
+    async def remove_footer_button(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
+        query = "UPDATE guild_mod_config SET footer_message=NULL WHERE guild_id=$1;"
+        await itx.client.pool.execute(query, itx.guild.id)
+        await itx.response.send_message("Removed the footer!", ephemeral=True)
+        await self.invalidate(itx)
+        await self.update(interaction=itx)

@@ -94,6 +94,41 @@ class Configuration(LightningCog):
 
         await member.add_roles(record.autorole, reason="Applying configured autorole")
 
+    @config.command(level=CommandLevel.Admin)
+    @has_guild_permissions(manage_guild=True)
+    async def modfooter(self, ctx: GuildContext):
+        """Manages the footer for the messages a member will receive when actioned by a moderation command"""
+        rec = await self.get_mod_config(ctx)
+        dms = rec.dm_messages if rec else False
+        if dms is False:
+            await ctx.send("This feature requires the server to have DM messages enabled. "
+                           f"To enable DM messages, run {ctx.clean_prefix}config mod-dms")
+            return
+
+        await ui.ModFooter(context=ctx, delete_message_after=True).start()
+
+    @config.command(level=CommandLevel.Admin, name="mod-dms", aliases=['mdms'])
+    @has_guild_permissions(manage_guild=True)
+    async def mod_dms(self, ctx: GuildContext):
+        """
+        Enables or disables DM messages when using a moderation command.
+
+        This behavior can be overriden if the --dm flag is used in a moderation command!
+        """
+        config = await self.get_mod_config(ctx)
+        if config is None:
+            cur = False
+        else:
+            cur = config.dm_messages
+
+        query = """INSERT INTO guild_mod_config (guild_id, dm_messages)
+                   VALUES ($1, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET dm_messages=EXCLUDED.dm_messages"""
+        await self.bot.pool.execute(query, ctx.guild.id, not cur)
+        await self.invalidate_config(ctx)
+        await ctx.tick(not cur)
+
     # Mute role
 
     @config.group(invoke_without_command=True, level=CommandLevel.Admin)

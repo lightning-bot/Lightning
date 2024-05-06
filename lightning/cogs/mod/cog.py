@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
 from __future__ import annotations
 
 import contextlib
@@ -28,11 +27,10 @@ from discord.ext import commands
 from unidecode import unidecode
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
-                       LightningContext, cache, command, converters)
-from lightning import flags as lflags
-from lightning import group, hybrid_command
+                       LightningContext, cache, command, converters, group,
+                       hybrid_command)
 from lightning.cogs.mod.converters import BannedMember
-from lightning.cogs.mod.flags import BaseModParser, PurgeFlags
+from lightning.cogs.mod.flags import BanFlags, DefaultModFlags, PurgeFlags
 from lightning.constants import COMMON_HOIST_CHARACTERS
 from lightning.enums import ActionType
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
@@ -159,19 +157,29 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         await self.log_action(ctx, target, action, **kwargs)
 
-    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
+    def can_dm_notify(self, ctx: ModContext, flags: DefaultModFlags):
+        if flags.dm_user is None:
+            dm_user = ctx.config.dm_messages if ctx.config else False
+        else:
+            dm_user = flags.dm_user
+
+        return dm_user
+
+    @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(kick_members=True)
     @has_guild_permissions(kick_members=True)
-    async def kick(self, ctx: GuildContext, target: converters.TargetMember(fetch_user=False), *, flags) -> None:
+    async def kick(self, ctx: ModContext, target: converters.TargetMember(fetch_user=False), *,
+                   flags: DefaultModFlags) -> None:
         """Kicks a user from the server"""
-        if not flags.nodm:  # No check is done here since we don't fetch users
+        if self.can_dm_notify(ctx, flags):  # No check is done here since we don't fetch users
+            footer = ctx.config.footer_message if ctx.config else None
             await helpers.dm_user(target, modlogformats.construct_dm_message(target, "kicked", "from",
-                                  reason=flags.reason))
+                                  reason=flags.reason, ending=footer))
 
         await ctx.guild.kick(target, reason=self.format_reason(ctx.author, flags.reason))
         await self.confirm_and_log_action(ctx, target, "KICK")
 
-    async def time_ban_user(self, ctx: GuildContext, target, moderator, reason, duration, *, dm_user=False,
+    async def time_ban_user(self, ctx: ModContext, target, moderator, reason, duration, *, dm_user=False,
                             delete_message_days=0) -> None:
         duration_text = f"{natural_timedelta(duration.dt, source=ctx.message.created_at)} ("\
                         f"{discord.utils.format_dt(duration.dt)})"
@@ -185,8 +193,9 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                                             user_id=target.id, mod_id=moderator.id, force_insert=True, timezone=tzinfo)
 
         if dm_user and isinstance(target, discord.Member):
+            footer = ctx.config.footer_message if ctx.config else ""
             dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason,
-                                                            ending=f"\n\nThis ban expires in {duration_text}")
+                                                            ending=f"\nThis ban expires in {duration_text}\n{footer}")
             await helpers.dm_user(target, dm_message)
 
         if reason:
@@ -199,65 +208,55 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await self.confirm_and_log_action(ctx, target, "TIMEBAN", duration_text=duration_text,
                                           expiry=duration.dt, timer=created_timer['id'])
 
-    @lflags.add_flag("--nodm", "--no-dm", is_bool_flag=True,
-                     help="Bot does not DM the user the reason for the action.")
-    @lflags.add_flag("--delete-messages", converter=int, default=0,
-                     help="Delete message history from a specified amount of days (Max 7)")
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, rest_attribute_name="reason",
-             raise_bad_flag=False)
-    async def ban(self, ctx: GuildContext,
+    @command(level=CommandLevel.Mod, usage="[reason] [flags]")
+    async def ban(self, ctx: ModContext,
                   target: Annotated[Union[discord.Member, discord.User], converters.TargetMember],
-                  *, flags) -> None:
-        """Bans a user from the server."""
-        if flags['delete_messages'] < 0:
+                  *, flags: BanFlags) -> None:
+        """Bans a user from the server"""
+        if flags.delete_messages < 0:
             raise commands.BadArgument("You can't delete a negative amount of messages.")
 
-        reason = flags['reason']
-
-        if not flags['nodm'] and isinstance(target, discord.Member):
-            dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason)
+        if self.can_dm_notify(ctx, flags) and isinstance(target, discord.Member):
+            footer = ctx.config.footer_message if ctx.config else None
+            dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=flags.reason,
+                                                            ending=footer)
             await helpers.dm_user(target, dm_message)
 
-        await ctx.guild.ban(target, reason=self.format_reason(ctx.author, reason),
-                            delete_message_days=min(flags['delete_messages'], 7))
+        await ctx.guild.ban(target, reason=self.format_reason(ctx.author, flags.reason),
+                            delete_message_days=min(flags.delete_messages, 7))
         await self.confirm_and_log_action(ctx, target, "BAN")
 
-    @command(cls=lflags.FlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
+    @command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(ban_members=True)
-    @has_guild_permissions(ban_members=True)
+    @hybrid_guild_permissions(ban_members=True)
     async def bandel(self, ctx: GuildContext,
                      target: Annotated[Union[discord.Member, discord.User], converters.TargetMember],
-                     *, flags) -> None:
+                     *, reason: Optional[str]) -> None:
         """Bans a user from the server and deletes 1 day worth of messages."""
-        reason = flags['reason']
-
-        if not flags['nodm'] and isinstance(target, discord.Member):
-            dm_message = modlogformats.construct_dm_message(target, "banned", "from", reason=reason)
-            await helpers.dm_user(target, dm_message)
-
         await ctx.guild.ban(target, reason=self.format_reason(ctx.author, reason),
                             delete_message_days=1)
         await self.confirm_and_log_action(ctx, target, "BAN")
 
-    @hybrid_command(cls=lflags.HybridFlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
+    @hybrid_command(level=CommandLevel.Mod)
     @app_commands.guild_only()
     @hybrid_guild_permissions(manage_messages=True)
-    @app_commands.describe(target="The member to warn", reason="The reason for the warn")
-    async def warn(self, ctx: GuildContext,
+    @app_commands.describe(target="The member to warn")
+    async def warn(self, ctx: ModContext,
                    target: Union[discord.Member, discord.User] = commands.param(
                        converter=converters.TargetMember(fetch_user=False)),
-                   *, flags) -> None:
+                   *, flags: DefaultModFlags) -> None:
         """Warns a member"""
         emoji = "\N{OPEN MAILBOX WITH LOWERED FLAG}"
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
         warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, ActionType.WARN.value) or 0
 
-        if not flags.nodm and isinstance(target, discord.Member):
+        if self.can_dm_notify(ctx, flags) and isinstance(target, discord.Member):
+            footer = ctx.config.footer_message if ctx.config else ""
             dm_message = modlogformats.construct_dm_message(target, "warned", "in", reason=flags.reason,
                                                             ending=f"You now have {plural(warns + 1):warning}!\nTo view"
-                                                                   f"your warns, use /mywarns in the server.")
+                                                                   f"your warns, use /mywarns in the server.\n{footer}")
             # ending="\n\nAdditional action may be taken against you if the server has set it up."
             indicator = await helpers.dm_user(target, dm_message)
             if indicator is True:
@@ -328,8 +327,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         return ctx.config.get_mute_role()
 
-    async def timeout_member(self, ctx: ModContext, target: discord.Member, reason: str, duration: FutureTime,
-                             *, dm_user=False):
+    async def timeout_member(self, ctx: ModContext, target: discord.Member,
+                             reason: Optional[str], duration: FutureTime, *, dm_user=False):
         timer: Optional[Reminders] = self.bot.get_cog('Reminders')  # type: ignore
         if not timer:
             raise TimersUnavailable
@@ -346,15 +345,16 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         dt_text = discord.utils.format_dt(duration.dt)
         if dm_user:
+            footer = ctx.config.footer_message if ctx.config else ""
             msg = modlogformats.construct_dm_message(target, "timed out", "in", reason=reason,
-                                                     ending="\n\nThis timeout will expire at "
-                                                            f"{dt_text}.")
+                                                     ending="\nThis timeout will expire at "
+                                                            f"{dt_text}\n{footer}.")
             await helpers.dm_user(target, msg)
 
         await self.confirm_and_log_action(ctx, target, "TIMEOUT", duration_text=dt_text, expiry=duration.dt,
                                           timer=rec['id'])
 
-    async def time_mute_user(self, ctx: ModContext, target: Union[discord.User, discord.Member], reason: str,
+    async def time_mute_user(self, ctx: ModContext, target: Union[discord.User, discord.Member], reason: Optional[str],
                              duration: FutureTime, *, dm_user=False):
         eligible = self.can_timeout(ctx, duration.dt)
         if not ctx.config and isinstance(target, discord.Member) and eligible is True:
@@ -383,8 +383,10 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         if isinstance(target, discord.Member):
             if dm_user:
+                footer = ctx.config.footer_message if ctx.config else ""
                 msg = modlogformats.construct_dm_message(target, "muted", "in", reason=reason,
-                                                         ending=f"\n\nThis mute will expire in {duration_text}.")
+                                                         ending=f"\nThis mute will expire in {duration_text}."
+                                                         f"\n{footer}")
                 await helpers.dm_user(target, msg)
 
             if reason:
@@ -397,19 +399,24 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await self.confirm_and_log_action(ctx, target, "TIMEMUTE", duration_text=duration_text, expiry=duration.dt,
                                           timer=created_timer['id'])
 
-    @command(cls=lflags.HybridFlagCommand, level=CommandLevel.Mod, parser=BaseModParser)
+    @hybrid_command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @hybrid_guild_permissions(manage_roles=True)
     @app_commands.guild_only()
-    async def mute(self, ctx: ModContext, target: converters.TargetMember, *, flags) -> None:
+    @app_commands.describe(target="The member to mute", reason="The reason for the mute",
+                           dm_user="Whether to notify the user of the action or not (Overrides the guild settings)")
+    async def mute(self, ctx: ModContext,
+                   target: discord.Member = commands.param(converter=converters.TargetMember(fetch_user=False)),
+                   *, flags: DefaultModFlags) -> None:
         """Permanently mutes a user"""
         role = await self.get_mute_role(ctx)
-
-        if not flags['nodm'] and isinstance(target, discord.Member):
-            dm_message = modlogformats.construct_dm_message(target, "muted", "in", reason=flags['reason'])
+        await target.add_roles(role, reason=self.format_reason(ctx.author, '[Mute]'))
+        if self.can_dm_notify(ctx, flags) and isinstance(target, discord.Member):
+            footer = ctx.config.footer_message if ctx.config else None
+            dm_message = modlogformats.construct_dm_message(target, "muted", "in", reason=flags.reason,
+                                                            ending=footer)
             await helpers.dm_user(target, dm_message)
 
-        await target.add_roles(role, reason=self.format_reason(ctx.author, '[Mute]'))
         await self.add_punishment_role(ctx.guild.id, target.id, role.id)
         await self.confirm_and_log_action(ctx, target, "MUTE")
 
@@ -473,14 +480,14 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         await self.log_action(ctx, target, "UNMUTE")
 
-    @command(level=CommandLevel.Mod, cls=lflags.HybridFlagCommand, parser=BaseModParser)
+    @hybrid_command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(moderate_members=True)
     @hybrid_guild_permissions(moderate_members=True)
     @app_commands.describe(target="The member to timeout", duration="The duration for the timeout (max 28 days)",
                            reason="The reason for the timeout")
     async def timeout(self, ctx: ModContext,
-                      target: converters.TargetMember(fetch_user=False), duration: FutureTime,
-                      *, flags):
+                      target: discord.Member = commands.param(converter=converters.TargetMember(fetch_user=False)),
+                      duration: FutureTime = commands.param(converter=FutureTime), *, flags: DefaultModFlags):
         """Timeout a member"""
         if not self.can_timeout(ctx, duration.dt):
             await ctx.send("Timeouts only support up to 28 days. "
@@ -488,7 +495,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                            ephemeral=True)
             return
 
-        await self.timeout_member(ctx, target, flags['reason'], duration, dm_user=not flags['nodm'])
+        await self.timeout_member(ctx, target, flags.reason, duration,
+                                  dm_user=self.can_dm_notify(ctx, flags))
 
     @hybrid_command(level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(moderate_members=True)
@@ -535,23 +543,24 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                 await ctx.guild.ban(member, delete_message_days=0, reason=reason)
                 await self.log_action(ctx, member, "BAN", connection=con)
 
+    @hybrid_command(aliases=['tempban'], level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(ban_members=True)
-    @command(cls=lflags.HybridFlagCommand, aliases=['tempban'], level=CommandLevel.Mod, parser=BaseModParser)
     @hybrid_guild_permissions(ban_members=True)
     @app_commands.describe(target="The member to ban",
                            duration="The duration for the ban",
                            reason="The reason for the timed ban")
     @app_commands.guild_only()
-    async def timeban(self, ctx: GuildContext, target: converters.TargetMember,
-                      duration: FutureTime, *, flags) -> None:
+    async def timeban(self, ctx: ModContext, target: converters.TargetMember,
+                      duration: FutureTime, *, flags: DefaultModFlags) -> None:
         """Bans a user for a specified amount of time.
 
         The duration can be a short time format such as "30d", \
         a more human duration format such as "until Monday at 7PM", \
         or a more concrete time format such as "2020-12-31"."""
-        await self.time_ban_user(ctx, target, ctx.author, flags['reason'], duration, dm_user=not flags['nodm'])
+        await self.time_ban_user(ctx, target, ctx.author, flags.reason, duration,
+                                 dm_user=self.can_dm_notify(ctx, flags))
 
-    @command(aliases=['tempmute'], level=CommandLevel.Mod, cls=lflags.HybridFlagCommand, parser=BaseModParser)
+    @hybrid_command(aliases=['tempmute'], level=CommandLevel.Mod)
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @hybrid_guild_permissions(moderate_members=True)
     @app_commands.describe(target="The member to mute",
@@ -559,13 +568,14 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                            reason="The reason for the mute")
     @app_commands.guild_only()
     async def timemute(self, ctx: ModContext, target: converters.TargetMember,
-                       duration: FutureTime, *, flags) -> None:
+                       duration: FutureTime, *, flags: DefaultModFlags) -> None:
         """Mutes a user for a specified amount of time.
 
         The duration can be a short time format such as "30d", \
         a more human duration format such as "until Monday at 7PM", \
         or a more concrete time format such as "2020-12-31"."""
-        await self.time_mute_user(ctx, target, flags['reason'], duration, dm_user=not flags['nodm'])
+        await self.time_mute_user(ctx, target, flags.reason, duration,
+                                  dm_user=self.can_dm_notify(ctx, flags))
 
     @commands.bot_has_permissions(manage_channels=True)
     @has_guild_permissions(manage_channels=True)
