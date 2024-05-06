@@ -229,6 +229,32 @@ class PaginatedHelpCommand(commands.HelpCommand):
             flagopts.append(f'`{", ".join(flag.names)}` ({arg}): {fhelp}')
         return flagopts
 
+    def dcommand_flag_formatting(self, command: commands.Command):
+        flags: Optional[commands.FlagConverter] = None
+        for param in command.clean_params.values():
+            if not hasattr(param.converter, "__commands_is_flag__"):
+                continue
+            flags = param.converter
+
+        if flags is None:
+            return
+
+        flagsopts = []
+        for flag in flags.get_flags().values():
+            if flag.positional:  # Skip pos flag
+                continue
+
+            if command._is_typing_optional(flag.annotation):
+                annotation = flag.annotation.__args__[0]
+            else:
+                annotation = flag.annotation
+
+            name = annotation.__name__ if hasattr(annotation, "__name__") else str(annotation)
+            arg = flag_name_lookup.get(name, name)
+            desc = flag.description or "No help found..."
+            flagsopts.append(f'`{flags.__commands_flag_prefix__}{flag.name}` ({arg}): {desc}')
+        return flagsopts
+
     def permissions_required_format(self, command) -> tuple:
         guild_permissions = []
         channel_permissions = []
@@ -257,6 +283,10 @@ class PaginatedHelpCommand(commands.HelpCommand):
             desc.append(command.help.format(prefix=self.context.clean_prefix))
         else:
             desc.append("No help found...")
+
+        if cflags := self.dcommand_flag_formatting(command):
+            fmt = "\n".join(cflags)
+            desc.append(f'\n\n{fmt}')
 
         if cflags := self.flag_help_formatting(command):
             fmt = "\n".join(cflags)
