@@ -16,17 +16,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import re
 import time
 import traceback
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Optional, Set
 
 import asyncpg
 import discord
 import objgraph
 import tabulate
+from discord.ext import commands
 from jishaku.codeblocks import Codeblock, codeblock_converter
 from jishaku.cog import OPTIONAL_FEATURES, STANDARD_FEATURES
 from jishaku.features.baseclass import Feature
+from jishaku.repl import inspections
+from jishaku.types import ContextA
 
 from lightning import LightningBot, formatters
 from lightning.utils import time as ltime
@@ -214,6 +218,139 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
         """Tells you what objects are currently in memory"""
         fmt = tabulate.tabulate(objgraph.most_common_types())
         await ctx.send(formatters.codeblock(fmt))
+
+    SLASH_COMMAND_ERROR = re.compile(r"In ((?:\d+\.[a-z]+\.?)+)")
+
+    @Feature.Command(parent="jsk", name="sync")
+    async def jsk_sync(self, ctx: ContextA, *targets: str):
+        """
+        Sync global or guild application commands to Discord.
+        """
+        if not self.bot.application_id:
+            await ctx.send("Cannot sync when application info not fetched")
+            return
+
+        paginator = commands.Paginator(prefix='', suffix='')
+
+        guilds_set: Set[Optional[int]] = set()
+        for target in targets:
+            if target == '$':
+                guilds_set.add(None)
+            elif target == '*':
+                guilds_set |= set(self.bot.tree._guild_commands.keys())  # type: ignore  # pylint: disable=protected-access  # noqa: E501
+            elif target == '.':
+                if ctx.guild:
+                    guilds_set.add(ctx.guild.id)
+                else:
+                    await ctx.send("Can't sync guild commands without guild information")
+                    return
+            else:
+                try:
+                    guilds_set.add(int(target))
+                except ValueError as error:
+                    raise commands.BadArgument(f"{target} is not a valid guild ID") from error
+
+        if not targets:
+            guilds_set.add(None)
+
+        guilds: List[Optional[int]] = list(guilds_set)
+        guilds.sort(key=lambda g: (g is not None, g))
+
+        for guild in guilds:
+            slash_commands = self.bot.tree._get_all_commands(  # type: ignore  # pylint: disable=protected-access
+                guild=discord.Object(guild) if guild else None
+            )
+            translator = getattr(self.bot.tree, 'translator', None)
+            if translator:
+                payload = [await command.get_translated_payload(tree=self.bot.tree, translator=translator) for command in slash_commands]  # noqa: E501
+            else:
+                payload = [command.to_dict(tree=self.bot.tree) for command in slash_commands]
+
+            try:
+                if guild is None:
+                    data = await self.bot.http.bulk_upsert_global_commands(self.bot.application_id, payload=payload)
+                else:
+                    data = await self.bot.http.bulk_upsert_guild_commands(self.bot.application_id, guild, payload=payload)  # noqa: E501
+
+                synced = [
+                    discord.app_commands.AppCommand(data=d, state=ctx._state)  # type: ignore  # pylint: disable=protected-access,no-member  # noqa: E501
+                    for d in data
+                ]
+
+            except discord.HTTPException as error:
+                # It's diagnosis time
+                error_lines: List[str] = []
+                for line in str(error).split("\n"):
+                    error_lines.append(line)
+
+                    try:
+                        match = self.SLASH_COMMAND_ERROR.match(line)
+                        if not match:
+                            continue
+
+                        pool = slash_commands
+                        selected_command = None
+                        name = ""
+                        parts = match.group(1).split('.')
+                        assert len(parts) % 2 == 0
+
+                        for part_index in range(0, len(parts), 2):
+                            index = int(parts[part_index])
+                            # prop = parts[part_index + 1]
+
+                            if pool:
+                                # If the pool exists, this should be a subcommand
+                                selected_command = pool[index]  # type: ignore
+                                name += selected_command.name + " "
+
+                                if hasattr(selected_command, '_children'):  # type: ignore
+                                    pool = list(selected_command._children.values())  # type: ignore  # pylint: disable=protected-access  # noqa: E501
+                                else:
+                                    pool = None
+                            else:
+                                # Otherwise, the pool has been exhausted, and this likely is referring to a parameter
+                                param = list(selected_command._params.keys())[index]  # type: ignore  # pylint: disable=protected-access  # noqa: E501
+                                name += f"(parameter: {param}) "
+
+                        if selected_command:
+                            to_inspect: Any = None
+
+                            if hasattr(selected_command, 'callback'):  # type: ignore
+                                to_inspect = selected_command.callback  # type: ignore
+                            elif isinstance(selected_command, commands.Cog):
+                                to_inspect = type(selected_command)
+
+                            try:
+                                error_lines.append(''.join([
+                                    "\N{MAGNET} This is likely caused by: `",
+                                    name,
+                                    "` at ",
+                                    str(inspections.file_loc_inspection(to_inspect)),  # type: ignore
+                                    ":",
+                                    str(inspections.line_span_inspection(to_inspect)),  # type: ignore
+                                ]))
+                            except Exception:  # pylint: disable=broad-except
+                                error_lines.append(f"\N{MAGNET} This is likely caused by: `{name}`")
+
+                    except Exception as diag_error:  # pylint: disable=broad-except
+                        error_lines.append(f"\N{MAGNET} Couldn't determine cause: {type(diag_error).__name__}: "
+                                           f"{diag_error}")
+
+                error_text = '\n'.join(error_lines)
+
+                if guild:
+                    paginator.add_line(f"\N{WARNING SIGN} `{guild}`: {error_text}", empty=True)
+                else:
+                    paginator.add_line(f"\N{WARNING SIGN} Global: {error_text}", empty=True)
+            else:
+                if guild:
+                    paginator.add_line(f"\N{SATELLITE ANTENNA} `{guild}` Synced {len(synced)} guild commands",
+                                       empty=True)
+                else:
+                    paginator.add_line(f"\N{SATELLITE ANTENNA} Synced {len(synced)} global commands", empty=True)
+
+        for page in paginator.pages:
+            await ctx.send(page)
 
 
 async def setup(bot: LightningBot) -> None:
