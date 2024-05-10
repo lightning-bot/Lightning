@@ -96,7 +96,7 @@ class LightningContext(commands.Context):
                    suppress_embeds: bool = False,
                    ephemeral: bool = False,
                    silent: bool = False,
-                   poll: Optional[discord.Poll] = None) -> discord.Message:
+                   poll: Optional[discord.Poll] = discord.utils.MISSING) -> discord.Message:
         content = await self._prepare_send(content)
         return await super().send(content=content,
                                   tts=tts,
