@@ -17,8 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 from io import StringIO
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import discord
 from discord import app_commands
@@ -27,6 +28,7 @@ from discord.ext import commands
 from lightning import (Flag, GuildContext, HybridFlagCommand, LightningCog,
                        command, hybrid_command)
 from lightning.converters import Snowflake, SnowflakeDT
+from lightning.utils.checks import hybrid_guild_permissions
 from lightning.utils.time import format_timestamp
 
 if TYPE_CHECKING:
@@ -46,9 +48,28 @@ class Utilities(LightningCog):
     """Commands that might be helpful"""
 
     @hybrid_command()
+    @commands.bot_has_permissions(create_polls=True)
+    @hybrid_guild_permissions(create_polls=True)
+    @app_commands.describe(hours="The interval for the poll (in hours)")
+    async def poll(self, ctx: LightningContext, hours: Optional[commands.Range[int, 1, 168]] = None, *, question: str):
+        """
+        Creates a simple poll with thumbs up, thumbs down, and shrug as a Discord poll.
+
+        If no hours are given, the poll will end in 24 hours by default.
+        """
+        hours = 24 if hours is None else hours
+
+        poll = discord.Poll(question, duration=timedelta(hours=hours))
+        poll.add_answer(text="Yes", emoji="\N{THUMBS UP SIGN}")
+        poll.add_answer(text="Maybe", emoji="\N{SHRUG}")
+        poll.add_answer(text="No", emoji="\N{THUMBS DOWN SIGN}")
+
+        await ctx.send(poll=poll)
+
+    @hybrid_command()
     @commands.bot_has_permissions(add_reactions=True)
-    async def poll(self, ctx: LightningContext, *, question: str) -> None:
-        """Creates a simple poll with thumbs up, thumbs down, and shrug as reactions"""
+    async def rpoll(self, ctx: LightningContext, *, question: str) -> None:
+        """Creates a simple reaction poll with thumbs up, thumbs down, and shrug as reactions"""
         msg = await ctx.send(f"{ctx.author.mention} asks:\n{question}")
         await asyncio.gather(msg.add_reaction("\N{THUMBS UP SIGN}"), msg.add_reaction("\N{THUMBS DOWN SIGN}"),
                              msg.add_reaction("\N{SHRUG}"))
