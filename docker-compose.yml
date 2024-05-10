@@ -17,7 +17,7 @@ services:
   api:
     image: ghcr.io/lightning-bot/sanctum:latest
     command: uvicorn --host=0.0.0.0 sanctum.main:app
-    restart: always
+    restart: unless-stopped
     environment:
       - POSTGRESQL_DSN=postgres://lightning:postgres@postgres/postgres
       - API_KEY=supersecretkey
