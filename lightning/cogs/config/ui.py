@@ -101,7 +101,7 @@ class Prefix(UpdateableMenu, ExitableMenu):
 
     @discord.ui.button(label="Add prefix", style=discord.ButtonStyle.blurple)
     @lock_when_pressed
-    async def add_prefix(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def add_prefix(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         prefixes = await self.get_prefixes()
         if len(prefixes) > 5:
             await interaction.response.send_message("You cannot have more than 5 custom prefixes!")
@@ -119,12 +119,18 @@ class Prefix(UpdateableMenu, ExitableMenu):
             return
 
         prefixes.append(modal.prefix.value)
-        await self.ctx.bot.api.bulk_upsert_guild_prefixes(self.ctx.guild.id, prefixes)
+
+        query = """INSERT INTO guild_config (guild_id, prefixes)
+                   VALUES ($1, $2::text[]) ON CONFLICT (guild_id)
+                   DO UPDATE SET
+                       prefixes = EXCLUDED.prefixes;
+                """
+        await interaction.client.pool.execute(query, interaction.guild_id, list(prefixes))
         await self.ctx.bot.get_guild_bot_config.invalidate(self.ctx.guild.id)
 
     @discord.ui.button(label="Remove prefix", style=discord.ButtonStyle.danger)
     @lock_when_pressed
-    async def remove_prefix(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def remove_prefix(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         prefixes = await self.get_prefixes()
         await interaction.response.defer()
         select = SelectSubMenu(*prefixes, context=self.ctx)
@@ -136,7 +142,17 @@ class Prefix(UpdateableMenu, ExitableMenu):
             return
 
         prefixes.remove(select.values[0])
-        await self.ctx.bot.api.bulk_upsert_guild_prefixes(self.ctx.guild.id, prefixes)
+        if len(prefixes) == 0:
+            query = "UPDATE guild_config SET prefixes=NULL WHERE guild_id=$1;"
+            await interaction.client.pool.execute(query, interaction.guild_id)
+        else:
+            query = """INSERT INTO guild_config (guild_id, prefixes)
+                       VALUES ($1, $2::text[]) ON CONFLICT (guild_id)
+                       DO UPDATE SET
+                            prefixes = EXCLUDED.prefixes;
+                    """
+            await interaction.client.pool.execute(query, interaction.guild_id, list(prefixes))
+
         await self.ctx.bot.get_guild_bot_config.invalidate(self.ctx.guild.id)
 
 
