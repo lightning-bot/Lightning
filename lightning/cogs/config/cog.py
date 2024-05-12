@@ -124,7 +124,7 @@ class Configuration(LightningCog):
         query = """INSERT INTO guild_mod_config (guild_id, dm_messages)
                    VALUES ($1, $2)
                    ON CONFLICT (guild_id)
-                   DO UPDATE SET dm_messages=EXCLUDED.dm_messages"""
+                   DO UPDATE SET dm_messages=EXCLUDED.dm_messages;"""
         await self.bot.pool.execute(query, ctx.guild.id, not cur)
         await self.invalidate_config(ctx)
         await ctx.tick(not cur)
