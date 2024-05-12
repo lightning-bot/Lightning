@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import timedelta
 
 import discord
@@ -43,7 +44,26 @@ MASKED_LINKS = re.compile(r"\[[^\]]+\]\([^)]+\)")
 MENTIONS_EVERYONE_REGEX = re.compile(r"(?P<here>\@here)|(?P<everyone>\@everyone)", flags=re.MULTILINE)
 
 
+class ScamType(discord.Enum):
+    STEAM = 1
+    ONLYFANS = 2
+    UNKNOWN = 3
+
+
+@dataclass(slots=True)
+class AntiScamCalculatedResult:
+    score: int
+    type: ScamType
+
+    @property
+    def friendly_type(self):
+        return self.type.name.title()
+
+
 class AntiScamResult:
+    __slots__ = ("content", "mentions_everyone", "everyone_mention_count", "here_mention_count",
+                 "author")
+
     def __init__(self, content: str) -> None:
         self.content = content
         self.mentions_everyone = False
@@ -85,7 +105,7 @@ class AntiScamResult:
             if token.lemma_.lower() in ("leak", "teen"):
                 score -= 5
 
-        return score
+        return AntiScamCalculatedResult(score, ScamType.ONLYFANS)
 
     def identify_steam_scams(self, content: spacy.tokens.Doc, score: int):
         if MASKED_LINKS.search(self.content):
@@ -104,9 +124,9 @@ class AntiScamResult:
             if token.is_ascii is False:
                 score -= 5
 
-        return score
+        return AntiScamCalculatedResult(score, ScamType.STEAM)
 
-    def calculate(self):
+    def calculate(self) -> AntiScamCalculatedResult:
         content = nlp(self.content)
         score = 100
         if self.mentions_everyone:
@@ -128,16 +148,18 @@ class AntiScamResult:
                 return self.identify_steam_scams(content, score)
 
         nscore = 0
+        scam_type = ScamType.UNKNOWN
         for token in content:
             if token.lemma_.lower() == "nude":
                 nscore += 5
 
             if token.lemma_.lower() == "gift":
                 nscore += 5
+                scam_type = ScamType.STEAM
                 # Potientially sus, run it through our steam identifier
-                score = self.identify_steam_scams(content, score)
+                score = self.identify_steam_scams(content, score).score
 
-        return score - nscore
+        return AntiScamCalculatedResult(score - nscore, scam_type)
 
 
 def get_timeout_score(score: int):
@@ -177,12 +199,12 @@ class AntiScam(LightningCog):
             return
 
         res = AntiScamResult.from_message(message)
-        score = res.calculate()
-        if score < 60:
+        result = res.calculate()
+        if result.score < 60:
             try:
-                await message.author.timeout(message.created_at + timedelta(hours=get_timeout_score(score)),
-                                             reason="AntiScam reported the message to be below the "
-                                             f"safety rating ({score}%)")
+                await message.author.timeout(message.created_at + timedelta(hours=get_timeout_score(result.score)),
+                                             reason=f"AntiScam identified the message as a {result.friendly_type} scam."
+                                             f" (safety rating {result.score}%)")
                 await message.delete()
             except discord.HTTPException:
                 pass
@@ -260,22 +282,19 @@ async def setup(bot: LightningBot):
 
 
 if __name__ == "__main__":
-    class Author:
-        def __init__(self) -> None:
-            self.joined_at = discord.utils.utcnow()
+    print("------------------\n------------------\nAntiScam Sample Tests\n")
     samples = [
         "18+ Teen Girls and onlyfans leaks for free 🍑 here @everyone. https://discord.gg/123456",
         "@everyone Best OnlyFans Leaks & Teen Content 🍑 🔞 discord.gg/123456",
         "# Teen content and onlyfans leaks here 🍑 🔞 : https://discord.gg/123456 @everyone @here",
         "@everyone\nBEST NUDES 💦 + Nitro Giveaway 🥳\nJOIN RIGHT NOW: https://discord.gg/123456",
-        "50$ for Steam - [steamcommunity.com/gift/7441553](https://test.cloud/1234)"
+        "50$ for Steam - [steamcommunity.com/gift/7441553](https://test.cloud/1234)",
+        "50$ Gift - [steamcommunity.com/gift/69](https://test.cloud/1234)",
+        "50$ gift - [steamcommunity.com/gift/832083](https://google.com)\n@everyone @here"
     ]
-    test = ["did you see her onlyfans", "onlyfans lmao", "go away", "check out the new steam game"]
+    test = ["did you see her onlyfans", "onlyfan lmao", "go away", "check out the new steam game",
+            "check your gift inventory bruh"]
     multi = samples + test
     for sample in multi:
-        class Message:
-            def __init__(self, content) -> None:
-                self.mention_everyone = True
-                self.content = content
-                self.author = Author()
-        print(sample, "Score", AntiScamResult(Message(sample)).calculate())
+        result = AntiScamResult(sample).calculate()
+        print(sample, "|", result, "| Timed-out", get_timeout_score(result.score))
