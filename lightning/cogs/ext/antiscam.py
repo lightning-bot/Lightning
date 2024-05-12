@@ -59,6 +59,10 @@ class AntiScamResult:
 
         self.author = None
 
+    @property
+    def mention_count(self) -> int:
+        return self.everyone_mention_count + self.here_mention_count
+
     @classmethod
     def from_message(cls, message: discord.Message):
         cls = cls(message.content)
@@ -86,6 +90,9 @@ class AntiScamResult:
     def identify_steam_scams(self, content: spacy.tokens.Doc, score: int):
         if MASKED_LINKS.search(self.content):
             score -= 30
+
+        if self.mention_count > 1:
+            score -= (self.mention_count - 1) * 3
 
         for token in content:
             if token.is_currency:
