@@ -98,7 +98,7 @@ class AntiScamResult:
             score -= 20
 
         for token in content:
-            if token.text in ("🍑", "🔞", "💦"):
+            if token.text in ("🍑", "🔞", "💦", "🥵"):
                 score -= 10
                 continue
 
