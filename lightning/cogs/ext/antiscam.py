@@ -42,6 +42,7 @@ URL_REGEX = re.compile(r"https?:\/\/.*?$")
 DOMAIN_REGEX = re.compile(r"(?:[A-z0-9](?:[A-z0-9-]{0,61}[A-z0-9])?\.)+[A-z0-9][A-z0-9-]{0,61}[A-z0-9]")
 MASKED_LINKS = re.compile(r"\[[^\]]+\]\([^)]+\)")
 MENTIONS_EVERYONE_REGEX = re.compile(r"(?P<here>\@here)|(?P<everyone>\@everyone)", flags=re.MULTILINE)
+STEAM_MASKED_LINKS = re.compile(r"\[(?:https?://)?steamcommunity\.(?:com/gift).*(/[a-zA-Z0-9]+/)?\]\([^)]+\)")
 
 
 class ScamType(discord.Enum):
@@ -146,6 +147,10 @@ class AntiScamResult:
             if string_id == "Steam":
                 score -= 20
                 return self.identify_steam_scams(content, score)
+
+        if STEAM_MASKED_LINKS.search(self.content):
+            score -= 10  # Only 10 b/c we look for masked links again
+            return self.identify_steam_scams(content, score)
 
         nscore = 0
         scam_type = ScamType.UNKNOWN
