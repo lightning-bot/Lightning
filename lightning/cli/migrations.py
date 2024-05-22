@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, TypedDict
 
@@ -88,8 +89,12 @@ class Migrator:
             with open(self.root / "migratory.json", mode="r", encoding="utf-8") as fp:
                 return json.load(fp)
         except FileNotFoundError:
-            cfg = Config()
-            return {"postgres_uri": cfg.tokens.postgres.uri, "applied": []}
+            if os.getenv("GHA_POSTGRES_HOST", None):
+                uri = "postgres://lightning:postgres@localhost/postgres"
+            else:
+                cfg = Config()
+                uri = cfg.tokens.postgres.uri
+            return {"postgres_uri": uri, "applied": []}
 
     def save(self):
         with open(self.root / "migratory.json", mode="w", encoding="utf-8") as fp:
@@ -138,7 +143,7 @@ async def upgrade(sql: Optional[bool] = typer.Option(False,
         conn = await asyncpg.connect(m.config["postgres_uri"])
     except Exception as e:
         typer.echo(f"Unable to connect to the database!\n{e}")
-        return
+        raise e
 
     applied = await m.apply_revisions(conn)
     await conn.close()
