@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=lightning
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=lightning
+    volumes:
+      - ./docker-data/postgresql:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  api:
+    image: ghcr.io/lightning-bot/sanctum:latest
+    command: uvicorn --host=0.0.0.0 sanctum.main:app
+    restart: unless-stopped
+    environment:
+      - POSTGRESQL_DSN=postgres://lightning:postgres@postgres/postgres
+      - API_KEY=supersecretkey
+    depends_on:
+      - postgres
+      - redis
+
+  bot:
+    build: .
+    depends_on:
+      - postgres
+      - redis
+      - api
+    configs:
+      - bot_config
+
+configs:
+  bot_config:
+    file: config.toml
