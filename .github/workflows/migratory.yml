@@ -36,4 +36,6 @@ jobs:
       - name: Install Project
         run: poetry install --no-interaction --no-ansi -vv
       - name: Run All Migrations
-        run: poetry run lightning db upgrade
+        run: |
+        cp example-config.toml config.toml
+        poetry run lightning db upgrade
