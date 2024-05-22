@@ -6,7 +6,7 @@ sentry = ""
 
 # PostgreSQL Connection
 [tokens.postgres]
-uri = "postgres://lightning:postgres@postgres/postgres"
+uri = "postgres://lightning:postgres@postgres/lightning"
 
 # Redis Connection
 [tokens.redis]
