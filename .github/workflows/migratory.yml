@@ -1,7 +1,9 @@
 name: 'Test Migrations'
 
 on:
-  push: {}
+  push: 
+    paths:
+      - migrations/**
   workflow_dispatch: {}
 
 jobs:
