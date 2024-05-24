@@ -144,6 +144,12 @@ class Infractions(LightningCog, required=['Moderation']):
         embed.add_field(name="User", value=base_user_format(infraction.user))
         embed.add_field(name="Moderator", value=base_user_format(infraction.moderator))
         embed.add_field(name="Active", value=ticker(infraction.active), inline=False)
+
+        if infraction.active is True:
+            embed.color = discord.Color.green()
+        else:
+            embed.color = discord.Color.greyple()
+
         embed.set_footer(text="Infraction created at")
         await ctx.send(embed=embed)
 
