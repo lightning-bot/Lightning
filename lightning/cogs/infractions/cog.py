@@ -30,7 +30,7 @@ from matplotlib.ticker import MaxNLocator
 from sanctum.exceptions import NotFound
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
-                       hybrid_command, hybrid_group)
+                       command, hybrid_command, hybrid_group)
 from lightning.cogs.infractions.converters import (InfractionConverter,
                                                    InfractionTypeConverter)
 from lightning.cogs.infractions.ui import (InfractionPaginator,
@@ -41,7 +41,7 @@ from lightning.enums import ActionType
 from lightning.errors import LightningCommandError
 from lightning.events import InfractionDeleteEvent, InfractionUpdateEvent
 from lightning.models import InfractionRecord
-from lightning.utils.checks import is_server_manager
+from lightning.utils.checks import hybrid_guild_permissions, is_server_manager
 from lightning.utils.helpers import ticker
 from lightning.utils.modlogformats import base_user_format
 from lightning.utils.time import add_tzinfo
@@ -90,6 +90,28 @@ class Infractions(LightningCog, required=['Moderation']):
 
         menu = InfractionPaginator(SingularInfractionSource(records), ctx, timeout=60.0)
         await menu.start(wait=False, ephemeral=True)
+
+    @command(level=CommandLevel.Mod)
+    @commands.guild_only()
+    @hybrid_guild_permissions(kick_members=True)
+    async def delwarn(self, ctx: GuildContext, member: discord.Member,
+                      infraction: Annotated[InfractionRecord, InfractionConverter]):
+        """Marks a warning as inactive.
+
+        This doesn't fully delete the infraction. If you want to delete the infraction, use {prefix}infraction delete
+        """
+        # I don't need to handle guild checks since the converter does that.
+        if infraction.user_id != member.id:
+            await ctx.send("This warning does not belong to this member!", ephemeral=True)
+            return
+
+        if infraction.action != ActionType.WARN:
+            await ctx.send(f"This infraction is not a warning! Use `{ctx.clean_prefix}infraction pardon` instead!",
+                           ephemeral=True)
+            return
+
+        await self.bot.api.edit_infraction(ctx.guild.id, infraction.id, {"active": False})
+        await ctx.tick(True)
 
     # Context menu
     @app_commands.guild_only()
