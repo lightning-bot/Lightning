@@ -71,6 +71,12 @@ class AutoMod(LightningCog, required=["Moderation"]):
         self.bot.add_dynamic_items(ui.GatekeeperVerificationButton)
         # AutoMod stats?
 
+    def cog_unload(self):
+        for gatekeeper in self.gatekeepers.values():
+            gatekeeper.gtkp_loop.cancel()
+
+        self.bot.remove_dynamic_items(ui.GatekeeperVerificationButton)
+
     async def get_gatekeeper_config(self, guild_id: int) -> Optional[GateKeeperConfig]:
         if guild_id in self.gatekeepers:
             return self.gatekeepers[guild_id]
