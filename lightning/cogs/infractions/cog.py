@@ -238,7 +238,7 @@ class Infractions(LightningCog, required=['Moderation']):
         self.bot.dispatch("lightning_infraction_delete",
                           InfractionDeleteEvent(infraction, ctx.author))
 
-    @infraction.command(level=CommandLevel.Admin, hidden=True, disabled=True, with_app_command=False)
+    @infraction.command(level=CommandLevel.Admin, hidden=True, enabled=False, with_app_command=False)
     @is_server_manager()
     @commands.bot_has_permissions(attach_files=True)
     async def export(self, ctx: GuildContext) -> None:
