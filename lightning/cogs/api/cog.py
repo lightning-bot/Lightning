@@ -24,11 +24,9 @@ from typing import TYPE_CHECKING, Dict, Optional, Tuple
 import discord
 from bs4 import BeautifulSoup
 from discord import app_commands
-from discord.ext import menus
 from rapidfuzz import fuzz, process
 
 from lightning import LightningCog, command, group, hybrid_command
-from lightning.cogs.api.menus import CrateViewer
 from lightning.utils import helpers, paginator
 
 if TYPE_CHECKING:
@@ -103,13 +101,6 @@ class API(LightningCog):
     async def qr(self, ctx: LightningContext, *, text: str) -> None:
         """Generates a QR code"""
         await ctx.send(f"https://api.qrserver.com/v1/create-qr-code/?qzone=4&data={urllib.parse.quote(text)}")
-
-    @command(aliases=['findcrate'])
-    async def browsecrates(self, ctx: LightningContext, *, crate: str) -> None:
-        """Searches for a crate"""
-        menu = menus.MenuKeysetPages(CrateViewer(crate, session=self.bot.aiosession), clear_reactions_after=True,
-                                     check_embeds=True)
-        await menu.start(ctx)
 
     def get_match(self, word_list: list, word: str, score_cutoff: int = 60) -> Optional[Tuple[str, float, int]]:
         result = process.extractOne(word, word_list, scorer=fuzz.WRatio,
