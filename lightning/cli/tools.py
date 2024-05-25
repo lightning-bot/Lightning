@@ -14,6 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import asyncio
 import pathlib
 import re
 from collections import OrderedDict
@@ -23,7 +24,8 @@ from typing import List, Optional
 import typer
 from tabulate import tabulate
 
-from lightning.flags import Flag
+from lightning.cli.utils import asyncd
+from lightning.config import Config
 
 parser = typer.Typer()
 
@@ -120,20 +122,6 @@ param_help_text = {"str": "A string", "int": "A number",
                    "User": "Represents a Discord user."}
 
 
-def format_command_flags(flags: List[Flag]) -> str:
-    base = []
-    for flag in flags:
-        if flag.is_bool_flag is True:
-            arg = 'No argument'
-        else:
-            name = flag.converter.__name__
-            arg = param_name_lookup[name] if name in param_name_lookup else name
-
-        help_text = flag.help if flag.help else "No help found..."
-        base.append(f'`{", ".join(flag.names)}` ({arg}): {help_text}')
-    return "\n\n\n".join(base)
-
-
 def format_command_params(parameters: OrderedDict) -> str:
     base = []
     for name, param in list(parameters.items()):
@@ -202,53 +190,15 @@ subcmds_page = """#### Subcommands
 
 
 @parser.command()
-def build_command_docs():
-    """Builds documentation for commands and stores them in the build directory"""
-    from lightning import LightningBot
-    bot = LightningBot()
-    for command in bot.walk_commands():
-        description = command.description or command.help
-        flag_fmt = ""
-        signature = command.signature or command.usage
-        subcmd_fmt = ""
-
-        if hasattr(command.callback, "__lightning_argparser__"):
-            flags = command.callback.__lightning_argparser__.get_all_unique_flags()
-            flag_fmt = flag_page.format(flags=format_command_flags(flags))
-
-        # This is a group
-        if hasattr(command, "commands"):
-            subcmd_fmt = subcmds_page.format(subcmds=format_subcommands(command.commands))
-
-        fmt = command_page.format(name=command.qualified_name, signature=signature.strip() or "",
-                                  description=description.replace("\n", "<br>") if description else "",
-                                  aliases=format_command_aliases(command.aliases),
-                                  params=format_command_params(command.clean_params),
-                                  flags=flag_fmt, subcmds=subcmd_fmt)
-
-        fname = command.qualified_name.replace(" ", "_")
-
-        if command.cog:
-            cog = command.cog.qualified_name.lower()
-        else:
-            cog = "not_categorized"
-
-        path = pathlib.Path(f"build/docs/commands/{cog}/")
-        path.mkdir(parents=True, exist_ok=True)
-        path = path / pathlib.Path(f"{fname}.md")
-        with path.open("w", encoding="utf-8") as fp:
-            fp.write(fmt)
-
-        typer.echo(f"Built {command.qualified_name} page ({str(path)})")
-
-    typer.echo("Built all command pages!")
-
-
-@parser.command()
-def build_cog_docs():
+@asyncd
+async def builddocs():
     """Builds documentation pages for cogs and stores them in the build directory"""
     from lightning import LightningBot
-    bot = LightningBot()
+    bot = LightningBot(config=Config())
+    bot.loop = asyncio.get_event_loop()
+    await bot.load_cogs()
+    docs = []
+
     cogs = sorted(bot.cogs.values(), key=lambda c: c.qualified_name)
     for cog in cogs:
         cmds = []
@@ -260,40 +210,29 @@ def build_cog_docs():
             if signature:
                 usage += f" {signature}"
 
-            if command.cog:
-                cog_name = command.cog.qualified_name.lower()
-            else:
-                cog_name = "not_categorized"
+            usage = usage.replace('|', '\|')  # noqa: W605
 
-            description = command.help.replace('\n', '<br>') if command.help else None
+            description = command.short_doc.replace('\n', '<br>') if command.short_doc else None
 
-            link = f'https://lightning-bot.gitlab.io/commands/{cog_name}/'\
-                   f'{command.qualified_name.lower().replace(" ", "_")}'
+            cmds.append((f"{command.qualified_name}", aliases, description, f"`{usage}`"))
 
-            cmds.append((f"[{command.qualified_name}]({link})", aliases, description, f"`{usage}`"))
-
-        path = pathlib.Path(f"build/docs/commands/{cog.qualified_name.lower()}")
-        path.mkdir(parents=True, exist_ok=True)
-        path = path / pathlib.Path("index.md")  # There should never be a command called "index"
+        if not cmds:
+            continue
 
         desc = (cog.qualified_name, cog.description, tabulate(cmds,
                 headers=("Name", "Aliases", "Description", "Usage"), tablefmt="github"))
-        fmt = "# {}\n{}\n\n{}\n\n".format(desc[0], desc[1], desc[2])
-        with path.open("w", encoding="utf-8") as fp:
-            fp.write(fmt)
+        fmt = "## {}\n{}\n\n{}\n\n".format(desc[0], desc[1], desc[2])
+        docs.append(fmt)
 
-        typer.echo(f"Built {cog.qualified_name} page ({str(path)})")
+        typer.echo(f"Processed {cog.qualified_name}")
 
-    typer.echo("Built all cog pages!")
+    path = pathlib.Path("build/docs")
+    path.mkdir(parents=True, exist_ok=True)
+    path = path / pathlib.Path("index.md")
+    with path.open("w") as fp:
+        fp.write('\n'.join(docs))
 
-
-@parser.command()
-def builddocs():
-    """Builds all documentation"""
-    build_cog_docs()
-    build_command_docs()
-
-    typer.echo("Built all pages!")
+    typer.echo("Built all categories!")
 
 
 if __name__ == "__main__":
