@@ -121,8 +121,8 @@ class BotMeta(LightningCog):
         await ctx.send(f"<{source}/blob/master/{location}#L{firstlineno}-{firstlineno + len(lines) - 1}>")
 
     @LightningCog.listener('on_lightning_guild_add')
-    async def send_guild_welcome_message(self, guild: discord.Guild):
-        msg = (f"Thanks for adding me to your server! By default my prefix is {self.bot.user.mention}, "
+    async def send_guild_onboarding_message(self, guild: discord.Guild):
+        msg = (f"Thanks for adding me to your server! By default, my prefix is {self.bot.user.mention}, "
                "but that can be changed! "
                "To add a custom prefix, run @Lightning config prefix\n\n"
                "To get a list of my commands, you can run the `help` command. For information about an individual"
