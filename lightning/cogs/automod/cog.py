@@ -63,7 +63,7 @@ if TYPE_CHECKING:
 
 
 class AutoMod(LightningCog, required=["Moderation"]):
-    """Auto-moderation commands"""
+    """Commands to manage Lightning's AutoMod"""
     def __init__(self, bot: LightningBot):
         super().__init__(bot)
         self.gatekeepers: dict[int, GateKeeperConfig] = {}

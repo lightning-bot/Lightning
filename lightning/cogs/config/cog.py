@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 
 
 class Configuration(LightningCog):
-    """Server configuration commands"""
+    """Commands to tailor Lightning to your server's needs"""
 
     async def cog_check(self, ctx) -> bool:
         if ctx.guild is None:

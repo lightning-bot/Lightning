@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 
 class ModLog(LightningCog):
-    """Mod logging"""
+    """Commands to manage the server's modlog(s)"""
     def __init__(self, bot: LightningBot):
         super().__init__(bot)
         self._emitters: Dict[int, TextChannelEmitter] = {}
