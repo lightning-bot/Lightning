@@ -139,3 +139,7 @@ DANGEROUS_PERMISSIONS = discord.Permissions(manage_threads=True, ban_members=Tru
 def has_dangerous_permissions(permissions: discord.Permissions):
     """Returns True/False if the object has permissions that are deemed dangerous"""
     return permissions.value & DANGEROUS_PERMISSIONS.value != 0
+
+
+async def is_premium_guild():
+    return False
