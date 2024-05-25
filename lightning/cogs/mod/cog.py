@@ -165,7 +165,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         return dm_user
 
-    @command(level=CommandLevel.Mod)
+    @command(level=CommandLevel.Mod, usage="<target> [reason] [flags]")
     @commands.bot_has_guild_permissions(kick_members=True)
     @has_guild_permissions(kick_members=True)
     async def kick(self, ctx: ModContext, target: converters.TargetMember(fetch_user=False), *,
@@ -210,7 +210,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     @commands.bot_has_guild_permissions(ban_members=True)
     @has_guild_permissions(ban_members=True)
-    @command(level=CommandLevel.Mod, usage="[reason] [flags]")
+    @command(level=CommandLevel.Mod, usage="<target> [reason] [flags]")
     async def ban(self, ctx: ModContext,
                   target: Annotated[Union[discord.Member, discord.User], converters.TargetMember],
                   *, flags: BanFlags) -> None:
@@ -239,7 +239,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                             delete_message_days=1)
         await self.confirm_and_log_action(ctx, target, "BAN")
 
-    @hybrid_command(level=CommandLevel.Mod)
+    @hybrid_command(level=CommandLevel.Mod, usage="<target> [reason] [flags]")
     @app_commands.guild_only()
     @hybrid_guild_permissions(manage_messages=True)
     @app_commands.describe(target="The member to warn")
@@ -399,7 +399,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await self.confirm_and_log_action(ctx, target, "TIMEMUTE", duration_text=duration_text, expiry=duration.dt,
                                           timer=created_timer['id'])
 
-    @hybrid_command(level=CommandLevel.Mod)
+    @hybrid_command(level=CommandLevel.Mod, usage="<target> [reason] [flags]")
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @hybrid_guild_permissions(manage_roles=True)
     @app_commands.guild_only()
@@ -480,7 +480,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         await self.log_action(ctx, target, "UNMUTE")
 
-    @hybrid_command(level=CommandLevel.Mod)
+    @hybrid_command(level=CommandLevel.Mod, usage="<target> <duration> [reason] [flags]")
     @commands.bot_has_guild_permissions(moderate_members=True)
     @hybrid_guild_permissions(moderate_members=True)
     @app_commands.describe(target="The member to timeout", duration="The duration for the timeout (max 28 days)",
@@ -543,7 +543,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                 await ctx.guild.ban(member, delete_message_days=0, reason=reason)
                 await self.log_action(ctx, member, "BAN", connection=con)
 
-    @hybrid_command(aliases=['tempban'], level=CommandLevel.Mod)
+    @hybrid_command(aliases=['tempban'], level=CommandLevel.Mod, usage="<target> <duration> [reason] [flags]")
     @commands.bot_has_guild_permissions(ban_members=True)
     @hybrid_guild_permissions(ban_members=True)
     @app_commands.describe(target="The member to ban",
@@ -560,7 +560,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await self.time_ban_user(ctx, target, ctx.author, flags.reason, duration,
                                  dm_user=self.can_dm_notify(ctx, flags))
 
-    @hybrid_command(aliases=['tempmute'], level=CommandLevel.Mod)
+    @hybrid_command(aliases=['tempmute'], level=CommandLevel.Mod, usage="<target> <duration> [reason] [flags]")
     @commands.bot_has_guild_permissions(manage_roles=True, moderate_members=True)
     @hybrid_guild_permissions(moderate_members=True)
     @app_commands.describe(target="The member to mute",
