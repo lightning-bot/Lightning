@@ -536,7 +536,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if not confirm:
             return
 
-        reason = self.format_reason(ctx.author.id, reason, action_text="Ban done by")
+        reason = self.format_reason(ctx.author, reason, action_text="Ban done by")
 
         async with self.bot.pool.acquire() as con:
             for member in members:
