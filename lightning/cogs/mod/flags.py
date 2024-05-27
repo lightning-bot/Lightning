@@ -29,7 +29,11 @@ class DefaultModFlags(commands.FlagConverter, prefix="--", delimiter=""):
                                             "(Overrides the guild settings)")
 
 
-class BanFlags(DefaultModFlags):
+class BanFlags(commands.FlagConverter, prefix="--", delimiter=""):
+    reason: Optional[str] = commands.flag(positional=True, default=None, description="The reason for the action")
+    dm_user: Optional[bool] = commands.flag(name="dm", default=None,
+                                            description="Whether to notify the user of the action or not "
+                                            "(Overrides the guild settings)")
     delete_messages: int = commands.flag(aliases=['delete'], default=0,
                                          description="Delete message history from a specified amount of days (Max 7)")
 
