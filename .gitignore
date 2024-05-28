@@ -131,3 +131,6 @@ migratory.json
 
 # discord debug
 discord-debug.log.*
+
+# macOS
+.DS_Store
