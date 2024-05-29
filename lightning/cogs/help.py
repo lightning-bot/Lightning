@@ -36,13 +36,16 @@ log = logging.getLogger(__name__)
 flag_name_lookup = {"HumanTime": "Time", "FutureTime": "Time"}
 
 
-def format_commands(commands: List[Union[LightningCommand, LightningGroupCommand]]):
+async def format_cmds(menu: HelpPaginator, commands: List[Union[LightningCommand, LightningGroupCommand]]):
     cmds = []
     for cmd in commands:
         cmds.append(f"\N{BULLET} `{cmd.qualified_name}`\n")
         if hasattr(cmd, 'commands'):
+            filtered_group = await menu.help_command.filter_commands(cmd.walk_commands(),
+                                                                     sort=True,
+                                                                     key=lambda c: c.qualified_name)
             cmds.extend(f'{" " * (len(child.parents) * 3)}• `{child.qualified_name}`\n'
-                        for child in sorted(cmd.walk_commands(), key=lambda c: c.qualified_name))
+                        for child in filtered_group)
 
     return "".join(cmds)
 
@@ -109,7 +112,7 @@ class BotHelpSource(menus.ListPageSource):
 
         cmds = self.data.get(entry, [])
         value = f"**{entry}**\n{f'*{cmds[0].cog.description}*' if cmds[0].cog.description else ''}"\
-                f"\nYour current permissions allow you to run the following commands:\n{format_commands(cmds)}"
+                f"\nYour current permissions allow you to run the following commands:\n{await format_cmds(menu, cmds)}"
 
         return f"{value}\n{description}"
 
