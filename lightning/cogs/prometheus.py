@@ -102,14 +102,21 @@ class Prometheus(LightningCog):
             SOCKET_EVENTS_COUNTER.labels(event=label)
         self.bot.loop.create_task(self.init_counters())
         self.prom_lat = self.connection_latency.start()
+        self.web_counters = self.update_web_counts.start()
 
     def cog_unload(self):
         self.prom_lat.cancel()
+        self.web_counters.cancel()
 
     @tasks.loop(seconds=10)
     async def connection_latency(self):
         for shard, latency in self.bot.latencies:
             LATENCY_GAUGE.labels(shard).set(latency)
+
+    @tasks.loop(minutes=5)
+    async def update_web_counts(self):
+        await self.bot.redis_pool.set("lightning:stats:guild_count", len(self.bot.guilds))
+        await self.bot.redis_pool.set("lightning:stats:user_count", len(self.bot.users))
 
     @LightningCog.listener()
     async def on_socket_event_type(self, event: str):
