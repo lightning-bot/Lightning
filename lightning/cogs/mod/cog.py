@@ -85,7 +85,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         ctx.config = record
         return ctx  # type: ignore
 
-    def format_reason(self, author, reason: Optional[str], *, action_text: Optional[str] = None) -> str:
+    def format_reason(self, author: Union[discord.User, discord.Member], reason: Optional[str], *,
+                      action_text: Optional[str] = None) -> str:
         if action_text:
             return truncate_text(modlogformats.action_format(author, action_text, reason=reason), 512)
         else:
@@ -503,7 +504,9 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @hybrid_guild_permissions(moderate_members=True)
     @app_commands.describe(target="The member to remove from timeout", reason="The reason for the untimeout")
     @app_commands.guild_only()
-    async def untimeout(self, ctx: ModContext, target: discord.Member, *, reason: Optional[str] = None):
+    async def untimeout(self, ctx: ModContext,
+                        target: discord.Member = commands.param(converter=converters.TargetMember(fetch_user=False)),
+                        *, reason: Optional[str] = None):
         """Removes a member from time out"""
         if not target.is_timed_out():
             await ctx.send(f"{target.mention} is not in time out!", ephemeral=True)
