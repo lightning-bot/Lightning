@@ -697,7 +697,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if len(new_nick) == 0:
             new_nick = "don't hoist"
 
-        if old_nick == new_nick and not normalize:
+        if old_nick.isascii() is False and new_nick.isascii():
             return False
 
         if old_nick == new_nick and member.nick is None:
