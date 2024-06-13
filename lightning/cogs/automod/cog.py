@@ -692,7 +692,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
                 pass
 
         cog: Moderation = self.bot.get_cog("Moderation")  # type: ignore
-        await cog.dehoist_member(member, self.bot.user, COMMON_HOIST_CHARACTERS, normalize=record.auto_normalize)
+        if record.auto_normalize is False and record.auto_dehoist is True:
+            await cog.dehoist_member(member, self.bot.user, COMMON_HOIST_CHARACTERS)
+        else:
+            await cog.sanitize_member(member, self.bot.user)
 
     # Gatekeeper & Auto-Dehoist/Normalize
     @LightningCog.listener()

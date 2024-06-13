@@ -680,16 +680,41 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         await ctx.send("\N{OK HAND SIGN}", delete_after=15)
 
-    async def dehoist_member(self, member: discord.Member, moderator, characters: list, *, normalize: bool = False):
+    async def dehoist_member(self, member: discord.Member, moderator, characters: list = COMMON_HOIST_CHARACTERS):
         if member.display_name == member.name:
             # This is already compliant
             return
 
-        old_nick = unidecode(member.display_name) if normalize else member.display_name
+        old_nick = member.display_name
         new_nick = old_nick
 
         for char in old_nick:
             if char not in characters:
+                break
+
+            new_nick = new_nick[1:].lstrip()
+
+        if len(new_nick) == 0:
+            new_nick = "don't hoist"
+
+        if old_nick == new_nick:
+            return False
+
+        await member.edit(nick=new_nick, reason=self.format_reason(moderator, None, action_text="Dehoist done by"))
+
+        if old_nick != new_nick:
+            return True
+
+    async def sanitize_member(self, member: discord.Member, moderator: Union[discord.User, discord.Member]):
+        if member.display_name == member.name:
+            # This is already compliant
+            return
+
+        old_nick = unidecode(member.display_name)
+        new_nick = old_nick
+
+        for char in old_nick:
+            if char not in COMMON_HOIST_CHARACTERS:
                 break
 
             new_nick = new_nick[1:].lstrip()
@@ -703,7 +728,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if old_nick == new_nick and member.nick is None:
             return False
 
-        await member.edit(nick=new_nick, reason=self.format_reason(moderator, None, action_text="Dehoist done by"))
+        await member.edit(nick=new_nick, reason=self.format_reason(moderator, None, action_text="Sanitization done by"))
 
         if old_nick != new_nick:
             return True
@@ -752,7 +777,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @app_commands.default_permissions(manage_nicknames=True)
     async def sanitize_ac(self, interaction: discord.Interaction, member: discord.Member):
         try:
-            await self.dehoist_member(member, interaction.user, COMMON_HOIST_CHARACTERS, normalize=True)
+            await self.sanitize_member(member, interaction.user)
         except discord.HTTPException as e:
             await interaction.response.send_message(f"I was unable to sanitize {member.mention}. ({str(e)})",
                                                     ephemeral=True)
