@@ -725,10 +725,12 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if old_nick.isascii() is False and new_nick.isascii():
             return False
 
-        await member.edit(nick=new_nick, reason=self.format_reason(moderator, None, action_text="Sanitization done by"))
-
         if old_nick != new_nick:
+            await member.edit(nick=new_nick, reason=self.format_reason(moderator, None,
+                                                                       action_text="Sanitization done by"))
             return True
+
+        return False
 
     @hybrid_command(level=CommandLevel.Mod)
     @hybrid_guild_permissions(manage_guild=True, manage_nicknames=True)
