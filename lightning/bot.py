@@ -409,12 +409,12 @@ class LightningBot(commands.AutoShardedBot):
             await ctx.send("You are currently on cooldown. Try the command again in "
                            f"{error.retry_after:.1f} seconds.")
             return
-        help_text = f"\nPlease see `{ctx.prefix}help {ctx.command}` for more info about this command."
+        help_text = f"\nSee `{ctx.clean_prefix}help {ctx.command}` for more info about this command."
         if isinstance(error, commands.BadArgument):
             await ctx.send(f"You gave incorrect arguments. `{str(error)}` {help_text}", suppress_embeds=True)
             return
         elif isinstance(error, (commands.MissingRequiredArgument, errors.MissingRequiredFlagArgument)):
-            codeblock = f"**{ctx.prefix}{ctx.command.qualified_name} {ctx.command.signature}**\n\n{error_text}"
+            codeblock = f"**{ctx.clean_prefix}{ctx.command.qualified_name} {ctx.command.signature}**\n\n{error_text}"
             await ctx.send(codeblock)
             return
         elif isinstance(error, commands.TooManyArguments):
@@ -464,4 +464,5 @@ class LightningBot(commands.AutoShardedBot):
         await self.api.close()
         log.info("Closed aiohttp session and database successfully.")
         await self.redis_pool.connection_pool.disconnect()
+        log.info("Closed redis pool")
         await super().close()
