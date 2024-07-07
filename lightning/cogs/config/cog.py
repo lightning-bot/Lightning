@@ -23,12 +23,14 @@ from typing import Literal, Optional, Tuple, Union
 import discord
 from discord.ext import commands
 
-from lightning import CommandLevel, GuildContext, LightningCog, cache, group
+from lightning import (CommandLevel, GuildContext, LightningCog, cache, group,
+                       hybrid_group)
 from lightning.cogs.config import ui
 from lightning.converters import Role, ValidCommandName, convert_to_level_value
 from lightning.formatters import plural
 from lightning.models import GuildModConfig
-from lightning.utils.checks import has_guild_permissions
+from lightning.utils.checks import (has_guild_permissions,
+                                    hybrid_guild_permissions)
 from lightning.utils.helpers import ticker
 
 log = logging.getLogger(__name__)
@@ -59,14 +61,14 @@ class Configuration(LightningCog):
         query = f"UPDATE {table} SET {key} = NULL WHERE guild_id=$1;"
         return await self.bot.pool.execute(query, guild_id)
 
-    @group(invoke_without_command=True, level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_group(invoke_without_command=True, level=CommandLevel.Admin)
+    @hybrid_guild_permissions(manage_guild=True)
     async def config(self, ctx: GuildContext) -> None:
         """Manages most of the configuration for the bot"""
         await ctx.send_help('config')
 
     @config.command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def prefix(self, ctx: GuildContext) -> None:
         """Manages the server's custom prefixes"""
         prompt = ui.Prefix(context=ctx)
@@ -81,7 +83,7 @@ class Configuration(LightningCog):
 
     @config.command(level=CommandLevel.Admin)
     @commands.bot_has_permissions(manage_roles=True)
-    @has_guild_permissions(manage_roles=True)
+    @hybrid_guild_permissions(manage_roles=True)
     async def autorole(self, ctx: GuildContext) -> None:
         """Manages the server's autorole configuration"""
         await ui.AutoRole(context=ctx, timeout=180).start()
@@ -95,7 +97,7 @@ class Configuration(LightningCog):
         await member.add_roles(record.autorole, reason="Applying configured autorole")
 
     @config.command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def modfooter(self, ctx: GuildContext):
         """Manages the footer for the messages a member will receive when actioned by a moderation command"""
         rec = await self.get_mod_config(ctx)
@@ -108,7 +110,7 @@ class Configuration(LightningCog):
         await ui.ModFooter(context=ctx, delete_message_after=True).start()
 
     @config.command(level=CommandLevel.Admin, name="mod-dms", aliases=['mdms'])
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def mod_dms(self, ctx: GuildContext):
         """
         Enables or disables DM messages when using a moderation command.
@@ -129,10 +131,8 @@ class Configuration(LightningCog):
         await self.invalidate_config(ctx)
         await ctx.tick(not cur)
 
-    # Mute role
-
-    @config.group(invoke_without_command=True, level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True, manage_roles=True)
+    @config.group(invoke_without_command=True, level=CommandLevel.Admin, fallback="set")
+    @hybrid_guild_permissions(manage_guild=True, manage_roles=True)
     @commands.bot_has_permissions(manage_roles=True)
     @commands.cooldown(1, 60.0, commands.BucketType.guild)
     async def muterole(self, ctx: GuildContext, *,
@@ -155,7 +155,7 @@ class Configuration(LightningCog):
         await ctx.send(f"Successfully set the mute role to {role.name}")
 
     @muterole.command(name="reset", aliases=['delete', 'remove'], level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True, manage_roles=True)
+    @hybrid_guild_permissions(manage_guild=True, manage_roles=True)
     async def delete_mute_role(self, ctx: GuildContext) -> None:
         """Deletes the configured mute role."""
         query = """UPDATE guild_mod_config SET mute_role_id=NULL
@@ -192,7 +192,7 @@ class Configuration(LightningCog):
         return success, failure, skipped
 
     @muterole.command(name="update", level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True, manage_roles=True)
+    @hybrid_guild_permissions(manage_guild=True, manage_roles=True)
     async def mute_role_perm_update(self, ctx: GuildContext) -> None:
         """Updates the permission overwrites of the mute role.
 
@@ -213,7 +213,7 @@ class Configuration(LightningCog):
                        f"{skipped} channels were skipped.")
 
     @muterole.command(name="unbind", level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True, manage_roles=True)
+    @hybrid_guild_permissions(manage_guild=True, manage_roles=True)
     async def muterole_unbind(self, ctx: GuildContext) -> None:
         """Unbinds the mute role from all users"""
         config = await self.get_mod_config(ctx)
@@ -234,9 +234,11 @@ class Configuration(LightningCog):
         await ctx.send(f"Unbound {plural(users):user} from the mute role.")
 
     # COMMAND OVERRIDES
+    # Newer command permissions...
+    # - Migrate from a json based to a model based permission config.
 
-    @config.group(invoke_without_command=True, level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @config.group(invoke_without_command=True, level=CommandLevel.Admin, with_app_command=False)
+    @hybrid_guild_permissions(manage_guild=True)
     async def permissions(self, ctx: GuildContext) -> None:
         """Manages user permissions for the bot"""
         await ctx.send_help("config permissions")
@@ -294,15 +296,15 @@ class Configuration(LightningCog):
         return res
 
     @permissions.command(name='add', level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def permissions_add(self, ctx: GuildContext, level: Literal['trusted', 'mod', 'admin'],
                               _id: Union[discord.Role, discord.Member]) -> None:
         """Adds a user or a role to a level"""
         await self.adjust_level(ctx.guild.id, level, _id, adjuster="append")
         await ctx.tick(True)
 
-    @permissions.command(name='remove', level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @permissions.command(name='remove', level=CommandLevel.Admin, with_app_command=False)
+    @hybrid_guild_permissions(manage_guild=True)
     async def permissions_remove(self, ctx: GuildContext, level: Literal['trusted', 'mod', 'admin'],
                                  _id: Union[discord.Member, discord.Role, int]) -> None:
         """Removes a user or a role from a level"""
@@ -314,7 +316,7 @@ class Configuration(LightningCog):
         await ctx.tick(True)
 
     @permissions.command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def blockcommand(self, ctx: GuildContext, command: ValidCommandName) -> None:
         """Blocks a command to everyone."""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
@@ -333,7 +335,7 @@ class Configuration(LightningCog):
         await ctx.tick(True)
 
     @permissions.command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def unblockcommand(self, ctx: GuildContext, command: ValidCommandName) -> None:
         """Unblocks a command"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
@@ -353,7 +355,7 @@ class Configuration(LightningCog):
         await ctx.tick(True)
 
     @permissions.command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)  # TODO: Replace with an owner check
+    @hybrid_guild_permissions(manage_guild=True)  # TODO: Replace with an owner check
     async def fallback(self, ctx: GuildContext, boolean: bool) -> None:
         """Toggles the fallback permissions feature"""
         await self.add_config_key(ctx.guild.id, "fallback", boolean, table="guild_permissions")
@@ -361,7 +363,7 @@ class Configuration(LightningCog):
         await ctx.tick(True)
 
     @permissions.command(level=CommandLevel.Admin, name="show")
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def show_perms(self, ctx: GuildContext) -> None:
         """Shows raw permissions"""
         record = await self.bot.get_guild_bot_config(ctx.guild.id)
@@ -411,7 +413,7 @@ class Configuration(LightningCog):
         await ctx.send(embed=embed)
 
     @permissions.command(level=CommandLevel.Admin, name="debug")
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def debug_permissions(self, ctx: GuildContext, command: ValidCommandName,
                                 member: discord.Member = commands.Author):
         """Debugs a member's permissions to use a command."""
@@ -419,7 +421,7 @@ class Configuration(LightningCog):
         await self.debug_command_perms(ctx, command, member)
 
     @permissions.command(level=CommandLevel.Admin)
-    @has_guild_permissions(manage_guild=True)
+    @hybrid_guild_permissions(manage_guild=True)
     async def reset(self, ctx: GuildContext) -> None:
         """Resets all permission configuration."""
         query = "UPDATE guild_config SET permissions = permissions - 'LEVELS' WHERE guild_id=$1;"
@@ -428,7 +430,7 @@ class Configuration(LightningCog):
         await ctx.tick(True)
 
     @has_guild_permissions(manage_guild=True)
-    @permissions.group(invoke_without_command=True, level=CommandLevel.Admin)
+    @group(invoke_without_command=True, level=CommandLevel.Admin)
     async def commandoverrides(self, ctx: GuildContext) -> None:
         """Manages configuration for command overrides.
 
