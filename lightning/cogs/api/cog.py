@@ -98,6 +98,8 @@ class API(LightningCog):
 
     @hybrid_command()
     @app_commands.describe(text="The text or URL for the QR code")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def qr(self, ctx: LightningContext, *, text: str) -> None:
         """Generates a QR code"""
         await ctx.send(f"https://api.qrserver.com/v1/create-qr-code/?qzone=4&data={urllib.parse.quote(text)}")
