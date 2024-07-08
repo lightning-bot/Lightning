@@ -21,6 +21,7 @@ import logging
 from typing import Literal, Optional, Tuple, Union
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from lightning import (CommandLevel, GuildContext, LightningCog, cache, group,
@@ -63,6 +64,7 @@ class Configuration(LightningCog):
 
     @hybrid_group(invoke_without_command=True, level=CommandLevel.Admin)
     @hybrid_guild_permissions(manage_guild=True)
+    @app_commands.guild_only()
     async def config(self, ctx: GuildContext) -> None:
         """Manages most of the configuration for the bot"""
         await ctx.send_help('config')
