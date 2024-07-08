@@ -170,6 +170,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(kick_members=True)
     @hybrid_guild_permissions(kick_members=True)
     @app_commands.describe(target="The member to kick")
+    @app_commands.guild_only()
     async def kick(self, ctx: ModContext, target: converters.TargetMember(fetch_user=False), *,
                    flags: DefaultModFlags) -> None:
         """Kicks a user from the server"""
@@ -214,6 +215,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @hybrid_command(level=CommandLevel.Mod, usage="<target> [reason] [flags]")
     @hybrid_guild_permissions(ban_members=True)
     @app_commands.describe(target="The member to ban")
+    @app_commands.guild_only()
     async def ban(self, ctx: ModContext,
                   target: Annotated[Union[discord.Member, discord.User], converters.TargetMember],
                   *, flags: BanFlags) -> None:
