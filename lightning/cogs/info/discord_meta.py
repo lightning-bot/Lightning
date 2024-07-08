@@ -33,6 +33,8 @@ from lightning.utils.time import natural_timedelta
 class DiscordMeta(LightningCog):
     @hybrid_command(aliases=['avy'], usage='[member=<you>]')
     @app_commands.describe(member="The person to look up the avatar for (defaults to you)")
+    @app_commands.allowed_installs(users=True, guilds=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def avatar(self, ctx: LightningContext, *,
                      member: Annotated[Union[discord.Member, discord.User],
                                        GuildorNonGuildUser] = None) -> None:
