@@ -768,10 +768,10 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             await member.edit(nick=normalized, reason=self.format_reason(ctx.author, None,
                                                                          action_text="Normalize done by"))
         except discord.HTTPException as e:
-            await ctx.send(f"I had an issue trying to normalize their name {str(e)}")
+            await ctx.send(f"I had an issue trying to normalize their name {str(e)}", ephemeral=True)
             return
 
-        await ctx.send(f"Normalized {member.mention}")
+        await ctx.send(f"Normalized {member.mention}", ephemeral=True)
 
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_nicknames=True)
