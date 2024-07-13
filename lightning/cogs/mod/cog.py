@@ -488,6 +488,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @commands.bot_has_guild_permissions(moderate_members=True)
     @hybrid_guild_permissions(moderate_members=True)
     @app_commands.describe(target="The member to timeout", duration="The duration for the timeout (max 28 days)")
+    @app_commands.guild_only()
     async def timeout(self, ctx: ModContext,
                       target: discord.Member = commands.param(converter=converters.TargetMember(fetch_user=False)),
                       duration: FutureTime = commands.param(converter=FutureTime), *, flags: DefaultModFlags):
