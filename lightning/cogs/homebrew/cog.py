@@ -58,10 +58,10 @@ class UniversalDBPageSource(menus.ListPageSource):
         super().__init__(entries, per_page=1)
 
     async def format_page(self, menu, entry):
-        desc: str = entry['description'] if 'description' in entry else "No description found..."
+        desc: str = entry['description'] or "No description found..."
         embed = discord.Embed(title=entry['title'], color=discord.Color.blurple(), description=desc)
 
-        if 'downloads' in entry:
+        if entry['downloads']:
             downloads = [f"[{k}]({v['url']})" for k, v in entry['downloads'].items()]
             joined = "\n".join(downloads)
 
@@ -72,12 +72,12 @@ class UniversalDBPageSource(menus.ListPageSource):
                 embed.add_field(name="Latest Downloads", value=joined)
 
         # We probably don't have a qr if there's no downloads but whatever
-        if 'qr' in entry:
+        if entry['qr']:
             embed.set_thumbnail(url=list(entry['qr'].values())[0])
 
         embed.set_author(name=entry['author'])
 
-        if 'updated' in entry:
+        if entry['updated']:
             embed.timestamp = dateutil.parser.parse(entry['updated'])
             embed.set_footer(text="Last updated at")
 
