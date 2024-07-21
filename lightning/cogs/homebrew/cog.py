@@ -81,6 +81,9 @@ class UniversalDBPageSource(menus.ListPageSource):
             embed.timestamp = dateutil.parser.parse(entry['updated'])
             embed.set_footer(text="Last updated at")
 
+        if entry['urls']:
+            embed.url = entry['urls'][0]
+
         return embed
 
 
