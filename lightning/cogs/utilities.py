@@ -51,7 +51,7 @@ class Utilities(LightningCog):
     @commands.bot_has_permissions(create_polls=True)
     @hybrid_guild_permissions(create_polls=True)
     @app_commands.describe(hours="The interval for the poll (in hours)")
-    async def poll(self, ctx: LightningContext, hours: Optional[commands.Range[int, 1, 168]], *, question: str):
+    async def poll(self, ctx: LightningContext, hours: Optional[commands.Range[int, 1, 744]], *, question: str):
         """
         Creates a simple poll with thumbs up, thumbs down, and shrug as a Discord poll.
 
