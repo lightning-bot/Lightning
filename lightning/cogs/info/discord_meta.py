@@ -56,6 +56,8 @@ class DiscordMeta(LightningCog):
 
     @hybrid_command(aliases=['ui'], usage='[member=<you>]')
     @app_commands.describe(member="The person to look up information for (defaults to you)")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def userinfo(self, ctx: LightningContext, *,
                        member: Annotated[Union[discord.Member, discord.User, None],
                                          GuildorNonGuildUser] = None) -> None:
