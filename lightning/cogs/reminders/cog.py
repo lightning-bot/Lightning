@@ -168,7 +168,7 @@ class Reminders(LightningCog):
     async def remind(self, ctx: LightningContext, *,
                      when: ltime.UserFriendlyTimeResult =
                      parameter(converter=ltime.UserFriendlyTime(clean_content, default='something'))
-                     ) -> None:  # noqa: F821
+                     ) -> None:
         """
         Reminds you of something after a certain date.
 
