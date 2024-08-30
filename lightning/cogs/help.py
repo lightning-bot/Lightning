@@ -158,7 +158,7 @@ class GroupHelpSource(CogHelpSource):
         content += f"\n\n**Subcommands**:\nYour current permissions allow you to run the following subcommands:\n"\
                    f"{''.join(cmds)}\n\n"\
                    f"*Use \"{menu.ctx.clean_prefix}help [command]\" for help about a command.*"\
-                   f"\nPage {menu.current_page + 1} of {self.get_max_pages() or 1}"
+                   f"\n-# **Page {menu.current_page + 1} of {self.get_max_pages() or 1}**"
         return content
 
 
