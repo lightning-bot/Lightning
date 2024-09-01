@@ -33,6 +33,12 @@ class AutoRole(UpdateableMenu, ExitableMenu):
         record = await ctx.bot.get_guild_bot_config(ctx.guild.id)
         embed = discord.Embed(title="Auto Role Configuration", color=0xf74b06)
 
+        if not record:
+            self.remove_autorole_button.disabled = True
+            self.add_autorole_button.label = "Add an autorole"
+            embed.description = "This server has not setup an autorole yet."
+            return embed
+
         if record.autorole:
             self.add_autorole_button.label = "Change autorole"
             self.remove_autorole_button.disabled = False
