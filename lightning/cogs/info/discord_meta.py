@@ -76,14 +76,14 @@ class DiscordMeta(LightningCog):
         else:
             desc.append(f"**Shared Servers**: {len(member.mutual_guilds)}")
 
-        if not isinstance(member, discord.Member):
+        if not isinstance(member, discord.Member) and ctx.guild is not None:
             embed.set_footer(text='This user is not in this server.')
 
         if hasattr(member, 'joined_at'):
             desc.append(f"**Joined**: {discord.utils.format_dt(member.joined_at)} "
                         f"({natural_timedelta(member.joined_at, accuracy=3)})")
 
-        if hasattr(member, 'roles'):
+        if isinstance(member, discord.Member):
             if roles := [x.mention for x in member.roles if not x.is_default()]:
                 revrole = reversed(roles[:10])
                 if len(roles) > 10:
