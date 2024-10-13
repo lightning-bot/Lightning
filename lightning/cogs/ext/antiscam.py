@@ -295,11 +295,14 @@ if __name__ == "__main__":
         "@everyone\nBEST NUDES 💦 + Nitro Giveaway 🥳\nJOIN RIGHT NOW: https://discord.gg/123456",
         "50$ for Steam - [steamcommunity.com/gift/7441553](https://test.cloud/1234)",
         "50$ Gift - [steamcommunity.com/gift/69](https://test.cloud/1234)",
-        "50$ gift - [steamcommunity.com/gift/832083](https://google.com)\n@everyone @here"
+        "50$ gift - [steamcommunity.com/gift/832083](https://google.com)\n@everyone @here",
+        "# Best Free NSFW 🥵 server (NSFW🔞, Snapchat🍑, TikTok🔥, OnlyFans💦 and Sex cam :lips:) : "
+        "https://discord.gg/123456 @here @everyone",
+        "catch 50$ - [steamcommunity.com/gift](https://google.com)"
     ]
     test = ["did you see her onlyfans", "onlyfan lmao", "go away", "check out the new steam game",
             "check your gift inventory bruh"]
     multi = samples + test
     for sample in multi:
         result = AntiScamResult(sample).calculate()
-        print(sample, "|", result, "| Timed-out", get_timeout_score(result.score))
+        print(sample, "|", result.score, "| Timed-out", get_timeout_score(result.score))
