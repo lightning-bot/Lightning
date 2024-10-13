@@ -36,6 +36,9 @@ if TYPE_CHECKING:
     from lightning import LightningContext
 
 
+UTC_TZ = ZoneInfo("UTC")
+
+
 class ShortTime:
     compiled = re.compile("""(?:(?P<years>[0-9])(?:years?|y))?             # e.g. 2y
                              (?:(?P<months>[0-9]{1,2})(?:months?|mo))?     # e.g. 2months
@@ -67,7 +70,7 @@ class ShortTime:
         if tzinfo:
             tzinfo = ZoneInfo(tzinfo)
         else:
-            tzinfo = datetime.timezone.utc
+            tzinfo = UTC_TZ
 
         return cls(argument, now=ctx.message.created_at, tz=tzinfo)
 
@@ -95,7 +98,7 @@ class HumanTime:
         if tzinfo:
             tzinfo = ZoneInfo(tzinfo)
         else:
-            tzinfo = datetime.timezone.utc
+            tzinfo = UTC_TZ
 
         return cls(argument, now=ctx.message.created_at, tz=tzinfo)
 
@@ -165,7 +168,7 @@ class UserFriendlyTime(commands.Converter):
         if tzinfo:
             tzinfo = ZoneInfo(tzinfo)
         else:
-            tzinfo = datetime.timezone.utc
+            tzinfo = UTC_TZ
 
         match = regex.match(argument)
         if match is not None and match.group(0):
