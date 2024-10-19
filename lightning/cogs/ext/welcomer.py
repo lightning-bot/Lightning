@@ -34,7 +34,7 @@ Member Variables:
 `$member_mention` - Mentions the member
 """
 
-WHITELISTED_GUILDS = [283769550611152897,  # DSi Mode Hacking!
+WHITELISTED_GUILDS = [1289261839804272712,  # DSi Mode Hacking!
                       540978015811928075]  # Test guild
 
 
