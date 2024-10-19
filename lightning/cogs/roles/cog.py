@@ -14,8 +14,10 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from __future__ import annotations
+
 from io import StringIO
-from typing import List, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import discord
 import tabulate
@@ -24,14 +26,19 @@ from discord.ext import commands
 from discord.ext.commands.view import StringView
 from rapidfuzz import process
 
-from lightning import CommandLevel, GuildContext, LightningCog, command, group
-from lightning.cogs.roles.menus import RoleSource
+from lightning import (CommandLevel, GuildContext, LightningCog, command,
+                       group, hybrid_command)
+from lightning.cogs.roles.menus import PersistedRolesSource, RoleSource
 from lightning.cogs.roles.ui import RoleButton, RoleButtonView
 from lightning.converters import Role
 from lightning.events import GuildRoleDeleteEvent
 from lightning.utils import paginator
 from lightning.utils.checks import (has_dangerous_permissions,
-                                    has_guild_permissions)
+                                    has_guild_permissions,
+                                    hybrid_guild_permissions)
+
+if TYPE_CHECKING:
+    from lightning.cogs.mod import Mod as ModCog
 
 
 class RoleView(StringView):
@@ -359,3 +366,80 @@ class Roles(LightningCog):
         else:
             await interaction.user.add_roles(role, reason="togglerole slash command usage")
             await interaction.response.send_message(f"Added {role.name}!", ephemeral=True)
+
+    # Role state
+    @hybrid_command(name="persistrole", aliases=['persist'], level=CommandLevel.Admin)
+    @hybrid_guild_permissions(manage_roles=True)
+    @app_commands.describe(member="The member to persist a role to", role="The role to persist")
+    async def persist_role(self, ctx: GuildContext, member: discord.Member, role: discord.Role):
+        """Assigns a role to a member that will always be reapplied"""
+        if role >= ctx.guild.me.top_role:
+            await ctx.send("This role is too high for me to assign to you!", ephemeral=True)
+            return
+
+        if has_dangerous_permissions(role.permissions):
+            await ctx.send("This role has permissions that are deemed dangerous", ephemeral=True)
+            return
+
+        try:
+            await member.add_roles(role, reason="Role Persistance")
+        except discord.Forbidden:
+            await ctx.send(f"I was unable to add the role to {member.mention}", ephemeral=True)
+            return
+
+        cog: Optional[ModCog] = self.bot.get_cog("Moderation")  # type: ignore
+        if not cog:
+            await ctx.send("This feature is unavailable right now!", ephemeral=True)
+            return
+
+        await cog.add_punishment_role(ctx.guild.id, member.id, role.id)
+
+        await ctx.send(f"Persisted {role.name} to {member.mention}!", ephemeral=True)
+
+    @hybrid_command(level=CommandLevel.Mod)
+    @hybrid_guild_permissions(manage_roles=True)
+    async def persisted(self, ctx: GuildContext):
+        """
+        Lists all members with persisted roles
+
+        Do note, if you use a mute role, those will also show up here.
+        """
+        query = """SELECT guild_id, user_id, punishment_roles
+                   FROM roles
+                   WHERE guild_id=$1
+                   AND array_length(punishment_roles, 1) > 0;"""
+        records = await self.bot.pool.fetch(query, ctx.guild.id)
+        pages = paginator.Paginator(PersistedRolesSource(records, per_page=5), context=ctx)
+        await pages.start(wait=False, ephemeral=True)
+
+    @hybrid_command(aliases=['rmpersist'], level=CommandLevel.Admin)
+    @hybrid_guild_permissions(manage_roles=True)
+    @app_commands.describe(member="The member to remove a role from", role="The role to remove")
+    async def unpersist(self, ctx: GuildContext, member: discord.Member, role: discord.Role):
+        """Removes a role that's been persisted to a member"""
+        if role >= ctx.guild.me.top_role:
+            await ctx.send(f"This role is too high for me to remove from {str(member)}!", ephemeral=True)
+            return
+
+        if has_dangerous_permissions(role.permissions):
+            await ctx.send("This role has permissions that are deemed dangerous", ephemeral=True)
+            return
+
+        cog: Optional[ModCog] = self.bot.get_cog("Moderation")  # type: ignore
+        if not cog:
+            await ctx.send("This feature is unavailable right now!", ephemeral=True)
+            return
+
+        role_check = await cog.punishment_role_check(ctx.guild.id, member.id, role.id)
+        if not role_check:
+            await ctx.send("I cannot remove a role that has not been persisted before!", ephemeral=True)
+            return
+
+        try:
+            await member.remove_roles(role, reason="Removing Role Persistance")
+        except discord.Forbidden:
+            await ctx.send(f"I was unable to remove the role from {member.mention}", ephemeral=True)
+            return
+
+        await cog.remove_punishment_role(ctx.guild.id, member.id, role.id)
+        await ctx.send(f"Removed the role from {member.mention} and removed persistance!", ephemeral=True)
