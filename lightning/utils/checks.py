@@ -141,5 +141,9 @@ def has_dangerous_permissions(permissions: discord.Permissions):
     return permissions.value & DANGEROUS_PERMISSIONS.value != 0
 
 
-async def is_premium_guild():
-    return False
+def is_premium_guild():
+    async def predicate(ctx):
+        if ctx.guild is None:
+            raise commands.CommandError("This command can only be used in premium guilds!")
+        return False
+    return commands.check(predicate)
