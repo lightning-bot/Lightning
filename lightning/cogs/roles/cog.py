@@ -369,6 +369,7 @@ class Roles(LightningCog):
 
     # Role state
     @hybrid_command(name="persistrole", aliases=['persist'], level=CommandLevel.Admin)
+    @app_commands.guild_only()
     @hybrid_guild_permissions(manage_roles=True)
     @app_commands.describe(member="The member to persist a role to", role="The role to persist")
     async def persist_role(self, ctx: GuildContext, member: discord.Member, role: discord.Role):
@@ -398,6 +399,7 @@ class Roles(LightningCog):
 
     @hybrid_command(level=CommandLevel.Mod)
     @hybrid_guild_permissions(manage_roles=True)
+    @app_commands.guild_only()
     async def persisted(self, ctx: GuildContext):
         """
         Lists all members with persisted roles
@@ -418,6 +420,7 @@ class Roles(LightningCog):
 
     @hybrid_command(aliases=['rmpersist'], level=CommandLevel.Admin)
     @hybrid_guild_permissions(manage_roles=True)
+    @app_commands.guild_only()
     @app_commands.describe(member="The member to remove a role from", role="The role to remove")
     async def unpersist(self, ctx: GuildContext, member: discord.Member, role: discord.Role):
         """Removes a role that's been persisted to a member"""
