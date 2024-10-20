@@ -409,6 +409,10 @@ class Roles(LightningCog):
                    WHERE guild_id=$1
                    AND array_length(punishment_roles, 1) > 0;"""
         records = await self.bot.pool.fetch(query, ctx.guild.id)
+        if not records:
+            await ctx.send("Nobody has any persisted roles!", ephemeral=True)
+            return
+
         pages = paginator.Paginator(PersistedRolesSource(records, per_page=5), context=ctx)
         await pages.start(wait=False, ephemeral=True)
 
