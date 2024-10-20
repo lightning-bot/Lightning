@@ -19,6 +19,7 @@ from __future__ import annotations
 import contextlib
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from io import StringIO
 from typing import TYPE_CHECKING, Annotated, List, Optional, Union
 
 import discord
@@ -49,6 +50,18 @@ if TYPE_CHECKING:
 
     class ModContext(GuildContext):
         config: Optional[GuildModConfig]
+
+
+def create_message_archive(messages: List[discord.Message]):
+    fp = StringIO()
+    for message in messages:
+        if message.content:
+            fp.write(f"{message.created_at}: {message.author} ({message.author.id}): {message.content}\n")
+        else:
+            fp.write(f"{message.created_at}: {message.author} ({message.author.id}): Message contained embed or "
+                     "attachment\n")
+    fp.seek(0)
+    return discord.File(fp, filename="archived.txt")
 
 
 confirmations = {"ban": "{target} was banned. \N{THUMBS UP SIGN}",
@@ -316,7 +329,11 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             spam = sorted(spam.items(), key=lambda m: m[1], reverse=True)
             messages.extend(f'{name}: {count}' for name, count in spam)
         msg = '\n'.join(messages)
-        await ctx.send(msg, delete_after=40)
+
+        if flags.archive:
+            await ctx.send(msg, file=create_message_archive(purged))
+        else:
+            await ctx.send(msg, delete_after=40)
 
     def can_timeout(self, ctx: ModContext, duration: datetime):
         me = ctx.message.guild.me
