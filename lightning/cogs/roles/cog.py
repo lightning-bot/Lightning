@@ -383,7 +383,7 @@ class Roles(LightningCog):
             return
 
         try:
-            await member.add_roles(role, reason="Role Persistance")
+            await member.add_roles(role, reason="Role Persistence")
         except discord.Forbidden:
             await ctx.send(f"I was unable to add the role to {member.mention}", ephemeral=True)
             return
@@ -443,10 +443,10 @@ class Roles(LightningCog):
             return
 
         try:
-            await member.remove_roles(role, reason="Removing Role Persistance")
+            await member.remove_roles(role, reason="Removing Role Persistence")
         except discord.Forbidden:
             await ctx.send(f"I was unable to remove the role from {member.mention}", ephemeral=True)
             return
 
         await cog.remove_punishment_role(ctx.guild.id, member.id, role.id)
-        await ctx.send(f"Removed the role from {member.mention} and removed persistance!", ephemeral=True)
+        await ctx.send(f"Removed the role from {member.mention} and removed persistence!", ephemeral=True)
