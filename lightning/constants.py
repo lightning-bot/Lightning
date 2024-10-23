@@ -18,7 +18,7 @@ import re
 from typing import Literal
 
 COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">", "_", ".", "$", "\"", "?", "'",
-                           ",", "="]
+                           ",", "=", "@"]
 
 
 class Emoji:
