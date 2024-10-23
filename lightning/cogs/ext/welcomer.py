@@ -35,7 +35,8 @@ Member Variables:
 """
 
 WHITELISTED_GUILDS = [1289261839804272712,  # DSi Mode Hacking!
-                      540978015811928075]  # Test guild
+                      540978015811928075,  # Test guild
+                      283769550611152897]  # Archived DSI
 
 
 def to_template(text, *, guild: discord.Guild, user: discord.Member):
