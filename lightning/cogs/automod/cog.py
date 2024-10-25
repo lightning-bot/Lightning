@@ -155,6 +155,15 @@ class AutoMod(LightningCog, required=["Moderation"]):
                             value=f"Limit: {threshold}+\nPunishment: {config['warn_punishment']}",
                             inline=False)
 
+        gatekeeper = await self.get_gatekeeper_config(ctx.guild.id)
+        if gatekeeper:
+            if gatekeeper.active is True:
+                content = f"Active: Yes\nUnverified Members: {len(gatekeeper.members):,}"
+            else:
+                content = "Active: No"
+            embed.add_field(name="Gatekeeper",
+                            value=content, inline=False)
+
         if len(embed.fields) == 0:
             await ctx.send("This server has not set up Lightning AutoMod yet!")
             return
