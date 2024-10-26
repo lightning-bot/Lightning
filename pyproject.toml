@@ -44,7 +44,7 @@ numpy = "1.26.4"
 redis = {extras = ["hiredis"], version = "^5.0.1"}
 unidecode = "^1.3.6"
 prometheus-async = "^22.2.0"
-spacy = "^3.7.4"
+spacy = "^3.7.5"
 pandas = "^2.2.2"
 en-core-web-sm = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl"}
 
