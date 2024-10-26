@@ -388,6 +388,17 @@ class GatekeeperChannelView(BasicMenuLikeView):
         self.stop(interaction=itx)
 
 
+class GatekeeperMessageModal(discord.ui.Modal):
+    def __init__(self) -> None:
+        super().__init__(title="Set Gatekeeper Message")
+
+    message = discord.ui.TextInput(label="Message", style=discord.TextStyle.paragraph, max_length=500,
+                                   default="This server requires you to verify yourself before you can talk!")
+
+    async def on_submit(self, interaction: discord.Interaction[LightningBot]) -> None:
+        await interaction.response.edit_message()
+
+
 class GatekeeperSetup(UpdateableMenu, ExitableMenu):
     ctx: AutoModContext
     record: dict[str, Any]
@@ -500,24 +511,31 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
             await itx.response.send_message("Somehow your gatekeeper isn't setup correctly!")
             return
 
-        embed = discord.Embed(title="Verification Required",
-                              description="This server requires you to verify yourself before you can talk!")
-
         ch = self.gatekeeper.verification_channel
-
         if ch is None:
             await itx.response.send_message("Please set a verification channel before setting this up!", ephemeral=True)
             return
+
+        modal = GatekeeperMessageModal()
+        await itx.response.send_modal(modal)
+        await modal.wait()
+
+        embed = discord.Embed(title="Verification Required",
+                              description=modal.message.value,
+                              color=discord.Color(0xf74b06))
+        embed.set_footer(text="This message was set up by the moderators of this server! "
+                              "This bot will never ask for your personal information and will not "
+                              "redirect you to any external links!")
 
         view = discord.ui.View(timeout=None)
         view.add_item(GatekeeperVerificationButton(self.gatekeeper))
         try:
             await ch.send(embed=embed, view=view)
         except discord.HTTPException as e:
-            await itx.response.send_message(f"I was unable to send the verification message. ({e})", ephemeral=True)
+            await itx.followup.send(f"I was unable to send the verification message. ({e})", ephemeral=True)
             return
 
-        await itx.response.send_message("Sent the verification message!", ephemeral=True)
+        await itx.followup.send("Sent the verification message!", ephemeral=True)
 
     @discord.ui.button(label="Disable", style=discord.ButtonStyle.red)
     async def disable_gatekeeper(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
