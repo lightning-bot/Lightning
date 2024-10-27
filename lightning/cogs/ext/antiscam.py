@@ -264,7 +264,7 @@ class AntiScam(LightningCog):
         score = res.calculate()
         await ctx.send(f"This message scored {score}% safe!")
 
-    @antiscam.command(name='improve', level=CommandLevel.Admin)
+    @antiscam.command(name='improve', level=CommandLevel.Admin, hidden=True)
     @commands.guild_only()
     @is_server_manager()
     async def antiscam_deposit(self, ctx: GuildContext, *, message: discord.Message):
@@ -296,7 +296,7 @@ if __name__ == "__main__":
         "50$ for Steam - [steamcommunity.com/gift/7441553](https://test.cloud/1234)",
         "50$ Gift - [steamcommunity.com/gift/69](https://test.cloud/1234)",
         "50$ gift - [steamcommunity.com/gift/832083](https://google.com)\n@everyone @here",
-        "# Best Free NSFW 🥵 server (NSFW🔞, Snapchat🍑, TikTok🔥, OnlyFans💦 and Sex cam :lips:) : "
+        "# Best Free NSFW 🥵 server (NSFW🔞, Snapchat🍑, TikTok🔥, OnlyFans💦 and Sex cam :lips:) : ",
         "https://discord.gg/123456 @here @everyone",
         "catch 50$ - [steamcommunity.com/gift](https://google.com)"
     ]
