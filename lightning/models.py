@@ -358,6 +358,9 @@ class Action:
     def event(self) -> str:
         return self.action.upper()
 
+    def __repr__(self) -> str:
+        return f"<Action guild_id={self.guild_id} action={self.action} target={self.target} moderator={self.moderator}"
+
 
 class GuildAutoModRulePunishment:
     def __init__(self, record) -> None:
