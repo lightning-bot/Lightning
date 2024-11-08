@@ -315,6 +315,15 @@ class ModLog(LightningCog):
                 embed = modlogformats.EmbedFormat.timeout_expired(event)
                 await emitter.put(embeds=[embed])
 
+    @LightningCog.listener()
+    async def on_lightning_guild_alert(self, guild_id: int, message: str):
+        async for emitter, record in self.get_records(guild_id, LoggingType.BOT_INFO):
+            if record['format'] == "embed":
+                embed = discord.Embed(color=discord.Color.yellow(), description=message)
+                await emitter.put(embeds=[embed])
+            else:
+                await emitter.put(message)
+
     def _close_emitter(self, channel_id: int) -> None:
         emitter = self._emitters.pop(channel_id, None)
         if emitter:

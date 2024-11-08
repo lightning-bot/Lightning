@@ -68,6 +68,9 @@ class LoggingType(BaseFlags):
     MEMBER_TIMEOUT_UPDATE = 1 << 16
     MEMBER_TIMEOUT_REMOVE = 1 << 17
 
+    # Bot Log Event
+    BOT_INFO = 1 << 18  # This is internally as lightning_guild_alert
+
 
 class ActionType(Enum):
     WARN = 1
