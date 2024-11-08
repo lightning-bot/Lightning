@@ -776,6 +776,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         await self.bot.api.bulk_upsert_guild_automod_default_ignores(payload.guild.id, config.default_ignores)
 
+    def dispatch_gatekeeper_change(self, guild_id: int, message: str):
+        self.bot.dispatch("lightning_guild_alert",
+                          guild_id, f"\N{WARNING SIGN}\N{VARIATION SELECTOR-16} {message}")
+
     @LightningCog.listener('on_guild_role_delete')
     async def on_gatekeeper_role_removal(self, role: discord.Role):
         gatekeeper = await self.get_gatekeeper_config(role.guild.id)
@@ -789,6 +793,9 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await self.bot.pool.execute(query, role.guild.id)
         await gatekeeper.disable()
         self.gatekeepers[role.guild.id].role_id = None
+
+        self.dispatch_gatekeeper_change(role.guild.id,
+                                        "Gatekeeper was disabled due to the verification role being deleted!")
 
     @LightningCog.listener('on_guild_channel_delete')
     async def on_gatekeeper_channel_delete(self, channel: discord.TextChannel):
@@ -804,3 +811,6 @@ class AutoMod(LightningCog, required=["Moderation"]):
         # In the future, the bot will notify admins that there are still <x> people waiting to verify themselves
         await gatekeeper.disable()
         self.gatekeepers[channel.guild.id].verification_channel_id = None
+
+        self.dispatch_gatekeeper_change(channel.guild.id,
+                                        "Gatekeeper was disabled due to the verification channel being deleted!")
