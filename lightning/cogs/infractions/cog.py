@@ -305,7 +305,7 @@ class Infractions(LightningCog, required=['Moderation']):
         embed.add_field(name="Actions Done", value="\n".join(
             f"**{action.name.title()}s**: {count}" for action, count in all_actions.items()
         ))
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
 
     @LightningCog.listener('on_lightning_timemute_complete')
     @LightningCog.listener('on_lightning_timeban_complete')
