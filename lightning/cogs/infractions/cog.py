@@ -280,7 +280,7 @@ class Infractions(LightningCog, required=['Moderation']):
 
         await self.start_infraction_pages(ctx, src)
 
-    @infraction.command(name="summary", level=CommandLevel.Mod)
+    @infraction.command(name="summary", level=CommandLevel.Mod, aliases=['sum'])
     @is_server_manager()
     @app_commands.describe(user="The discord member/user to lookup")
     async def infraction_sum(self, ctx: GuildContext, user: discord.User):
