@@ -16,6 +16,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+from collections import Counter
+from datetime import datetime
 from io import BytesIO
 from typing import Annotated, Any, Dict, List, Optional
 
@@ -277,6 +279,33 @@ class Infractions(LightningCog, required=['Moderation']):
             src = InfractionSource(infs)
 
         await self.start_infraction_pages(ctx, src)
+
+    @infraction.command(name="summary", level=CommandLevel.Mod)
+    @is_server_manager()
+    @app_commands.describe(user="The discord member/user to lookup")
+    async def infraction_sum(self, ctx: GuildContext, user: discord.User):
+        """Gives a quick summary of a user's infractions"""
+        try:
+            records = await self.bot.api.get_user_infractions(ctx.guild.id, user.id)
+        except NotFound:
+            await ctx.send(f"No infractions found for {user.mention}!", ephemeral=True)
+            return
+
+        all_actions = Counter()
+        for record in records:
+            all_actions[ActionType(record['action'])] += 1
+
+        recents = [InfractionRecord(ctx.bot, r) for r in sorted(records,
+                                                                key=lambda r: datetime.fromisoformat(r['created_at']))][:3]  # noqa: E501
+
+        embed = discord.Embed(title=f"Summary for {user}", color=0xf74b06)
+        embed.description = "\n".join(f"{discord.utils.format_dt(record.created_at)} `{record.id}` "
+                                      f"{record.action.name.title()} - {record.reason[:75]}"
+                                      for record in recents)
+        embed.add_field(name="Actions Done", value="\n".join(
+            f"**{action.name.title()}s**: {count}" for action, count in all_actions.items()
+        ))
+        await ctx.send(embed=embed)
 
     @LightningCog.listener('on_lightning_timemute_complete')
     @LightningCog.listener('on_lightning_timeban_complete')
