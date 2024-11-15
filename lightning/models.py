@@ -388,7 +388,7 @@ class InfractionRecord:
         self.moderator = bot.get_user(record['moderator_id']) or record['user_id']
 
         self.action = ActionType(record['action'])
-        self.reason: str = record['reason']
+        self.reason: str = record['reason'] or "No reason provided."
         self.created_at = datetime.datetime.fromisoformat(record['created_at'])
         self.active: bool = record['active']
         self.extra: dict[str, Any] = record['extra']
