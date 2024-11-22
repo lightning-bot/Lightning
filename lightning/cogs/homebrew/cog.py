@@ -286,7 +286,7 @@ class Homebrew(LightningCog):
 
         return [app_commands.Choice(name=app['title'], value=app['title']) for app in resp['results'][:25]]
 
-    @group(invoke_without_command=True)
+    @group(invoke_without_command=True, hidden=True)
     async def mod(self, ctx: LightningContext) -> None:
         """Gets console modding information"""
         await ctx.send_help('mod')
