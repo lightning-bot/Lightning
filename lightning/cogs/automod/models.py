@@ -230,6 +230,19 @@ class GateKeeperConfig:
 
         await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{member.guild.id}:remove", member.id)
 
+    async def delete_member_by_id(self, member_id: int):
+        """Deletes a member immediately from verification stores.
+
+        (This bypasses the loop and does not remove the role)"""
+        try:
+            self.members.remove(member_id)
+        except KeyError:
+            return
+
+        await self.bot.pool.execute("DELETE FROM pending_gatekeeper_members WHERE guild_id=$1 AND "
+                                    "member_id=$2;",
+                                    self.guild_id, member_id)
+
     async def enable(self):
         """
         Enables the gatekeeper.

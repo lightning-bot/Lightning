@@ -814,3 +814,11 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         self.dispatch_gatekeeper_change(channel.guild.id,
                                         "Gatekeeper was disabled due to the verification channel being deleted!")
+
+    @LightningCog.listener('on_raw_member_remove')
+    async def on_gatekeeper_member_leave(self, payload: discord.RawMemberRemoveEvent):
+        gatekeeper = await self.get_gatekeeper_config(payload.guild_id)
+        if gatekeeper is None:
+            return
+        # No check needed because the method does it for me
+        await gatekeeper.delete_member_by_id(payload.user.id)
