@@ -17,6 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from typing import Literal
 
+import discord
+
+LIGHTNING_COLOR = discord.Color(0xf74b06)
 COMMON_HOIST_CHARACTERS = ["!", "-", "/", "*", "(", ")", "+", "[", "]", "#", "<", ">", "_", ".", "$", "\"", "?", "'",
                            ",", "=", "@"]
 
