@@ -18,6 +18,7 @@ import discord
 
 from lightning import (ExitableMenu, LoggingType, SelectSubMenu,
                        UpdateableMenu, lock_when_pressed)
+from lightning.cogs.modlog.utils import human_friendly_log_names
 from lightning.events import ChannelConfigInvalidateEvent
 
 
@@ -51,7 +52,7 @@ class Logging(UpdateableMenu, ExitableMenu):
         else:
             types = LoggingType(record['types'])
             content = f"Configuration for {self.log_channel.mention}:\n\n"\
-                      f"Events: {types.to_simple_str().replace('|', ', ')}\n"\
+                      f"Events: {human_friendly_log_names(types)}\n"\
                       f"Log Format: {record['format'].title()}"
         return content
 
