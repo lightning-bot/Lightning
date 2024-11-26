@@ -276,7 +276,7 @@ class Reminders(LightningCog):
 
         confirm = await ctx.confirm(f"Are you sure you want to remove {plural(count):reminder}?")
         if not confirm:
-            await ctx.send("Cancelled")
+            await ctx.send("Cancelled", ephemeral=True)
             return
 
         query = """DELETE FROM timers
@@ -291,7 +291,7 @@ class Reminders(LightningCog):
             # cancel task
             self.restart_timer_task()
 
-        await ctx.send("Cleared all of your reminders.")
+        await ctx.send("Cleared all of your reminders.", ephemeral=True)
 
     @hybrid_group(name="timezone")
     async def reminder_timezone(self, ctx: LightningContext):
