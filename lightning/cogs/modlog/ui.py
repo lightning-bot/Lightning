@@ -51,9 +51,9 @@ class Logging(UpdateableMenu, ExitableMenu):
             content = f"No configuration exists for {self.log_channel.mention} yet!"
         else:
             types = LoggingType(record['types'])
-            content = f"Configuration for {self.log_channel.mention}:\n\n"\
-                      f"Events: {human_friendly_log_names(types)}\n"\
-                      f"Log Format: {record['format'].title()}"
+            content = f"ModLog Configuration for {self.log_channel.mention}:\n\n"\
+                      f"**Log Format**: {record['format'].title()}\n"\
+                      f"**Events**: {human_friendly_log_names(types)}\n"
         return content
 
     @discord.ui.button(label="Log all events", style=discord.ButtonStyle.primary, emoji="\N{LEDGER}")
