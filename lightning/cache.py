@@ -130,7 +130,9 @@ class DictBasedCache(BaseCache):
 
 
 class RawCache(DictBasedCache):
-    _cache = {}
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cache = {}
 
 
 class LRUCache(DictBasedCache):
