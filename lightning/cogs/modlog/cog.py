@@ -69,7 +69,7 @@ class ModLog(LightningCog):
         """Shushes the mod log temporarily"""
         ...
 
-    @cached('logging', Strategy.lru, max_size=64)
+    @cached('logging', Strategy.lru, max_size=256)
     async def get_logging_record(self, guild_id: int) -> Optional[LoggingConfig]:
         """Gets a logging record.
 
