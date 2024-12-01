@@ -16,11 +16,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import time
+from typing import Dict
+
 from discord.ext import tasks
 from prometheus_async import aio
-from prometheus_client import Counter, Gauge
+from prometheus_client import Counter, Gauge, Histogram
 
-from lightning import LightningBot, LightningCog
+from lightning import LightningBot, LightningCog, LightningContext
 
 EVENT_LABELS = ['APPLICATION_COMMAND_CREATE',
                 'APPLICATION_COMMAND_PERMISSIONS_UPDATE',
@@ -94,9 +97,14 @@ EVENT_LABELS = ['APPLICATION_COMMAND_CREATE',
 GUILD_COUNT_GAUGE = Gauge("lightning_guild_count", "Bot guild growth")
 LATENCY_GAUGE = Gauge("lightning_discord_shard_latency", "Latency", ['shard'])
 SOCKET_EVENTS_COUNTER = Counter("lightning_socket_events", "All socket events observed", ['event'])
+COMMAND_TIMING_HIST = Histogram("lightning_command_timing", "Time it takes to complete a command", ['command'])
 
 
 class Prometheus(LightningCog):
+    def __init__(self, bot: LightningBot):
+        super().__init__(bot)
+        self._current_contexts: Dict[LightningContext, float] = {}
+
     async def cog_load(self):
         for label in EVENT_LABELS:
             SOCKET_EVENTS_COUNTER.labels(event=label)
@@ -135,6 +143,28 @@ class Prometheus(LightningCog):
     @LightningCog.listener()
     async def on_lightning_guild_remove(self, guild):
         GUILD_COUNT_GAUGE.dec()
+
+    @LightningCog.listener()
+    async def on_command(self, ctx: LightningContext):
+        self._current_contexts[ctx] = time.time()
+
+    @LightningCog.listener()
+    async def on_command_completion(self, ctx: LightningContext):
+        try:
+            cur = self._current_contexts.pop(ctx)
+        except KeyError:
+            # Somehow doesn't exist
+            return
+
+        COMMAND_TIMING_HIST.labels(command=ctx.command).observe(time.time() - cur)
+
+    @LightningCog.listener()
+    async def on_command_error(self, ctx: LightningContext):
+        try:
+            del self._current_contexts[ctx]
+        except KeyError:
+            # Somehow doesn't exist
+            return
 
 
 async def setup(bot: LightningBot):
