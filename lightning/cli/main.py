@@ -90,7 +90,7 @@ async def launch_bot(config: Config) -> None:
 
     if sentry_dsn is not None:
         env = "dev" if config.bot.beta_prefix else "prod"
-        sentry_sdk.init(sentry_dsn, environment=env, release=commit)
+        sentry_sdk.init(sentry_dsn, environment=env, release=commit, enable_tracing=True)
 
     kwargs = {'max_messages': config.bot.message_cache_max}
 
