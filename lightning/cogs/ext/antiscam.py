@@ -27,7 +27,7 @@ from discord.ext import commands
 from spacy.matcher import Matcher
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
-                       group)
+                       hybrid_group)
 from lightning.utils.checks import is_server_manager
 
 nlp = spacy.load("en_core_web_sm")
@@ -214,7 +214,7 @@ class AntiScam(LightningCog):
             except discord.HTTPException:
                 pass
 
-    @group(level=CommandLevel.Admin)
+    @hybrid_group(level=CommandLevel.Admin)
     @is_server_manager()
     @commands.guild_only()
     async def antiscam(self, ctx: GuildContext):
