@@ -17,7 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import (TYPE_CHECKING, Any, Dict, List, Optional, Tuple, TypedDict,
+                    Union)
 
 import discord
 
@@ -65,11 +66,18 @@ class GuildModConfig:
         return guild.get_channel(self.message_report_channel_id)
 
 
+if TYPE_CHECKING:
+    class LogConfig(TypedDict):
+        types: LoggingType
+        format: str
+        webhook_url: Optional[str]
+
+
 class LoggingConfig:
     __slots__ = ('logging')
 
     def __init__(self, records):
-        self.logging = {}
+        self.logging: Dict[int, LogConfig] = {}
         for record in records:
             self.logging[record['channel_id']] = {"types": LoggingType(record['types']),
                                                   "format": record['format'],
