@@ -170,7 +170,7 @@ class LightningBot(commands.AutoShardedBot):
 
         await self.fill_redis_timezone_cache()
 
-    @cache.cached('guild_bot_config', cache.Strategy.raw)
+    @cache.cached('guild_bot_config', cache.Strategy.lru, max_size=1024)
     async def get_guild_bot_config(self, guild_id: int) -> Optional[GuildBotConfig]:
         """Gets a guild's bot configuration from cache or fetches it from the database.
 
