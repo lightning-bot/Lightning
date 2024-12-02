@@ -159,7 +159,7 @@ class Prometheus(LightningCog):
         COMMAND_TIMING_HIST.labels(command=ctx.command).observe(time.time() - cur)
 
     @LightningCog.listener()
-    async def on_command_error(self, ctx: LightningContext):
+    async def on_command_error(self, ctx: LightningContext, error):
         try:
             del self._current_contexts[ctx]
         except KeyError:
