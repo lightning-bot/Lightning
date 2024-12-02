@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import asyncio
+import collections
 import io
 import logging
 import time
@@ -67,8 +68,14 @@ class Stats(LightningCog):
 
         self.process = psutil.Process()
 
+        # AutoMod Rule Trigger Metrics
+        self._automod_rule_triggers = collections.Counter()
+        self._automod_rule_lock = asyncio.Lock()
+        self.bulk_automod_metrics.start()
+
     def cog_unload(self) -> None:
         self.bulk_command_insertion.stop()
+        self.bulk_automod_metrics.stop()
 
         if hasattr(self, 'guild_stats_bulker'):
             self.guild_stats_bulker.close()
@@ -433,6 +440,27 @@ class Stats(LightningCog):
         embed.description = '\n'.join(description)
 
         await ctx.send(embed=embed)
+
+    @LightningCog.listener()
+    async def on_lightning_guild_automod_rule_triggered(self, rule_name: str, guild_id: int):
+        async with self._automod_rule_lock:
+            self._automod_rule_triggers[rule_name] += 1
+
+    async def bulk_automod_rule_triggers_insert(self) -> None:
+        query = """INSERT INTO automod_metrics (rule_name, count)
+                   VALUES ($1, $2::bigint)
+                   ON CONFLICT (rule_name)
+                   DO UPDATE SET count = automod_metrics.count + $2::bigint;"""
+        items = self._automod_rule_triggers.items()
+        await self.bot.pool.executemany(query, items)
+        log.debug(f"{len(self._automod_rule_triggers)} AutoMod events were added to the database.")
+        self._automod_rule_triggers.clear()
+
+    @tasks.loop(seconds=60.0)
+    async def bulk_automod_metrics(self):
+        async with self._automod_rule_lock:
+            if self._automod_rule_triggers:
+                await self.bulk_automod_rule_triggers_insert()
 
 
 async def setup(bot: LightningBot) -> None:

@@ -643,6 +643,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
                 rl = await obj.update_bucket(message)
 
             if rl is True:
+                self.bot.dispatch("lightning_guild_automod_rule_triggered", attr_name, message.guild.id)
                 messages = await obj.fetch_responsible_messages(message)
                 await obj.reset_bucket(message)
                 await self._handle_punishment(obj.punishment, message, attr_name)
