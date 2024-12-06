@@ -130,9 +130,10 @@ class ListenerEvents(LightningCog):
             return
 
         if entry.user is None:
-            log.debug(f"Creating AuditLogModAction event: entry.user={entry.user} entry.user_id={entry.user_id}"
-                      f"entry.user bot lookup={self.bot.get_user(entry.user_id)}"
-                      f"entry.user guild lookup={entry.guild.get_member(entry.user_id)}")
+            log.info(f"Creating AuditLogModAction event: entry.user={entry.user} entry.user_id={entry.user_id}"
+                     f"entry.user bot lookup={self.bot.get_user(entry.user_id)}"
+                     f"entry.user guild lookup={entry.guild.get_member(entry.user_id)}")
+            entry.user = discord.Object(entry.user_id)
 
         # entry.target is discord.User maybe?
         event = AuditLogModAction("KICK", entry.target, entry, guild=entry.guild)
@@ -148,9 +149,10 @@ class ListenerEvents(LightningCog):
             return
 
         if entry.user is None:
-            log.debug(f"Creating AuditLogModAction event: entry.user={entry.user} entry.user_id={entry.user_id}"
-                      f"entry.user bot lookup={self.bot.get_user(entry.user_id)}"
-                      f"entry.user guild lookup={entry.guild.get_member(entry.user_id)}")
+            log.info(f"Creating AuditLogModAction event: entry.user={entry.user} entry.user_id={entry.user_id}"
+                     f"entry.user bot lookup={self.bot.get_user(entry.user_id)}"
+                     f"entry.user guild lookup={entry.guild.get_member(entry.user_id)}")
+            entry.user = discord.Object(entry.user_id)
 
         event = AuditLogModAction("BAN", entry.target, entry, guild=entry.guild)
         self.bot.dispatch("lightning_member_ban", event)
@@ -165,9 +167,10 @@ class ListenerEvents(LightningCog):
             return
 
         if entry.user is None:
-            log.debug(f"Creating AuditLogModAction event: entry.user={entry.user} entry.user_id={entry.user_id}"
-                      f"entry.user bot lookup={self.bot.get_user(entry.user_id)}"
-                      f"entry.user guild lookup={entry.guild.get_member(entry.user_id)}")
+            log.info(f"Creating AuditLogModAction event: entry.user={entry.user} entry.user_id={entry.user_id}"
+                     f"entry.user bot lookup={self.bot.get_user(entry.user_id)}"
+                     f"entry.user guild lookup={entry.guild.get_member(entry.user_id)}")
+            entry.user = discord.Object(entry.user_id)
 
         event = AuditLogModAction("UNBAN", entry.target, entry, guild=entry.guild)
         self.bot.dispatch("lightning_member_unban", event)
