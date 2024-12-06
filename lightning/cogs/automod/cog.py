@@ -274,6 +274,11 @@ class AutoMod(LightningCog, required=["Moderation"]):
         - "5/10s"
         - "5 10"
         """
+        config = await self.get_automod_config(ctx.guild.id)
+        if not config:
+            await self.create_automod_config(ctx.guild)
+            await self.get_automod_config.invalidate(ctx.guild.id)
+
         punishment: AutoModPunishmentType = AutoModPunishmentType[punishment.upper()]
         punishment_payload: Dict[str, Any] = {"type": punishment.name}
 
