@@ -367,7 +367,7 @@ class Action:
         return self.action.upper()
 
     def __repr__(self) -> str:
-        return f"<Action guild_id={self.guild_id} action={self.action} target={self.target} moderator={self.moderator}"
+        return f"<Action guild_id={self.guild_id} action={self.action} target={self.target} moderator={self.moderator}>"
 
 
 class GuildAutoModRulePunishment:
