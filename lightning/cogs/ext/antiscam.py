@@ -261,8 +261,8 @@ class AntiScam(LightningCog):
     async def antiscam_test(self, ctx: GuildContext, *, message: str):
         """Tests to see if a message is safe"""
         res = AntiScamResult(message)
-        score = res.calculate()
-        await ctx.send(f"This message scored {score}% safe!")
+        scr = res.calculate()
+        await ctx.send(f"This message scored {scr.score}% safe! It was identified as an {scr.friendly_type} scam.")
 
     @antiscam.command(name='improve', level=CommandLevel.Admin, hidden=True)
     @commands.guild_only()
