@@ -40,6 +40,13 @@ class Dbots(LightningCog):
                                                 data=orjson.dumps(data), headers=headers) as resp:
                 log.info(f"Made a request to top.gg and got {resp.status}")
 
+        if self.bot.config.tokens.dbotlist:
+            data = {"guilds": len(self.bot.guilds), "users": len(self.bot.users)}
+            headers["Authorization"] = self.bot.config.tokens.dbotlist
+            async with self.bot.aiosession.post(f"https://discordbotlist.com/api/v1/bots/{self.bot.user.id}/stats",
+                                                data=orjson.dumps(data), headers=headers) as resp:
+                log.info(f"Made a request to discordbotlist.com and got {resp.status}")
+
     @LightningCog.listener('on_guild_join')
     @LightningCog.listener('on_guild_remove')
     async def on_guild_event(self, _):

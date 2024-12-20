@@ -41,7 +41,7 @@ class Config(TOMLStorage):
 
 
 class TokensConfig:
-    __slots__ = ('discord', 'sentry', 'postgres', 'redis', 'api', 'prometheus', 'dbots', 'topgg')
+    __slots__ = ('discord', 'sentry', 'postgres', 'redis', 'api', 'prometheus', 'dbots', 'topgg', 'dbotlist')
 
     def __init__(self, data: Dict[str, Any]) -> None:
         self.discord: str = data['discord']
@@ -53,6 +53,8 @@ class TokensConfig:
         # Bot listings
         self.dbots: Optional[str] = transform_key(data.pop('dbots', ""))
         self.topgg: Optional[str] = transform_key(data.pop('topgg', ""))
+        # https://discordbotlist.com/bots/lightning-2270
+        self.dbotlist: Optional[str] = transform_key(data.pop('dbotlist', ""))
 
 
 class PostgresConfig:
