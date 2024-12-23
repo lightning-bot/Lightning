@@ -159,6 +159,11 @@ class SpamConfig:
                                          f"{self.cooldown._key_maker(message)}:messages")
 
 
+class GatekeeperType(discord.Enum):
+    basic = 1
+    honeypot = 2
+
+
 class GateKeeperConfig:
     def __init__(self, bot: LightningBot, record: asyncpg.Record, members: list[asyncpg.Record]) -> None:
         self.bot: LightningBot = bot
@@ -167,6 +172,11 @@ class GateKeeperConfig:
         self.active_since = None
         self.role_id: Optional[int] = record['role_id']
         self.verification_channel_id: Optional[int] = record['verification_channel_id']
+        self.verification_message_id: Optional[int] = record['verification_message_id']
+
+        # Honeypot
+        self.type = GatekeeperType.basic if record['honeypot'] is False else GatekeeperType.honeypot
+
         self.members: set[int] = {r['member_id'] for r in members if r['pending_automod_action'] is None}
         self.gtkp_loop = asyncio.create_task(self._loop())
 
@@ -179,6 +189,9 @@ class GateKeeperConfig:
     def verification_channel(self) -> discord.TextChannel:
         guild = self.bot.get_guild(self.guild_id)
         return guild.get_channel(self.verification_channel_id)  # type: ignore
+
+    def is_honeypot(self):
+        return self.type is GatekeeperType.honeypot
 
     async def _loop(self):
         # for quick ref, result is a list of [key, value]

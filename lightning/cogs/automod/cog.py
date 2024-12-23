@@ -68,7 +68,8 @@ class AutoMod(LightningCog, required=["Moderation"]):
         super().__init__(bot)
         self.gatekeepers: dict[int, GateKeeperConfig] = {}
         self.bot.loop.create_task(self.load_all_gatekeepers())
-        self.bot.add_dynamic_items(ui.GatekeeperVerificationButton)
+        self.bot.add_dynamic_items(ui.GatekeeperVerificationButton,
+                                   ui.GatekeeperVerificationHoneyPotButton)
         # AutoMod stats?
 
     def cog_unload(self):

@@ -16,13 +16,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import contextlib
+import random
 from typing import TYPE_CHECKING, Any, List, Optional
 
 import discord
 from discord.ext import menus
 from sanctum.exceptions import NotFound
 
-from lightning import (BasicMenuLikeView, ExitableMenu, GuildContext,
+from lightning import (BaseView, BasicMenuLikeView, ExitableMenu, GuildContext,
                        LightningBot, SelectSubMenu, UpdateableMenu,
                        lock_when_pressed)
 from lightning.constants import AUTOMOD_EVENT_NAMES_MAPPING
@@ -399,6 +401,37 @@ class GatekeeperMessageModal(discord.ui.Modal):
         await interaction.response.edit_message()
 
 
+class GatekeeperTypeSetup(BasicMenuLikeView):
+    rtype = "basic"
+
+    @discord.ui.button(label="Basic", style=discord.ButtonStyle.blurple)
+    async def basic(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
+        query = """
+                INSERT INTO guild_gatekeeper_config (guild_id, honeypot)
+                VALUES ($1, $2)
+                ON CONFLICT (guild_id)
+                DO UPDATE SET honeypot=EXCLUDED.honeypot;
+                """
+        await itx.client.pool.execute(query, itx.guild_id, False)
+
+        await itx.response.edit_message()
+        self.stop(interaction=itx)
+
+    @discord.ui.button(label="Honeypot", style=discord.ButtonStyle.blurple)
+    async def honeypot(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
+        query = """
+                INSERT INTO guild_gatekeeper_config (guild_id, honeypot)
+                VALUES ($1, $2)
+                ON CONFLICT (guild_id)
+                DO UPDATE SET honeypot=EXCLUDED.honeypot;
+                """
+        await itx.client.pool.execute(query, itx.guild_id, True)
+
+        await itx.response.edit_message()
+        self.rtype = "honeypot"
+        self.stop(interaction=itx)
+
+
 class GatekeeperSetup(UpdateableMenu, ExitableMenu):
     ctx: AutoModContext
     record: dict[str, Any]
@@ -419,6 +452,7 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
 
         if record and record['active']:
             text = "Lightning Gatekeeper is currently active and will gatekeep every new member that joins!\n"\
+                   f"__**Type**__: {self.gatekeeper.type.name.capitalize()}\n\n"\
                    f"**Verification Role**: {self.gatekeeper.role.mention}\n"\
                    f"**Verification Channel**: {self.gatekeeper.verification_channel.mention}"
             for button in setup_buttons:
@@ -433,11 +467,13 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
             self.set_gatekeeper_role.disabled = False
             self.set_gatekeeper_channel.disabled = True
             self.disable_gatekeeper.disabled = True
+            self.set_gatekeeper_type_button.disabled = True
             return text
         elif record['role_id'] is None:
             text = "Lightning Gatekeeper is not fully set up!"
             self.disable_gatekeeper.disabled = True
             self.set_gatekeeper_channel.disabled = True
+            self.set_gatekeeper_type_button.disabled = True
             self.set_switch_labels(False)
             return text
         elif record['verification_channel_id'] is None:
@@ -445,6 +481,7 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
             self.set_gatekeeper_role.disabled = True
             self.disable_gatekeeper.disabled = True
             self.set_gatekeeper_channel.disabled = False
+            self.set_gatekeeper_type_button.disabled = False
             self.set_switch_labels(False)
             return text
         elif record['active'] is False:
@@ -506,9 +543,10 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
 
     @discord.ui.button(label="Send verification message", style=discord.ButtonStyle.blurple)
     async def send_verification_message(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
-        self.gatekeeper = await self.ctx.cog.get_gatekeeper_config(itx.guild_id)
+        self.gatekeeper = await self.ctx.cog.get_gatekeeper_config(itx.guild_id)  # type: ignore
         if self.gatekeeper is None:
-            await itx.response.send_message("Somehow your gatekeeper isn't setup correctly!")
+            await itx.response.send_message("Somehow your gatekeeper isn't setup correctly!",
+                                            ephemeral=True)
             return
 
         ch = self.gatekeeper.verification_channel
@@ -528,20 +566,70 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
                               "redirect you to any external links!")
 
         view = discord.ui.View(timeout=None)
-        view.add_item(GatekeeperVerificationButton(self.gatekeeper))
+        cls = GatekeeperVerificationHoneyPotButton if self.gatekeeper.is_honeypot() else GatekeeperVerificationButton
+        view.add_item(cls(self.gatekeeper))
+
+        if self.gatekeeper.verification_message_id:
+            try:
+                og_msg = await ch.fetch_message(self.gatekeeper.verification_message_id)
+            except discord.HTTPException:
+                og_msg = None
+
+            if og_msg:
+                try:
+                    await og_msg.edit(embed=embed, view=view)
+                except discord.Forbidden:
+                    with contextlib.suppress(discord.HTTPException):
+                        await og_msg.delete()
+                else:
+                    await itx.followup.send("Edited the current verification message!", ephemeral=True)
+                    return
+
         try:
-            await ch.send(embed=embed, view=view)
+            msg = await ch.send(embed=embed, view=view)
         except discord.HTTPException as e:
             await itx.followup.send(f"I was unable to send the verification message. ({e})", ephemeral=True)
             return
 
+        query = """INSERT INTO guild_gatekeeper_config (guild_id, verification_message_id)
+                   VALUES ($1, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET verification_message_id=EXCLUDED.verification_message_id;"""
+        await itx.client.pool.execute(query, itx.guild_id, msg.id)
+        # Invalidate and force creation again
+        self.invalidate_gatekeeper_cache()
+        self.gatekeeper = await self.ctx.cog.get_gatekeeper_config(itx.guild_id)  # type: ignore
+
         await itx.followup.send("Sent the verification message!", ephemeral=True)
+
+    @discord.ui.button(label="Set gatekeeper type", style=discord.ButtonStyle.blurple)
+    async def set_gatekeeper_type_button(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
+        self.gatekeeper = await self.ctx.cog.get_gatekeeper_config(itx.guild_id)  # type: ignore
+        if self.gatekeeper is None:
+            await itx.response.send_message("Somehow your gatekeeper isn't setup correctly!",
+                                            ephemeral=True)
+            return
+
+        view = GatekeeperTypeSetup(author_id=itx.user.id)
+        await itx.response.send_message(content="Select the type of gatekeeper you want.",
+                                        view=view, ephemeral=True)
+        await view.wait()
+
+        try:
+            await itx.delete_original_response()
+        except Exception:
+            pass
+
+        self.invalidate_gatekeeper_cache()
+        self.gatekeeper = await self.ctx.cog.get_gatekeeper_config(itx.guild_id)  # type: ignore
+        await self.update(interaction=itx)
 
     @discord.ui.button(label="Disable", style=discord.ButtonStyle.red)
     async def disable_gatekeeper(self, itx: discord.Interaction[LightningBot], button: discord.ui.Button):
         self.gatekeeper = await self.ctx.cog.get_gatekeeper_config(itx.guild_id)  # type: ignore
         if self.gatekeeper is None:
-            await itx.response.send_message("Somehow your gatekeeper isn't setup correctly!")
+            await itx.response.send_message("Somehow your gatekeeper isn't setup correctly!",
+                                            ephemeral=True)
             return
 
         if button.style is discord.ButtonStyle.green:
@@ -559,15 +647,40 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
         await self.update(interaction=itx)
 
 
-class GatekeeperVerificationButton(discord.ui.DynamicItem[discord.ui.Button],
-                                   template='lightning:gatekeeper:verification:button'):
-    def __init__(self, gatekeeper: Optional[GateKeeperConfig] = None) -> None:
-        # Eventually this might be a URL button...
-        item = discord.ui.Button(style=discord.ButtonStyle.green, label="Verify Me",
-                                 custom_id="lightning:gatekeeper:verification:button")
-        super().__init__(item)
-        self.gatekeeper = gatekeeper
+# This view is per person and ephemeral
+class GatekeeperVerificationHoneyPotView(BaseView):
+    def __init__(self, *, timeout: float | None = 180):
+        super().__init__(timeout=timeout)
+        gb = discord.ui.Button(style=discord.ButtonStyle.grey, label="Confirm")
+        gb.callback = self.good_callback
 
+        def create_bad_button():
+            button = discord.ui.Button(style=discord.ButtonStyle.danger, label="DO NOT CLICK THIS!")
+            button.callback = self.bad_callback
+            return button
+
+        buttons = [gb]
+        for _ in range(random.randint(1, 8)):
+            buttons.append(create_bad_button())
+
+        random.shuffle(buttons)
+        for button in buttons:
+            self.add_item(button)
+
+        self.safe = None
+
+    async def good_callback(self, interaction: discord.Interaction[LightningBot]):
+        self.safe = True
+        await interaction.response.edit_message()
+        self.stop()
+
+    async def bad_callback(self, interaction: discord.Interaction[LightningBot]):
+        self.safe = False
+        await interaction.response.send_message("You failed the test!", ephemeral=True)
+        self.stop()
+
+
+class _BaseGatekeeperVerificationButton:
     @classmethod
     async def from_custom_id(cls, interaction: discord.Interaction[LightningBot],
                              item: discord.ui.Button, match) -> GatekeeperVerificationButton:
@@ -587,7 +700,53 @@ class GatekeeperVerificationButton(discord.ui.DynamicItem[discord.ui.Button],
 
         return True
 
+
+class GatekeeperVerificationButton(_BaseGatekeeperVerificationButton,
+                                   discord.ui.DynamicItem[discord.ui.Button],
+                                   template='lightning:gatekeeper:verification:button'):
+    def __init__(self, gatekeeper: Optional[GateKeeperConfig] = None) -> None:
+        item = discord.ui.Button(style=discord.ButtonStyle.green, label="Verify Me",
+                                 custom_id="lightning:gatekeeper:verification:button")
+        super().__init__(item)
+        self.gatekeeper = gatekeeper
+
     async def callback(self, interaction: discord.Interaction[LightningBot]) -> None:
         await self.gatekeeper.remove_member(interaction.user)
         await interaction.response.send_message("Thanks for verifying yourself! Access will be granted momentarily",
                                                 ephemeral=True)
+
+
+class GatekeeperVerificationHoneyPotButton(_BaseGatekeeperVerificationButton,
+                                           discord.ui.DynamicItem[discord.ui.Button],
+                                           template="lightning:gatekeeper:verification:honeypot:button"):
+    def __init__(self, gatekeeper: Optional[GateKeeperConfig] = None) -> None:
+        item = discord.ui.Button(style=discord.ButtonStyle.green, label="Verify Me",
+                                 custom_id="lightning:gatekeeper:verification:honeypot:button")
+        super().__init__(item)
+        self.gatekeeper = gatekeeper
+
+    async def callback(self, interaction: discord.Interaction[LightningBot]) -> None:
+        view = GatekeeperVerificationHoneyPotView(timeout=180)
+        await interaction.response.send_message(content="Click the correct button to pass!", ephemeral=True,
+                                                view=view)
+        await view.wait()
+
+        try:
+            await interaction.delete_original_response()
+        except Exception:
+            pass
+
+        if not view.safe:
+            try:
+                await interaction.user.kick(reason="Failed to pass honeypot gatekeeper!")
+            except discord.HTTPException as e:
+                interaction.client.dispatch("lightning_guild_alert",
+                                            interaction.guild_id,
+                                            f"\N{OCTAGONAL SIGN} Failed to kick @{interaction.user} "
+                                            f"(ID: {interaction.user.id}) for failure to "
+                                            f"pass the gatekeeper!\n-# ({e})")
+            return
+
+        await self.gatekeeper.remove_member(interaction.user)
+        await interaction.followup.send(content="Thanks for verifying yourself! Access will be granted momentarily",
+                                        ephemeral=True)
