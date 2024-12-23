@@ -31,6 +31,7 @@ from discord.ext import commands, tasks
 
 from lightning import (CommandLevel, GuildContext, LightningCog,
                        LightningContext, command, group, hybrid_command)
+from lightning.constants import LIGHTNING_COLOR
 from lightning.converters import InbetweenNumber
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.emitters import WebhookEmbedEmitter
@@ -228,7 +229,7 @@ class Stats(LightningCog):
         await ctx.send(embed=em)
 
     async def command_stats_member(self, ctx: LightningContext, member: discord.Member):
-        em = discord.Embed(title=f"Command Stats for {member}", color=0xf74b06)
+        em = discord.Embed(title=f"Command Stats for {member}", color=LIGHTNING_COLOR)
         query = "SELECT COUNT(*), MIN(used_at) FROM command_stats WHERE guild_id=$1 AND user_id=$2;"
         res = await self.bot.pool.fetchrow(query, ctx.guild.id, member.id)
         em.description = f"{res['count']} commands used so far in {ctx.guild.name}."
@@ -263,6 +264,79 @@ class Stats(LightningCog):
 
         em.set_thumbnail(url=member.display_avatar.url)
         await ctx.send(embed=em)
+
+    @command()
+    @commands.cooldown(1, 60.0, commands.BucketType.user)
+    async def wrapped(self, ctx: GuildContext):
+        """Shows a summary of your bot usage over the past year"""
+        conn = await self.bot.pool.acquire(timeout=200)
+        query = """SELECT COUNT(*)
+                   FROM command_stats
+                   WHERE user_id=$1
+                   AND used_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
+        total_cmds = await conn.fetchval(query, ctx.author.id)
+        if not total_cmds:
+            await self.bot.pool.release(conn)
+            await ctx.send("You haven't used any commands yet!", ephemeral=True)
+            return
+
+        embed = discord.Embed(title="Lightning Wrapped", color=LIGHTNING_COLOR)
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
+
+        query = """SELECT command_name,
+                        COUNT(*) as "cmd_uses"
+                   FROM command_stats
+                   WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 year')
+                   AND user_id=$1
+                   GROUP BY command_name
+                   ORDER BY "cmd_uses" DESC
+                   LIMIT 5;
+                """
+        records = await conn.fetch(query, ctx.author.id)
+
+        embed.description = f"You've ran {total_cmds} commands since a year ago!\n**These were your top 5**:\n"\
+                            f"{self.format_stat_description(records)}"
+
+        # Reminders
+        query = """SELECT COUNT(*)
+                   FROM command_stats
+                   WHERE user_id=$1
+                   AND command_name='remind'
+                   AND used_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
+        total_cmds = await conn.fetchval(query, ctx.author.id)
+        if total_cmds:
+            query = """SELECT COUNT(*)
+                       FROM command_stats
+                       WHERE user_id=$1
+                       AND (command_name='remind delete' OR command_name='remind clear')
+                       AND used_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
+            deleted = await conn.fetchval(query, ctx.author.id)
+
+            value = f"In the past year, you've made {total_cmds} reminders!\nOut of {total_cmds} reminders, you've"\
+                    f" deleted {deleted} reminders!"
+            embed.add_field(name="Reminders", value=value)
+
+        # Moderation
+        query = """SELECT COUNT (*)
+                   FROM infractions
+                   WHERE moderator_id=$1
+                   AND created_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
+        total_infs = await conn.fetchval(query, ctx.author.id)
+        if total_infs:
+            value = f"As a moderator this past year, you made {total_infs} infractions!"
+            embed.add_field(name="Moderation", value=value, inline=False)
+
+        # Reports
+        query = """SELECT COUNT (*)
+                   FROM message_reporters
+                   WHERE author_id=$1
+                   AND reported_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
+        total_reports = await conn.fetchval(query, ctx.author.id)
+        if total_reports:
+            embed.add_field(name="Reports", value=f"In the past year, you've sent {total_reports} message reports!")
+
+        await self.bot.pool.release(conn)
+        await ctx.send(embed=embed, ephemeral=True)
 
     @group(invoke_without_command=True)
     @commands.guild_only()
