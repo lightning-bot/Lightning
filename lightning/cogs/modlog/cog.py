@@ -26,6 +26,8 @@ from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, LoggingType, hybrid_group)
 from lightning.cache import Strategy, cached
 from lightning.cogs.modlog import ui
+from lightning.cogs.modlog.utils import human_friendly_log_names
+from lightning.constants import LIGHTNING_COLOR
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils import modlogformats
 from lightning.utils.checks import hybrid_guild_permissions, is_server_manager
@@ -61,6 +63,28 @@ class ModLog(LightningCog):
     async def modlog(self, ctx: GuildContext, *, channel: discord.TextChannel = commands.CurrentChannel):
         """Sets up mod logging for a channel"""
         await ui.Logging(channel, context=ctx, timeout=180.0).start(wait=False)
+
+    @modlog.command(level=CommandLevel.Admin, name='showall')
+    @commands.guild_only()
+    @is_server_manager()
+    async def modlog_show(self, ctx: GuildContext):
+        """Shows all configured mod log channels"""
+        config = await self.get_logging_record(ctx.guild.id)
+        if not config:
+            await ctx.send("You haven't set up any channels to be mod logs!", ephemeral=True)
+            return
+
+        embed = discord.Embed(color=LIGHTNING_COLOR, title="ModLog Channels")
+        for channel_id, values in config.logging.items():
+            channel = ctx.guild.get_channel(channel_id)
+            if not channel:
+                continue
+
+            embed.add_field(name=f"#{channel.name}",
+                            value=f"**Format**: {values['format'].title()}\n"
+                                  f"**Types**: {human_friendly_log_names(LoggingType(values['types']))}")
+
+        await ctx.send(embed=embed)
 
     # @modlog.command(name='shush', level=CommandLevel.Admin)
     @app_commands.describe(channel="The channel to shush")
