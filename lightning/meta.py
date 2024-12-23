@@ -21,6 +21,6 @@ __all__ = ('__title__',
            '__author__')
 
 __title__ = "Lightning"
-__version__ = "4.9.2"
+__version__ = "4.10.0"
 __license__ = "GNU Affero General Public License Version 3"
 __author__ = "LightSage"
