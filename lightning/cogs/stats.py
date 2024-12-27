@@ -327,6 +327,7 @@ class Stats(LightningCog):
             query = """SELECT action, COUNT (*) as "count"
                        FROM infractions
                        WHERE moderator_id=$1
+                       AND created_at > (timezone('UTC', now()) - INTERVAL '1 year')
                        GROUP BY action
                        ORDER BY count DESC
                        LIMIT 1;"""
