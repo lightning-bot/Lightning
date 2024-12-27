@@ -266,6 +266,9 @@ class Stats(LightningCog):
         em.set_thumbnail(url=member.display_avatar.url)
         await ctx.send(embed=em)
 
+    def format_time_sql(self, text: str):
+        return text[1:] if text[0] == "0" else text
+
     @command()
     @commands.cooldown(1, 60.0, commands.BucketType.user)
     async def wrapped(self, ctx: GuildContext):
@@ -294,9 +297,18 @@ class Stats(LightningCog):
                    LIMIT 5;
                 """
         records = await conn.fetch(query, ctx.author.id)
+        query = """SELECT TO_CHAR(used_at, 'HH12 AM') AS ts, COUNT (*) as "count"
+                   FROM command_stats
+                   WHERE user_id=$1
+                   AND used_at > (timezone('UTC', now()) - INTERVAL '1 year')
+                   GROUP BY ts
+                   ORDER BY count DESC
+                   LIMIT 1;"""
+        time_rec = await conn.fetchrow(query, ctx.author.id)
 
         embed.description = f"You've ran {total_cmds} commands since a year ago!\n**These were your top 5**:\n"\
-                            f"{self.format_stat_description(records)}"
+                            f"{self.format_stat_description(records)}\n\n"\
+                            f"*You liked to run commands at {self.format_time_sql(time_rec['ts'])} UTC!*"
 
         # Reminders
         query = """SELECT COUNT(*)
@@ -332,8 +344,17 @@ class Stats(LightningCog):
                        ORDER BY count DESC
                        LIMIT 1;"""
             most_rec = await conn.fetchrow(query, ctx.author.id)
+            query = """SELECT TO_CHAR(created_at, 'HH12 AM') AS ts, COUNT (*) as "count"
+                       FROM infractions
+                       WHERE moderator_id=$1
+                       AND created_at > (timezone('UTC', now()) - INTERVAL '1 year')
+                       GROUP BY ts
+                       ORDER BY count DESC
+                       LIMIT 1;"""
+            time_rec = await conn.fetchrow(query, ctx.author.id)
             value = f"As a moderator this past year, you made {total_infs} infractions!\n"\
-                    f"The most popular action you made was {ActionType(most_rec['action']).name.capitalize()}!"
+                    f"The most popular time to take actions for you was at {self.format_time_sql(time_rec['ts'])} UTC!"\
+                    f"\nThe most popular action you made was {ActionType(most_rec['action']).name.capitalize()}!"
             embed.add_field(name="Moderation", value=value, inline=False)
 
         # Reports
