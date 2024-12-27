@@ -21,7 +21,7 @@ import collections
 import io
 import logging
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import discord
@@ -297,7 +297,7 @@ class Stats(LightningCog):
                    LIMIT 5;
                 """
         records = await conn.fetch(query, ctx.author.id)
-        query = """SELECT TO_CHAR(used_at, 'HH12 AM') AS ts, COUNT (*) as "count"
+        query = """SELECT TO_CHAR(used_at, 'HH24') AS ts, COUNT (*) as "count"
                    FROM command_stats
                    WHERE user_id=$1
                    AND used_at > (timezone('UTC', now()) - INTERVAL '1 year')
@@ -305,10 +305,15 @@ class Stats(LightningCog):
                    ORDER BY count DESC
                    LIMIT 1;"""
         time_rec = await conn.fetchrow(query, ctx.author.id)
+        ts = datetime(ctx.message.created_at.year,
+                      ctx.message.created_at.month,
+                      ctx.message.created_at.day,
+                      int(time_rec['ts']),
+                      00, 00, tzinfo=ctx.message.created_at.tzinfo)
 
         embed.description = f"You've ran {total_cmds} commands since a year ago!\n**These were your top 5**:\n"\
                             f"{self.format_stat_description(records)}\n\n"\
-                            f"*You liked to run commands at {self.format_time_sql(time_rec['ts'])} UTC!*"
+                            f"*You liked to run commands at {discord.utils.format_dt(ts, style='t')}!*"
 
         # Reminders
         query = """SELECT COUNT(*)
@@ -344,7 +349,7 @@ class Stats(LightningCog):
                        ORDER BY count DESC
                        LIMIT 1;"""
             most_rec = await conn.fetchrow(query, ctx.author.id)
-            query = """SELECT TO_CHAR(created_at, 'HH12 AM') AS ts, COUNT (*) as "count"
+            query = """SELECT TO_CHAR(created_at, 'HH24') AS ts, COUNT (*) as "count"
                        FROM infractions
                        WHERE moderator_id=$1
                        AND created_at > (timezone('UTC', now()) - INTERVAL '1 year')
@@ -352,8 +357,14 @@ class Stats(LightningCog):
                        ORDER BY count DESC
                        LIMIT 1;"""
             time_rec = await conn.fetchrow(query, ctx.author.id)
+            ts = datetime(ctx.message.created_at.year,
+                          ctx.message.created_at.month,
+                          ctx.message.created_at.day,
+                          int(time_rec['ts']),
+                          00,
+                          00, tzinfo=ctx.message.created_at.tzinfo)
             value = f"As a moderator this past year, you made {total_infs} infractions!\n"\
-                    f"The most popular time to take actions for you was at {self.format_time_sql(time_rec['ts'])} UTC!"\
+                    f"The most popular time to take actions for you was at {discord.utils.format_dt(ts, style='t')}!"\
                     f"\nThe most popular action you made was {ActionType(most_rec['action']).name.capitalize()}!"
             embed.add_field(name="Moderation", value=value, inline=False)
 
