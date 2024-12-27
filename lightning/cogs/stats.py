@@ -33,6 +33,7 @@ from lightning import (CommandLevel, GuildContext, LightningCog,
                        LightningContext, command, group, hybrid_command)
 from lightning.constants import LIGHTNING_COLOR
 from lightning.converters import InbetweenNumber
+from lightning.models import ActionType
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.emitters import WebhookEmbedEmitter
 from lightning.utils.modlogformats import base_user_format
@@ -323,7 +324,15 @@ class Stats(LightningCog):
                    AND created_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
         total_infs = await conn.fetchval(query, ctx.author.id)
         if total_infs:
-            value = f"As a moderator this past year, you made {total_infs} infractions!"
+            query = """SELECT action, COUNT (*) as "count"
+                       FROM infractions
+                       WHERE moderator_id=$1
+                       GROUP BY action
+                       ORDER BY count DESC
+                       LIMIT 1;"""
+            most_rec = await conn.fetchrow(query, ctx.author.id)
+            value = f"As a moderator this past year, you made {total_infs} infractions!\n"\
+                    f"The most popular action you made was {ActionType(most_rec['action']).name.capitalize()}!"
             embed.add_field(name="Moderation", value=value, inline=False)
 
         # Reports
