@@ -407,7 +407,7 @@ def replace_parameters(
             # If we're here, then then it hasn't been handled yet so it should be removed completely
             param = param.replace(default=parameter.empty)
 
-        if hasattr(callback, '__lightning_argparser__') and name == 'flags' and converter == str:
+        if hasattr(callback, '__lightning_argparser__') and name == 'flags' and converter == str:  # noqa: E721
             parser: FlagParser = callback.__lightning_argparser__
             descriptions = {}
             for flag in parser.get_all_unique_flags():

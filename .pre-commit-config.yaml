@@ -9,7 +9,7 @@ repos:
     hooks:
       - id: autopep8
   # Doing this at the end for obvious reasons
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
     hooks:
-      - id: flake8
+      - id: ruff

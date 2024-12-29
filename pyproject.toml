@@ -48,13 +48,13 @@ spacy = "^3.7.5"
 pandas = "^2.2.2"
 en-core-web-sm = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl"}
 
-[tool.poetry.dev-dependencies]
-isort = "^5.12.0"
-flake8 = "^7.0.0"
-pre-commit = "^3.2.0"
-
 [tool.poetry.scripts]
 lightning = 'lightning.cli.main:parser'
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.8.4"
+isort = "^5.12.0"
+pre-commit = "^3.2.0"
 
 [tool.autopep8]
 max_line_length = 120
