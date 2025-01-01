@@ -36,6 +36,14 @@ if TYPE_CHECKING:
     from lightning.cogs.reports.cog import Reports as ReportsCog
 
 
+REPORT_PERMISSIONS = discord.Permissions(moderate_members=True, kick_members=True,
+                                         ban_members=True)
+
+
+def has_actionable_permissions(perms: discord.Permissions):
+    return perms.value & REPORT_PERMISSIONS.value != 0
+
+
 class ReasonModal(discord.ui.Modal, title="Message Report"):
     reason = discord.ui.TextInput(label='Reason', style=discord.TextStyle.paragraph, required=False)
 
@@ -227,6 +235,9 @@ class ReportDashboard(discord.ui.View):
 
         self.view_reporters_button.disabled = self.dismissed
         self.action_button.disabled = self.actioned or self.dismissed
+
+    async def interaction_check(self, interaction: discord.Interaction[LightningBot]) -> bool:
+        return has_actionable_permissions(interaction.permissions)
 
     async def fetch_message(self, interaction: discord.Interaction[LightningBot]) -> Optional[discord.Message]:
         channel = interaction.guild.get_channel_or_thread(self.channel_id)
