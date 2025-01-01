@@ -211,10 +211,10 @@ class Infractions(LightningCog, required=['Moderation']):
 
         This sets an infraction's active status to false.
         """
-        query = "UPDATE infractions SET active='f' WHERE id=$1 AND guild_id=$2;"
-        resp = await self.bot.pool.execute(query, infraction_id, ctx.guild.id)
-        if resp == "UPDATE 0":
-            await ctx.send(f"An infraction with ID {infraction_id} does not exist.")
+        try:
+            await self.bot.api.edit_infraction(ctx.guild.id, infraction_id, {"active": False})
+        except NotFound:
+            await ctx.reply(f"An infraction with ID {infraction_id} does not exist.")
             return
 
         await ctx.reply(f"Pardoned {infraction_id}")
