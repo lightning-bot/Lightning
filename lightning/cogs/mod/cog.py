@@ -744,7 +744,7 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         if old_nick.isascii() is False and new_nick.isascii():
             return False
 
-        if old_nick != new_nick:
+        if old_nick.__hash__() != new_nick.__hash__():
             await member.edit(nick=new_nick, reason=self.format_reason(moderator, None,
                                                                        action_text="Sanitization done by"))
             return True
