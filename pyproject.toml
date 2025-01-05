@@ -1,11 +1,18 @@
-[tool.poetry]
-name = "Lightning.py"
+[project]
+name = "Lightning"
 version = "4.10.0"
 description = "Powerful moderation & utilities Discord App (Bot)"
-authors = ["LightSage <lightsage01@gmail.com>"]
+authors = [{name="LightSage", email="lightsage01@gmail.com"}]
 license = "AGPL-3.0-or-later"
 readme = "README.md"
-repository = "https://gitlab.com/lightning-bot/Lightning"
+requires-python = ">=3.9.0,<3.12"
+
+[project.urls]
+homepage = "https://lightningbot.app/"
+repository = "https://github.com/lightning-bot/Lightning"
+
+[tool.poetry]
+requires-poetry = ">=2.0"
 packages = [
     { include = "lightning/**/*.py" }, 
     { include = "LICENSE" },
@@ -13,7 +20,6 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9.0,<3.12"
 "discord.py" = {git = "https://github.com/Rapptz/discord.py.git", branch="master", extras = ["speed"]}
 python-dateutil = "^2.8.1"
 parsedatetime = "^2.6"
@@ -48,8 +54,8 @@ spacy = "^3.7.5"
 pandas = "^2.2.2"
 en-core-web-sm = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl"}
 
-[tool.poetry.scripts]
-lightning = 'lightning.cli.main:parser'
+[project.scripts]
+lightning = "lightning.cli.main:parser"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.4"
@@ -63,5 +69,5 @@ in-place = true
 recursive = true
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
