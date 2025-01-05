@@ -201,12 +201,14 @@ class ActionDashboard(BaseView):
 
 
 class ReportDashboard(discord.ui.View):
-    def __init__(self, message_id: int, guild_id: int, channel_id: int):
+    def __init__(self, message_id: int, guild_id: int, channel_id: int, *, dashboard_message_id: int = 0):
         self.dismissed = False
         self.actioned = False
         self.message_id = message_id
         self.guild_id = guild_id
         self.channel_id = channel_id
+        # This should never be zero
+        self.dashboard_message_id = dashboard_message_id
         super().__init__(timeout=None)
         self.add_item(discord.ui.Button(label="View Reported Message",
                                         url=f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}",
@@ -220,7 +222,8 @@ class ReportDashboard(discord.ui.View):
 
     @classmethod
     def from_record(cls, record):
-        c = cls(record['message_id'], record['guild_id'], record['channel_id'])
+        c = cls(record['message_id'], record['guild_id'], record['channel_id'],
+                dashboard_message_id=record['report_message_id'])
         c.dismissed = record['dismissed']
         c.actioned = record['actioned']
         return c

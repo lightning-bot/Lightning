@@ -104,6 +104,18 @@ class Reports(LightningCog):
             if isinstance(view, ReportDashboard) and view.guild_id == guild.id:
                 view.stop()
 
+    # Delete message report if the dashboard was deleted
+    @LightningCog.listener()
+    async def on_raw_message_delete(self, event: discord.RawMessageDeleteEvent):
+        if event.guild_id is None:
+            return
+
+        for view in self.bot.persistent_views:
+            if isinstance(view, ReportDashboard) and view.dashboard_message_id == event.message_id:
+                view.stop()
+                query = """DELETE FROM message_reports WHERE guild_id=$1 AND report_message_id=$2;"""
+                await self.bot.pool.execute(query, event.guild_id, event.message_id)
+
     def message_info_embed(self, msg: discord.Message) -> discord.Embed:
         embed = discord.Embed(timestamp=msg.created_at)
 
@@ -164,6 +176,7 @@ class Reports(LightningCog):
                                       "Please see the embed below to see the contents of the message",
                                       embeds=[self.message_info_embed(message)],
                                       view=view)
+        view.dashboard_message_id = dash_msg.id
 
         payload = {"guild_id": guild.id, "message_id": message.id, "channel_id": message.channel.id,
                    "report_message_id": dash_msg.id,
