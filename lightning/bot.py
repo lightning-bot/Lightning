@@ -319,9 +319,6 @@ class LightningBot(commands.AutoShardedBot):
 
         log.info(''.join(fmt))
 
-    def can_log_bugs(self) -> bool:
-        return bool(self.config.tokens.sentry)
-
     async def on_error(self, event: str, *args, **kwargs):
         exc = sys.exc_info()
 
@@ -450,7 +447,7 @@ class LightningBot(commands.AutoShardedBot):
             donefmt = f'{donefmt}\nGuild: {ctx.guild} (ID: {ctx.guild.id})'
         embed.add_field(name='Location', value=donefmt, inline=False)
 
-        if self.can_log_bugs():
+        if sentry_sdk.is_initialized() is False:
             token = await self.log_command_error(ctx, error)
             embed.add_field(name='Bug Token', value=token)
 
