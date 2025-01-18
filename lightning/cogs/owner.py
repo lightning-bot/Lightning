@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 import asyncpg
 import discord
 import objgraph
+import sentry_sdk
 import tabulate
 from jishaku.codeblocks import Codeblock, codeblock_converter
 from jishaku.cog import OPTIONAL_FEATURES, STANDARD_FEATURES
@@ -218,5 +219,5 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
 async def setup(bot: LightningBot) -> None:
     await bot.add_cog(Owner(bot=bot))
-    if bot.config['tokens']['sentry']:
+    if sentry_sdk.is_initialized() is False:
         bot.remove_command("bug")
