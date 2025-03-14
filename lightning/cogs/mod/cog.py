@@ -532,7 +532,11 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
             await ctx.send(f"{target.mention} is not in time out!", ephemeral=True)
             return
 
-        await target.edit(timed_out_until=None, reason=self.format_reason(ctx.author, reason))
+        try:
+            await target.edit(timed_out_until=None, reason=self.format_reason(ctx.author, reason))
+        except discord.HTTPException:
+            await ctx.send(f"Unable to remove timeout from {target}", ephemeral=True)
+            return
 
         await ctx.send(f"Removed {target} from time out!")
 
