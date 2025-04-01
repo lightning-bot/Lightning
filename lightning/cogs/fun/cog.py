@@ -74,11 +74,11 @@ class Fun(LightningCog):
     async def get_temperature(self, user_id: int):
         temp = await self.bot.redis_pool.get(f"lightning:fun:temperature:{user_id}")
         if not temp:
-            temp = get_season().get(self.temp_type)
+            temp = get_season().get(self.temp_type, DEFAULT_CHANGE['default'])
         return int(temp)
 
     def get_current_temp(self) -> int:
-        return get_season().get(self.temp_type)
+        return get_season().get(self.temp_type, DEFAULT_CHANGE['default'])
 
     def temperature_check(self, num: int, key: Literal["high", "low"]) -> bool:
         temp = get_season().get(key, 60) * 1.2
