@@ -19,7 +19,7 @@ from __future__ import annotations
 import datetime
 import math
 import random
-from typing import Literal
+from typing import Dict, Literal
 
 import discord
 from discord.ext import commands, tasks
@@ -32,10 +32,12 @@ SEASONAL_CHANGES = {"summer": {"default": 85, "high": 100, "low": 65},
                     "winter": {"default": 35, "high": 55, "low": 1},
                     "spring": {"default": 50, "high": 79, "low": 38}}
 
+DEFAULT_CHANGE = {"default": 60, "high": 120, "low": 1}
+
 
 # According to Meterological Data
 # At some point, I'll make this change temperatures based on the month and not just seasons
-def get_season():
+def get_season() -> Dict[str, int]:
     now = datetime.datetime.now()
     if datetime.date(now.year, 6, 1) <= now.date() <= datetime.date(now.year, 8, 31):
         return SEASONAL_CHANGES["summer"]
@@ -46,7 +48,7 @@ def get_season():
     elif datetime.date(now.year, 3, 1) <= now.date() <= datetime.date(now.year, 5, 31):
         return SEASONAL_CHANGES["spring"]
 
-    return {"default": 60, "high": 120, "low": 1}
+    return DEFAULT_CHANGE
 
 
 def fahrenheit_to_celsius(fahrenheit: int):
@@ -72,11 +74,11 @@ class Fun(LightningCog):
     async def get_temperature(self, user_id: int):
         temp = await self.bot.redis_pool.get(f"lightning:fun:temperature:{user_id}")
         if not temp:
-            temp = get_season().get(self.temp_type, "normal")
+            temp = get_season().get(self.temp_type)
         return int(temp)
 
     def get_current_temp(self) -> int:
-        return get_season().get(self.temp_type, "normal")
+        return get_season().get(self.temp_type)
 
     def temperature_check(self, num: int, key: Literal["high", "low"]) -> bool:
         temp = get_season().get(key, 60) * 1.2
