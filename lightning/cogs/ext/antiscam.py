@@ -49,6 +49,7 @@ class ScamType(discord.Enum):
     STEAM = 1
     ONLYFANS = 2
     UNKNOWN = 3
+    MALICIOUS_NSFW_SERVER = 4
 
 
 @dataclass(slots=True)
@@ -108,6 +109,25 @@ class AntiScamResult:
 
         return AntiScamCalculatedResult(score, ScamType.ONLYFANS)
 
+    def identify_malicious_nsfw_spams(self, content: spacy.tokens.Doc, score: int):
+        # The messages I've seen don't use masked links at all for this new wave of spam, I could be wrong though
+        for x, y in MASKED_LINKS.finditer(self.content):
+            score -= 10
+
+        # Use invite regex directly cause its always an invite
+        for x in INVITE_REGEX.finditer(self.content):
+            score -= 20
+
+        for token in content:
+            if token.text in ("🍑", "🔞", "💦", "🥵"):
+                score -= 15
+                continue
+
+            if token.lemma_.lower() in ("leak", "teen"):
+                score -= 5
+
+        return AntiScamCalculatedResult(score, ScamType.MALICIOUS_NSFW_SERVER)
+
     def identify_steam_scams(self, content: spacy.tokens.Doc, score: int):
         if MASKED_LINKS.search(self.content):
             score -= 30
@@ -163,6 +183,11 @@ class AntiScamResult:
                 scam_type = ScamType.STEAM
                 # Potientially sus, run it through our steam identifier
                 score = self.identify_steam_scams(content, score).score
+
+            if token.lemma_.lower() == "sexcam":
+                nscore += 5
+                scam_type = ScamType.MALICIOUS_NSFW_SERVER  # Not necessarily onlyfans, but we run it through that
+                score = self.identify_malicious_nsfw_spams(content, score).score
 
         return AntiScamCalculatedResult(score - nscore, scam_type)
 
@@ -298,7 +323,8 @@ if __name__ == "__main__":
         "50$ gift - [steamcommunity.com/gift/832083](https://google.com)\n@everyone @here",
         "# Best Free NSFW 🥵 server (NSFW🔞, Snapchat🍑, TikTok🔥, OnlyFans💦 and Sex cam :lips:) : ",
         "https://discord.gg/123456 @here @everyone",
-        "catch 50$ - [steamcommunity.com/gift](https://google.com)"
+        "catch 50$ - [steamcommunity.com/gift](https://google.com)",
+        "bro she's on sexcam 🔞\nhttps://discord.com/invite/12345 @everyone"
     ]
     test = ["did you see her onlyfans", "onlyfan lmao", "go away", "check out the new steam game",
             "check your gift inventory bruh"]
