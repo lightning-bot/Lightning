@@ -153,9 +153,14 @@ class AntiScamResult:
         if self.mentions_everyone:
             score -= 5
 
-        if hasattr(self.author, "joined_at"):
-            if self.author.joined_at >= discord.utils.utcnow() + timedelta(days=2):
-                score -= 5
+        if self.author is not None:
+            if hasattr(self.author, "joined_at"):
+                if self.author.joined_at >= discord.utils.utcnow() + timedelta(days=2):
+                    score -= 5
+
+            # A default profile picture is def sus
+            if self.author.display_avatar == self.author.default_avatar:
+                score -= 8
 
         matches = matcher(content)
         for match_id, start, end in matches:
