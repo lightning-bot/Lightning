@@ -277,6 +277,10 @@ class AntiScam(LightningCog):
     @is_server_manager()
     async def antiscam_disable(self, ctx: GuildContext):
         """Disables the experimental anti-scam"""
+        if ctx.guild.id not in self.active_guilds:
+            await ctx.send("This server has not enabled antiscam!")
+            return
+
         query = """INSERT INTO antiscam (guild_id, active)
                    VALUES ($1, $2)
                    ON CONFLICT (guild_id)
