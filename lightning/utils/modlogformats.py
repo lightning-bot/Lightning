@@ -465,7 +465,7 @@ class MinimalisticFormat(BaseFormat):
 
 class EmbedFormat(BaseFormat):
     @staticmethod
-    def join_leave(log_type: str, member):
+    def join_leave(log_type: str, member: discord.Member):
         embed = discord.Embed()
 
         if log_type == "MEMBER_JOIN":
@@ -475,7 +475,7 @@ class EmbedFormat(BaseFormat):
             embed.title = "Member Leave"
             embed.color = discord.Color.red()
 
-        embed.set_author(name=member, icon_url=member.avatar.url)
+        embed.set_author(name=member, icon_url=member.display_avatar.url)
         embed.description = f"**User**: {member.mention} ({member.id}) \n**Created at**: "\
                             f"{natural_timedelta(member.created_at)}"
         return embed
