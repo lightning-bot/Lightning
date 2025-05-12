@@ -145,6 +145,25 @@ class InfractionEvent:  # ModerationEvent sounded nice too...
         return self.event_name
 
 
+class LightningAutoModInfractionEvent(InfractionEvent):
+    __slots__ = ("guild", "event_name", "action", "message")
+
+    def __init__(self, event_name: str, *, member, guild: discord.Guild, moderator, reason, message: discord.Message,
+                 **kwargs):
+        super().__init__(event_name=event_name,
+                         member=member, guild=guild, moderator=moderator, reason=reason, **kwargs)
+        self.message = message
+
+    @classmethod
+    def from_message(cls, event_name: str, message: discord.Message, reason: str):
+        if not message.guild:
+            raise Exception("This class should be used in a guild")
+
+        return cls(event_name, member=message.author,
+                   guild=message.guild, moderator=message.guild.me,
+                   reason=reason, message=message)
+
+
 class GuildConfigInvalidateEvent:
     __slots__ = ("guild")
 

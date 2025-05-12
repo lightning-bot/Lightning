@@ -28,6 +28,7 @@ from spacy.matcher import Matcher
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        hybrid_group)
+from lightning.events import LightningAutoModInfractionEvent
 from lightning.utils.checks import is_server_manager
 
 nlp = spacy.load("en_core_web_sm")
@@ -236,13 +237,19 @@ class AntiScam(LightningCog):
         res = AntiScamResult.from_message(message)
         result = res.calculate()
         if result.score < 60:
+            reason = f"AntiScam identified the message as a {result.friendly_type} scam."\
+                     f" (safety rating {result.score}%)"
+            dt = message.created_at + timedelta(hours=get_timeout_score(result.score))
             try:
-                await message.author.timeout(message.created_at + timedelta(hours=get_timeout_score(result.score)),
-                                             reason=f"AntiScam identified the message as a {result.friendly_type} scam."
-                                             f" (safety rating {result.score}%)")
+                self.bot.ignore_modlog_event(message.guild.id, "on_lightning_member_timeout", message.author.id)
+                await message.author.timeout(dt, reason=reason)
                 await message.delete()
             except discord.HTTPException:
                 pass
+
+            event = LightningAutoModInfractionEvent.from_message("TIMEOUT", message, reason)
+            event.action.expiry = discord.utils.format_dt(dt)
+            self.bot.dispatch("lightning_member_timeout", event)
 
     @hybrid_group(level=CommandLevel.Admin)
     @is_server_manager()

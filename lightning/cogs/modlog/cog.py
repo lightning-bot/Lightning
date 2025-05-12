@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2024 LightSage
+Copyright (C) 2019-2025 LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -26,8 +26,10 @@ from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, LoggingType, hybrid_group)
 from lightning.cache import Strategy, cached
 from lightning.cogs.modlog import ui
-from lightning.cogs.modlog.utils import human_friendly_log_names
+from lightning.cogs.modlog.utils import (generate_message_embed,
+                                         human_friendly_log_names)
 from lightning.constants import LIGHTNING_COLOR
+from lightning.events import LightningAutoModInfractionEvent
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils import modlogformats
 from lightning.utils.checks import hybrid_guild_permissions, is_server_manager
@@ -163,6 +165,26 @@ class ModLog(LightningCog):
                 embed = modlogformats.EmbedFormat.command_ran(ctx)
                 await emitter.send(embed=embed)
 
+    async def handle_automod_events(self, event_name: str, event: LightningAutoModInfractionEvent):
+        msg_embed = generate_message_embed(event.message)
+
+        async for emitter, record in self.get_records(event.guild, LoggingType(event_name)):
+            if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
+                fmt = modlogformats.MinimalisticFormat.from_action(event.action)
+                arg = False if record['format'] == "minimal without timestamp" else True
+                msg = fmt.format_message(with_timestamp=arg)
+                await emitter.send(msg, embed=msg_embed)
+            elif record['format'] == "emoji":
+                fmt = modlogformats.EmojiFormat.from_action(event.action)
+                msg = fmt.format_message()
+                await emitter.send(msg, embed=msg_embed,
+                                   allowed_mentions=discord.AllowedMentions(users=[event.action.target,
+                                                                                   event.action.moderator]))
+            elif record['format'] == "embed":
+                fmt = modlogformats.EmbedFormat.from_action(event.action)
+                embed = fmt.format_message()
+                await emitter.send(embeds=[embed, msg_embed])
+
     # Moderation
     @LightningCog.listener('on_lightning_member_warn')
     @LightningCog.listener('on_lightning_member_kick')
@@ -176,6 +198,10 @@ class ModLog(LightningCog):
             await event.action.add_infraction(self.bot.pool)
 
         event_name = f"MEMBER_{event.action.event}" if not hasattr(event, "event_name") else f"MEMBER_{str(event)}"
+
+        if isinstance(event, LightningAutoModInfractionEvent):
+            await self.handle_automod_events(event_name, event)
+            return
 
         async for emitter, record in self.get_records(event.guild, LoggingType(event_name)):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
