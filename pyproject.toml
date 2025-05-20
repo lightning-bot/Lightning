@@ -50,9 +50,10 @@ numpy = "1.26.4"
 redis = {extras = ["hiredis"], version = "^5.0.1"}
 unidecode = "^1.3.6"
 prometheus-async = "^22.2.0"
-spacy = "^3.7.5"
+spacy = "^3.8.5"
 pandas = "^2.2.2"
-en-core-web-sm = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl"}
+en-core-web-sm = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"}
+poetry = "^2.1.3"
 
 [project.scripts]
 lightning = "lightning.cli.main:parser"
