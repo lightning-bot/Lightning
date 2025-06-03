@@ -65,7 +65,7 @@ class AntiScamCalculatedResult:
 
 class AntiScamResult:
     __slots__ = ("content", "mentions_everyone", "everyone_mention_count", "here_mention_count",
-                 "author")
+                 "author", "_discord_invites")
 
     def __init__(self, content: str) -> None:
         self.content = content
@@ -105,10 +105,14 @@ class AntiScamResult:
                 score -= 10
                 continue
 
-            if token.lemma_.lower() in ("leak", "teen"):
+            if token.lemma_.lower() in ("leak", "teen") or token.norm_.lower() in ("leak", "teen"):
                 score -= 5
 
         return AntiScamCalculatedResult(score, ScamType.ONLYFANS)
+
+    @discord.utils.cached_slot_property("_discord_invites")
+    def discord_invites(self):
+        return INVITE_REGEX.findall(self.content) or []
 
     def identify_malicious_nsfw_spams(self, content: spacy.tokens.Doc, score: int):
         # The messages I've seen don't use masked links at all for this new wave of spam, I could be wrong though
@@ -116,7 +120,7 @@ class AntiScamResult:
             score -= 10
 
         # Use invite regex directly cause its always an invite
-        for x in INVITE_REGEX.finditer(self.content):
+        for _ in self.discord_invites:
             score -= 20
 
         for token in content:
@@ -124,7 +128,7 @@ class AntiScamResult:
                 score -= 15
                 continue
 
-            if token.lemma_.lower() in ("leak", "teen"):
+            if token.lemma_.lower() in ("leak", "teen") or token.norm_.lower() in ("leak", "teen"):
                 score -= 5
 
         return AntiScamCalculatedResult(score, ScamType.MALICIOUS_NSFW_SERVER)
