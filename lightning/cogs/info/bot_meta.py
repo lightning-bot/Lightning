@@ -131,11 +131,19 @@ class BotMeta(LightningCog):
                f"{self.bot.config.bot.support_server_invite} and someone will help!\nYou can additionally "
                "visit <https://lightning.lightsage.dev/> for documentation to set up some of the bot's features!*")
 
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(style=discord.ButtonStyle.grey,
+                                        label="Documentation",
+                                        url="https://lightning.lightsage.dev/"))
+        view.add_item(discord.ui.Button(style=discord.ButtonStyle.grey,
+                                        label="AutoMod Documentation",
+                                        url="https://lightning.lightsage.dev/guide/automod-configuration"))
+
         default_channel = guild.system_channel
         if default_channel and default_channel.permissions_for(guild.me).send_messages is True:
-            await default_channel.send(msg)
+            await default_channel.send(msg, view=view)
             return
 
         notice_channel = guild.public_updates_channel
         if notice_channel and notice_channel.permissions_for(guild.me).send_messages is True:
-            await notice_channel.send(msg)
+            await notice_channel.send(msg, view=view)
