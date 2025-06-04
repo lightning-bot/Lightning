@@ -93,6 +93,7 @@ class AntiScamResult:
         return cls
 
     def identify_OF_spams(self, content: spacy.tokens.Doc, score: int):
+        terms = {"leak", "teen"}
         # The messages I've seen don't use masked links at all for OF spam, I could be wrong though
         for x, y in MASKED_LINKS.finditer(self.content):
             score -= 15
@@ -105,16 +106,17 @@ class AntiScamResult:
                 score -= 10
                 continue
 
-            if token.lemma_.lower() in ("leak", "teen") or token.norm_.lower() in ("leak", "teen"):
+            if token.lemma_.lower() in terms or token.norm_.lower() in terms:
                 score -= 5
 
         return AntiScamCalculatedResult(score, ScamType.ONLYFANS)
 
     @discord.utils.cached_slot_property("_discord_invites")
     def discord_invites(self):
-        return INVITE_REGEX.findall(self.content) or []
+        return INVITE_REGEX.findall(self.content)
 
     def identify_malicious_nsfw_spams(self, content: spacy.tokens.Doc, score: int):
+        terms = {"leak", "teen"}
         # The messages I've seen don't use masked links at all for this new wave of spam, I could be wrong though
         for x, y in MASKED_LINKS.finditer(self.content):
             score -= 10
@@ -128,7 +130,7 @@ class AntiScamResult:
                 score -= 15
                 continue
 
-            if token.lemma_.lower() in ("leak", "teen") or token.norm_.lower() in ("leak", "teen"):
+            if token.lemma_.lower() in terms or token.norm_.lower() in terms:
                 score -= 5
 
         return AntiScamCalculatedResult(score, ScamType.MALICIOUS_NSFW_SERVER)
@@ -183,6 +185,7 @@ class AntiScamResult:
             return self.identify_steam_scams(content, score)
 
         nscore = 0
+        malicious_terms = {"sexcam", "🍑", "🔞", "💦", "🥵"}
         scam_type = ScamType.UNKNOWN
         for token in content:
             if token.lemma_.lower() == "nude":
@@ -194,10 +197,12 @@ class AntiScamResult:
                 # Potientially sus, run it through our steam identifier
                 score = self.identify_steam_scams(content, score).score
 
-            if token.lemma_.lower() == "sexcam":
+            if token.lemma_.lower() in malicious_terms:
                 nscore += 5
-                scam_type = ScamType.MALICIOUS_NSFW_SERVER  # Not necessarily onlyfans, but we run it through that
-                score = self.identify_malicious_nsfw_spams(content, score).score
+                if self.discord_invites:
+                    score = self.identify_malicious_nsfw_spams(content, score).score
+                    if score <= 70:
+                        scam_type = ScamType.MALICIOUS_NSFW_SERVER
 
         return AntiScamCalculatedResult(score - nscore, scam_type)
 
@@ -336,8 +341,8 @@ if __name__ == "__main__":
     samples = [
         "18+ Teen Girls and onlyfans leaks for free 🍑 here @everyone. https://discord.gg/123456",
         "@everyone Best OnlyFans Leaks & Teen Content 🍑 🔞 discord.gg/123456",
-        "# Teen content and onlyfans leaks here 🍑 🔞 : https://discord.gg/123456 @everyone @here",
-        "@everyone\nBEST NUDES 💦 + Nitro Giveaway 🥳\nJOIN RIGHT NOW: https://discord.gg/123456",
+        "# Teen content and 0nlyfans leaks here 🍑 🔞 : https://discord.gg/123456 @everyone @here",
+        "@everyone\nBEST NUDE3 💦 + Nitro Giveaway 🥳\nJOIN RIGHT NOW: https://discord.gg/123456",
         "50$ for Steam - [steamcommunity.com/gift/7441553](https://test.cloud/1234)",
         "50$ Gift - [steamcommunity.com/gift/69](https://test.cloud/1234)",
         "50$ gift - [steamcommunity.com/gift/832083](https://google.com)\n@everyone @here",
@@ -351,4 +356,4 @@ if __name__ == "__main__":
     multi = samples + test
     for sample in multi:
         result = AntiScamResult(sample).calculate()
-        print(sample, "|", result.score, "| Timed-out", get_timeout_score(result.score))
+        print(sample, "|", result.score, "| Timed-out", get_timeout_score(result.score), " |", result.type)
