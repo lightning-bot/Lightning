@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2024 LightSage
+Copyright (C) 2019-present LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -63,6 +63,9 @@ class AntiScamCalculatedResult:
         return self.type.name.title()
 
 
+SUSPECT_EMOJIS = {"🍑", "🔞", "💦", "🥵"}
+
+
 class AntiScamResult:
     __slots__ = ("content", "mentions_everyone", "everyone_mention_count", "here_mention_count",
                  "author", "_discord_invites")
@@ -102,7 +105,7 @@ class AntiScamResult:
             score -= 20
 
         for token in content:
-            if token.text in ("🍑", "🔞", "💦", "🥵"):
+            if token.text in SUSPECT_EMOJIS:
                 score -= 10
                 continue
 
@@ -162,7 +165,7 @@ class AntiScamResult:
 
         if self.author is not None:
             if hasattr(self.author, "joined_at"):
-                if self.author.joined_at >= discord.utils.utcnow() + timedelta(days=2):
+                if self.author.joined_at >= discord.utils.utcnow() + timedelta(days=7):
                     score -= 5
 
             # A default profile picture is def sus
@@ -314,9 +317,9 @@ class AntiScam(LightningCog):
         scr = res.calculate()
         await ctx.send(f"This message scored {scr.score}% safe! It was identified as an {scr.friendly_type} scam.")
 
-    @antiscam.command(name='improve', level=CommandLevel.Admin, hidden=True)
-    @commands.guild_only()
-    @is_server_manager()
+    # @antiscam.command(name='improve', level=CommandLevel.Admin, hidden=True)
+    # @commands.guild_only()
+    # @is_server_manager()
     async def antiscam_deposit(self, ctx: GuildContext, *, message: discord.Message):
         """
         Deposits a message so Anti-Scam can be improved.
