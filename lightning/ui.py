@@ -356,7 +356,7 @@ class MenuLikeView(discord.ui.View):
                 if interaction.response.is_done() is False:
                     await interaction.response.defer()
                 await interaction.delete_original_response()
-            else:
+            elif hasattr(self, 'message'):
                 await self.message.delete()
             return
 
@@ -365,7 +365,8 @@ class MenuLikeView(discord.ui.View):
                 await interaction.response.edit_message(view=None)
                 return
 
-            await self.message.edit(view=None)
+            if hasattr(self, 'message'):
+                await self.message.edit(view=None)
             return
 
         if self.disable_components_after:
@@ -379,7 +380,8 @@ class MenuLikeView(discord.ui.View):
                 await interaction.response.edit_message(view=self)
                 return
 
-            await self.message.edit(view=self)
+            if hasattr(self, 'message'):
+                await self.message.edit(view=self)
 
     async def on_error(self, interaction, error, item):
         with sentry_sdk.push_scope() as scope:  # type: ignore
