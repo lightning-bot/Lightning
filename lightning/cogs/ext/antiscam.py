@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import contextlib
 import re
 from dataclasses import dataclass
 from datetime import timedelta
@@ -255,9 +256,11 @@ class AntiScam(LightningCog):
             try:
                 self.bot.ignore_modlog_event(message.guild.id, "on_lightning_member_timeout", message.author.id)
                 await message.author.timeout(dt, reason=reason)
-                await message.delete()
             except discord.HTTPException:
-                pass
+                return
+
+            with contextlib.suppress(discord.HTTPException):
+                await message.delete()
 
             event = LightningAutoModInfractionEvent.from_message("TIMEOUT", message, reason)
             event.action.expiry = discord.utils.format_dt(dt)
