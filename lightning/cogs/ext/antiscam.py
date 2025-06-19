@@ -263,7 +263,7 @@ class AntiScam(LightningCog):
                 await message.delete()
 
             event = LightningAutoModInfractionEvent.from_message("TIMEOUT", message, reason)
-            event.action.expiry = discord.utils.format_dt(dt)
+            event.action.expiry = dt
             self.bot.dispatch("lightning_member_timeout", event)
 
     @hybrid_group(level=CommandLevel.Admin)

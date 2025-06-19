@@ -246,8 +246,9 @@ class ListenerEvents(LightningCog):
             if f"{entry.guild.id}:on_lightning_member_timeout:{entry.target.id}" in self.ignored:
                 return
 
-            self.bot.dispatch("lightning_member_timeout", AuditLogTimeoutEvent(ActionType.TIMEOUT, entry,
-                                                                               guild=entry.guild))
+            event = AuditLogTimeoutEvent(ActionType.TIMEOUT, entry, guild=entry.guild)
+            event.action.expiry = entry.after.timed_out_until
+            self.bot.dispatch("lightning_member_timeout", event)
         elif entry.before.timed_out_until is not None and entry.after.timed_out_until is None:
             self.bot.dispatch("lightning_member_timeout_remove", AuditLogTimeoutEvent(ActionType.UNTIMEOUT,
                                                                                       entry, guild=entry.guild))

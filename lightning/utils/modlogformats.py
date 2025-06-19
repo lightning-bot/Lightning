@@ -457,7 +457,13 @@ class MinimalisticFormat(BaseFormat):
                     f"\n**User**: {self.format_user(self.target)}\n**Moderator**: {self.format_user(self.moderator)}")
 
         if self.expiry:
-            base.append(f"\n**Expiry**: {self.expiry}")
+            if isinstance(self.expiry, datetime):
+                # TZINFO should not be stripped at this point.
+                expy = discord.utils.format_dt(self.expiry)
+            else:
+                expy = self.expiry
+
+            base.append(f"\n**Expiry**: {expy}")
 
         base.append(f"\n**Reason**: {escape_markdown_and_mentions(self.reason)}")
         return ''.join(base)
