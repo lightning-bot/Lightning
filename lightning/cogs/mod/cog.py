@@ -146,7 +146,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
         self.bot.dispatch(f"lightning_member_{str(action).lower()}", event)
 
-    async def log_action(self, ctx: GuildContext, target, action: str, **kwargs) -> None:
+    async def log_action(self, ctx: GuildContext, target: Union[discord.User, discord.Member],
+                         action: str, **kwargs) -> None:
         if ctx.kwargs.get('flags', None):
             reason = ctx.kwargs['flags'].reason
         else:
@@ -155,7 +156,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
         await self.log_manual_action(ctx.guild, target, ctx.author, action, timestamp=ctx.message.created_at,
                                      reason=reason, **kwargs)
 
-    async def log_bulk_actions(self, ctx: GuildContext, targets: list, action: str, **kwargs) -> None:
+    async def log_bulk_actions(self, ctx: GuildContext, targets: List[Union[discord.User, discord.Member]],
+                               action: str, **kwargs) -> None:
         """Logs a bunch of actions"""
         async with self.bot.pool.acquire() as conn:
             for target in targets:

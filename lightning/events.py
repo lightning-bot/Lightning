@@ -121,9 +121,10 @@ class AuditLogTimeoutEvent(AuditLogModAction):
 class InfractionEvent:  # ModerationEvent sounded nice too...
     __slots__ = ("guild", "event_name", "action")
 
-    def __init__(self, event_name: str, *, member, guild: discord.Guild, moderator, reason, **kwargs):
+    def __init__(self, event_name: Union[ActionType, str], *, member, guild: discord.Guild, moderator, reason,
+                 **kwargs):
         self.guild = guild
-        self.event_name = event_name
+        self.event_name = str(event_name)
         self.action = Action(self.guild.id, event_name, member, moderator, reason, **kwargs)
 
     @property
