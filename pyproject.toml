@@ -59,7 +59,7 @@ lightning = "lightning.cli.main:parser"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.4"
-isort = "^5.12.0"
+isort = "^6.0.1"
 pre-commit = "^4.2.0"
 
 [tool.autopep8]
