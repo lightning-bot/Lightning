@@ -20,7 +20,8 @@ import asyncio
 import logging
 import traceback
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Annotated, Any, Dict, Optional, Union
+from typing import (TYPE_CHECKING, Annotated, Any, Dict, Literal, Optional,
+                    Union, overload)
 from zoneinfo import ZoneInfo, available_timezones
 
 import asyncpg
@@ -92,6 +93,16 @@ class Reminders(LightningCog):
         """Cancels the timer task and recreates the task again"""
         self._task.cancel()
         self._task = self.bot.loop.create_task(self.handle_timers())
+
+    @overload
+    async def add_timer(self, event: str, created: datetime, expiry: datetime, *, force_insert: Literal[True],
+                        timezone: ZoneInfo, **kwargs: Any) -> dict[str, Any]:
+        ...
+
+    @overload
+    async def add_timer(self, event: str, created: datetime, expiry: datetime, *, force_insert: Literal[False] = False,
+                        timezone: ZoneInfo, **kwarg: Any) -> Union[dict[str, Any], asyncio.Task]:
+        ...
 
     async def add_timer(self, event: str, created: datetime, expiry: datetime, *, force_insert: bool = False,
                         timezone: ZoneInfo, **kwargs) -> Union[dict[str, Any], asyncio.Task]:
