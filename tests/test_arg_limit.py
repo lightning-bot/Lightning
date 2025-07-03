@@ -16,9 +16,8 @@ class TestArgLimit(unittest.IsolatedAsyncioTestCase):
         await self.pool.close()
 
     async def test_arg_limit(self):
-        tmp = [i for i in range(PSQL_LIMIT)]
         async with self.pool.acquire() as con:
-            await con.executemany("INSERT INTO arg_limit (val) VALUES ($1)", list(tmp))
+            await con.executemany("INSERT INTO arg_limit (val) VALUES ($1)", [(i,) for i in range(PSQL_LIMIT)])
 
         query = "SELECT COUNT(*) FROM arg_limit;"
         data = await self.pool.fetchval(query)
