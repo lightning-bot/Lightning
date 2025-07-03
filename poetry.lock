@@ -1016,7 +1016,7 @@ resolved_reference = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"
 
 [[package]]
 name = "discord.py"
-version = "2.6.0a5217+g20055e7cc"
+version = "2.6.0a5218+g2175bd51c"
 description = "A Python wrapper for the Discord API"
 optional = false
 python-versions = ">=3.8"
@@ -1043,7 +1043,7 @@ voice = ["PyNaCl (>=1.5.0,<1.6)"]
 type = "git"
 url = "https://github.com/Rapptz/discord.py.git"
 reference = "master"
-resolved_reference = "2175bd51c0d0c2817e69a708e507108f3bc902bd"
+resolved_reference = "774b934f7432ea7274befb3580fd51cdc8cf366e"
 
 [[package]]
 name = "distlib"
@@ -4428,21 +4428,6 @@ typer = ">=0.3.0,<1.0.0"
 wasabi = ">=0.9.1,<1.2.0"
 
 [[package]]
-name = "wheel"
-version = "0.43.0"
-description = "A built-package format for Python"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "wheel-0.43.0-py3-none-any.whl", hash = "sha256:55c570405f142630c6b9f72fe09d9b67cf1477fcf543ae5b8dcb1f5b7377da81"},
-    {file = "wheel-0.43.0.tar.gz", hash = "sha256:465ef92c69fa5c5da2d1cf8ac40559a8c940886afcef87dcf14b9470862f1d85"},
-]
-
-[package.extras]
-test = ["pytest (>=6.0.0)", "setuptools (>=65)"]
-
-[[package]]
 name = "wrapt"
 version = "1.17.2"
 description = "Module for decorators, wrappers and monkey patching."
@@ -4787,4 +4772,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9.0,<3.12"
-content-hash = "a4819afdf92a11a36a984d434754ff3218060e5e6ede372560665660f5a1c346"
+content-hash = "11d00b0990cf99fd4f572c6c9e706808d86d262662a90ca76c1f131c18b8126d"

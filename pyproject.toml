@@ -44,7 +44,6 @@ objgraph = "^3.5.0"
 Wand = "^0.6.11"
 rich = "^13.3.2"
 setuptools = "^80.9.0"
-wheel = "^0.43.0"
 matplotlib = "^3.7.0"
 numpy = "1.26.4"
 redis = {extras = ["hiredis"], version = "^5.0.1"}
