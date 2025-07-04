@@ -1,7 +1,9 @@
 name: 'Run Unit Tests'
 
 on:
-  push: {}
+  push:
+    branches:
+      - master
   workflow_dispatch: {}
 
 jobs:
