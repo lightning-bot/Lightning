@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2024 LightSage
+Copyright (C) 2019-present LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -98,7 +98,7 @@ class Migrator:
 
     def save(self):
         with open(self.root / "migratory.json", mode="w", encoding="utf-8") as fp:
-            json.dump(self.config, fp)
+            json.dump(self.config, fp, sort_keys=True)
 
     async def apply_revisions(self, conn: asyncpg.Connection):
         revisions = self.sorted_revisions
