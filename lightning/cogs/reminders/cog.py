@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2024 LightSage
+Copyright (C) 2019-present LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -32,7 +32,8 @@ from discord.ext.commands import clean_content, parameter
 from sanctum.exceptions import NotFound
 
 from lightning import LightningCog, LightningContext, hybrid_group
-from lightning.cogs.reminders.converters import TimeZoneConverter
+from lightning.cogs.reminders.converters import (TimeParseTransformer,
+                                                 TimeZoneConverter)
 from lightning.cogs.reminders.ui import ReminderEdit, ReminderPaginator
 from lightning.formatters import plural
 from lightning.models import Timer
@@ -173,7 +174,7 @@ class Reminders(LightningCog):
         timezone = await self.bot.get_user_timezone(user_id)
         return ZoneInfo(timezone) if timezone else ZoneInfo("UTC")
 
-    @hybrid_group(usage="<when>", aliases=["reminder"], invoke_without_command=True, fallback="set")
+    @hybrid_group(usage="<when>", aliases=["reminder"], invoke_without_command=True)
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.describe(when="When to remind you of something, in UTC")
     async def remind(self, ctx: LightningContext, *,
@@ -221,6 +222,37 @@ class Reminders(LightningCog):
             await ctx.send(content, embed=embed, ephemeral=True)
         else:
             await ctx.send(content, ephemeral=True)
+
+    @remind.app_command.command(name="set")
+    @app_commands.describe(when="When to remind you of something", text="The text to remind you of")
+    async def reminder_set_app_command(self, interaction: discord.Interaction,
+                                       when: Annotated[datetime, TimeParseTransformer], text: str = "something"):
+        """Reminds you of something after a certain date or time"""
+        timezone = await self.get_user_tzinfo(interaction.user.id)
+
+        if when < interaction.created_at + timedelta(seconds=59 * 5):
+            await interaction.response.send_message("A DM reminder must be at least 5 minutes from now!",
+                                                    ephemeral=True)
+            return
+
+        if when > interaction.created_at + timedelta(days=365 * 10):
+            await interaction.response.send_message("You cannot set a reminder for longer than 10 years!",
+                                                    ephemeral=True)
+            return
+
+        data = await self.add_timer("reminder", interaction.created_at, when,
+                                    timezone=timezone,
+                                    reminder_text=text,
+                                    author=interaction.user.id,
+                                    channel=None,
+                                    force_insert=True)
+
+        content = f"Ok {interaction.user.mention}, I'll remind you in your DMs at"\
+                  f" {discord.utils.format_dt(when)} about {text}. (#{data['id']})"
+
+        embed = discord.Embed().set_footer(text="Make sure to have your DMs open so you can receive your reminder"
+                                                " when it's time!")
+        await interaction.response.send_message(content, embed=embed, ephemeral=True)
 
     @remind.command(name="edit")
     @app_commands.describe(reminder_id="The ID of the reminder")
