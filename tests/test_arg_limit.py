@@ -15,9 +15,22 @@ class TestArgLimit(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         await self.pool.close()
 
-    async def test_arg_limit(self):
+    async def test_arg_limit_many(self):
+        await self.pool.execute("TRUNCATE TABLE arg_limit;")
+
         async with self.pool.acquire() as con:
             await con.executemany("INSERT INTO arg_limit (val) VALUES ($1)", [(i,) for i in range(PSQL_LIMIT)])
+
+        query = "SELECT COUNT(*) FROM arg_limit;"
+        data = await self.pool.fetchval(query)
+        self.assertEqual(data, PSQL_LIMIT)
+
+    async def test_arg_limit(self):
+        await self.pool.execute("TRUNCATE TABLE arg_limit;")
+
+        async with self.pool.acquire() as con:
+            for i in range(PSQL_LIMIT):
+                await con.execute("INSERT INTO arg_limit (val) VALUES ($1)", i)
 
         query = "SELECT COUNT(*) FROM arg_limit;"
         data = await self.pool.fetchval(query)
