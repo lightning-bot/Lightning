@@ -75,6 +75,8 @@ async def _callable_prefix(bot: LightningBot, message: discord.Message):
 class Tree(app_commands.CommandTree):
     async def on_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError, /) -> None:
         command = interaction.command
+
+        error = getattr(error, "__cause__", error)
         if not command:
             return await super().on_error(interaction, error)
 
@@ -91,7 +93,10 @@ class Tree(app_commands.CommandTree):
             await messagable(f"You are missing {p} permissions to use this command!", ephemeral=True)
             return
         elif isinstance(error, errors.LightningCommandError):
-            await messagable(str(error))
+            await messagable(str(error), ephemeral=True)
+            return
+        elif isinstance(error, app_commands.TransformerError):
+            await messagable(f"An error occurred while processing your command. {str(error)}", ephemeral=True)
             return
 
         return await super().on_error(interaction, error)
