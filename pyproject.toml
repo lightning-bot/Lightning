@@ -57,7 +57,7 @@ en-core-web-sm = {url = "https://github.com/explosion/spacy-models/releases/down
 lightning = "lightning.cli.main:parser"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.8.4"
+ruff = "^0.12.2"
 isort = "^6.0.1"
 pre-commit = "^4.2.0"
 pytest = "^8.4.1"
