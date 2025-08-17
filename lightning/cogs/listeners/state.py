@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2024 LightSage
+Copyright (C) 2019-present LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -20,13 +20,11 @@ from typing import TYPE_CHECKING
 
 import discord
 
-from lightning import LightningCog
+from lightning import LightningBot, LightningCog
 from lightning.models import PartialGuild
 
 if TYPE_CHECKING:
     from typing import Union
-
-    from lightning import LightningBot
 
 
 class State(LightningCog):
@@ -51,7 +49,7 @@ class State(LightningCog):
         return PartialGuild(record)
 
     async def remove_guild(self, guild: Union[int, discord.Guild, PartialGuild]) -> None:
-        guild_id = getattr(guild, 'id', guild)
+        guild_id: int = getattr(guild, 'id', guild)  # type: ignore
         await self.bot.api.leave_guild(guild_id)
 
         if not isinstance(guild, discord.Guild):
