@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Tuple
 
 import discord
@@ -38,10 +38,26 @@ class Tracking(LightningCog):
     async def cog_unload(self) -> None:
         self.do_bulk_insert_loop.stop()
 
+    async def get_first_spoke(self, guild_id: int, user_id: int) -> datetime | None:
+        """Gets the first spoke timestamp for a user in a guild."""
+        res = await self.bot.redis_pool.get(f"lightning:first_sent:{guild_id}:{user_id}")
+        if res is None:
+            query = "SELECT first_spoke_at FROM spoke_tracking WHERE guild_id=$1 AND user_id=$2;"
+            val = await self.bot.pool.fetchval(query, guild_id, user_id)
+            dt = val.replace(tzinfo=timezone.utc) if val else None
+            if dt:
+                await self.bot.redis_pool.set(f"lightning:first_sent:{guild_id}:{user_id}",
+                                              dt.isoformat())
+            return dt
+        return datetime.fromisoformat(res)
+
     # Tracking User First & Last Spoke State.
     # Discord does not give me any methods to do so, so I track it myself.
     async def insert_bulk_last_spoke(self):
         async with self._last_spoke_lock:
+            if not self._members_last_spoke:
+                return
+
             data = self._members_last_spoke.copy()
             self._members_last_spoke.clear()
 
