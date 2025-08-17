@@ -19,7 +19,7 @@ from __future__ import annotations
 import contextlib
 import re
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import discord
 import spacy
@@ -233,6 +233,15 @@ class AntiScam(LightningCog):
         for record in records:
             self.active_guilds.add(record['guild_id'])
 
+    async def get_first_spoke(self, guild_id: int, user_id: int) -> datetime | None:
+        """Gets the first spoke timestamp for a user in a guild."""
+        res = await self.bot.redis_pool.get(f"lightning:first_sent:{guild_id}:{user_id}")
+        if res is None:
+            query = "SELECT first_spoke_at FROM spoke_tracking WHERE guild_id=$1 AND user_id=$2;"
+            val = await self.bot.pool.fetchval(query, guild_id, user_id)
+            return val.replace(tzinfo=timezone.utc) if val else None
+        return datetime.fromisoformat(res)
+
     @LightningCog.listener()
     async def on_message(self, message: discord.Message):
         if message.guild is None:
@@ -249,6 +258,12 @@ class AntiScam(LightningCog):
 
         res = AntiScamResult.from_message(message)
         result = res.calculate()
+
+        # We additionally downgrade their score if this is their first message.
+        first_spoke = await self.get_first_spoke(message.guild.id, message.author.id)
+        if first_spoke is not None and first_spoke == message.created_at:
+            result.score -= 10
+
         if result.score < 60:
             reason = f"AntiScam identified the message as a {result.friendly_type} scam."\
                      f" (safety rating {result.score}%)"
