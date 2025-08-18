@@ -1017,7 +1017,7 @@ resolved_reference = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"
 
 [[package]]
 name = "discord.py"
-version = "2.6.0a5257+g7e2ca02fd"
+version = "2.7.0a5280+gd58c055c5"
 description = "A Python wrapper for the Discord API"
 optional = false
 python-versions = ">=3.8"
@@ -1044,7 +1044,7 @@ voice = ["PyNaCl (>=1.5.0,<1.6)"]
 type = "git"
 url = "https://github.com/Rapptz/discord.py.git"
 reference = "master"
-resolved_reference = "7e2ca02fd1e3570e8a07a3bab79eb38e025ab842"
+resolved_reference = "d58c055c5bae90b58a5dfb1dae38b06d90445d46"
 
 [[package]]
 name = "distlib"
@@ -3843,14 +3843,14 @@ aiohttp = ">=3.6.0,<4.0.0"
 
 [[package]]
 name = "sentry-sdk"
-version = "2.34.1"
+version = "2.35.0"
 description = "Python client for Sentry (https://sentry.io)"
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 files = [
-    {file = "sentry_sdk-2.34.1-py2.py3-none-any.whl", hash = "sha256:b7a072e1cdc5abc48101d5146e1ae680fa81fe886d8d95aaa25a0b450c818d32"},
-    {file = "sentry_sdk-2.34.1.tar.gz", hash = "sha256:69274eb8c5c38562a544c3e9f68b5be0a43be4b697f5fd385bf98e4fbe672687"},
+    {file = "sentry_sdk-2.35.0-py2.py3-none-any.whl", hash = "sha256:6e0c29b9a5d34de8575ffb04d289a987ff3053cf2c98ede445bea995e3830263"},
+    {file = "sentry_sdk-2.35.0.tar.gz", hash = "sha256:5ea58d352779ce45d17bc2fa71ec7185205295b83a9dbb5707273deb64720092"},
 ]
 
 [package.dependencies]
