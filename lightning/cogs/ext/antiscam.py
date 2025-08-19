@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 import discord
 import spacy
 import spacy.tokens
+import yarl
 from discord.ext import commands
 from spacy.matcher import Matcher
 
@@ -159,6 +160,7 @@ class AntiScamResult:
         return AntiScamCalculatedResult(score, ScamType.STEAM)
 
     def calculate(self) -> AntiScamCalculatedResult:
+        """Calculates the anti-scam score for the message."""
         content = nlp(self.content)
         score = 100
         if self.mentions_everyone:
@@ -210,6 +212,32 @@ class AntiScamResult:
 
         return AntiScamCalculatedResult(score - nscore, scam_type)
 
+    def identify_nsfw_scam_discord_invites(self, invite_names: list[str], score: int):
+        # We already know that discord invites are present and have been counted against in the calculation.
+        penalty = 0
+        common_terms = {"nsfw", "🍑", "🔞", "💦", "🥵"}
+        for name in invite_names:
+            # Running a new Doc should be unnecessary
+            tokens = name.lower().split()
+            for token in tokens:
+                if token in common_terms:
+                    penalty += 5
+
+        if penalty >= 15:
+            stype = ScamType.MALICIOUS_NSFW_SERVER
+        else:
+            stype = ScamType.UNKNOWN
+
+        return AntiScamCalculatedResult(score - penalty, stype)
+
+    def calculate_with_invites(self, invite_names: list[str]):
+        base_score = self.calculate()
+        result = self.identify_nsfw_scam_discord_invites(invite_names, base_score.score)
+
+        act_type = result.type if result.type != ScamType.UNKNOWN else base_score.type
+
+        return AntiScamCalculatedResult(result.score, act_type)
+
 
 def get_timeout_score(score: int):
     hours = 2
@@ -242,6 +270,36 @@ class AntiScam(LightningCog):
             return val.replace(tzinfo=timezone.utc) if val else None
         return datetime.fromisoformat(res)
 
+    # Redis cache for invite names
+    async def put_discord_invite(self, invite: discord.Invite):
+        await self.bot.redis_pool.set(f"lightning:antiscam:invite:{invite.code}", invite.guild.name,
+                                      ex=86400)  # 1 day
+
+    async def get_discord_invite(self, url: str) -> str | None:
+        """Gets the cached discord invite title."""
+        durl = yarl.URL(url)
+        code = durl.parts[-1]
+        return await self.bot.redis_pool.get(f"lightning:antiscam:invite:{code}")
+
+    async def fetch_invites_from_result(self, result: AntiScamResult) -> list[str]:
+        inv_names = []
+        for url in result.discord_invites:
+            invite_name = await self.get_discord_invite(url)
+            if invite_name:
+                inv_names.append(invite_name)
+                continue
+            else:
+                try:
+                    inv = await self.bot.fetch_invite(url)
+                except discord.HTTPException:
+                    continue
+
+                if inv.guild and hasattr(inv.guild, "name"):
+                    await self.put_discord_invite(inv)
+                    inv_names.append(inv.guild.name)
+
+        return inv_names
+
     @LightningCog.listener()
     async def on_message(self, message: discord.Message):
         if message.guild is None:
@@ -257,7 +315,11 @@ class AntiScam(LightningCog):
             return
 
         res = AntiScamResult.from_message(message)
-        result = res.calculate()
+        if res.discord_invites:
+            invs = await self.fetch_invites_from_result(res)
+            result = res.calculate_with_invites(invs)
+        else:
+            result = res.calculate()
 
         # We additionally downgrade their score if this is their first message.
         first_spoke = await self.get_first_spoke(message.guild.id, message.author.id)
