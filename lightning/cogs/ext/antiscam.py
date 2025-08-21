@@ -230,13 +230,15 @@ class AntiScamResult:
 
         return AntiScamCalculatedResult(score - penalty, stype)
 
-    def calculate_with_invites(self, invite_names: list[str]):
+    def calculate_with_invites(self, invites: dict[str, str]):
+        def transform_content():
+            content = self.content
+            for url, inv_name in invites.items():
+                content = content.replace(url, inv_name)
+            return content
+        self.content = transform_content()
         base_score = self.calculate()
-        result = self.identify_nsfw_scam_discord_invites(invite_names, base_score.score)
-
-        act_type = result.type if result.type != ScamType.UNKNOWN else base_score.type
-
-        return AntiScamCalculatedResult(result.score, act_type)
+        return base_score
 
 
 def get_timeout_score(score: int):
@@ -281,12 +283,12 @@ class AntiScam(LightningCog):
         code = durl.parts[-1]
         return await self.bot.redis_pool.get(f"lightning:antiscam:invite:{code}")
 
-    async def fetch_invites_from_result(self, result: AntiScamResult) -> list[str]:
-        inv_names = []
+    async def fetch_invites_from_result(self, result: AntiScamResult) -> dict[str, str]:
+        inv_names = {}
         for url in result.discord_invites:
             invite_name = await self.get_discord_invite(url)
             if invite_name:
-                inv_names.append(invite_name)
+                inv_names[url] = invite_name
                 continue
             else:
                 try:
@@ -296,7 +298,7 @@ class AntiScam(LightningCog):
 
                 if inv.guild and hasattr(inv.guild, "name"):
                     await self.put_discord_invite(inv)
-                    inv_names.append(inv.guild.name)
+                    inv_names[url] = inv.guild.name
 
         return inv_names
 
