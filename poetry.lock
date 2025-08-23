@@ -971,7 +971,7 @@ resolved_reference = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"
 
 [[package]]
 name = "discord.py"
-version = "2.7.0a5294+g0309aac33"
+version = "2.7.0a5300+gab6efd02b"
 description = "A Python wrapper for the Discord API"
 optional = false
 python-versions = ">=3.8"
@@ -997,7 +997,7 @@ voice = ["PyNaCl (>=1.5.0,<1.6)"]
 type = "git"
 url = "https://github.com/Rapptz/discord.py.git"
 reference = "master"
-resolved_reference = "0309aac3357a1f7250630aedc98e2b6b112528cc"
+resolved_reference = "ab6efd02bc6cca645cf750e412a62086e7d10e94"
 
 [[package]]
 name = "distlib"
