@@ -34,13 +34,14 @@ __all__ = ("BaseView",
            "BasicMenuLikeView",
            "MenuLikeView",
            "ExitableMenu",
+           "UpdateableLayoutView",
            "UpdateableMenu",
            "SelectSubMenu",
            "ButtonSubMenu")
 log = logging.getLogger(__name__)
 
 
-class BaseView(discord.ui.View):
+class _BaseView(discord.ui.view.BaseView):
     """A view that adds cleanup and error logging to it"""
     async def cleanup(self):
         """Coroutine that cleans up something (like database connections, whatever).
@@ -65,6 +66,43 @@ class BaseView(discord.ui.View):
             log.exception(f"An exception occurred during {self} with {item}", exc_info=error)
 
 
+class BaseView(discord.ui.View, _BaseView):
+    ...
+
+
+class AuthorLockedBaseView(_BaseView):
+    """Basic view that handles basic locking, cleanup logic, and interaction_check"""
+    def __init__(self, author_id: int, *, timeout: float | None = 180.0) -> None:
+        super().__init__(timeout=timeout)
+        self.author_id = author_id
+        self.locked = False
+
+    async def on_timeout(self):
+        self.stop()
+
+    def stop(self, *, interaction: Optional[discord.Interaction] = None):
+        asyncio.create_task(self.cleanup(interaction=interaction))
+        super().stop()
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        check = self.author_id == interaction.user.id
+        if self.locked is True and check is True:
+            await interaction.response.defer()
+            await interaction.followup.send(content="You have not finished a prompt yet", ephemeral=True)
+            return False
+        else:
+            return check
+
+    async def cleanup(self, *, interaction: Optional[discord.Interaction] = None) -> None:
+        ...
+
+    def lock_components(self) -> None:
+        self.locked = True
+
+    def unlock_components(self) -> None:
+        self.locked = False
+
+
 def lock_when_pressed(func):
     @functools.wraps(func)
     async def wrapper(self: MenuLikeView, interaction: discord.Interaction, component):
@@ -74,7 +112,7 @@ def lock_when_pressed(func):
     return wrapper
 
 
-class BasicMenuLikeView(discord.ui.View):
+class BasicMenuLikeView(AuthorLockedBaseView, discord.ui.View):
     """A view that mimics similar behavior of discord.ext.menus. This is a simpler version of MenuLikeView
 
     Parameters
@@ -93,9 +131,7 @@ class BasicMenuLikeView(discord.ui.View):
         Defines when the view should stop listening for the interaction event."""
     def __init__(self, *, author_id: int, clear_view_after=False, delete_message_after=False,
                  disable_components_after=True, timeout: Optional[float] = 180.0):
-        super().__init__(timeout=timeout)
-        self.author_id = author_id
-        self.locked = False
+        super().__init__(author_id, timeout=timeout)
         self.clear_view_after = clear_view_after
         self.delete_message_after = delete_message_after
         self.disable_components_after = disable_components_after
@@ -106,15 +142,6 @@ class BasicMenuLikeView(discord.ui.View):
 
         This can be sync or async."""
         raise NotImplementedError
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        check = self.author_id == interaction.user.id
-        if self.locked is True and check is True:
-            await interaction.response.defer()
-            await interaction.followup.send(content="You have not finished a prompt yet", ephemeral=True)
-            return False
-        else:
-            return check
 
     def _assume_message_kwargs(self, value: Union[Dict[str, Any], str, discord.Embed]) -> Dict[str, Any]:
         if isinstance(value, dict):
@@ -138,19 +165,6 @@ class BasicMenuLikeView(discord.ui.View):
     @classmethod
     def from_interaction(cls, interaction: discord.Interaction, **kwargs):
         return cls(author_id=interaction.user.id, **kwargs)
-
-    async def on_timeout(self):
-        self.stop()
-
-    def stop(self, *, interaction: Optional[discord.Interaction] = None):
-        asyncio.create_task(self.cleanup(interaction=interaction))
-        super().stop()
-
-    def lock_components(self) -> None:
-        self.locked = True
-
-    def unlock_components(self) -> None:
-        self.locked = False
 
     @contextlib.contextmanager
     def sub_menu(self, view):
@@ -389,6 +403,85 @@ class MenuLikeView(discord.ui.View):
             scope.set_extra("item", item)
             scope.set_extra("interaction", interaction)
             log.exception(f"An exception occurred during {self} with {item}", exc_info=error)
+
+
+class UpdateableLayoutView(AuthorLockedBaseView, discord.ui.LayoutView):
+    def __init__(self, *, context: LightningContext, delete_message_after=False,
+                 disable_components_after=True, timeout=180.0):
+        super().__init__(context.author.id, timeout=timeout)
+        self.ctx = context
+        self.delete_message_after = delete_message_after
+        self.disable_components_after = disable_components_after
+
+    @contextlib.contextmanager
+    def sub_menu(self, view):
+        """Context manager for submenus.
+
+        Parameters
+        ----------
+        view
+            A view. Ideally, this should be SelectSubMenu or ButtonSubMenu.
+        """
+        # There might need to be more involvement, but this is simple atm.
+        view.ctx = self.ctx
+        try:
+            yield view
+        finally:
+            pass
+
+    @contextlib.asynccontextmanager
+    async def lock(self, *, interaction: Optional[discord.Interaction] = None):
+        self.lock_components()
+        try:
+            yield
+        finally:
+            self.unlock_components()
+
+            await self.update(interaction=interaction)
+
+    async def start(self, *, wait: bool = True):
+        await self.update_components()
+
+        self.message = await self.ctx.send(view=self)
+
+        if wait:
+            await self.wait()
+
+    async def update(self, *, interaction: Optional[discord.Interaction] = None):
+        await self.update_components()
+
+        if interaction and interaction.response.is_done() is False:
+            await interaction.response.edit_message(view=self)
+            return
+
+        await self.message.edit(view=self)
+
+    async def update_components(self) -> None:
+        ...
+
+    async def cleanup(self, *, interaction: Optional[discord.Interaction] = None) -> None:
+        # This is first for obvious reasons
+        if self.delete_message_after:
+            if interaction:
+                if interaction.response.is_done() is False:
+                    await interaction.response.defer()
+                await interaction.delete_original_response()
+            elif hasattr(self, 'message'):
+                await self.message.delete()
+            return
+
+        if self.disable_components_after:
+            for child in self.walk_children():
+                if hasattr(child, "disabled"):
+                    child.disabled = True  # type: ignore
+                # We don't remove children cause they could be TextDisplays and such like we do in UpdateableMenu
+
+            if interaction and interaction.response.is_done() is False:
+                await interaction.response.edit_message(view=self)
+                return
+
+            if hasattr(self, 'message'):
+                await self.message.edit(view=self)
 
 
 class StopButton(discord.ui.Button['MenuLikeView']):
