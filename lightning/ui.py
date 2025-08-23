@@ -66,7 +66,7 @@ class _BaseView(discord.ui.view.BaseView):
             log.exception(f"An exception occurred during {self} with {item}", exc_info=error)
 
 
-class BaseView(discord.ui.View, _BaseView):
+class BaseView(_BaseView, discord.ui.View):
     ...
 
 
