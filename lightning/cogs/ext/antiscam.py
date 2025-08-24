@@ -191,7 +191,7 @@ class AntiScamResult:
             return self.identify_steam_scams(content, score)
 
         nscore = 0
-        malicious_terms = {"sexcam", "🍑", "🔞", "💦", "🥵"}
+        malicious_terms = {"sexcam", "🍑", "🔞", "💦", "🥵", "nsfw"}
         scam_type = ScamType.UNKNOWN
         for token in content:
             if token.lemma_.lower() == "nude":
