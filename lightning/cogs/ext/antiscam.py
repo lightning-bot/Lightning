@@ -121,7 +121,7 @@ class AntiScamResult:
         return INVITE_REGEX.findall(self.content)
 
     def identify_malicious_nsfw_spams(self, content: spacy.tokens.Doc, score: int):
-        terms = {"leak", "teen"}
+        terms = {"leak", "teen", "nsfw"}
         # The messages I've seen don't use masked links at all for this new wave of spam, I could be wrong though
         for x, y in MASKED_LINKS.finditer(self.content):
             score -= 10
@@ -136,7 +136,7 @@ class AntiScamResult:
                 continue
 
             if token.lemma_.lower() in terms or token.norm_.lower() in terms:
-                score -= 5
+                score -= 10
 
         return AntiScamCalculatedResult(score, ScamType.MALICIOUS_NSFW_SERVER)
 
