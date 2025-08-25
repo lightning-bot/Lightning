@@ -37,7 +37,7 @@ typer = "^0.16.0"
 tomlkit = "^0.13.2"
 uvloop = {version = "^0.21.0", platform = "linux"}
 orjson = "^3.6.0"
-beautifulsoup4 = "^4.12.3"
+beautifulsoup4 = "^4.13.5"
 lxml = "^5.2.1"
 sanctum-tc = "^0.8.0"
 objgraph = "^3.5.0"
