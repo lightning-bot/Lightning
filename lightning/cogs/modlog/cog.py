@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2025 LightSage
+Copyright (C) 2019-present LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -64,7 +64,7 @@ class ModLog(LightningCog):
     @is_server_manager()
     async def modlog(self, ctx: GuildContext, *, channel: discord.TextChannel = commands.CurrentChannel):
         """Sets up mod logging for a channel"""
-        await ui.Logging(channel, context=ctx, timeout=180.0).start(wait=False)
+        await ui.LoggingCV2(channel, context=ctx, timeout=60.0).start(wait=False)
 
     @modlog.command(level=CommandLevel.Admin, name='showall')
     @commands.guild_only()
