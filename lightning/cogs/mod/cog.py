@@ -268,6 +268,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                        converter=converters.TargetMember(fetch_user=False)),
                    *, flags: DefaultModFlags) -> None:
         """Warns a member"""
+        await ctx.defer()
+
         emoji = "\N{OPEN MAILBOX WITH LOWERED FLAG}"
         query = "SELECT COUNT(*) FROM infractions WHERE user_id=$1 AND guild_id=$2 AND action=$3;"
         warns = await self.bot.pool.fetchval(query, target.id, ctx.guild.id, ActionType.WARN.value) or 0
