@@ -151,7 +151,7 @@ class Homebrew(LightningCog):
     def cog_unload(self) -> None:
         self.do_ninupdates.stop()
 
-    @hybrid_command(aliases=['nuf'], level=CommandLevel.Admin)
+    @command(aliases=['nuf'], level=CommandLevel.Admin, hidden=True)
     @commands.bot_has_permissions(manage_webhooks=True)
     @app_commands.guild_only()
     @hybrid_guild_permissions(manage_webhooks=True)
@@ -204,13 +204,6 @@ class Homebrew(LightningCog):
             await self.ninupdates_data.add(console, {"version": version,
                                            "last_updated": timestamp.isoformat()})
             await self.dispatch_message_to_guilds(console, hook_text)
-
-    async def science_xml(self, raw):
-        ch = self.bot.get_channel(1054808921879101511)
-        if not ch:
-            ch = await self.bot.fetch_channel(1054808921879101511)
-
-        await ch.send("Uploaded feed", file=discord.File(BytesIO(raw), "feed.xml"))
 
     async def dispatch_message_to_guilds(self, console: str, text: str) -> None:
         records = await self.bot.pool.fetch("SELECT * FROM nin_updates;")
