@@ -186,7 +186,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
     @hybrid_guild_permissions(kick_members=True)
     @app_commands.describe(target="The member to kick")
     @app_commands.guild_only()
-    async def kick(self, ctx: ModContext, target: converters.TargetMember(fetch_user=False), *,
+    async def kick(self, ctx: ModContext,
+                   target: discord.Member = commands.param(converter=converters.TargetMember(fetch_user=False)), *,
                    flags: DefaultModFlags) -> None:
         """Kicks a user from the server"""
         if self.can_dm_notify(ctx, flags):  # No check is done here since we don't fetch users
@@ -597,7 +598,8 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                            duration="The duration for the mute",
                            reason="The reason for the mute")
     @app_commands.guild_only()
-    async def timemute(self, ctx: ModContext, target: converters.TargetMember,
+    async def timemute(self, ctx: ModContext,
+                       target: Annotated[Union[discord.Member, discord.User], converters.TargetMember],
                        duration: FutureTime, *, flags: DefaultModFlags) -> None:
         """Mutes a user for a specified amount of time.
 
