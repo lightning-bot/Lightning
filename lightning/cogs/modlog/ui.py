@@ -184,7 +184,7 @@ class ModLogFormatRow(discord.ui.ActionRow):
     view: 'LoggingCV2'
 
     @discord.ui.select(cls=discord.ui.Select, options=logging_formats,
-                       placeholder="Change logging format", min_values=1, max_values=1)
+                       placeholder="Select a logging format to use", min_values=1, max_values=1)
     async def change_format_select(self, interaction: discord.Interaction, select: discord.ui.Select) -> None:
         if not select.values:
             return
