@@ -92,7 +92,7 @@ class LightningContext(commands.Context):
                    allowed_mentions: Optional[discord.AllowedMentions] = None,
                    reference: Optional[Union[discord.Message, discord.MessageReference, discord.PartialMessage]] = None,
                    mention_author: Optional[bool] = None,
-                   view: Optional[discord.ui.View] = None,
+                   view: Optional[discord.ui.view.BaseView] = None,
                    suppress_embeds: bool = False,
                    ephemeral: bool = False,
                    silent: bool = False,
