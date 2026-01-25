@@ -212,5 +212,4 @@ class Reports(LightningCog):
         await modal.wait()
 
         await self.create_new_report(interaction, message, reason=modal.reason.value)
-        await interaction.followup.send("<a:wee:630185233227972618><a:woo:630185257248882718> Successfully reported!",
-                                        ephemeral=True)
+        await interaction.followup.send("Successfully reported the message!", ephemeral=True)
