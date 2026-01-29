@@ -34,7 +34,7 @@ from lightning.cogs.automod.converters import (AutoModDuration,
                                                AutoModDurationResponse,
                                                IgnorableEntities)
 from lightning.cogs.automod.models import (AutomodConfig, GateKeeperConfig,
-                                           SpamConfig)
+                                           HeatConfig, SpamConfig)
 from lightning.constants import (AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING,
                                  AUTOMOD_ALL_EVENT_NAMES_LITERAL,
                                  AUTOMOD_BASIC_EVENT_NAMES_MAPPING,
@@ -67,6 +67,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
     def __init__(self, bot: LightningBot):
         super().__init__(bot)
         self.gatekeepers: dict[int, GateKeeperConfig] = {}
+        self.heat_configs: dict[int, HeatConfig] = {}
         self.bot.loop.create_task(self.load_all_gatekeepers())
         self.bot.add_dynamic_items(ui.GatekeeperVerificationButton,
                                    ui.GatekeeperVerificationHoneyPotButton)
@@ -95,6 +96,39 @@ class AutoMod(LightningCog, required=["Moderation"]):
     def invalidate_gatekeeper(self, guild_id: int):
         if gtkp := self.gatekeepers.pop(guild_id, None):
             gtkp.gtkp_loop.cancel()
+
+    @cache.cache()
+    async def get_heat_config(self, guild_id: int) -> Optional[HeatConfig]:
+        """Gets the heat configuration for a guild.
+
+        Parameters
+        ----------
+        guild_id : int
+            The guild ID
+
+        Returns
+        -------
+        Optional[HeatConfig]
+            The heat configuration, or None if not configured
+        """
+        if guild_id in self.heat_configs:
+            return self.heat_configs[guild_id]
+
+        query = "SELECT * FROM guild_automod_heat_config WHERE guild_id=$1;"
+        config = await self.bot.pool.fetchrow(query, guild_id)
+        if not config:
+            return None
+
+        query = "SELECT * FROM guild_automod_heat_thresholds WHERE guild_id=$1 ORDER BY heat_threshold ASC;"
+        thresholds = await self.bot.pool.fetch(query, guild_id)
+
+        self.heat_configs[guild_id] = heat_config = HeatConfig(self.bot, config, thresholds)
+        return heat_config
+
+    def invalidate_heat_config(self, guild_id: int):
+        """Invalidates the cached heat config for a guild."""
+        self.heat_configs.pop(guild_id, None)
+        self.get_heat_config.invalidate(self, guild_id)
 
     async def cog_check(self, ctx: LightningContext) -> bool:
         if ctx.guild is None:
@@ -419,6 +453,196 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await ctx.send("Removed warn threshold!")
         await self.get_automod_config.invalidate(ctx.guild.id)
 
+    # Heat-based automod commands
+    @automod.group(name='heat', level=CommandLevel.Admin)
+    async def automod_heat(self, ctx: GuildContext):
+        """Manage heat-based automod system"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help('automod heat')
+
+    @automod_heat.command(name='enable', level=CommandLevel.Admin)
+    @is_server_manager()
+    async def automod_heat_enable(self, ctx: GuildContext, decay_seconds: commands.Range[int, 60, 86400] = 3600):
+        """Enables the heat-based automod system
+
+        Parameters
+        ----------
+        decay_seconds: int
+            How long (in seconds) it takes for heat to fully decay. Default is 1 hour (3600 seconds).
+            Minimum 60 seconds, maximum 24 hours (86400 seconds).
+        """
+        query = """INSERT INTO guild_automod_heat_config (guild_id, enabled, decay_seconds)
+                   VALUES ($1, true, $2)
+                   ON CONFLICT (guild_id)
+                   DO UPDATE SET enabled=true, decay_seconds=EXCLUDED.decay_seconds;"""
+        await self.bot.pool.execute(query, ctx.guild.id, decay_seconds)
+        self.invalidate_heat_config(ctx.guild.id)
+        await ctx.send(f"✅ Heat-based automod enabled! Heat will decay over {decay_seconds} seconds.")
+
+    @automod_heat.command(name='disable', level=CommandLevel.Admin)
+    @is_server_manager()
+    async def automod_heat_disable(self, ctx: GuildContext):
+        """Disables the heat-based automod system"""
+        query = "UPDATE guild_automod_heat_config SET enabled=false WHERE guild_id=$1;"
+        resp = await self.bot.pool.execute(query, ctx.guild.id)
+
+        if resp == "UPDATE 0":
+            await ctx.send("Heat-based automod was not enabled!")
+            return
+
+        self.invalidate_heat_config(ctx.guild.id)
+        await ctx.send("✅ Heat-based automod disabled!")
+
+    @automod_heat.command(name='setheat', level=CommandLevel.Admin)
+    @is_server_manager()
+    async def automod_heat_set_value(self, ctx: GuildContext, violation_type: str, heat_value: float):
+        """Sets the heat value for a specific violation type
+
+        Parameters
+        ----------
+        violation_type: str
+            The violation type (e.g., 'message-spam', 'invite-spam', 'url-spam', 'mass-mentions', 'message-content-spam')
+        heat_value: float
+            The amount of heat to add for this violation
+        """
+        # Ensure heat config exists
+        query = """INSERT INTO guild_automod_heat_config (guild_id)
+                   VALUES ($1)
+                   ON CONFLICT (guild_id) DO NOTHING;"""
+        await self.bot.pool.execute(query, ctx.guild.id)
+
+        # Update heat values
+        query = """UPDATE guild_automod_heat_config
+                   SET heat_per_violation = jsonb_set(
+                       COALESCE(heat_per_violation, '{}'::jsonb),
+                       ARRAY[$2],
+                       to_jsonb($3::text)
+                   )
+                   WHERE guild_id=$1;"""
+        await self.bot.pool.execute(query, ctx.guild.id, violation_type, str(heat_value))
+        self.invalidate_heat_config(ctx.guild.id)
+        await ctx.send(f"✅ Set heat value for `{violation_type}` to `{heat_value}`")
+
+    @automod_heat.command(name='addthreshold', level=CommandLevel.Admin)
+    @is_server_manager()
+    async def automod_heat_add_threshold(self, ctx: GuildContext, heat_threshold: int,
+                                        punishment: Literal['WARN', 'MUTE', 'KICK', 'BAN'],
+                                        duration: Optional[AutoModDuration] = None):
+        """Adds a heat threshold with a punishment
+
+        Parameters
+        ----------
+        heat_threshold: int
+            The heat level that triggers this punishment
+        punishment: Literal['WARN', 'MUTE', 'KICK', 'BAN']
+            The punishment to apply
+        duration: Optional[AutoModDuration]
+            Duration for temporary punishments (MUTE/BAN only)
+        """
+        # Ensure heat config exists
+        query = """INSERT INTO guild_automod_heat_config (guild_id)
+                   VALUES ($1)
+                   ON CONFLICT (guild_id) DO NOTHING;"""
+        await self.bot.pool.execute(query, ctx.guild.id)
+
+        punishment_duration = None
+        if duration:
+            punishment_duration = duration.seconds
+
+        query = """INSERT INTO guild_automod_heat_thresholds (guild_id, heat_threshold, punishment_type, punishment_duration)
+                   VALUES ($1, $2, $3, $4);"""
+        await self.bot.pool.execute(query, ctx.guild.id, heat_threshold, punishment, punishment_duration)
+        self.invalidate_heat_config(ctx.guild.id)
+        
+        duration_str = f" for {duration.human_readable}" if duration else ""
+        await ctx.send(f"✅ Added threshold: {heat_threshold} heat → {punishment}{duration_str}")
+
+    @automod_heat.command(name='removethreshold', level=CommandLevel.Admin)
+    @is_server_manager()
+    async def automod_heat_remove_threshold(self, ctx: GuildContext, threshold_id: int):
+        """Removes a heat threshold
+
+        Parameters
+        ----------
+        threshold_id: int
+            The ID of the threshold to remove
+        """
+        query = "DELETE FROM guild_automod_heat_thresholds WHERE id=$1 AND guild_id=$2;"
+        resp = await self.bot.pool.execute(query, threshold_id, ctx.guild.id)
+
+        if resp == "DELETE 0":
+            await ctx.send("Threshold not found!")
+            return
+
+        self.invalidate_heat_config(ctx.guild.id)
+        await ctx.send("✅ Threshold removed!")
+
+    @automod_heat.command(name='view', level=CommandLevel.Admin)
+    async def automod_heat_view(self, ctx: GuildContext):
+        """Views the current heat configuration"""
+        heat_config = await self.get_heat_config(ctx.guild.id)
+
+        if not heat_config:
+            await ctx.send("Heat-based automod is not configured for this server!")
+            return
+
+        embed = discord.Embed(title="Heat-Based Automod Configuration", color=discord.Color.blue())
+        embed.add_field(name="Enabled", value="✅ Yes" if heat_config.enabled else "❌ No", inline=False)
+        embed.add_field(name="Decay Time", value=f"{heat_config.decay_seconds} seconds", inline=False)
+
+        if heat_config.heat_per_violation:
+            violations = "\n".join([f"`{k}`: {v}" for k, v in heat_config.heat_per_violation.items()])
+            embed.add_field(name="Heat Values", value=violations or "None set", inline=False)
+
+        if heat_config.thresholds:
+            thresholds = "\n".join([
+                f"ID {i}: {t.threshold} heat → {t.punishment}" + 
+                (f" ({t.duration}s)" if t.duration else "")
+                for i, t in enumerate(heat_config.thresholds, 1)
+            ])
+            embed.add_field(name="Thresholds", value=thresholds, inline=False)
+        else:
+            embed.add_field(name="Thresholds", value="None configured", inline=False)
+
+        await ctx.send(embed=embed)
+
+    @automod_heat.command(name='check', level=CommandLevel.Mod)
+    async def automod_heat_check(self, ctx: GuildContext, member: discord.Member):
+        """Checks a member's current heat level
+
+        Parameters
+        ----------
+        member: discord.Member
+            The member to check
+        """
+        heat_config = await self.get_heat_config(ctx.guild.id)
+
+        if not heat_config or not heat_config.enabled:
+            await ctx.send("Heat-based automod is not enabled!")
+            return
+
+        heat = await heat_config.get_user_heat(member.id)
+        await ctx.send(f"{member.mention} currently has **{heat:.1f}** heat.")
+
+    @automod_heat.command(name='reset', level=CommandLevel.Admin)
+    @is_server_manager()
+    async def automod_heat_reset(self, ctx: GuildContext, member: discord.Member):
+        """Resets a member's heat to 0
+
+        Parameters
+        ----------
+        member: discord.Member
+            The member whose heat to reset
+        """
+        heat_config = await self.get_heat_config(ctx.guild.id)
+
+        if not heat_config:
+            await ctx.send("Heat-based automod is not configured!")
+            return
+
+        await heat_config.reset_heat(member.id)
+        await ctx.send(f"✅ Reset heat for {member.mention}")
+
     async def create_automod_config(self, guild: discord.Guild):
         query = """INSERT INTO guild_automod_config (guild_id)
                    VALUES ($1)
@@ -617,6 +841,48 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         await meth(self, message, options.duration, reason=reason)
 
+    async def _handle_heat_punishment(self, message: AutoModMessage, violation_type: str) -> bool:
+        """Handles heat-based punishment for a violation.
+
+        Parameters
+        ----------
+        message : AutoModMessage
+            The message that triggered the violation
+        violation_type : str
+            The type of violation (e.g., 'message-spam', 'invite-spam')
+
+        Returns
+        -------
+        bool
+            True if a heat-based punishment was applied, False otherwise
+        """
+        heat_config = await self.get_heat_config(message.guild.id)
+        if not heat_config or not heat_config.enabled:
+            return False
+
+        # Add heat and get new level
+        new_heat = await heat_config.add_heat(message.author.id, violation_type)
+
+        # Check if we should apply a punishment
+        punishment = heat_config.get_punishment_for_heat(new_heat)
+        if not punishment:
+            return False
+
+        # Apply the punishment
+        automod_rule_name = AUTOMOD_EVENT_NAMES_MAPPING.get(violation_type, "AutoMod rule")
+        reason = f"{automod_rule_name} triggered (Heat: {new_heat:.1f})"
+
+        meth = self.punishments[punishment.punishment]
+
+        if punishment.punishment not in ("MUTE", "BAN"):
+            await meth(self, message, reason=reason)
+        else:
+            await meth(self, message, punishment.duration, reason=reason)
+
+        # Reset heat after punishment
+        await heat_config.reset_heat(message.author.id)
+        return True
+
     async def _delete_tracked_messages(self, messages: set[str], guild: discord.Guild):
         # Deletes message IDs tracked in AutoMod
         tmp: Dict[str, List[discord.Object]] = {}
@@ -652,7 +918,14 @@ class AutoMod(LightningCog, required=["Moderation"]):
                 self.bot.dispatch("lightning_guild_automod_rule_triggered", attr_name, message.guild.id)
                 messages = await obj.fetch_responsible_messages(message)
                 await obj.reset_bucket(message)
-                await self._handle_punishment(obj.punishment, message, attr_name)
+                
+                # Try heat-based punishment first
+                heat_applied = await self._handle_heat_punishment(message, attr_name)
+                
+                # If no heat punishment was applied, use the configured rule punishment
+                if not heat_applied:
+                    await self._handle_punishment(obj.punishment, message, attr_name)
+                
                 if obj.punishment.type != "BAN":
                     await self._delete_tracked_messages(messages, message.guild)
 
