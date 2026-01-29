@@ -288,9 +288,10 @@ class GateKeeperConfig:
 
 class HeatThreshold:
     """Represents a heat threshold with its associated punishment."""
-    __slots__ = ("threshold", "punishment", "duration")
+    __slots__ = ("id", "threshold", "punishment", "duration")
 
     def __init__(self, record: asyncpg.Record) -> None:
+        self.id: int = record['id']
         self.threshold: int = record['heat_threshold']
         self.punishment: str = record['punishment_type']
         self.duration: Optional[int] = record.get('punishment_duration')

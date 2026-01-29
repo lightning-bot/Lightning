@@ -596,9 +596,9 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         if heat_config.thresholds:
             thresholds = "\n".join([
-                f"ID {i}: {t.threshold} heat → {t.punishment}" + 
+                f"ID {t.id}: {t.threshold} heat → {t.punishment}" + 
                 (f" ({t.duration}s)" if t.duration else "")
-                for i, t in enumerate(heat_config.thresholds, 1)
+                for t in heat_config.thresholds
             ])
             embed.add_field(name="Thresholds", value=thresholds, inline=False)
         else:
