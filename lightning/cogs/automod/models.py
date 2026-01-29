@@ -343,6 +343,9 @@ class HeatConfig:
         key = f"lightning:automod:heat:{self.guild_id}:{user_id}"
 
         # Add heat and set expiry
+        # Note: EXPIRE resets the TTL on each violation, meaning heat decays after
+        # a period of inactivity rather than gradually over time. This is intentional -
+        # active violators should maintain high heat, and it only decays when they stop.
         pipe = self.bot.redis_pool.pipeline()
         pipe.incrbyfloat(key, heat_to_add)
         pipe.expire(key, self.decay_seconds)

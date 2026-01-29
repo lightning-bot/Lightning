@@ -97,7 +97,6 @@ class AutoMod(LightningCog, required=["Moderation"]):
         if gtkp := self.gatekeepers.pop(guild_id, None):
             gtkp.gtkp_loop.cancel()
 
-    @cache.cache()
     async def get_heat_config(self, guild_id: int) -> Optional[HeatConfig]:
         """Gets the heat configuration for a guild.
 
@@ -128,7 +127,6 @@ class AutoMod(LightningCog, required=["Moderation"]):
     def invalidate_heat_config(self, guild_id: int):
         """Invalidates the cached heat config for a guild."""
         self.heat_configs.pop(guild_id, None)
-        self.get_heat_config.invalidate(self, guild_id)
 
     async def cog_check(self, ctx: LightningContext) -> bool:
         if ctx.guild is None:
@@ -503,8 +501,23 @@ class AutoMod(LightningCog, required=["Moderation"]):
         violation_type: str
             The violation type (e.g., 'message-spam', 'invite-spam', 'url-spam', 'mass-mentions', 'message-content-spam')
         heat_value: float
-            The amount of heat to add for this violation
+            The amount of heat to add for this violation (must be positive)
         """
+        # Validate heat value is positive
+        if heat_value <= 0:
+            await ctx.send("❌ Heat value must be a positive number!")
+            return
+
+        # Validate violation type
+        valid_types = ['message-spam', 'invite-spam', 'url-spam', 'mass-mentions', 'message-content-spam',
+                       'message_spam', 'invite_spam', 'url_spam', 'mass_mentions', 'message_content_spam']
+        if violation_type not in valid_types:
+            await ctx.send(f"❌ Invalid violation type! Valid types are: {', '.join(set(valid_types))}")
+            return
+
+        # Normalize to hyphenated format for storage
+        violation_type = violation_type.replace('_', '-')
+
         # Ensure heat config exists
         query = """INSERT INTO guild_automod_heat_config (guild_id)
                    VALUES ($1)
@@ -533,17 +546,35 @@ class AutoMod(LightningCog, required=["Moderation"]):
         Parameters
         ----------
         heat_threshold: int
-            The heat level that triggers this punishment
+            The heat level that triggers this punishment (must be positive)
         punishment: Literal['WARN', 'MUTE', 'KICK', 'BAN']
             The punishment to apply
         duration: Optional[AutoModDuration]
             Duration for temporary punishments (MUTE/BAN only)
         """
+        # Validate heat threshold is positive
+        if heat_threshold <= 0:
+            await ctx.send("❌ Heat threshold must be a positive number!")
+            return
+
+        # Validate duration is only provided for MUTE/BAN
+        if duration and punishment not in ('MUTE', 'BAN'):
+            await ctx.send(f"❌ Duration can only be specified for MUTE or BAN punishments, not {punishment}!")
+            return
+
         # Ensure heat config exists
         query = """INSERT INTO guild_automod_heat_config (guild_id)
                    VALUES ($1)
                    ON CONFLICT (guild_id) DO NOTHING;"""
         await self.bot.pool.execute(query, ctx.guild.id)
+
+        # Check for duplicate threshold
+        query = """SELECT id FROM guild_automod_heat_thresholds
+                   WHERE guild_id=$1 AND heat_threshold=$2;"""
+        existing = await self.bot.pool.fetchrow(query, ctx.guild.id, heat_threshold)
+        if existing:
+            await ctx.send(f"❌ A threshold already exists for {heat_threshold} heat (ID: {existing['id']}). Remove it first if you want to change it.")
+            return
 
         punishment_duration = None
         if duration:
@@ -841,7 +872,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         await meth(self, message, options.duration, reason=reason)
 
-    async def _handle_heat_punishment(self, message: AutoModMessage, violation_type: str) -> bool:
+    async def _handle_heat_punishment(self, message: AutoModMessage, violation_type: str) -> Optional[str]:
         """Handles heat-based punishment for a violation.
 
         Parameters
@@ -849,16 +880,17 @@ class AutoMod(LightningCog, required=["Moderation"]):
         message : AutoModMessage
             The message that triggered the violation
         violation_type : str
-            The type of violation (e.g., 'message-spam', 'invite-spam')
+            The type of violation (e.g., 'message_spam', 'invite_spam', 'url_spam', 'mass_mentions', 'message_content_spam')
+            These are the internal attribute names used by the automod system.
 
         Returns
         -------
-        bool
-            True if a heat-based punishment was applied, False otherwise
+        Optional[str]
+            The punishment type that was applied (e.g., 'WARN', 'MUTE', 'KICK', 'BAN'), or None if no punishment was applied
         """
         heat_config = await self.get_heat_config(message.guild.id)
         if not heat_config or not heat_config.enabled:
-            return False
+            return None
 
         # Add heat and get new level
         new_heat = await heat_config.add_heat(message.author.id, violation_type)
@@ -866,10 +898,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
         # Check if we should apply a punishment
         punishment = heat_config.get_punishment_for_heat(new_heat)
         if not punishment:
-            return False
+            return None
 
         # Apply the punishment
-        automod_rule_name = AUTOMOD_EVENT_NAMES_MAPPING.get(violation_type, "AutoMod rule")
+        automod_rule_name = AUTOMOD_EVENT_NAMES_MAPPING.get(violation_type.replace('_', '-'), "AutoMod rule")
         reason = f"{automod_rule_name} triggered (Heat: {new_heat:.1f})"
 
         meth = self.punishments[punishment.punishment]
@@ -881,7 +913,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         # Reset heat after punishment
         await heat_config.reset_heat(message.author.id)
-        return True
+        return punishment.punishment
 
     async def _delete_tracked_messages(self, messages: set[str], guild: discord.Guild):
         # Deletes message IDs tracked in AutoMod
@@ -920,13 +952,18 @@ class AutoMod(LightningCog, required=["Moderation"]):
                 await obj.reset_bucket(message)
                 
                 # Try heat-based punishment first
-                heat_applied = await self._handle_heat_punishment(message, attr_name)
+                heat_punishment_type = await self._handle_heat_punishment(message, attr_name)
                 
-                # If no heat punishment was applied, use the configured rule punishment
-                if not heat_applied:
+                # Determine which punishment was actually applied
+                if heat_punishment_type:
+                    applied_punishment_type = heat_punishment_type
+                else:
+                    # If no heat punishment was applied, use the configured rule punishment
                     await self._handle_punishment(obj.punishment, message, attr_name)
+                    applied_punishment_type = str(obj.punishment.type)
                 
-                if obj.punishment.type != "BAN":
+                # Only delete messages if the punishment wasn't a BAN
+                if applied_punishment_type != "BAN":
                     await self._delete_tracked_messages(messages, message.guild)
 
         await handle_bucket('mass_mentions', lambda m: len(m.mentions) + len(m.role_mentions))
