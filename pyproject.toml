@@ -61,7 +61,7 @@ lightning = "lightning.cli.main:parser"
 ruff = "^0.12.8"
 isort = "^6.0.1"
 pre-commit = "^4.2.0"
-pytest = "^8.4.1"
+pytest = "^9.0.2"
 
 [tool.autopep8]
 max_line_length = 120
