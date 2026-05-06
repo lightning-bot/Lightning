@@ -45,7 +45,7 @@ class PurgeFlags(commands.FlagConverter, prefix="--", delimiter=""):
                                                                             " ID")
     after: Annotated[Optional[int], Snowflake] = commands.flag(default=None,
                                                                description="Search for messages after this message ID")
-    user: Optional[discord.Member] = commands.flag(default=None, description="Remove messages from the specified user")
+    user: Optional[discord.User] = commands.flag(default=None, description="Remove messages from the specified user")
     bots: Optional[bool] = commands.flag(default=None, description="Removes messages from bots")
     archive: Optional[bool] = commands.flag(default=False,
                                             description="Whether to create an file with all the messages removed or "
