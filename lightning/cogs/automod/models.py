@@ -284,3 +284,99 @@ class GateKeeperConfig:
         if members:
             await self.bot.redis_pool.lpush(f"lightning:automod:gatekeeper:{self.guild_id}:remove", *members)
         self.members.clear()
+
+
+class HeatThreshold:
+    """Represents a heat threshold with its associated punishment."""
+    __slots__ = ("id", "threshold", "punishment", "duration")
+
+    def __init__(self, record: asyncpg.Record) -> None:
+        self.id: int = record['id']
+        self.threshold: int = record['heat_threshold']
+        self.punishment: str = record['punishment_type']
+        self.duration: Optional[int] = record.get('punishment_duration')
+
+
+class HeatConfig:
+    """Configuration for the heat-based automod system."""
+    __slots__ = ("guild_id", "enabled", "decay_seconds", "heat_per_violation", "thresholds", "bot")
+
+    def __init__(self, bot: LightningBot, config: asyncpg.Record, thresholds: list[asyncpg.Record]) -> None:
+        self.bot = bot
+        self.guild_id: int = config['guild_id']
+        self.enabled: bool = config['enabled']
+        self.decay_seconds: int = config['decay_seconds']
+        self.heat_per_violation: dict = config.get('heat_per_violation', {})
+        self.thresholds: list[HeatThreshold] = sorted(
+            [HeatThreshold(t) for t in thresholds],
+            key=lambda x: x.threshold
+        )
+
+    async def get_user_heat(self, user_id: int) -> float:
+        """Gets the current heat level for a user.
+
+        Returns
+        -------
+        float
+            The current heat level (0.0 if no heat or expired)
+        """
+        key = f"lightning:automod:heat:{self.guild_id}:{user_id}"
+        heat = await self.bot.redis_pool.get(key)
+        return float(heat) if heat else 0.0
+
+    async def add_heat(self, user_id: int, violation_type: str) -> float:
+        """Adds heat to a user for a violation.
+
+        Parameters
+        ----------
+        user_id : int
+            The user ID
+        violation_type : str
+            The type of violation (e.g., 'message-spam', 'invite-spam')
+
+        Returns
+        -------
+        float
+            The new heat level
+        """
+        heat_to_add = self.heat_per_violation.get(violation_type, 1.0)
+        key = f"lightning:automod:heat:{self.guild_id}:{user_id}"
+
+        # Add heat and set expiry
+        # Note: EXPIRE resets the TTL on each violation, meaning heat decays after
+        # a period of inactivity rather than gradually over time. This is intentional -
+        # active violators should maintain high heat, and it only decays when they stop.
+        pipe = self.bot.redis_pool.pipeline()
+        pipe.incrbyfloat(key, heat_to_add)
+        pipe.expire(key, self.decay_seconds)
+        result = await pipe.execute()
+        return float(result[0])
+
+    async def reset_heat(self, user_id: int) -> None:
+        """Resets a user's heat to 0.
+
+        Parameters
+        ----------
+        user_id : int
+            The user ID to reset
+        """
+        key = f"lightning:automod:heat:{self.guild_id}:{user_id}"
+        await self.bot.redis_pool.delete(key)
+
+    def get_punishment_for_heat(self, heat: float) -> Optional[HeatThreshold]:
+        """Gets the appropriate punishment for a heat level.
+
+        Parameters
+        ----------
+        heat : float
+            The current heat level
+
+        Returns
+        -------
+        Optional[HeatThreshold]
+            The punishment to apply, or None if no threshold is met
+        """
+        for threshold in reversed(self.thresholds):
+            if heat >= threshold.threshold:
+                return threshold
+        return None
