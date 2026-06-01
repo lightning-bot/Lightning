@@ -255,9 +255,10 @@ class ReportDashboard(discord.ui.View):
             msg = await self.fetch_message(interaction)
         except discord.NotFound:
             # Dismiss it?
-            await interaction.response.send_message("This message was deleted! If action needs to be taken,"
-                                                    " do it manually",
+            await interaction.response.send_message("This message was deleted!",
                                                     ephemeral=True)
+            await interaction.client.api.edit_guild_message_report(interaction.guild.id, self.message_id,
+                                                                   {"actioned": True})
             return
 
         if not msg:
