@@ -210,10 +210,10 @@ class Reminders(LightningCog):
                                    message_id=ctx.message.id)
 
         if type(_id) is dict:
-            content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
+            content = f"Absolutely! I’ll remind you{' in your DMs ' if not channel else ''} at"\
                       f" {discord.utils.format_dt(when.dt)} about {when.arg}. (#{_id['id']})"
         else:
-            content = f"Ok {ctx.author.mention}, I'll remind you{' in your DMs ' if not channel else ''} at"\
+            content = f"Absolutely! I’ll remind you{' in your DMs ' if not channel else ''} at"\
                       f" {discord.utils.format_dt(when.dt)} about {when.arg}."
 
         if channel is None:
@@ -247,8 +247,7 @@ class Reminders(LightningCog):
                                     channel=None,
                                     force_insert=True)
 
-        content = f"Ok {interaction.user.mention}, I'll remind you in your DMs at"\
-                  f" {discord.utils.format_dt(when)} about {text}. (#{data['id']})"
+        content = f"Absolutely! I’ll DM you at {discord.utils.format_dt(when)} about {text}. (#{data['id']})"
 
         embed = discord.Embed().set_footer(text="Make sure to have your DMs open so you can receive your reminder"
                                                 " when it's time!")
@@ -261,11 +260,11 @@ class Reminders(LightningCog):
         try:
             record = await self.bot.api.get_timer(reminder_id)
         except NotFound:
-            await ctx.send("Could not find a reminder with that ID!", ephemeral=True)
+            await ctx.send("I couldn't find a reminder with that ID.", ephemeral=True)
             return
 
         if record['extra']['author'] != ctx.author.id:
-            await ctx.send("Could not find a reminder with ID belonging to you!", ephemeral=True)
+            await ctx.send("I couldn't find a reminder with that ID.", ephemeral=True)
             return
 
         prompt = ReminderEdit(reminder_id, context=ctx)
@@ -418,8 +417,7 @@ class Reminders(LightningCog):
         else:
             reminder_content = timer.extra['reminder_text'][:1800]
 
-        message = f"<@!{user.id}> You asked to be reminded "\
-                  f"{dt_format} about {reminder_content}"
+        message = f"<@!{user.id}> Hey! You asked me to remind you {dt_format} about {reminder_content}"
         secret = timer.extra.pop("secret", False)
 
         # The reminder will be DM'd on one of the following conditions
