@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 import discord
+import emoji
 import spacy
 import spacy.tokens
 import yarl
@@ -130,13 +131,20 @@ class AntiScamResult:
         for _ in self.discord_invites:
             score -= 20
 
-        for token in content:
-            if token.text in ("🍑", "🔞", "💦", "🥵"):
+        for sentence in content.sents:
+            has_suspect_terms = any(token.lemma_.lower() in terms or token.norm_.lower() in terms for token in sentence)
+            has_suspect_emojis = any(token.text in SUSPECT_EMOJIS for token in sentence)
+            emoji_count = emoji.emoji_count(sentence.text)
+            if has_suspect_terms and has_suspect_emojis:
+                score -= 25
+            elif has_suspect_terms and self.mentions_everyone:
+                score -= 25
+            elif has_suspect_terms:
                 score -= 15
-                continue
+            elif has_suspect_emojis:
+                score -= 5
 
-            if token.lemma_.lower() in terms or token.norm_.lower() in terms:
-                score -= 10
+            score -= emoji_count * 5
 
         return AntiScamCalculatedResult(score, ScamType.MALICIOUS_NSFW_SERVER)
 
@@ -167,9 +175,10 @@ class AntiScamResult:
             score -= 5
 
         if self.author is not None:
-            if hasattr(self.author, "joined_at"):
-                if self.author.joined_at >= discord.utils.utcnow() + timedelta(days=7):
-                    score -= 5
+            joined_at = self.author.joined_at if isinstance(self.author, discord.Member) else None
+            # Recently-joined accounts are higher risk.
+            if joined_at is not None and joined_at >= discord.utils.utcnow() - timedelta(days=7):
+                score -= 5
 
             # A default profile picture is def sus
             if self.author.display_avatar == self.author.default_avatar:
@@ -272,6 +281,27 @@ class AntiScam(LightningCog):
             return val.replace(tzinfo=timezone.utc) if val else None
         return datetime.fromisoformat(res)
 
+    @staticmethod
+    def get_first_spoke_penalty(first_spoke: datetime, message_time: datetime) -> int:
+        """Returns a risk penalty based on how recently the user first spoke."""
+        if first_spoke.tzinfo is None:
+            first_spoke = first_spoke.replace(tzinfo=timezone.utc)
+        if message_time.tzinfo is None:
+            message_time = message_time.replace(tzinfo=timezone.utc)
+
+        delta = message_time - first_spoke
+
+        # Clock skew or bad data: still treat as higher risk.
+        if delta < timedelta(0):
+            return 10
+        if delta <= timedelta(minutes=10):
+            return 15
+        if delta <= timedelta(hours=1):
+            return 10
+        if delta <= timedelta(hours=24):
+            return 5
+        return 0
+
     # Redis cache for invite names
     async def put_discord_invite(self, invite: discord.Invite):
         await self.bot.redis_pool.set(f"lightning:antiscam:invite:{invite.code}", invite.guild.name,
@@ -323,10 +353,10 @@ class AntiScam(LightningCog):
         else:
             result = res.calculate()
 
-        # We additionally downgrade their score if this is their first message.
+        # We additionally downgrade their score if they are a brand new speaker.
         first_spoke = await self.get_first_spoke(message.guild.id, message.author.id)
-        if first_spoke is not None and first_spoke == message.created_at:
-            result.score -= 10
+        if first_spoke is not None:
+            result.score -= self.get_first_spoke_penalty(first_spoke, message.created_at)
 
         if result.score < 60:
             reason = f"AntiScam identified the message as a {result.friendly_type} scam."\
