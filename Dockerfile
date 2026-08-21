@@ -2,9 +2,7 @@ FROM python:3.10-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
 	PYTHONDONTWRITEBYTECODE=1 \
-	POETRY_HOME="/opt/poetry"
-
-ENV PATH="$POETRY_HOME/bin:$PATH"
+	UV_PROJECT_ENVIRONMENT="/opt/venv"
 
 RUN apt-get update && apt-get install --no-install-recommends -y curl build-essential git libpq-dev \
 	&& apt-get clean \
@@ -12,11 +10,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y curl build-esse
 
 WORKDIR /bot
 
-# Poetry
-RUN curl -sSL https://install.python-poetry.org | python -
+# uv
+RUN pip install --no-cache-dir uv
 
 COPY . .
 
-RUN poetry install --no-ansi
+RUN uv sync --locked
 
-CMD ["poetry", "run", "lightning", "docker-run"]
+CMD ["uv", "run", "lightning", "docker-run"]

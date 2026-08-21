@@ -26,6 +26,7 @@ services:
 
   bot:
     build: .
+    command: uv run lightning docker-run
     depends_on:
       - postgres
       - redis

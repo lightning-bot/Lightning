@@ -26,6 +26,7 @@ services:
 
   bot:
     build: .
+    command: uv run lightning docker-run
     volumes:
       - .:/bot
     depends_on:
