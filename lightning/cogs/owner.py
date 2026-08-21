@@ -219,5 +219,5 @@ class Owner(*OPTIONAL_FEATURES, *STANDARD_FEATURES):
 
 async def setup(bot: LightningBot) -> None:
     await bot.add_cog(Owner(bot=bot))
-    if sentry_sdk.is_initialized() is False:
+    if sentry_sdk.is_initialized() is True:
         bot.remove_command("bug")
