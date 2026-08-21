@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import discord
@@ -25,6 +26,8 @@ from lightning.models import PartialGuild
 
 if TYPE_CHECKING:
     from typing import Union
+
+log = logging.getLogger(__name__)
 
 
 class State(LightningCog):
@@ -36,13 +39,21 @@ class State(LightningCog):
     async def on_ready(self) -> None:
         records = await self.bot.pool.fetch("SELECT id, whitelisted FROM guilds WHERE left_at IS NULL;")
 
+        active_guilds = {g.id for g in self.bot.guilds}
+
         for record in records:
-            guild = self.bot.get_guild(record['id'])
-            if guild is not None:
+            if record['id'] in active_guilds:
+                # If the guild is blacklisted, then remove it forcibly
                 if record['whitelisted'] is False:
-                    await guild.leave()
+                    if guild := self.bot.get_guild(record['id']):
+                        try:
+                            await guild.leave()
+                        except Exception as e:
+                            log.error(f"Failed to leave guild {guild.id}: {e}")
                 continue
-            await self.remove_guild(record['id'])
+            else:
+                # Bot is no longer in the guild.
+                await self.remove_guild(record['id'])
 
     async def get_guild_record(self, guild_id: int) -> PartialGuild:
         record = await self.bot.api.get_guild(guild_id)
