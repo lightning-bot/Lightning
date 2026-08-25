@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
     class AutoModRulePunishmentPayload(TypedDict):
         type: str
-        duration: Optional[str]
+        duration: Optional[int]
 
     class AutoModRulePayload(TypedDict):
         guild_id: int

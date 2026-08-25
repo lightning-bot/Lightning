@@ -1,6 +1,6 @@
 """
 Lightning.py - A Discord bot
-Copyright (C) 2019-2024 LightSage
+Copyright (C) 2019-present LightSage
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -18,23 +18,25 @@ from __future__ import annotations
 
 import contextlib
 import random
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 import discord
-from discord.ext import menus
-from sanctum.exceptions import NotFound
+from discord.ext import commands, menus
+from sanctum.exceptions import DataConflict, NotFound
 
 from lightning import (BaseView, BasicMenuLikeView, ExitableMenu, GuildContext,
-                       LightningBot, SelectSubMenu, UpdateableMenu,
-                       lock_when_pressed)
+                       LightningBot, SelectSubMenu, UpdateableLayoutView,
+                       UpdateableMenu)
+from lightning.cogs.automod.converters import AutoModDurationResponse
 from lightning.constants import AUTOMOD_EVENT_NAMES_MAPPING
 from lightning.utils.checks import has_dangerous_permissions
 from lightning.utils.paginator import Paginator
+from lightning.utils.time import ShortTime
 from lightning.utils.ui import ConfirmationView
 
 if TYPE_CHECKING:
     from .cog import AutoMod as AutoModCog
-    from .models import GateKeeperConfig
+    from .models import GateKeeperConfig, SpamConfig
 
     class AutoModContext(GuildContext):
         cog: AutoModCog
@@ -51,6 +53,14 @@ automod_event_options = [discord.SelectOption(label="Message Spam", value="messa
                                               description="Controls how many messages containing the same content can "
                                                           "be sent")]
 
+automod_rule_protection = {
+    "message-spam": "Blocks bursts of messages sent in a short period.",
+    "mass-mentions": "Blocks mention spam in a short burst.",
+    "url-spam": "Blocks users from sending too many links.",
+    "invite-spam": "Blocks users from sending too many Discord invites.",
+    "message-content-spam": "Blocks repeated messages with the same content.",
+}
+
 automod_punishment_options = [discord.SelectOption(label="Delete", value="DELETE", description="Deletes the message"),
                               discord.SelectOption(label="Warn", value="WARN",
                                                    description="Warns the author of the message"),
@@ -64,13 +74,13 @@ automod_punishment_options = [discord.SelectOption(label="Delete", value="DELETE
 
 async def prompt_for_automod_punishments(ctx: GuildContext):
     prompt = SelectSubMenu(*automod_punishment_options, context=ctx)
-    m = await ctx.send("Select a punishment for this rule", view=prompt)
+    m = await ctx.send("Choose what should happen when this rule is triggered", view=prompt)
     await prompt.wait()
 
     await m.delete()
 
     if not prompt.values:
-        await ctx.send("You did not provide a punishment type! Exiting...")
+        await ctx.send("No punishment was selected, so the setup was cancelled.")
         return
 
     # We need to ask for duration at some point...
@@ -78,15 +88,15 @@ async def prompt_for_automod_punishments(ctx: GuildContext):
     return prompt.values
 
 
-class AutoModMassMentionsModal(discord.ui.Modal, title="Automod Configuration"):
-    count = discord.ui.TextInput(label="Count", min_length=1, max_length=3)
+class AutoModMassMentionsModal(discord.ui.Modal, title="Configure the AutoMod Rule"):
+    count = discord.ui.TextInput(label="Limit", min_length=1, max_length=3)
     # Type should be a select
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         try:
             self.count._value = int(self.count.value)  # type: ignore
         except ValueError:
-            await interaction.response.send_message("Count is not a number. For reference, you gave "
+            await interaction.response.send_message("Limit is not a whole number. For example, 5, 10, or 15. For reference, you gave "
                                                     f"{self.count.value}", ephemeral=True)
             return
 
@@ -99,84 +109,36 @@ class AutoModEventModal(AutoModMassMentionsModal):
         super().__init__()
         self.ctx = ctx
 
-    seconds = discord.ui.TextInput(label="Seconds", min_length=1, max_length=3)
+    seconds = discord.ui.TextInput(label="Time window (seconds)", min_length=1, max_length=3)
     # tfw Discord removed Selects as it's a "bug"
-    punishment_type = discord.ui.Select(placeholder="Select a punishment type", options=automod_punishment_options)
+    punishment_type = discord.ui.Select(placeholder="Choose what should happen", options=automod_punishment_options)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
         try:
             self.count._value = int(self.count.value)  # type: ignore
         except ValueError:
-            await interaction.response.send_message("Count is not a number. For reference, "
+            await interaction.response.send_message("Limit is not a whole number. For example, 5, 10, or 15.\nFor reference, "
                                                     f"you gave {self.count.value}", ephemeral=True)
             return
 
         try:
             self.seconds._value = int(self.seconds.value)  # type: ignore
         except ValueError:
-            # You did not provide a number for the seconds field
-            await interaction.response.send_message("Seconds is not a number. For reference, "
-                                                    f"you gave {self.seconds.value}", ephemeral=True)
+            # You did not provide a number for the time-window field
+            await interaction.response.send_message("Time window (seconds) is not a whole number. For example, 30, 60, or 120.\n"
+                                                    f"For reference, you gave {self.seconds.value}", ephemeral=True)
             return
 
         # await interaction.client.api.add_automod_config(interaction.guild.id)
-        await interaction.followup.send(f"{self.seconds.value}", ephemeral=True)
+        await interaction.response.send_message(f"{self.seconds.value}", ephemeral=True)
 
 
 class AutoModConfiguration(ExitableMenu):
-    @discord.ui.select(placeholder="Select an event to configure", options=automod_event_options)
+    @discord.ui.select(placeholder="Select a rule to configure", options=automod_event_options)
     async def configure_automod_event(self, interaction: discord.Interaction, select: discord.ui.Select):
         modal = AutoModEventModal(
-            self.ctx) if select.values[0] != "mass-mentions" else AutoModMassMentionsModal(self.ctx)
+            self.ctx) if select.values[0] != "mass-mentions" else AutoModMassMentionsModal()
         await interaction.response.send_modal(modal)
-
-
-class AutoModSetup(UpdateableMenu, ExitableMenu):
-    async def format_initial_message(self, ctx):
-        # config = await ctx.bot.api.get_guild_automod_events(ctx.guild.id)
-        try:
-            config = await ctx.bot.api.get_guild_automod_rules(ctx.guild.id)
-        except NotFound:
-            return "AutoMod has not been setup yet!"
-
-        fmt = '\n'.join(f"\N{BULLET} {AUTOMOD_EVENT_NAMES_MAPPING[record['type']]}: {record['count']}/"
-                        f"{record['seconds']}s"
-                        for record in config)
-
-        return f"**AutoMod Configuration**\nActive events:\n{fmt}"
-
-    @discord.ui.button(label="Add new rule", style=discord.ButtonStyle.blurple)
-    @lock_when_pressed
-    async def add_configuration_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        view = AutoModConfiguration(context=self.ctx)
-        await interaction.response.send_message(view=view)
-        await view.wait()
-
-    @discord.ui.button(label="Add ignores")
-    @lock_when_pressed
-    async def add_ignores_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        ...
-
-    @discord.ui.button(label="Remove specific rule", style=discord.ButtonStyle.danger)
-    @lock_when_pressed
-    async def remove_event_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
-        select = SelectSubMenu(*automod_event_options, context=self.ctx)
-        m = await interaction.followup.send("Select the event you want to remove configuration for", view=select,
-                                            wait=True)
-        await select.wait()
-        await m.delete()
-        if not select.values:
-            return
-
-        # await self.ctx.bot.api.remove_guild_automod_event(self.ctx.guild.id, select.values[0])
-        try:
-            await self.ctx.bot.api.request("DELETE", f"/guilds/{interaction.guild.id}/automod/rules/{select.values[0]}")
-        except NotFound:
-            await interaction.followup.send("The automod event you selected is not configured!", ephemeral=True)
-            return
-
-        await interaction.followup.send(f"Removed {AUTOMOD_EVENT_NAMES_MAPPING[select.values[0]]} configuration!")
 
 
 class AutoModIgnoredPages(menus.ListPageSource):
@@ -205,6 +167,383 @@ class AutoModWarnThresholdMigration(discord.ui.View):
         self.choice = "warn_ban"
         await itx.response.edit_message(view=None)
         self.stop()
+
+
+class UpdatableActionRow(discord.ui.ActionRow):
+
+    def update(self) -> None:
+        """Method to update labels or other properties of children."""
+        raise NotImplementedError
+
+
+class AutoModSelectRuleRow(UpdatableActionRow):
+    view: 'AutoModInteractiveView'
+
+    @discord.ui.select(placeholder="Select a rule to configure", options=automod_event_options)
+    async def configure_automod_rule(self, interaction: discord.Interaction, select: discord.ui.Select):
+        if self.view.selected_rule:
+            self.view.discard_changes()
+
+        name = AUTOMOD_EVENT_NAMES_MAPPING.get(select.values[0], select.values[0])
+        self.configure_automod_rule.placeholder = f"Selected: {name}"
+        self.configure_automod_rule.disabled = True
+
+        self.view.selected_rule = select.values[0]
+        await self.view.update(interaction=interaction)
+
+
+class IntervalModal(discord.ui.Modal, title="Configure the Rate Limit"):
+    view: 'AutoModInteractiveView'
+
+    messages = discord.ui.TextInput(label="Limit", required=True,
+                                    placeholder="How many messages or mentions should trigger AutoMod?")
+    seconds = discord.ui.TextInput(label="Time window (seconds)", placeholder="How many seconds should be counted?",
+                                   required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            int(self.messages.value)
+            int(self.seconds.value)
+        except ValueError:
+            await interaction.response.send_message("Oops! Please make sure both fields contain whole numbers (like `5` or `60`).", ephemeral=True)
+            self.stop()
+            return
+
+        await interaction.response.edit_message()
+        self.stop()
+
+
+class ConfigureIntervalButton(discord.ui.Button):
+    view: 'AutoModInteractiveView'
+
+    async def callback(self, interaction: discord.Interaction):
+        modal = IntervalModal()
+        await interaction.response.send_modal(modal)
+        timed_out = await modal.wait()
+        if timed_out:
+            return
+
+        self.view.selected_interval = AutoModDurationResponse(int(modal.messages.value), int(modal.seconds.value))
+        self.style = discord.ButtonStyle.grey
+        await self.view.update(interaction=interaction)
+
+
+class PunishmentDurationModal(discord.ui.Modal, title="Configure Punishment Duration"):
+    view: 'AutoModInteractiveView'
+
+    duration = discord.ui.TextInput(label="Duration", placeholder="How long should the punishment last?", required=True)
+    dt = None
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            self.dt = ShortTime(self.duration.value.strip(" "))
+        except commands.BadArgument:
+            await interaction.response.send_message("Hmm, that duration format didn't work. "
+                                                    "Try something like `30m`, `2h`, `1d`, or `1w`!", ephemeral=True)
+            self.stop()
+            return
+
+        await interaction.response.edit_message()
+        self.stop()
+
+
+class ConfigurePunishmentDurationButton(discord.ui.Button):
+    view: 'AutoModInteractiveView'
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.view.selected_punishment is None:
+            await interaction.response.send_message("Hold on! Choose an action first.", ephemeral=True)
+            return
+
+        if self.view.selected_punishment not in ("MUTE", "BAN"):
+            await interaction.response.send_message("A duration is only available for Mute or Ban. This punishment does not use one.",
+                                                    ephemeral=True)
+            return
+
+        modal = PunishmentDurationModal()
+        await interaction.response.send_modal(modal)
+        timed_out = await modal.wait()
+        if timed_out:
+            return
+
+        assert modal.dt is not None
+
+        self.view.selected_punishment_duration = modal.dt.delta.seconds
+        self.style = discord.ButtonStyle.grey
+        await self.view.update(interaction=interaction)
+
+
+class ConfigurePunishmentActionRow(discord.ui.ActionRow):
+    view: 'AutoModInteractiveView'
+
+    @discord.ui.select(placeholder="Choose what should happen", options=automod_punishment_options, max_values=1,
+                       min_values=1)
+    async def punishment_type(self, interaction: discord.Interaction, select: discord.ui.Select):
+        self.view.selected_punishment = select.values[0]
+        if self.view.selected_punishment not in ("MUTE", "BAN"):
+            self.view.selected_punishment_duration = None
+        self.punishment_type.placeholder = f"Selected action: {select.values[0]}"
+        self.view.updated_configuration = True
+        await self.view.update(interaction=interaction)
+
+
+class AutoModConfigureRule(discord.ui.ActionRow):
+    view: 'AutoModInteractiveView'
+
+    @discord.ui.button(label="Configure Rate Limit", style=discord.ButtonStyle.blurple)
+    async def configure_automod_rule(self, interaction: discord.Interaction, button: discord.ui.Button):
+        modal = IntervalModal()
+        await interaction.response.send_modal(modal)
+        timed_out = await modal.wait()
+        if timed_out:
+            return
+
+        self.view.selected_interval = AutoModDurationResponse(int(modal.messages.value), int(modal.seconds.value))
+        self.configure_automod_rule.style = discord.ButtonStyle.grey
+        await self.view.update(interaction=interaction)
+
+
+class SaveActionRow(discord.ui.ActionRow):
+    view: 'AutoModInteractiveView'
+
+    @discord.ui.button(label="Save", style=discord.ButtonStyle.green, disabled=True)
+    async def save_changes(self, interaction: discord.Interaction, button: discord.ui.Button):
+        view = self.view
+        if view.selected_interval is None:
+            await interaction.response.send_message("Not quite! Set the rate limit for this rule first.",
+                                                    ephemeral=True)
+            return
+
+        if view.selected_punishment is None:
+            await interaction.response.send_message("Almost there! Choose an action for this rule.",
+                                                    ephemeral=True)
+            return
+
+        assert interaction.guild is not None
+        assert view.selected_rule is not None
+        guild_id = interaction.guild.id
+        punishment_payload: dict[str, Union[str, int]] = {"type": view.selected_punishment}
+        if view.selected_punishment_duration is not None:
+            punishment_payload["duration"] = view.selected_punishment_duration
+
+        payload = {"guild_id": guild_id,
+                   "type": view.selected_rule,
+                   "count": view.selected_interval.count,
+                   "seconds": view.selected_interval.seconds,
+                   "punishment": punishment_payload}
+        action = "Created"
+        try:
+            await view.ctx.bot.api.create_guild_automod_rule(guild_id, payload)
+        except DataConflict:
+            await view.ctx.bot.api.delete_guild_automod_rule(guild_id, view.selected_rule)
+            await view.ctx.bot.api.create_guild_automod_rule(guild_id, payload)
+            action = "Updated"
+
+        await view.ctx.cog.get_automod_config.invalidate(guild_id)
+
+        rule_name = AUTOMOD_EVENT_NAMES_MAPPING.get(view.selected_rule,
+                                                    view.selected_rule.replace("-", " ").title())
+        punishment_name = view.selected_punishment.capitalize()
+        duration = (f" for {view.selected_punishment_duration} seconds"
+                    if view.selected_punishment_duration is not None else "")
+        summary = (f"**{rule_name}**\n"
+                   f"Trigger: {view.selected_interval.count} "
+                   f"{view.interval_unit()} in "
+                   f"{view.selected_interval.seconds:g} seconds\n"
+                   f"Action: {punishment_name}{duration}")
+        await interaction.response.send_message(f"✓ {action} AutoMod rule successfully.\n\n{summary}", ephemeral=True)
+        view.discard_changes()
+        await view.update()
+
+    @discord.ui.button(label="Delete", style=discord.ButtonStyle.red, disabled=True)
+    async def delete_rule(self, interaction: discord.Interaction, button: discord.ui.Button):
+        view = self.view
+        assert view.selected_rule is not None
+        rule_name = AUTOMOD_EVENT_NAMES_MAPPING.get(
+            view.selected_rule, view.selected_rule.replace("-", " ").title())
+        content = f"Are you sure you want to permanently delete the **{rule_name}** rule?"
+        confirmation = ConfirmationView(content, author_id=interaction.user.id)
+        await interaction.response.send_message(content, view=confirmation, ephemeral=True)
+        await confirmation.wait()
+
+        if confirmation.value is not True:
+            return
+
+        assert interaction.guild is not None
+        try:
+            await view.ctx.bot.api.delete_guild_automod_rule(interaction.guild.id, view.selected_rule)
+        except NotFound:
+            await interaction.followup.send(f"The **{rule_name}** rule no longer exists.", ephemeral=True)
+        else:
+            await view.ctx.cog.get_automod_config.invalidate(interaction.guild.id)
+            view.discard_changes()
+            await interaction.followup.send(f"✓ Deleted the **{rule_name}** AutoMod rule.", ephemeral=True)
+            await view.update()
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+    async def cancel_changes(self, interaction: discord.Interaction, button: discord.ui.Button):
+        view = self.view
+        view.discard_changes()
+        await view.update(interaction=interaction)
+        await interaction.followup.send("✓ Changes discarded. Let's start fresh!", ephemeral=True)
+
+
+class AutoModInteractiveView(UpdateableLayoutView):
+    container = discord.ui.Container(accent_color=discord.Color.blurple())
+    selected_rule: Optional[str] = None
+    selected_interval: Optional[AutoModDurationResponse] = None
+    selected_punishment: Optional[str] = None
+    selected_punishment_duration: Optional[int] = None
+    setup_settings: bool = False
+    sections: dict[str, discord.ui.Section] = {}
+    updated_configuration: bool = False
+
+    async def get_configuration(self):
+        # assert isinstance(self.ctx.cog, 'AutoModCog')
+
+        return await self.ctx.cog.get_automod_config(self.ctx.guild.id)
+
+    def interval_unit(self) -> str:
+        return "mentions" if self.selected_rule == "mass-mentions" else "messages"
+
+    def build_components(self):
+        title = "# Let's set up AutoMod\n\nChoose a rule below to create it or update its current settings. "\
+            "You'll be able to review the rule before saving your changes."
+        self.container.add_item(discord.ui.TextDisplay(title))
+        self.container.add_item(discord.ui.Separator())
+        # ----Interactive AutoMod-----
+        # Select a rule to setup or change configuration
+        # SELECT HERE
+        # Once, a rule is selected, settings are dropped down
+        self.container.add_item(AutoModSelectRuleRow())
+
+    async def start(self, *, wait: bool = True):
+        await self.add_initial_components()
+
+        return await super().start(wait=wait)
+
+    async def add_initial_components(self):
+        self.build_components()
+
+    def discard_changes(self):
+        """Discards the changes and rebuilds the view."""
+        self.selected_rule = None
+        self.selected_interval = None
+        self.selected_punishment = None
+        self.selected_punishment_duration = None
+        self.setup_settings = False
+        self.sections.clear()
+
+        for child in self.container.walk_children():
+            self.container.remove_item(child)
+
+        self.build_components()
+
+    async def update_components(self) -> None:
+        if not self.selected_rule:
+            return
+
+        config = await self.get_configuration()
+        cfg: Optional[SpamConfig] = getattr(config, self.selected_rule.replace("-", "_"), None)
+        if cfg and not self.setup_settings:
+            # We assume that there's already a cooldown configured...
+            self.selected_interval = AutoModDurationResponse(cfg.cooldown.rate, cfg.cooldown.per.total_seconds())
+            self.selected_punishment = cfg.punishment.type.name
+            self.selected_punishment_duration = (int(cfg.punishment.duration)
+                                                 if cfg.punishment.duration else None)
+
+        if not cfg:
+            ...
+            # Not sure why we're returning here
+            # return
+
+        if self.setup_settings:
+            # We have already built the configuration components, so we just update as needed
+            if self.selected_interval:
+                new_interval = (f"{self.selected_interval.count} {self.interval_unit()} in "
+                                f"{self.selected_interval.seconds:g} seconds")
+                if cfg:
+                    current_interval = (f"{cfg.cooldown.rate} {self.interval_unit()} in "
+                                        f"{cfg.cooldown.per.total_seconds():g} seconds")
+                    interval_content = (f"**Currently: {current_interval}**\n"
+                                        f"**After saving: {new_interval}**")
+                else:
+                    interval_content = f"**This rule will use: {new_interval}**"
+                self.sections['interval'].children[0].content = interval_content
+
+            punishment_content = "Choose a punishment type to continue."
+            if self.selected_punishment:
+                new_punishment = self.selected_punishment.capitalize()
+                if self.selected_punishment_duration is not None:
+                    new_punishment += f" for {self.selected_punishment_duration} seconds"
+
+                if cfg:
+                    current_punishment = cfg.punishment.type.name.capitalize()
+                    if cfg.punishment.duration:
+                        current_punishment += f" for {int(cfg.punishment.duration)} seconds"
+                    punishment_content = (f"**Currently: {current_punishment}**\n"
+                                          f"**After saving: {new_punishment}**")
+                else:
+                    punishment_content = f"**This rule will use: {new_punishment}**"
+            self.sections['punishment'].children[0].content = punishment_content
+
+            for child in self.container.children:
+                if isinstance(child, SaveActionRow):
+                    child.children[0].disabled = (self.selected_interval is None or
+                                                  self.selected_punishment is None)
+                    child.children[0].label = "Save" if cfg else "Create"
+                    child.children[1].disabled = cfg is None
+                    child.children[2].label = "Cancel"
+            return
+
+        rule_name = AUTOMOD_EVENT_NAMES_MAPPING.get(
+            self.selected_rule, self.selected_rule.replace("-", " ").title())
+        protection = automod_rule_protection.get(
+            self.selected_rule, "Helps protect your server from unwanted activity.")
+        self.container.add_item(discord.ui.TextDisplay(f"### {rule_name}\n"
+                                                       f"-# Protects against: {protection}"))
+
+        # Configure AutoMod Rule Interval
+        self.container.add_item(discord.ui.Separator())
+
+        interval_noun = "mention" if self.selected_rule == "mass-mentions" else "message"
+        sec_content = f"Choose how often this rule should trigger by setting a {interval_noun} limit and time window."
+        if cfg:
+            sec_content += f"\n**Currently: {cfg.cooldown.rate} {self.interval_unit()} in "\
+                           f"{cfg.cooldown.per.total_seconds()} seconds**"
+        section = discord.ui.Section(discord.ui.TextDisplay(sec_content),
+                                     accessory=ConfigureIntervalButton(label="Configure Rate Limit"))
+        self.sections['interval'] = section
+        self.container.add_item(section)
+
+        self.container.add_item(discord.ui.Separator())
+
+        # Configure AutoMod Rule Punishment
+        self.container.add_item(discord.ui.TextDisplay("### What should AutoMod do?\n"))
+        self.container.add_item(ConfigurePunishmentActionRow())
+        # Update the punishment duration button based on existing config
+        sec_content = "Choose what happens when this rule is triggered. Mute and Ban actions can also have a duration."
+        if cfg:
+            sec_content += f"\n**Currently: {cfg.punishment.type.name.capitalize()}**"
+        section = discord.ui.Section(discord.ui.TextDisplay(sec_content),
+                                     accessory=ConfigurePunishmentDurationButton(label="Configure Punishment Duration"))
+        self.sections['punishment'] = section
+        self.container.add_item(section)
+        # ---
+        # Ending menu
+        self.container.add_item(discord.ui.Separator())
+        rule_name = AUTOMOD_EVENT_NAMES_MAPPING.get(self.selected_rule, self.selected_rule.replace("-", " ").title())
+        cancel_action = "discard your changes" if cfg else "exit without creating it"
+        self.container.add_item(discord.ui.TextDisplay("Review your settings below. When everything looks right, "
+                                                       f"select {'Save' if cfg else 'Create'}. Select Cancel to "
+                                                       f"{cancel_action}."))
+        save_row = SaveActionRow()
+        save_row.children[0].label = "Save" if cfg else "Create"
+        save_row.children[1].disabled = cfg is None
+        self.container.add_item(save_row)
+
+        # We have built the components for the rule configuration, so we set this to true so we don't do it again.
+        self.setup_settings = True
 
 
 class FakeCtx:
@@ -622,6 +961,20 @@ class GatekeeperSetup(UpdateableMenu, ExitableMenu):
 
         self.invalidate_gatekeeper_cache()
         self.gatekeeper = await self.ctx.cog.get_gatekeeper_config(itx.guild_id)  # type: ignore
+
+        if self.gatekeeper.verification_message_id:
+            ch = self.gatekeeper.verification_channel
+            if ch:
+                try:
+                    og_msg = await ch.fetch_message(self.gatekeeper.verification_message_id)
+                except discord.HTTPException:
+                    og_msg = None
+
+                if og_msg:
+                    try:
+                        await og_msg.edit(view=view)
+                    except discord.HTTPException:
+                        ...
         await self.update(interaction=itx)
 
     @discord.ui.button(label="Disable", style=discord.ButtonStyle.red)

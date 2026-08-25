@@ -254,6 +254,18 @@ class AutoMod(LightningCog, required=["Moderation"]):
     async def automod_rules(self, ctx: GuildContext):
         ...
 
+    @automod_rules.command(level=CommandLevel.Admin, name="interactive")
+    @is_server_manager()
+    async def automod_rules_interactive(self, ctx: GuildContext):
+        """Interactively sets up AutoMod rules for your server"""
+        config = await self.get_automod_config(ctx.guild.id)
+        if not config:
+            await self.create_automod_config(ctx.guild)
+            await self.get_automod_config.invalidate(ctx.guild.id)
+
+        view = ui.AutoModInteractiveView(context=ctx)
+        await view.start()
+
     @automod_rules.command(level=CommandLevel.Admin, name="add")
     @is_server_manager()
     @app_commands.describe(rule="The AutoMod rule to set up",
@@ -717,7 +729,8 @@ class AutoMod(LightningCog, required=["Moderation"]):
     @LightningCog.listener()
     async def on_member_join(self, member: discord.Member):
         gatekeeper = await self.get_gatekeeper_config(member.guild.id)
-        if gatekeeper and gatekeeper.active:
+        if gatekeeper and gatekeeper.active and member.pending is False:
+            print(member)
             await gatekeeper.gatekeep_member(member)
 
         record = await self.get_automod_config(member.guild.id)
@@ -729,6 +742,12 @@ class AutoMod(LightningCog, required=["Moderation"]):
     # Auto-Dehoist & Auto-Normalize
     @LightningCog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
+        if before.pending != after.pending:
+            print(after)
+            gatekeeper = await self.get_gatekeeper_config(after.guild.id)
+            if gatekeeper and gatekeeper.active:
+                await gatekeeper.gatekeep_member(after)
+
         if before.display_name == after.display_name:
             return
 
