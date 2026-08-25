@@ -19,5 +19,10 @@ class TestAntiScam(unittest.TestCase):
         r = result.calculate_with_invites({"https://discord.gg/SpFjsy3": "Best New 🥵 Server"})
         self.assertEqual(r.type, ScamType.MALICIOUS_NSFW_SERVER)
         # Breaking this down for future reference
-        # 100 - 5 (Mentions everyone) - 20 (Invite Link) - 15 (Emoji) - 5 (Was identified in calculate as mal. term)
-        self.assertEqual(r.score, 100 - 5 - 20 - 15 - 5)
+        # 100
+        # - 5 (Mentions everyone)
+        # - 20 (Invite Link)
+        # - 5 (Suspect emoji)
+        # - 5 (Emoji count)
+        # - 5 (Was identified in calculate as mal. term)
+        self.assertEqual(r.score, 100 - 5 - 20 - 5 - 5 - 5)
