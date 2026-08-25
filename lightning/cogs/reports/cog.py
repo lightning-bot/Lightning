@@ -193,6 +193,10 @@ class Reports(LightningCog):
 
     @app_commands.guild_only()
     async def report(self, interaction: discord.Interaction, message: discord.Message):
+        if message.type is not discord.MessageType.default:
+            await interaction.response.send_message("You can't report system messages!", ephemeral=True)
+            return
+
         if message.author.bot:
             await interaction.response.send_message("You can't report messages from bots!", ephemeral=True)
             return
