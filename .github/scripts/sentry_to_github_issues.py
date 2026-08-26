@@ -97,7 +97,7 @@ def main() -> int:
         status = exc.response.status_code if exc.response is not None else None
         if status in (401, 403):
             print(
-                f"⚠️ Sentry API request failed with HTTP {status}. "
+                f"::warning::Sentry API request failed with HTTP {status}. "
                 "This usually means SENTRY_AUTH_TOKEN is missing the 'event:read' "
                 "and/or 'project:read' scopes required to list issues."
             )
