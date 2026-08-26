@@ -91,7 +91,20 @@ def create_github_issue(sentry_issue: dict) -> None:
 
 
 def main() -> int:
-    issues = get_new_sentry_issues()
+    try:
+        issues = get_new_sentry_issues()
+    except requests.exceptions.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status in (401, 403):
+            print(
+                f"::warning::Sentry API request failed with HTTP {status}. "
+                "This usually means SENTRY_AUTH_TOKEN is missing the 'event:read' "
+                "and/or 'project:read' scopes required to list issues. "
+                "Skipping this run without creating GitHub issues."
+            )
+            return 0
+        raise
+
     print(f"Found {len(issues)} unresolved Sentry issue(s) in the last {STATS_PERIOD}.")
 
     for issue in issues:
