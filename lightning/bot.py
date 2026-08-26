@@ -331,7 +331,10 @@ class LightningBot(commands.AutoShardedBot):
             scope.set_tag("event", event)
             scope.set_extra("args", args)
             scope.set_extra("kwargs", kwargs)
-            log.exception(f"Error on {event}", exc_info=exc)
+            scope.set_extra("error_message", str(exc[1]) or "<empty>")
+            sentry_sdk.capture_exception(exc[1])
+
+        log.exception(f"Error on {event}", exc_info=exc)
 
         exc = ''.join(traceback.format_exception(exc[0], exc[1], exc[2], chain=False))
         if len(exc) >= 2040:
