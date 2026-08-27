@@ -405,22 +405,30 @@ class Stats(LightningCog):
 
     @stats.command(name="all")
     @commands.is_owner()
-    async def stats_all(self, ctx: LightningContext):
-        """Sends stats on the most popular commands used in the bot"""
+    async def stats_all(self, ctx: LightningContext, ignore_owner: bool = False):
+        """
+        Sends stats on the most popular commands used in the bot
+
+        To make smarter decisions, you can use the `ignore_owner` parameter to ignore commands used by the bot owner.
+        """
         async with ctx.typing():
+            owners = self.bot.owners if ignore_owner else []
             query = """SELECT command_name,
                         COUNT (*) as "cmd_uses"
                        FROM command_stats
+                       WHERE user_id != ALL($1::bigint[])
                        GROUP BY command_name
                        ORDER BY "cmd_uses" DESC
                        LIMIT 10;
                     """
             async with self.bot.pool.acquire() as conn:
-                records = await conn.fetch(query)
-                total = await conn.fetchval("SELECT COUNT(*) FROM command_stats;")
+                records = await conn.fetch(query, owners)
+                total = await conn.fetchval("SELECT COUNT(*) FROM command_stats WHERE user_id != ALL($1::bigint[]);",
+                                            owners)
                 query = """SELECT COUNT(*) FROM command_stats
-                           WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 day');"""
-                today_total = await conn.fetchval(query)
+                           WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 day')
+                           AND user_id != ALL($1::bigint[]);"""
+                today_total = await conn.fetchval(query, owners)
                 embed = discord.Embed(title="Popular Commands", color=0x841d6e,
                                       description=f"Total commands used: {total}\nTotal commands used today: "
                                                   f"{today_total}")
@@ -431,11 +439,12 @@ class Stats(LightningCog):
                             COUNT (*) as "cmd_uses"
                            FROM command_stats
                            WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 day')
+                           AND user_id != ALL($1::bigint[])
                            GROUP BY command_name
                            ORDER BY "cmd_uses" DESC
                            LIMIT 10;
                         """
-                records = await conn.fetch(query)
+                records = await conn.fetch(query, owners)
             commands_used_des = '\n'.join(f'{self.number_places[index]}: {command_name} (used {cmd_uses} times)'
                                           for (index, (command_name, cmd_uses)) in enumerate(records))
             embed.add_field(name="Today", value=commands_used_des)
