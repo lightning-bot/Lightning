@@ -296,7 +296,9 @@ class AutoMod(LightningCog, required=["Moderation"]):
         punishment_payload: Dict[str, Any] = {"type": punishment.name}
 
         if punishment.name in ("BAN", "MUTE") and punishment_duration:
-            punishment_payload['duration'] = punishment_duration.delta.seconds
+            delta = punishment_duration.delta
+            punishment_payload['duration'] = delta.days * 86400 + delta.hours * 3600 + delta.minutes * 60 \
+                + delta.seconds
 
         payload = {"guild_id": ctx.guild.id,
                    "type": rule,

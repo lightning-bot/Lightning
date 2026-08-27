@@ -274,7 +274,9 @@ class ConfigurePunishmentDurationButton(discord.ui.Button):
 
         assert modal.dt is not None
 
-        self.view.selected_punishment_duration = (modal.dt.delta.days * 86400 + modal.dt.delta.seconds)
+        delta = modal.dt.delta
+        self.view.selected_punishment_duration = (delta.days * 86400 + delta.hours * 3600 + delta.minutes * 60
+                                                   + delta.seconds)
         self.style = discord.ButtonStyle.grey
         await self.view.update(interaction=interaction)
 
