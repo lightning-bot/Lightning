@@ -17,12 +17,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import inspect
+import logging
 import os
+from datetime import timedelta
 from typing import Optional
 
 import discord
 
 from lightning import LightningCog, LightningContext, command, hybrid_command
+
+log = logging.getLogger(__name__)
 
 
 class BotMeta(LightningCog):
@@ -122,28 +126,78 @@ class BotMeta(LightningCog):
 
     @LightningCog.listener('on_lightning_guild_add')
     async def send_guild_onboarding_message(self, guild: discord.Guild):
-        msg = (f"Thanks for adding me to your server! By default, my prefix is {self.bot.user.mention}, "
-               "but that can be changed! "
-               "To add a custom prefix, run @Lightning config prefix\n\n"
-               "To get a list of my commands, you can run the `help` command. For information about an individual"
-               " command, you can use `help [command]`"
-               "\n\n*If you need any help setting up this bot, please visit the support server at "
-               f"{self.bot.config.bot.support_server_invite} and someone will help!\nYou can additionally "
-               "visit <https://lightning.lightsage.dev/> for documentation to set up some of the bot's features!*")
+        msg = ("⚡ **Thanks for adding Lightning!** I can help keep this server safe from raids, spam, and "
+               "rule-breakers, with clean, easy to follow mod logs, in just a couple minutes.\n\n"
+               "**Get protected right now:**\n"
+               "\N{BULLET} Run `/automod rules interactive` for a guided walkthrough that sets up AutoMod "
+               "rules for spam and raid protection\n"
+               "\N{BULLET} Run `/modlog` in the channel you want moderation actions logged to\n\n"
+               f"By default, my prefix is {self.bot.user.mention}, but that can be changed with "
+               "`config prefix`. You can also run `help` for a full list of commands.\n\n"
+               "*Need a hand? Visit the support server at "
+               f"{self.bot.config.bot.support_server_invite}, or check out the "
+               "AutoMod quick-start guide below.*")
 
         view = discord.ui.View()
         view.add_item(discord.ui.Button(style=discord.ButtonStyle.grey,
+                                        label="AutoMod Quick Start",
+                                        url="https://lightning.lightsage.dev/guide/automod-configuration"))
+        view.add_item(discord.ui.Button(style=discord.ButtonStyle.grey,
                                         label="Documentation",
                                         url="https://lightning.lightsage.dev/"))
-        view.add_item(discord.ui.Button(style=discord.ButtonStyle.grey,
-                                        label="AutoMod Documentation",
-                                        url="https://lightning.lightsage.dev/guide/automod-configuration"))
 
-        default_channel = guild.system_channel
-        if default_channel and default_channel.permissions_for(guild.me).send_messages is True:
-            await default_channel.send(msg, view=view)
-            return
+        if not await self.attempt_onboarding_send(guild, msg, view):
+            # No suitable channel was available (or we lacked permissions), so fall back to DMing the
+            # owner rather than silently dropping the onboarding message.
+            status = "dm" if await self.attempt_onboarding_dm(guild, msg, view) else "failed"
+        else:
+            status = "channel"
 
-        notice_channel = guild.public_updates_channel
-        if notice_channel and notice_channel.permissions_for(guild.me).send_messages is True:
-            await notice_channel.send(msg, view=view)
+        await self.record_onboarding_delivery(guild, status)
+
+    async def attempt_onboarding_send(self, guild: discord.Guild, msg: str, view: discord.ui.View) -> bool:
+        for channel in (guild.system_channel, guild.public_updates_channel):
+            if channel and channel.permissions_for(guild.me).send_messages is True:
+                try:
+                    await channel.send(msg, view=view)
+                except discord.HTTPException:
+                    log.warning(f"Failed to send onboarding message in guild {guild.name} ({guild.id})")
+                    continue
+                return True
+
+        return False
+
+    async def attempt_onboarding_dm(self, guild: discord.Guild, msg: str, view: discord.ui.View) -> bool:
+        owner = guild.owner
+        if owner is None and guild.owner_id is not None:
+            try:
+                owner = await self.bot.fetch_user(guild.owner_id)
+            except discord.HTTPException:
+                owner = None
+
+        if owner is None:
+            log.warning("Could not find a channel or owner to send the onboarding message to for guild "
+                        f"{guild.name} ({guild.id})")
+            return False
+
+        try:
+            preamble = "*(This server has no channel I could post in, so here's a heads up instead!)*\n\n"
+            await owner.send(preamble + msg, view=view)
+        except discord.Forbidden:
+            log.warning(f"Could not deliver the onboarding message for guild {guild.name} ({guild.id}) "
+                        "via channel or DM.")
+            return False
+        except discord.HTTPException:
+            log.warning(f"Failed to DM the owner of guild {guild.name} ({guild.id}) with the onboarding message.")
+            return False
+
+        return True
+
+    async def record_onboarding_delivery(self, guild: discord.Guild, status: str) -> None:
+        # Tracks whether the onboarding message actually reached someone, so delivery gaps (e.g. no
+        # available channel and an undeliverable DM) are visible instead of silently failing.
+        try:
+            await self.bot.redis_pool.set(f"lightning:onboarding-sent:{guild.id}", value=status,
+                                          ex=timedelta(days=30))
+        except Exception:
+            log.warning(f"Failed to record onboarding delivery status for guild {guild.name} ({guild.id})")
