@@ -297,6 +297,9 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         if punishment.name in ("BAN", "MUTE") and punishment_duration:
             delta = punishment_duration.delta
+            if delta.years or delta.months or delta.days > 30:
+                raise commands.BadArgument("Punishment durations cannot be longer than 30 days.")
+
             punishment_payload['duration'] = delta.days * 86400 + delta.hours * 3600 + delta.minutes * 60 \
                 + delta.seconds
 
