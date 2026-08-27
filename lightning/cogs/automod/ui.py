@@ -243,6 +243,12 @@ class PunishmentDurationModal(discord.ui.Modal, title="Configure Punishment Dura
             self.stop()
             return
 
+        if self.dt.delta.years or self.dt.delta.months or self.dt.delta.days > 30:
+            await interaction.response.send_message("Punishment durations cannot be longer than 30 days.",
+                                                    ephemeral=True)
+            self.stop()
+            return
+
         await interaction.response.edit_message()
         self.stop()
 
@@ -268,7 +274,7 @@ class ConfigurePunishmentDurationButton(discord.ui.Button):
 
         assert modal.dt is not None
 
-        self.view.selected_punishment_duration = modal.dt.delta.seconds
+        self.view.selected_punishment_duration = (modal.dt.delta.days * 86400 + modal.dt.delta.seconds)
         self.style = discord.ButtonStyle.grey
         await self.view.update(interaction=interaction)
 
