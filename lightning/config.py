@@ -41,7 +41,8 @@ class Config(TOMLStorage):
 
 
 class TokensConfig:
-    __slots__ = ('discord', 'sentry', 'postgres', 'redis', 'api', 'prometheus', 'dbots', 'topgg', 'dbotlist')
+    __slots__ = ('discord', 'sentry', 'postgres', 'redis', 'api', 'prometheus', 'dbots', 'topgg', 'dbotlist',
+                 'automod_encryption_key')
 
     def __init__(self, data: Dict[str, Any]) -> None:
         self.discord: str = data['discord']
@@ -55,6 +56,9 @@ class TokensConfig:
         self.topgg: Optional[str] = transform_key(data.pop('topgg', ""))
         # https://discordbotlist.com/bots/lightning-2270
         self.dbotlist: Optional[str] = transform_key(data.pop('dbotlist', ""))
+        # Fernet key used to encrypt message content cached in Redis for AutoMod.
+        # If unset, a key is generated at runtime (see lightning.utils.automod_cache).
+        self.automod_encryption_key: Optional[str] = transform_key(data.pop('automod_encryption_key', ""))
 
 
 class PostgresConfig:

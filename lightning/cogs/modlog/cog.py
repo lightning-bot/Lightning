@@ -167,6 +167,8 @@ class ModLog(LightningCog):
 
     async def handle_automod_events(self, event_name: str, event: LightningAutoModInfractionEvent):
         msg_embed = generate_message_embed(event.message)
+        if event.tracked_content:
+            msg_embed.add_field(name="Offending message content", value=event.tracked_content, inline=False)
 
         async for emitter, record in self.get_records(event.guild, LoggingType(event_name)):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):

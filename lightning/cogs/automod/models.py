@@ -26,6 +26,7 @@ from discord.ext.commands import BucketType
 
 from lightning import AutoModCooldown, LightningBot
 from lightning.models import GuildAutoModRulePunishment
+from lightning.utils.automod_cache import store_message_content
 
 if TYPE_CHECKING:
     import asyncpg
@@ -117,15 +118,16 @@ class BasicFeature:
 
 
 class SpamConfig:
-    __slots__ = ("cooldown", "punishment", "check")
+    __slots__ = ("cooldown", "punishment", "check", "bot")
 
     """A class to make interacting with a message spam config easier..."""
     def __init__(self, rate: int, seconds: int, punishment_config: AutoModRulePunishmentPayload,
                  bucket_type: Union[BucketType, Callable[[discord.Message], str]], key: str,
-                 redis_pool: aioredis.Redis, *,
+                 redis_pool: aioredis.Redis, bot: LightningBot, *,
                  check: Optional[Callable[[discord.Message], bool]] = None) -> None:
         self.cooldown = AutoModCooldown(key, rate, seconds, redis_pool, bucket_type)
         self.punishment = GuildAutoModRulePunishment(punishment_config)
+        self.bot = bot
 
         if check and not callable(check):
             raise TypeError("check must be a callable")
@@ -136,7 +138,7 @@ class SpamConfig:
     def from_model(cls, record: AutoModRulePayload, bucket_type: Union[BucketType, Callable[[discord.Message], str]],
                    config: AutomodConfig, *, check=None):
         return cls(record['count'], record['seconds'], record["punishment"], bucket_type,
-                   f"automod:{record['type']}:{config.guild_id}", config.bot.redis_pool, check=check)
+                   f"automod:{record['type']}:{config.guild_id}", config.bot.redis_pool, config.bot, check=check)
 
     async def update_bucket(self, message: discord.Message, increment: int = 1) -> bool:
         if self.check and self.check(message) is False:
@@ -146,6 +148,14 @@ class SpamConfig:
         # Track message IDs to delete
         await self.cooldown.redis.sadd(f"{self.cooldown._key_maker(message)}:messages",
                                        f"{message.channel.id}:{message.id}")
+        # Cache the message's content (encrypted) so it can be surfaced in the modlog
+        # if this rule ends up being triggered.
+        await store_message_content(self.bot, message.channel.id, message.id, message.content,
+                                    int(self.cooldown.per.total_seconds()))
+        # Cache the message's content (encrypted) so it can be surfaced in the modlog
+        # if this rule ends up being triggered.
+        await store_message_content(self.cooldown.bot, message.channel.id, message.id, message.content,
+                                    int(self.cooldown.per.total_seconds()))
 
         return bool(ratelimited)
 

@@ -23,6 +23,11 @@ key = "supersecretkey"
 # Uncomment below when you want to use prometheus for metrics
 # port = 8000
 
+# Fernet key used to encrypt AutoMod message content cached in Redis.
+# Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# If left blank, a temporary key is generated at startup.
+automod_encryption_key = ""
+
 [logging]
 # Any bot errors either command errors or internal errors. Should be a webhook url
 bot_errors = ""

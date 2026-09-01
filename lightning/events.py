@@ -147,22 +147,27 @@ class InfractionEvent:  # ModerationEvent sounded nice too...
 
 
 class LightningAutoModInfractionEvent(InfractionEvent):
-    __slots__ = ("guild", "event_name", "action", "message")
+    __slots__ = ("guild", "event_name", "action", "message", "tracked_content")
 
     def __init__(self, event_name: str, *, member, guild: discord.Guild, moderator, reason, message: discord.Message,
-                 **kwargs):
+                 tracked_content: Optional[str] = None, **kwargs):
         super().__init__(event_name=event_name,
                          member=member, guild=guild, moderator=moderator, reason=reason, **kwargs)
         self.message = message
+        # The message content that triggered this AutoMod rule, decrypted from the ephemeral
+        # Redis cache. This is intentionally kept out of Action's kwargs so it never gets
+        # persisted to the infractions table.
+        self.tracked_content = tracked_content
 
     @classmethod
-    def from_message(cls, event_name: str, message: discord.Message, reason: str):
+    def from_message(cls, event_name: str, message: discord.Message, reason: str, *,
+                     tracked_content: Optional[str] = None):
         if not message.guild:
             raise Exception("This class should be used in a guild")
 
         return cls(event_name, member=message.author,
                    guild=message.guild, moderator=message.guild.me,
-                   reason=reason, message=message)
+                   reason=reason, message=message, tracked_content=tracked_content)
 
 
 class GuildConfigInvalidateEvent:

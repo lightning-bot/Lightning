@@ -35,7 +35,7 @@ from lightning.cogs.mod.flags import BanFlags, DefaultModFlags, PurgeFlags
 from lightning.constants import COMMON_HOIST_CHARACTERS
 from lightning.enums import ActionType
 from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
-from lightning.events import InfractionEvent
+from lightning.events import InfractionEvent, LightningAutoModInfractionEvent
 from lightning.formatters import plural, truncate_text
 from lightning.models import GuildModConfig, PartialGuild, Timer
 from lightning.utils import helpers, modlogformats
@@ -123,13 +123,19 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
 
     async def log_manual_action(self, guild: discord.Guild, target: Union[discord.User, discord.Member], moderator,
                                 action: Union[ActionType, str], *, timestamp=None,
-                                reason: Optional[str] = None, **kwargs) -> None:
+                                reason: Optional[str] = None, message: Optional[discord.Message] = None,
+                                tracked_content: Optional[str] = None, **kwargs) -> None:
         # We need this for bulk actions
         connection = kwargs.pop('connection', self.bot.pool)
 
         timestamp = timestamp or discord.utils.utcnow()
 
-        event = InfractionEvent(action, member=target, guild=guild, moderator=moderator, reason=reason, **kwargs)
+        if message is not None:
+            event = LightningAutoModInfractionEvent(action, member=target, guild=guild, moderator=moderator,
+                                                    reason=reason, message=message, tracked_content=tracked_content,
+                                                    **kwargs)
+        else:
+            event = InfractionEvent(action, member=target, guild=guild, moderator=moderator, reason=reason, **kwargs)
         await event.action.add_infraction(connection)
 
         if not isinstance(action, ActionType):
