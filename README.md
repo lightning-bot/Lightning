@@ -14,18 +14,7 @@
 ---
 ## Information
 
-If you're looking for information regarding the bot, please go to [https://lightning.lightsage.dev](https://lightning.lightsage.dev)
-
----
-## Versioning
-
-Lightning is versioned as `major.minor.patch`.
-
-Major versions are incremented when the project undergoes a major rewrite.
-
-Minor versions are incremented when a command's behavior has changed, functionality has been moved to another cog (where it makes sense to be), a command was removed, etc.
-
-Patch versions are incremented when a bug has been fixed.
+If you're looking for information regarding the bot or want to invite the bot to your server, please go to [https://lightning.lightsage.dev](https://lightning.lightsage.dev)
 
 ---
 #### Credits

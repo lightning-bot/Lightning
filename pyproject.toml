@@ -1,6 +1,6 @@
 [project]
 name = "Lightning"
-version = "4.10.0"
+version = "4.0.0"
 description = "Powerful moderation & utilities Discord App (Bot)"
 authors = [{ name = "LightSage", email = "lightsage01@gmail.com" }]
 requires-python = ">=3.10.0,<3.12"
