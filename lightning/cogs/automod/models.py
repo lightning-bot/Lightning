@@ -152,10 +152,6 @@ class SpamConfig:
         # if this rule ends up being triggered.
         await store_message_content(self.bot, message.channel.id, message.id, message.content,
                                     int(self.cooldown.per.total_seconds()))
-        # Cache the message's content (encrypted) so it can be surfaced in the modlog
-        # if this rule ends up being triggered.
-        await store_message_content(self.cooldown.bot, message.channel.id, message.id, message.content,
-                                    int(self.cooldown.per.total_seconds()))
 
         return bool(ratelimited)
 
