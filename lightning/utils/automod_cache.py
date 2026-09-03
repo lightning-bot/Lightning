@@ -55,7 +55,7 @@ def _get_fernet(bot: LightningBot) -> Fernet:
 
 
 def _content_key(channel_id: int, message_id: int) -> str:
-    return f"lightning:automod:content:{channel_id}:{message_id}"
+    return f"lightning:automod:message-content:{channel_id}:{message_id}"
 
 
 async def store_message_content(bot: LightningBot, channel_id: int, message_id: int, content: str,
