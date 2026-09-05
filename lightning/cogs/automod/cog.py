@@ -43,14 +43,14 @@ from lightning.constants import (AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING,
                                  AUTOMOD_EVENT_NAMES_MAPPING,
                                  COMMON_HOIST_CHARACTERS)
 from lightning.enums import ActionType, AutoModPunishmentType
-from lightning.events import InfractionEvent
+from lightning.events import InfractionEvent, LightningAutoModInfractionEvent
 from lightning.formatters import truncate_text
 from lightning.models import GuildAutoModRulePunishment, PartialGuild
 from lightning.utils.automod_cache import (delete_message_contents,
                                            get_message_contents)
 from lightning.utils.checks import is_server_manager
 from lightning.utils.paginator import Paginator
-from lightning.utils.time import ShortTime
+from lightning.utils.time import ShortTime, natural_timedelta
 
 if TYPE_CHECKING:
     from lightning.cogs.mod import Mod as Moderation
@@ -476,12 +476,32 @@ class AutoMod(LightningCog, required=["Moderation"]):
         return await self.bot.get_cog("Moderation").remove_punishment_role(guild_id, user_id, role_id,
                                                                            connection=connection)
 
-    async def log_manual_action(self, guild: discord.Guild, target, moderator,
-                                action: Union[ActionType, str], *, timestamp=None,
-                                reason: Optional[str] = None, **kwargs) -> None:
+    async def log_manual_action(self, action: str,
+                                message: discord.Message, *, timestamp=None,
+                                reason: str, tracked_content: Optional[str] = None, **kwargs) -> None:
         # We need this for bulk actions
-        c: Moderation = self.bot.get_cog("Moderation")  # type: ignore
-        return await c.log_manual_action(guild, target, moderator, action, timestamp=timestamp, reason=reason, **kwargs)
+        connection = kwargs.pop('connection', self.bot.pool)
+
+        timestamp = timestamp or discord.utils.utcnow()
+
+        event = LightningAutoModInfractionEvent.from_message(action, message, reason,
+                                                             tracked_content=tracked_content,
+                                                             **kwargs)
+        await event.action.add_infraction(connection)
+
+        if not isinstance(action, ActionType):
+            action_type = ActionType[str(action)]
+
+        if str(action) == "TIMEMUTE":
+            action_type = ActionType.MUTE
+
+        if str(action) == "TIMEBAN":
+            action_type = ActionType.BAN
+
+        if event.action.expiry:
+            event.action.expiry = natural_timedelta(event.action.expiry, source=timestamp)
+
+        self.bot.dispatch(f"lightning_member_{str(action_type).lower()}", event)
 
     async def is_member_whitelisted(self, message: discord.Message) -> bool:
         """Check that tells whether a member is exempt from automod or not"""
@@ -503,14 +523,12 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
     # These only require one param, "message", because it contains all the information we want.
     async def _warn_punishment(self, message: AutoModMessage, *, reason, content: Optional[str] = None):
-        await self.log_manual_action(message.guild, message.author, self.bot.user, "WARN", reason=reason,
-                                     message=message, tracked_content=content)
+        await self.log_manual_action("WARN", message, reason=reason, tracked_content=content)
 
     # Change reason
     async def _kick_punishment(self, message: AutoModMessage, *, reason, content: Optional[str] = None):
         await message.author.kick(reason=reason)
-        await self.log_manual_action(message.guild, message.author, self.bot.user, "KICK",
-                                     reason=reason, message=message, tracked_content=content)
+        await self.log_manual_action("KICK", message, reason=reason, tracked_content=content)
 
     async def _time_ban_member(self, message: AutoModMessage, seconds: Union[int, datetime.datetime], *, reason,
                                content: Optional[str] = None):
@@ -523,23 +541,21 @@ class AutoMod(LightningCog, required=["Moderation"]):
         timer_id = await cog.add_timer("timeban", message.created_at, duration, guild_id=message.guild.id,
                                        user_id=message.author.id, mod_id=self.bot.user.id, force_insert=True,
                                        timezone=duration.tzinfo or datetime.timezone.utc)
-        await self.log_manual_action(message.guild, message.author, self.bot.user, "TIMEBAN", expiry=duration,
-                                     timer_id=timer_id, reason=reason, message=message, tracked_content=content)
+        await self.log_manual_action("TIMEBAN", message, expiry=duration, timer_id=timer_id, reason=reason,
+                                     tracked_content=content)
 
     async def _ban_punishment(self, message: AutoModMessage, duration=None, *, reason, content: Optional[str] = None):
         await message.author.ban(reason=reason)
         if duration:
             await self._time_ban_member(message, duration, reason=reason, content=content)
             return
-        await self.log_manual_action(message.guild, message.author, self.bot.user, "BAN", reason=reason,
-                                     message=message, tracked_content=content)
+        await self.log_manual_action("BAN", message, reason=reason, tracked_content=content)
 
     async def _delete_punishment(self, message: discord.Message, **kwargs):
         try:
             await message.delete()
         except discord.HTTPException:
             pass
-
 
     async def get_mute_role(self, guild_id: int):
         cog: Moderation = self.bot.get_cog("Moderation")  # type: ignore
@@ -602,9 +618,8 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await message.author.add_roles(role, reason=reason)
 
         await self.add_punishment_role(message.guild.id, message.author.id, role.id)
-        await self.log_manual_action(message.guild, message.author, self.bot.user, "TIMEMUTE",
-                                     reason="Member triggered automod", expiry=duration, timer_id=job_id,
-                                     timestamp=message.created_at, message=message, tracked_content=content)
+        await self.log_manual_action("TIMEMUTE", message, reason="Member triggered automod", expiry=duration,
+                                     timer_id=job_id, timestamp=message.created_at, tracked_content=content)
 
     async def _mute_punishment(self, message: AutoModMessage, duration=None, *, reason: str,
                                content: Optional[str] = None):
@@ -620,8 +635,7 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         await message.author.add_roles(role, reason=reason)
         await self.add_punishment_role(message.guild.id, message.author.id, role.id)
-        await self.log_manual_action(message.guild, message.author, self.bot.user, "MUTE",
-                                     reason=reason, timestamp=message.created_at, message=message,
+        await self.log_manual_action("MUTE", message, reason=reason, timestamp=message.created_at,
                                      tracked_content=content)
 
     punishments = {"WARN": _warn_punishment,
