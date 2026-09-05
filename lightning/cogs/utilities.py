@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-import asyncio
 from datetime import timedelta
 from io import StringIO
 from typing import TYPE_CHECKING, Optional, Union
@@ -45,7 +44,7 @@ ARCHIVE_FLAGS = [Flag("--reverse", "-r", help="Reverses the messages to oldest m
 
 
 class Utilities(LightningCog):
-    """Commands that might be helpful"""
+    """Helpful commands that extend Discord functionality"""
 
     @hybrid_command()
     @commands.bot_has_permissions(create_polls=True)
@@ -66,14 +65,6 @@ class Utilities(LightningCog):
         poll.add_answer(text="No", emoji="\N{THUMBS DOWN SIGN}")
 
         await ctx.send(poll=poll)
-
-    @hybrid_command()
-    @commands.bot_has_permissions(add_reactions=True)
-    async def rpoll(self, ctx: LightningContext, *, question: str) -> None:
-        """Creates a simple reaction poll with thumbs up, thumbs down, and shrug as reactions"""
-        msg = await ctx.send(f"{ctx.author.mention} asks:\n{question}")
-        await asyncio.gather(msg.add_reaction("\N{THUMBS UP SIGN}"), msg.add_reaction("\N{THUMBS DOWN SIGN}"),
-                             msg.add_reaction("\N{SHRUG}"))
 
     @hybrid_command(cls=HybridFlagCommand, name="archive", flags=ARCHIVE_FLAGS, flag_consume_rest=False)
     @commands.bot_has_permissions(read_message_history=True)
