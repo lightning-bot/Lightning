@@ -166,7 +166,9 @@ class ModLog(LightningCog):
                 await emitter.send(embed=embed)
 
     async def handle_automod_events(self, event_name: str, event: LightningAutoModInfractionEvent):
-        msg_embed = generate_message_embed(event.message)
+        msg_embed = generate_message_embed(event.message) if event.message else None
+        if msg_embed and event.tracked_content:
+            msg_embed.add_field(name="Offending message content", value=event.tracked_content, inline=False)
 
         async for emitter, record in self.get_records(event.guild, LoggingType(event_name)):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
@@ -183,7 +185,8 @@ class ModLog(LightningCog):
             elif record['format'] == "embed":
                 fmt = modlogformats.EmbedFormat.from_action(event.action)
                 embed = fmt.format_message()
-                await emitter.send(embeds=[embed, msg_embed])
+                embeds = [embed, msg_embed] if msg_embed else [embed]
+                await emitter.send(embeds=embeds)
 
     # Moderation
     @LightningCog.listener('on_lightning_member_warn')
