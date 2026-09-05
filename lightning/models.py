@@ -34,14 +34,12 @@ if TYPE_CHECKING:
 
 
 class GuildModConfig:
-    __slots__ = ("guild_id", "mute_role_id", "warn_kick", "warn_ban",
+    __slots__ = ("guild_id", "mute_role_id",
                  "bot", "message_report_channel_id", "dm_messages", "footer_message")
 
     def __init__(self, record, bot):
         self.guild_id: int = record['guild_id']
         self.mute_role_id: Optional[int] = record['mute_role_id']
-        self.warn_kick: Optional[int] = record['warn_kick']
-        self.warn_ban: Optional[int] = record['warn_ban']
         self.bot: LightningBot = bot
         # Adding message report config to here for now. It might evolve as time goes on.
         self.message_report_channel_id: Optional[int] = record['message_report_channel_id']

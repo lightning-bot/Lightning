@@ -147,28 +147,6 @@ class AutoModIgnoredPages(menus.ListPageSource):
         return discord.Embed(title="Ignores", description="\n".join(desc), color=discord.Color.greyple())
 
 
-class AutoModWarnThresholdMigration(discord.ui.View):
-    def __init__(self, *, author_id: int):
-        super().__init__(timeout=180)
-        self.author_id = author_id
-        self.choice = None
-
-    async def interaction_check(self, interaction: discord.Interaction):
-        return self.author_id == interaction.user.id
-
-    @discord.ui.button(label="Warn Kick")
-    async def warn_kick(self, itx: discord.Interaction, button: discord.ui.Button):
-        self.choice = "warn_kick"
-        await itx.response.edit_message(view=None)
-        self.stop()
-
-    @discord.ui.button(label="Warn Ban")
-    async def warn_ban(self, itx: discord.Interaction, button: discord.ui.Button):
-        self.choice = "warn_ban"
-        await itx.response.edit_message(view=None)
-        self.stop()
-
-
 class UpdatableActionRow(discord.ui.ActionRow):
 
     def update(self) -> None:
@@ -276,7 +254,7 @@ class ConfigurePunishmentDurationButton(discord.ui.Button):
 
         delta = modal.dt.delta
         self.view.selected_punishment_duration = (delta.days * 86400 + delta.hours * 3600 + delta.minutes * 60
-                                                   + delta.seconds)
+                                                  + delta.seconds)
         self.style = discord.ButtonStyle.grey
         await self.view.update(interaction=interaction)
 

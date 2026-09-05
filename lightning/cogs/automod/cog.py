@@ -383,48 +383,6 @@ class AutoMod(LightningCog, required=["Moderation"]):
         await ctx.send(f"Set the warn threshold to {limit}!")
         await self.get_automod_config.invalidate(ctx.guild.id)
 
-    @automod_warn_threshold.command(name='migrate', level=CommandLevel.Admin)
-    @is_server_manager()
-    async def automod_warn_threshold_transfer(self, ctx: GuildContext):
-        """Migrates your server's old warn punishment configuration to the new configuration"""
-        cog: Optional[Moderation] = self.bot.get_cog("Moderation")  # type: ignore
-        if not cog:
-            await ctx.send("Unable to migrate warn thresholds at this time!")
-            return
-
-        record = await cog.get_mod_config(ctx.guild.id)
-        if not record or (record.warn_ban is None and record.warn_kick is None):
-            await ctx.send("There is nothing to migrate!")
-            return
-
-        if record.warn_ban and record.warn_kick:
-            view = ui.AutoModWarnThresholdMigration(author_id=ctx.author.id)
-            await ctx.send("Which would you like to migrate?\n\n> *Warn thresholds only support one threshold!*",
-                           view=view)
-            await view.wait()
-            if not view.choice:
-                await ctx.reply("You didn't select anything! Exiting...")
-                return
-
-            limit = getattr(record, view.choice)
-            punishment = view.choice[5:]
-        elif record.warn_ban:
-            limit = record.warn_ban
-            punishment = "ban"
-        elif record.warn_kick:
-            limit = record.warn_kick
-            punishment = "kick"
-
-        await self.set_warn_threshold(ctx.guild, limit, punishment)
-
-        # Remove old configuration
-        query = "UPDATE guild_mod_config SET warn_ban=NULL, warn_kick=NULL WHERE guild_id=$1;"
-        await self.bot.pool.execute(query, ctx.guild.id)
-        await cog.get_mod_config.invalidate(ctx.guild.id)
-
-        await ctx.send("Migrated to the new warn thresholds!")
-        await self.get_automod_config.invalidate(ctx.guild.id)
-
     @automod_warn_threshold.command(name='remove', level=CommandLevel.Admin)
     @is_server_manager()
     async def automod_warn_threshold_remove(self, ctx: GuildContext):
