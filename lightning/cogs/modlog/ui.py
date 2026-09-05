@@ -156,7 +156,7 @@ class LoggingCV2(UpdateableLayoutView):
         self.format_desc.content = (
             "### 2. How should logs look?\n"
             "Choose a display style for new log messages.\n"
-            + (f"**Currently: {current_format.title()}**" if configured else
+            + (f"**Currently: {str(current_format).title()}**" if configured else
                "Choose events first to unlock this setting."))
         self.remove_button.disabled = not configured
         self.format_row.change_format_select.disabled = not configured
