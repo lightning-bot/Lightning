@@ -24,7 +24,7 @@ dependencies = [
     "py-flags>=1.1.4,<2",
     "jishaku>=2.6.0,<3",
     "rapidfuzz>=3.0.0,<4",
-    "typer>=0.16.0,<0.17",
+    "typer>=0.27.1,<0.28",
     "tomlkit>=0.13.2,<0.14",
     "uvloop>=0.22.1,<0.23 ; sys_platform == 'linux'",
     "orjson>=3.6.0,<4",
