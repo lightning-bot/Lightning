@@ -827,8 +827,10 @@ class AutoMod(LightningCog, required=["Moderation"]):
         else:  # ban
             await event.guild.ban(event.member, reason="Warn Threshold reached", delete_message_days=0)
 
-        await self.log_manual_action(event.guild, event.member, self.bot.user, record.warn_punishment.upper(),
-                                     reason="Warn Threshold reached")
+        # Remember, this cog requires the Moderation cog to be loaded, so this is safe to do.
+        cog: Moderation = self.bot.get_cog("Moderation")  # type: ignore
+        await cog.log_manual_action(event.guild, event.member, self.bot.user, record.warn_punishment.upper(),
+                                    reason="Warn Threshold reached")
 
     # Remove ids from config
     @LightningCog.listener('on_member_remove')
