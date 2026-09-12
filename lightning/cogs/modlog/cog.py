@@ -26,8 +26,7 @@ from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, LoggingType, hybrid_group)
 from lightning.cache import Strategy, cached
 from lightning.cogs.modlog import ui
-from lightning.cogs.modlog.utils import (generate_message_embed,
-                                         human_friendly_log_names)
+from lightning.cogs.modlog.utils import human_friendly_log_names
 from lightning.constants import LIGHTNING_COLOR
 from lightning.events import LightningAutoModInfractionEvent
 from lightning.models import LoggingConfig, PartialGuild
@@ -166,7 +165,7 @@ class ModLog(LightningCog):
                 await emitter.send(embed=embed)
 
     async def handle_automod_events(self, event_name: str, event: LightningAutoModInfractionEvent):
-        msg_embed = generate_message_embed(event.message) if event.message else None
+        msg_embed = discord.Embed() if event.message else None
         if msg_embed and event.tracked_content:
             msg_embed.add_field(name="Offending message content", value=event.tracked_content, inline=False)
 
