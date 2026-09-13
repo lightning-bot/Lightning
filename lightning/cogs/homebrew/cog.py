@@ -28,20 +28,16 @@ from typing import List, Optional, Union
 import dateutil.parser
 import discord
 import feedparser
-from bs4 import BeautifulSoup
 from discord import app_commands
 from discord.ext import commands, menus, tasks
 from jishaku.functools import executor_function
-from rapidfuzz import fuzz, process
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
-                       LightningContext, Storage, command, group,
-                       hybrid_command)
+                       LightningContext, Storage, command, hybrid_command)
 from lightning.cogs.homebrew import ui
 from lightning.converters import Whitelisted_URL
 from lightning.errors import LightningError
 from lightning.utils.checks import hybrid_guild_permissions
-from lightning.utils.helpers import request as make_request
 
 log: logging.Logger = logging.getLogger(__name__)
 
@@ -255,7 +251,7 @@ class Homebrew(LightningCog):
     @hybrid_command(aliases=['udb'])
     async def universaldb(self, ctx: LightningContext, *, application: str) -> None:
         """Searches for homebrew on Universal-DB"""
-        url = f"https://udb-api.lightsage.dev/search/{urllib.parse.quote(application)}"
+        url = f"https://udb-api.celveren.dev/search/{urllib.parse.quote(application)}"
         resp = await ctx.request(url)
         results = resp['results']
 
@@ -268,7 +264,7 @@ class Homebrew(LightningCog):
 
     @universaldb.autocomplete('application')
     async def universaldb_autocomplete(self, interaction: discord.Interaction, string: str):
-        resp = await self.bot.aiosession.get(f"https://udb-api.lightsage.dev/search/{urllib.parse.quote(string)}")
+        resp = await self.bot.aiosession.get(f"https://udb-api.celveren.dev/search/{urllib.parse.quote(string)}")
         if resp.status != 200:
             return []
 
@@ -278,191 +274,3 @@ class Homebrew(LightningCog):
             return []
 
         return [app_commands.Choice(name=app['title'], value=app['title']) for app in resp['results'][:25]]
-
-    @group(invoke_without_command=True, hidden=True)
-    async def mod(self, ctx: LightningContext) -> None:
-        """Gets console modding information"""
-        await ctx.send_help('mod')
-
-    def get_match(self, word_list: list, word: str, score_cutoff: int = 60, partial=False) -> Optional[str]:
-        if partial:
-            result = process.extractOne(word, word_list, scorer=fuzz.partial_ratio,
-                                        score_cutoff=score_cutoff)
-        else:
-            result = process.extractOne(word, word_list, scorer=fuzz.ratio,
-                                        score_cutoff=score_cutoff)
-        if not result:
-            return None
-        return result
-
-    def get_faq_entries_from(self, content):
-        entries = []
-        soup = BeautifulSoup(content, 'lxml')
-        divs = soup.find_all('div', id="faq-container")
-        for div in divs:
-            for entry in div.find_all("details", class_="accordian-item"):
-                title = entry.find("summary")
-                d = entry.find("div")
-                param = f"?faq={entry['id'][4:]}"
-                entries.append((title.string.strip(), d.text.strip(), param))
-        return entries
-
-    async def fetch_faq_entries(self, site):
-        raw = await make_request(site, self.bot.aiosession)
-        entries = {
-            tup[0]: {"description": tup[1], "link": f"{site}{tup[2]}"}
-            for tup in self.get_faq_entries_from(raw)
-        }
-
-        self.faq_entry_cache[site] = entries
-        return self.faq_entry_cache[site]
-
-    async def get_faq_entry(self, site, content):
-        if site not in self.faq_entry_cache:
-            entries = await self.fetch_faq_entries(site)
-        else:
-            entries = self.faq_entry_cache[site]
-
-        match = self.get_match(list(entries.keys()), content, 40)  # 40 should be safe cutoff
-        if not match:
-            return None
-
-        return (match[0], entries[match[0]])
-
-    @mod.command(name='faq')
-    async def mod_faq(self, ctx: LightningContext, entity: str, *, question: str) -> None:
-        """Shows a faq entry for an entity.
-
-        Valid entities are "twilightmenu", "nds-bootstrap", or "gbarunner2".
-        """
-        match = self.get_match(list(FAQ_MAPPING.keys()), entity, 50)
-        if not match:
-            await ctx.send(f"Failed to convert entity parameter. Please see `{ctx.clean_prefix}help mod faq`")
-            return
-
-        entity = FAQ_MAPPING[match[0]]
-
-        entry = await self.get_faq_entry(entity, question)
-        if not entry:
-            await ctx.send(entity)
-            return
-
-        title, entry = entry
-        await ctx.send(f"**{title}**\n> <{entry['link']}>\n{entry['description']}")
-
-    @mod.command(name="3ds", aliases=['3d', '3DS', '2DS', '2ds'])
-    async def mod_3ds(self, ctx: LightningContext) -> None:
-        """Gives information on 3DS modding."""
-        featurelist = ["Redirect your NAND to the SD card",
-                       "Run any software compatible, regardless "
-                       "of if Nintendo signed it or if it was made for your region",
-                       "Run game backups without requiring a physical cartridge",
-                       "Redirect Software Data to the SD card, used for software modification",
-                       "Customize your HOME Menu with user-created themes",
-                       "Experience software the way you'd like it with screenshots and cheat codes",
-                       "Backup, edit, and restore save data",
-                       "Play older software using their respective emulator",
-                       "Stream live gameplay to your PC wirelessly "
-                       "with NTR CFW (requires a New system)"]
-
-        em = discord.Embed(title="Nintendo 3DS Modding guide",
-                           url="https://3ds.hacks.guide",
-                           color=0x49151)
-        em.description = ("This [guide](https://3ds.hacks.guide) will install "
-                          "LumaCFW alongside boot9strap, the latest CFW")
-        features = '\n- '.join(featurelist)
-        em.add_field(name="Advantages to modding a 3DS", value=f"- {features}")
-        em.set_footer(text='Guide by Plailect',
-                      icon_url='https://pbs.twimg.com/profile_images/698944593715310592/'
-                      'wTDlD5rA_400x400.png')
-        await ctx.send(embed=em)
-
-    @mod.group(name="ds", aliases=['dsi'], invoke_without_command=True,
-               case_insensitive=False)
-    async def mod_ds(self, ctx: LightningContext) -> None:
-        """Gives information on DS modding"""
-        features = ["Run Nintendo DS game backups natively on your DSi SD card without the need of a flashcard.",
-                    "Use normally incompatible flashcards",
-                    "Boot into different homebrew applications by holding different buttons when turning on your "
-                    "Nintendo DSi.",
-                    "Launch any DSiWare (out-of-region & 3DS exclusives) from your SD card",
-                    "Display an image (referred to as the boot splash) on system launch",
-                    "Watch your favorite movies using FastVideoDS",
-                    "Run old-time classics using a variety of emulators"]
-        em = discord.Embed(title="Nintendo DSi Modding guide",
-                           url="https://dsi.cfw.guide/",
-                           color=0xD6FEFF)
-        em.description = ("This [guide](https://dsi.cfw.guide/) "
-                          "will take you from a regular Nintendo "
-                          "DSi to a modified console by using the Memory Pit exploit."
-                          "\n(If looking for Flashcard usage, use `mod ds flashcard`)")
-        feature = '\n- '.join(features)
-        em.add_field(name="Advantages to modding a Nintendo DSi", value=f"- {feature}")
-        em.set_footer(text="Guide by NightScript, RocketRobz & emiyl")
-        await ctx.send(embed=em)
-
-    @mod_ds.command(name='flashcard', aliases=['flashcart'])
-    async def mod_ds_flashcard(self, ctx: LightningContext) -> None:
-        features = ["Run Nintendo DS game backups without requiring "
-                    "a physical cartridge",
-                    "Load multiple backups of Nintendo DS games "
-                    "without having to carry around a bunch of cartridges",
-                    "Modify your Nintendo DS game using Cheat Codes",
-                    "Install Custom FirmWare on your 3DS using NTRBoot Hax"]
-        embed = discord.Embed(title="Nintendo DS Flashcard guide",
-                              url="https://www.reddit.com/r/flashcarts/wiki/ds-quick-start-guide",
-                              color=0xD6FEFF)
-        embed.description = ("This [guide](https://www.reddit.com/r/flashcarts/wiki/ds-quick-start-guide)"
-                             " links to most flashcard kernels that are made "
-                             "for the Nintendo DS. You can also view its "
-                             "compatibility status for the Nintendo DSi and the Nintendo 3DS")
-        feature = '\n- '.join(features)
-        embed.add_field(name="Advantages to using a Flashcard", value=f"- {feature}")
-        embed.set_footer(text="Guide by NightScript",
-                         icon_url="https://btw.i-use-ar.ch/i/pglx.png")
-        await ctx.send(embed=embed)
-
-    @mod.command(name='switch', aliases=['nx'])
-    async def mod_switch_guide(self, ctx: LightningContext) -> None:
-        """Gives information on Switch modding"""
-        em = discord.Embed(title="Nintendo Switch Modding guide",
-                           url="https://nh-server.github.io/switch-guide/",
-                           color=0x00FF11)
-        em.description = ("This [guide](https://nh-server.github.io/switch-guide) "
-                          "will install Atmosphère, the latest and safest CFW.")
-        features = ["Customize your HOME Menu with user-created themes and "
-                    "splash screens",
-                    "Use “ROM hacks” for games that you own",
-                    "Backup, edit, and restore saves for applications",
-                    "Play games for older systems with various emulators"
-                    ", using RetroArch or other standalone emulators"]
-        featuresformat = '\n\U00002022 '.join(features)
-        em.add_field(name="Advantages to modding a Nintendo Switch",
-                     value=f"\U00002022 {featuresformat}")
-        em.set_footer(text="Guide made by the Nintendo Homebrew Discord Server")
-        await ctx.send(embed=em)
-
-    @mod.command(name='wii')
-    async def mod_wii(self, ctx: LightningContext) -> None:
-        """Gives information on Nintendo Wii modding"""
-        em = discord.Embed(title="Nintendo Wii Modding guide",
-                           url="https://wii.guide/",
-                           color=0x00FF11)
-        em.description = ("This [guide](https://wii.guide/) will install the Homebrew Channel, "
-                          "the one channel for all things homebrew.")
-        features = ["Patch game disc contents (allowing you to load game modifications) using Riivolution.",
-                    "Install themes to your Wii Menu using MyMenuify.",
-                    "Install a USB Loader like WiiFlow Lite or USB Loader GX "
-                    "to launch all your favorite titles from a USB storage device and more.",
-                    "Back up your discs with CleanRip and installed games and titles with YABDM.",
-                    "Back up and restore your save files with SaveGame Manager GX",
-                    "Download new homebrew apps with the Homebrew Browser",
-                    "Restore discontinued online services, such as WiiConnect24 & Nintendo WFC services.",
-                    "Backup and restore copies of your Wii system memory (NAND) using BootMii.",
-                    "Protect your Wii from bricks using Priiloader and BootMii.",
-                    "Turn your Wii into a media player with WiiMC."]
-        featuresformat = '\n\U00002022 '.join(features)
-        em.add_field(name="Advantages to modding a Nintendo Wii",
-                     value=f"\U00002022 {featuresformat}")
-        em.set_footer(text="Guide made by the RiiConnect24 team and others")
-        await ctx.send(embed=em)
