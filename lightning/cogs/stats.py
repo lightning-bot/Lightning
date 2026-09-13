@@ -522,40 +522,45 @@ class Stats(LightningCog):
     @hybrid_command()
     async def about(self, ctx: LightningContext) -> None:
         """Gives information about the bot."""
-        embed = discord.Embed(title="Lightning", color=0xf74b06, url=self.bot.config.bot.git_repo)
-        owners = [self.bot.get_user(u) for u in self.bot.owners]
-
-        author = await self.get_bot_author()
-        embed.set_author(name=str(author), icon_url=author.avatar.with_static_format('png'))
-
-        description = [f"This bot instance is owned by {', '.join(str(o) for o in owners)}"]
-
-        embed.set_thumbnail(url=ctx.me.avatar.url)
-
-        if self.bot.config.bot.description:
-            description.append(f"**Description**: {self.bot.config.bot.description}")
-
+        owners = ', '.join(str(self.bot.get_user(user_id) or user_id) for user_id in self.bot.owners)
+        repo_url = self.bot.config.bot.git_repo.rstrip('/')
         memory = self.process.memory_full_info().uss / 1024**2
-        description.append(f"**Process**: {memory:.2f} MiB\n**Commit**: [{self.bot.commit_hash[:8]}]"
-                           f"({embed.url}/commit/{self.bot.commit_hash})\n**Uptime**: "
-                           f"{natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}\n"
-                           f"**Servers**: {len(self.bot.guilds):,}\n**Shards**: {len(self.bot.shards)}")
+        total_cmds = await self.bot.pool.fetchval("SELECT COUNT(*) FROM command_stats;")
 
-        query = "SELECT COUNT(*) FROM command_stats;"
-        total_cmds = await self.bot.pool.fetchval(query)
-        description.append(f"{total_cmds:,} commands ran.")
+        header = f"## Lightning\n**Instance owners:** {owners or 'Not configured'}"
 
-        embed.add_field(name="Links", value="[Support Server]"
-                                            f"({self.bot.config.bot.support_server_invite}) | "
-                                            "[Website](https://lightning.lightsage.dev) | [Ko-Fi]"
-                                            "(https://ko-fi.com/lightsage)",
-                                            inline=False)
-        embed.set_footer(text=f"Lightning v{self.bot.version} | Made with "
-                              f"discord.py {discord.__version__}")
+        container = discord.ui.Container(accent_color=LIGHTNING_COLOR)
+        container.add_item(discord.ui.Section(
+            discord.ui.TextDisplay(header),
+            accessory=discord.ui.Thumbnail(ctx.me.display_avatar.url)))
+        container.add_item(discord.ui.Separator())
+        container.add_item(discord.ui.TextDisplay(
+            "### At a glance\n"
+            f"**Servers:** {len(self.bot.guilds):,} · **Shards:** {len(self.bot.shards):,}\n"
+            f"**Commands run:** {total_cmds:,}"))
+        container.add_item(discord.ui.Separator())
+        container.add_item(discord.ui.TextDisplay(
+            "### System\n"
+            f"**Uptime:** {natural_timedelta(self.bot.launch_time, accuracy=None, suffix=False)}\n"
+            f"**Memory:** {memory:.2f} MiB\n"
+            f"**Commit:** [{self.bot.commit_hash[:8]}]({repo_url}/commit/{self.bot.commit_hash})"))
+        container.add_item(discord.ui.Separator())
 
-        embed.description = '\n'.join(description)
+        links = discord.ui.ActionRow()
+        if self.bot.config.bot.support_server_invite:
+            links.add_item(discord.ui.Button(label="Support Server",
+                                             url=self.bot.config.bot.support_server_invite))
+        links.add_item(discord.ui.Button(label="Website", url="https://lightning.lightsage.dev"))
+        links.add_item(discord.ui.Button(label="Source Code", url=repo_url))
+        links.add_item(discord.ui.Button(label="Ko-Fi", url="https://ko-fi.com/celveren"))
+        container.add_item(links)
+        container.add_item(discord.ui.TextDisplay(
+            f"-# Lightning v{self.bot.version} · Made by Célveren"
+            f" · Powered by discord.py {discord.__version__}"))
 
-        await ctx.send(embed=embed)
+        view = discord.ui.LayoutView(timeout=None)
+        view.add_item(container)
+        await ctx.send(view=view, allowed_mentions=discord.AllowedMentions.none())
 
     @LightningCog.listener()
     async def on_lightning_guild_automod_rule_triggered(self, rule_name: str, guild_id: int):
