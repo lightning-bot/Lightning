@@ -162,9 +162,6 @@ class AntiScamResult:
                         score -= 5
                 score -= 10
 
-            if token.is_ascii is False:
-                score -= 5
-
         return AntiScamCalculatedResult(score, ScamType.STEAM)
 
     def calculate(self) -> AntiScamCalculatedResult:
@@ -202,15 +199,18 @@ class AntiScamResult:
         nscore = 0
         malicious_terms = {"sexcam", "🍑", "🔞", "💦", "🥵", "nsfw"}
         scam_type = ScamType.UNKNOWN
+        # A casual mention of a gift is not Steam scam evidence. Require a
+        # destination and apply message-wide Steam penalties only once.
+        has_gift = any(token.lemma_.lower() == "gift" for token in content)
+        has_link = any(token.like_url for token in content) or MASKED_LINKS.search(self.content)
+        if has_gift and has_link:
+            nscore += 5
+            scam_type = ScamType.STEAM
+            score = self.identify_steam_scams(content, score).score
+
         for token in content:
             if token.lemma_.lower() == "nude":
                 nscore += 5
-
-            if token.lemma_.lower() == "gift":
-                nscore += 5
-                scam_type = ScamType.STEAM
-                # Potientially sus, run it through our steam identifier
-                score = self.identify_steam_scams(content, score).score
 
             if token.lemma_.lower() in malicious_terms:
                 nscore += 5
