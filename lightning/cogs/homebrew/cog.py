@@ -23,7 +23,7 @@ import secrets
 import urllib.parse
 from datetime import datetime
 from io import BytesIO
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import dateutil.parser
 import discord
@@ -92,40 +92,6 @@ async def FindBMPAttachment(ctx: GuildContext):
                 except LightningError:
                     continue
     raise commands.BadArgument('Couldn\'t find an attachment that ends with ".bmp"')
-
-
-FAQ_MAPPING = {"twilightmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
-               "twlmenu": "https://wiki.ds-homebrew.com/twilightmenu/faq",
-               "nds-bootstrap": "https://wiki.ds-homebrew.com/nds-bootstrap/faq",
-               "gbarunner2": "https://wiki.ds-homebrew.com/gbarunner2/faq"}
-
-
-def mod_embed(title: str, description: str, social_links: List[str], color: Union[int, discord.Color],
-              *, separator="\N{BULLET}") -> discord.Embed:
-    """Creates an embed for console modding information
-
-    Parameters
-    ----------
-    title : str
-        The title for the embed
-    description : str
-        The description for the embed
-    social_links : list
-        A list of social links
-    color : Union[int, discord.Color]
-        A color hex
-    separator : str, Optional
-        Separator for social_links
-
-    Returns
-    -------
-    :class:discord.Embed
-        Returns the created embed
-    """
-    em = discord.Embed(title=title, description=description, color=color)
-    links = f'\n{separator} '.join(social_links)
-    em.add_field(name="Social Links", value=f'{separator} {links}')
-    return em
 
 
 # This isn't a full semantic version regex
