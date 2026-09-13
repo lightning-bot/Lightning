@@ -184,7 +184,7 @@ class Homebrew(LightningCog):
         # Remove deleted webhooks if applicable
         if bad_webhooks:
             query = "DELETE FROM nin_updates WHERE webhook_token=$1;"
-            await self.bot.pool.executemany(query, bad_webhooks)
+            await self.bot.pool.executemany(query, [(token,) for token in bad_webhooks])
 
     @tasks.loop(seconds=45)
     async def do_ninupdates(self) -> None:
