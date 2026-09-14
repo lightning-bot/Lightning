@@ -29,6 +29,7 @@ from lightning.cogs.modlog import ui
 from lightning.cogs.modlog.utils import human_friendly_log_names
 from lightning.constants import LIGHTNING_COLOR
 from lightning.events import LightningAutoModInfractionEvent
+from lightning.formatters import truncate_text
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils import modlogformats
 from lightning.utils.checks import hybrid_guild_permissions, is_server_manager
@@ -165,9 +166,19 @@ class ModLog(LightningCog):
                 await emitter.send(embed=embed)
 
     async def handle_automod_events(self, event_name: str, event: LightningAutoModInfractionEvent):
-        msg_embed = discord.Embed() if event.message else None
-        if msg_embed and event.tracked_content:
-            msg_embed.add_field(name="Offending message content", value=event.tracked_content, inline=False)
+        parts = []
+        if event.message:
+            parts.append(event.message.content)
+            parts.extend(f"\N{PAPERCLIP} {attachment.url}" for attachment in event.message.attachments)
+            if event.message.embeds:
+                parts.append("Message contained embeds")
+
+        content = event.tracked_content or "\n".join(part for part in parts if part)
+        msg_embed = None
+        if content:
+            msg_embed = discord.Embed()
+            msg_embed.add_field(name="Offending message content",
+                                value=truncate_text(content, 1024))
 
         async for emitter, record in self.get_records(event.guild, LoggingType(event_name)):
             if record['format'] in ("minimal with timestamp", "minimal without timestamp"):
