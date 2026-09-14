@@ -52,7 +52,7 @@ class EventsRow(discord.ui.ActionRow):
                        for event in LoggingType.all]
             view = SelectSubMenu(*options, max_options=len(options), context=self.view.ctx)
             view.add_item(discord.ui.Button(label="Documentation",
-                                            url="https://lightning.lightsage.dev/guide/modlog#events"))
+                                            url="https://lightningbot.app/guide/modlog#events"))
             msg = await interaction.followup.send(
                 content="Choose the events to log in this channel. Submitting saves your selection immediately.",
                 view=view, wait=True, ephemeral=True)

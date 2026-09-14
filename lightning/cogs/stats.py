@@ -550,7 +550,7 @@ class Stats(LightningCog):
         if self.bot.config.bot.support_server_invite:
             links.add_item(discord.ui.Button(label="Support Server",
                                              url=self.bot.config.bot.support_server_invite))
-        links.add_item(discord.ui.Button(label="Website", url="https://lightning.lightsage.dev"))
+        links.add_item(discord.ui.Button(label="Website", url="https://lightningbot.app"))
         links.add_item(discord.ui.Button(label="Source Code", url=repo_url))
         links.add_item(discord.ui.Button(label="Ko-Fi", url="https://ko-fi.com/celveren"))
         container.add_item(links)

@@ -14,7 +14,7 @@
 ---
 ## Information
 
-If you're looking for information regarding the bot or want to invite the bot to your server, please go to [https://lightning.lightsage.dev](https://lightning.lightsage.dev)
+If you're looking for information regarding the bot or want to invite the bot to your server, please go to [https://lightningbot.app](https://lightningbot.app)
 
 ---
 #### Credits

@@ -141,10 +141,10 @@ class BotMeta(LightningCog):
         view = discord.ui.View()
         view.add_item(discord.ui.Button(style=discord.ButtonStyle.grey,
                                         label="AutoMod Quick Start",
-                                        url="https://lightning.lightsage.dev/guide/automod-configuration"))
+                                        url="https://lightningbot.app/guide/automod-configuration"))
         view.add_item(discord.ui.Button(style=discord.ButtonStyle.grey,
                                         label="Documentation",
-                                        url="https://lightning.lightsage.dev/"))
+                                        url="https://lightningbot.app/"))
 
         if not await self.attempt_onboarding_send(guild, msg, view):
             # No suitable channel was available (or we lacked permissions), so fall back to DMing the
