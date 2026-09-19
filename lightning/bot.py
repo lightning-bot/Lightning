@@ -129,6 +129,11 @@ class LightningBot(commands.AutoShardedBot):
         self.version = version
         self._pending_cogs = {}
 
+        # TODO: Migrate this over to the database instead of using a JSON file
+        # Yes, we can do this in the database because the CLI checks for this beforehand.
+        # (Paranoid, I know, but I forget I implemented it to check for both redis and PSQL before it even starts the bot process)
+        # Some notes, we should cache the users who are blocked from the bot in memory on startup for quick access
+        # Operations that modify the blocked users list should update both the in-memory cache and the database.
         self.blacklisted_users = Storage("config/user_blacklist.json")
 
     async def load_cogs(self) -> None:
@@ -138,7 +143,7 @@ class LightningBot(commands.AutoShardedBot):
         path = pathlib.Path("lightning/cogs/")
         cog_list = []
 
-        # "Plugin" handling
+        # Plugin handling
         for plugin in path.glob("*/__init__.py"):
             cog_list.append(_transform_path(plugin.parent))
 
