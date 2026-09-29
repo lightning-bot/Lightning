@@ -179,7 +179,7 @@ class Reports(LightningCog):
         view.dashboard_message_id = dash_msg.id
 
         payload = {"guild_id": guild.id, "message_id": message.id, "channel_id": message.channel.id,
-                   "report_message_id": dash_msg.id,
+                   "report_message_id": dash_msg.id, "reported_user_id": message.author.id,
                    "reporter": {"author_id": interaction.user.id, "reason": reason, "original": True}}
         record = await self.bot.api.create_guild_message_report(guild.id, payload)
 
