@@ -32,8 +32,7 @@ from lightning.enums import ActionType
 from lightning.formatters import truncate_text
 from lightning.ui import BaseView, ExitableMenu, MenuLikeView, UpdateableMenu
 from lightning.utils.helpers import dm_user
-from lightning.utils.modlogformats import (base_user_format,
-                                           construct_dm_message)
+from lightning.utils.modlogformats import construct_dm_message
 from lightning.utils.time import FutureTime, add_tzinfo
 
 if TYPE_CHECKING:
@@ -395,13 +394,28 @@ class ReportDashboard(discord.ui.View):
     @discord.ui.button(label="View Reporters", style=discord.ButtonStyle.blurple)
     async def view_reporters_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         reporters = await interaction.client.api.get_guild_message_reporters(interaction.guild.id, self.message_id)
-        tmp = []
-        for record in reporters:
-            m = interaction.guild.get_member(record['author_id']) or record['author_id']
+        entries = []
+        for count, record in enumerate(reporters, start=1):
+            # Add UTC timezone to the reported_at timestamp and format it for display
             timestamp = add_tzinfo(datetime.fromisoformat(record['reported_at']))
-            tmp.append(f"\N{BULLET} {discord.utils.format_dt(timestamp)} {base_user_format(m)}: {record['reason']}")
+            timestamp_str = discord.utils.format_dt(timestamp)
+            # Dashboard v2 now anonymizes reporters to moderators, but they're still recorded in the database.
+            # The philosophy behind this is to prevent biases from forming based on the identity of the reporter.
+            # (cause y'know we get insecure sometimes)
+            entries.append(f"**Anonymous Reporter #{count}** — {timestamp_str}\n"
+                           f"{record['reason'] or 'No reason provided.'}")
 
-        await interaction.response.send_message("\n".join(tmp), ephemeral=True)
+        container = discord.ui.Container(
+            discord.ui.TextDisplay("## Reporters"),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay("\n\n".join(entries) or "No reporters found."),
+            accent_color=LIGHTNING_COLOR,
+        )
+        view = discord.ui.LayoutView(timeout=None)
+        view.add_item(container)
+
+        await interaction.response.send_message(view=view, ephemeral=True,
+                                                allowed_mentions=discord.AllowedMentions.none())
 
     @discord.ui.button()
     async def dismiss_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
