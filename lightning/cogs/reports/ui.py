@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Optional
 from zoneinfo import ZoneInfo
@@ -27,7 +28,7 @@ from sanctum.exceptions import NotFound
 from lightning import GuildContext, LightningBot, lock_when_pressed
 from lightning.cache import registry as cache_registry
 from lightning.constants import LIGHTNING_COLOR
-from lightning.models import InfractionRecord
+from lightning.enums import ActionType
 from lightning.ui import BaseView, ExitableMenu, MenuLikeView, UpdateableMenu
 from lightning.utils.helpers import dm_user
 from lightning.utils.modlogformats import (base_user_format,
@@ -45,6 +46,17 @@ REPORT_PERMISSIONS = discord.Permissions(moderate_members=True, kick_members=Tru
 
 def has_actionable_permissions(perms: discord.Permissions):
     return perms.value & REPORT_PERMISSIONS.value != 0
+
+
+def format_message_content(message: discord.Message) -> str:
+    """Format message text and media consistently across report views."""
+    description = message.content
+    if message.attachments:
+        attach_urls = [f'[{attachment.filename}]({attachment.url})' for attachment in message.attachments]
+        description += '\n\N{BULLET} ' + '\n\N{BULLET} '.join(attach_urls)
+    if message.embeds:
+        description += "\n \N{BULLET} Message contains an embed(s)"
+    return description
 
 
 class ReasonModal(discord.ui.Modal, title="Message Report"):
@@ -287,6 +299,28 @@ class ReportDashboard(discord.ui.View):
         self.update_buttons()
         await interaction.message.edit(view=self)
 
+    async def fetch_message_context(self, interaction: discord.Interaction[LightningBot]) -> Optional[tuple[list[discord.Message], discord.Message, list[discord.Message]]]:
+        """Fetch the context of the message, includes messages before and after the reported message.
+
+        Returns a tuple containing:
+        - A list of messages before the reported message.
+        - The reported message itself.
+        - A list of messages after the reported message.
+
+        If the message cannot be fetched, returns None.
+        """
+        try:
+            msg = await self.fetch_message(interaction)
+        except discord.NotFound:
+            return
+
+        if not msg:
+            return
+
+        before = [m async for m in msg.channel.history(limit=3, before=msg)]
+        after = [m async for m in msg.channel.history(limit=3, after=msg)]
+        return before, msg, after
+
     @discord.ui.button(label="View Context", style=discord.ButtonStyle.blurple)
     async def view_context_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         # It's a context lens and provides information on the user who was reported. It helps makes better decisions.
@@ -300,10 +334,10 @@ class ReportDashboard(discord.ui.View):
             # Data can be made when the member is in the guild, otherwise we don't know.
             # Typehints want to say it's joined_at can be None, but guests can't be reported anyways.
             desc.append(f"**Joined:** {discord.utils.format_dt(member.joined_at)}")
-            desc.append(f"**Account Age:** {discord.utils.format_dt(member.created_at)}")
+            desc.append(f"**Account Created:** {discord.utils.format_dt(member.created_at)}")
         else:
             desc.append("**Joined:** Unknown")
-            desc.append("**Account Age:** Unknown")
+            desc.append("**Account Created:** Unknown")
 
         # Dashboard snowflakes encode when the report was created.
         cutoff_snowflake = discord.utils.time_snowflake(discord.utils.utcnow() - timedelta(days=30))
@@ -326,16 +360,29 @@ class ReportDashboard(discord.ui.View):
             infractions = []
 
         if infractions:
-            # Let's show the recent infractions in a quick cute fashion.
-            # Show the 5 most recent infractions
-            infractions = [InfractionRecord(interaction.client, inf) for inf in sorted(infractions,
-                                                                                       key=lambda x: x['created_at'],
-                                                                                       reverse=True)][:5]
+            # Count matching types and exact stored reasons among the 5 most recent infractions.
+            recent = sorted(infractions, key=lambda x: x['created_at'], reverse=True)[:5]
+            # Use a collections.Counter to tally occurrences of each (action, reason) pair among the recent infractions.
+            counts = Counter((record['action'], record['reason']) for record in recent)
+            lines = [
+                f"**{str(ActionType(action)).capitalize()}** - {count}x - {reason or 'No reason provided.'}"
+                for (action, reason), count in counts.items()
+            ]
+
+            container.add_item(discord.ui.Separator())
+            container.add_item(discord.ui.TextDisplay("### Recent Infractions\n" + "\n".join(lines)))
+
+        # Conversation Context
+        context = await self.fetch_message_context(interaction)
+        if context:
+            before, current, after = context
             container.add_item(discord.ui.Separator())
             container.add_item(discord.ui.TextDisplay(
-                "### Recent Infractions\n" + "\n".join(
-                    f"{str(i.action).capitalize()} ({discord.utils.format_dt(i.created_at, style='R')}) - {i.reason}"
-                    for i in infractions)))
+                f"### Conversation Context\n### [Jump to the reported message]({current.jump_url})\n" +
+                "\n".join(f"{m.author.mention}: {format_message_content(m)}" for m in before) +
+                f"\n\N{POLICE CARS REVOLVING LIGHT} **Reported Message:** {format_message_content(current)}\n" +
+                "\n".join(f"{m.author.mention}: {format_message_content(m)}" for m in after)
+            ))
 
         view = discord.ui.LayoutView(timeout=None)
         view.add_item(container)

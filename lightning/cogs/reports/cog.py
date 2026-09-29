@@ -25,7 +25,7 @@ from sanctum.exceptions import NotFound
 from lightning import CommandLevel, GuildContext, LightningCog, hybrid_command
 from lightning.cache import registry as cache_registry
 from lightning.cogs.reports.ui import (ReasonModal, ReportConfiguration,
-                                       ReportDashboard)
+                                       ReportDashboard, format_message_content)
 from lightning.models import GuildModConfig
 from lightning.utils.checks import is_server_manager
 
@@ -131,17 +131,7 @@ class Reports(LightningCog):
         else:
             embed.set_footer(text=msg.channel)
 
-        description = msg.content
-        if msg.attachments:
-            attach_urls = [
-                f'[{attachment.filename}]({attachment.url})'
-                for attachment in msg.attachments
-            ]
-
-            description += '\n\N{BULLET} ' + '\n\N{BULLET} '.join(attach_urls)
-        if msg.embeds:
-            description += "\n \N{BULLET} Message contains an embed(s)"
-        embed.description = description
+        embed.description = format_message_content(msg)
 
         if hasattr(msg.author, 'color'):
             embed.color = msg.author.color
