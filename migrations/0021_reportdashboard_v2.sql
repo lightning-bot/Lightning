@@ -6,3 +6,5 @@ ALTER TABLE message_reports ADD COLUMN view_version SMALLINT;
 
 -- Set existing records to version 1
 UPDATE message_reports SET view_version = 1;
+
+ALTER TABLE message_reports ALTER COLUMN view_version SET DEFAULT 2;
