@@ -552,7 +552,7 @@ class Stats(LightningCog):
                                              url=self.bot.config.bot.support_server_invite))
         links.add_item(discord.ui.Button(label="Website", url="https://lightningbot.app"))
         links.add_item(discord.ui.Button(label="Source Code", url=repo_url))
-        links.add_item(discord.ui.Button(label="Ko-Fi", url="https://ko-fi.com/celveren"))
+        links.add_item(discord.ui.Button(label="Support Lightning", url="https://ko-fi.com/celveren"))
         container.add_item(links)
         container.add_item(discord.ui.TextDisplay(
             f"-# Lightning v{self.bot.version} · Made by Célveren"
