@@ -29,6 +29,7 @@ from lightning import GuildContext, LightningBot, lock_when_pressed
 from lightning.cache import registry as cache_registry
 from lightning.constants import LIGHTNING_COLOR
 from lightning.enums import ActionType
+from lightning.formatters import truncate_text
 from lightning.ui import BaseView, ExitableMenu, MenuLikeView, UpdateableMenu
 from lightning.utils.helpers import dm_user
 from lightning.utils.modlogformats import (base_user_format,
@@ -377,12 +378,13 @@ class ReportDashboard(discord.ui.View):
         if context:
             before, current, after = context
             container.add_item(discord.ui.Separator())
-            container.add_item(discord.ui.TextDisplay(
+            conversation = (
                 f"### Conversation Context\n### [Jump to the reported message]({current.jump_url})\n" +
                 "\n".join(f"{m.author.mention}: {format_message_content(m)}" for m in before) +
                 f"\n\N{POLICE CARS REVOLVING LIGHT} **Reported Message:** {format_message_content(current)}\n" +
                 "\n".join(f"{m.author.mention}: {format_message_content(m)}" for m in after)
-            ))
+            )
+            container.add_item(discord.ui.TextDisplay(truncate_text(conversation, limit=3000)))
 
         view = discord.ui.LayoutView(timeout=None)
         view.add_item(container)
