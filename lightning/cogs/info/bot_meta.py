@@ -30,22 +30,6 @@ log = logging.getLogger(__name__)
 
 
 class BotMeta(LightningCog):
-    @command(name='copyright', aliases=['license'])
-    async def _copyright(self, ctx: LightningContext) -> None:
-        """Tells you about the copyright license for the bot"""
-        await ctx.send("AGPLv3: https://github.com/lightning-bot/Lightning/blob/master/LICENSE")
-
-    @command()
-    async def donate(self, ctx: LightningContext) -> None:
-        """Gives you a link to my donation page"""
-        await ctx.send("**__Ko-Fi__**: <https://ko-fi.com/lightsage>")
-
-    @command()
-    async def support(self, ctx: LightningContext) -> None:
-        """Sends an invite that goes to the support server"""
-        await ctx.send("You can join this server to get support for this bot: "
-                       f"{self.bot.config.bot.support_server_invite}")
-
     @command(aliases=['invite'])
     async def join(self, ctx: LightningContext, *ids: discord.Object) -> None:
         """Gives you a link to add the bot to your server or generates an invite link for a client id."""
@@ -141,7 +125,7 @@ class BotMeta(LightningCog):
         view = discord.ui.View()
         view.add_item(discord.ui.Button(style=discord.ButtonStyle.grey,
                                         label="AutoMod Quick Start",
-                                        url="https://lightningbot.app/guide/automod-configuration"))
+                                        url="https://lightningbot.app/docs/automod-configuration"))
         view.add_item(discord.ui.Button(style=discord.ButtonStyle.grey,
                                         label="Documentation",
                                         url="https://lightningbot.app/"))
