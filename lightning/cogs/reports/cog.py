@@ -208,5 +208,5 @@ class Reports(LightningCog):
         await self.create_new_report(interaction, message, reason=modal.reason.value)
 
         msg = "Thanks for the report! It's been sent to the moderation team for review.\n" \
-              "- Your identity will remain confidential to server moderators."
+              "- Your identity will remain confidential from server moderators."
         await interaction.followup.send(msg, ephemeral=True)

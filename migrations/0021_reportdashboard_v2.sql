@@ -8,3 +8,6 @@ ALTER TABLE message_reports ADD COLUMN view_version SMALLINT;
 UPDATE message_reports SET view_version = 1;
 
 ALTER TABLE message_reports ALTER COLUMN view_version SET DEFAULT 2;
+
+-- Create a specialized view so that we exclude the 'Report Message' command from public command stats
+CREATE VIEW public_command_stats AS SELECT * FROM command_stats WHERE command_name != 'Report Message';
