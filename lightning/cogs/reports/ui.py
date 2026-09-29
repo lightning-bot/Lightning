@@ -400,9 +400,9 @@ class ReportDashboard(discord.ui.View):
             timestamp = add_tzinfo(datetime.fromisoformat(record['reported_at']))
             timestamp_str = discord.utils.format_dt(timestamp)
             # Dashboard v2 now anonymizes reporters to moderators, but they're still recorded in the database.
-            # The philosophy behind this is to prevent biases from forming based on the identity of the reporter.
-            # (cause y'know we get insecure sometimes)
-            entries.append(f"**Anonymous Reporter #{count}** — {timestamp_str}\n"
+            # The philosophy behind this is to prevent potential biases from forming based on the reporter.
+            # Helps avoid social pressure or pressure around reporting messages.
+            entries.append(f"**Confidential Reporter #{count}** — {timestamp_str}\n"
                            f"{record['reason'] or 'No reason provided.'}")
 
         container = discord.ui.Container(
