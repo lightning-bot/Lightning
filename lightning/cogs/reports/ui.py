@@ -345,7 +345,7 @@ class ReportDashboard(discord.ui.View):
         query = """SELECT COUNT(*) FROM message_reports
                     WHERE guild_id=$1
                     AND reported_user_id=$2
-                    AND message_id >= $3;"""
+                    AND report_message_id >= $3;"""
         report_count = await interaction.client.pool.fetchval(query, interaction.guild.id,
                                                               self.reported_user_id, cutoff_snowflake)
         # Normally, I would check for the view's version in the record, but old ones are not getting migrated!
