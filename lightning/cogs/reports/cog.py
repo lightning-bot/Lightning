@@ -25,7 +25,7 @@ from sanctum.exceptions import NotFound
 from lightning import CommandLevel, GuildContext, LightningCog, hybrid_command
 from lightning.cache import registry as cache_registry
 from lightning.cogs.reports.ui import (ReasonModal, ReportConfiguration,
-                                       ReportDashboard)
+                                       ReportDashboard, format_message_content)
 from lightning.models import GuildModConfig
 from lightning.utils.checks import is_server_manager
 
@@ -131,17 +131,7 @@ class Reports(LightningCog):
         else:
             embed.set_footer(text=msg.channel)
 
-        description = msg.content
-        if msg.attachments:
-            attach_urls = [
-                f'[{attachment.filename}]({attachment.url})'
-                for attachment in msg.attachments
-            ]
-
-            description += '\n\N{BULLET} ' + '\n\N{BULLET} '.join(attach_urls)
-        if msg.embeds:
-            description += "\n \N{BULLET} Message contains an embed(s)"
-        embed.description = description
+        embed.description = format_message_content(msg)
 
         if hasattr(msg.author, 'color'):
             embed.color = msg.author.color
@@ -179,7 +169,7 @@ class Reports(LightningCog):
         view.dashboard_message_id = dash_msg.id
 
         payload = {"guild_id": guild.id, "message_id": message.id, "channel_id": message.channel.id,
-                   "report_message_id": dash_msg.id,
+                   "report_message_id": dash_msg.id, "reported_user_id": message.author.id,
                    "reporter": {"author_id": interaction.user.id, "reason": reason, "original": True}}
         record = await self.bot.api.create_guild_message_report(guild.id, payload)
 
@@ -216,4 +206,7 @@ class Reports(LightningCog):
         await modal.wait()
 
         await self.create_new_report(interaction, message, reason=modal.reason.value)
-        await interaction.followup.send("Successfully reported the message!", ephemeral=True)
+
+        msg = "Thanks for the report! It's been sent to the moderation team for review.\n" \
+              "- Your identity will remain confidential from server moderators."
+        await interaction.followup.send(msg, ephemeral=True)

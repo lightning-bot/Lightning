@@ -161,9 +161,11 @@ class Stats(LightningCog):
         return x
 
     async def commands_stats_guild(self, ctx: GuildContext):
+        # Public output uses the filtered view.
+        # Logging will still retain all invocations in command_stats.
         em = discord.Embed(title="Command Stats", color=0xf74b06)
         query = """SELECT COUNT(*), MIN(used_at)
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE guild_id=$1;"""
         res = await self.bot.pool.fetchrow(query, ctx.guild.id)
         em.description = f"{res[0]} commands used so far."
@@ -171,7 +173,7 @@ class Stats(LightningCog):
         em.timestamp = res[1] or discord.utils.utcnow()
         query = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE guild_id=$1
                    GROUP BY command_name
                    ORDER BY "cmd_uses" DESC
@@ -182,7 +184,7 @@ class Stats(LightningCog):
 
         query = """SELECT user_id,
                         COUNT(*) as "uses"
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE guild_id=$1
                    GROUP BY user_id
                    ORDER BY "uses" DESC
@@ -196,7 +198,7 @@ class Stats(LightningCog):
 
         query = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE guild_id=$1
                    AND used_at > (timezone('UTC', now()) - INTERVAL '1 day')
                    GROUP BY command_name
@@ -209,7 +211,7 @@ class Stats(LightningCog):
 
         query = """SELECT channel_id,
                         COUNT(*) as "uses"
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE guild_id=$1
                    AND channel_id IS NOT NULL
                    GROUP BY channel_id
@@ -231,7 +233,8 @@ class Stats(LightningCog):
 
     async def command_stats_member(self, ctx: LightningContext, member: discord.Member):
         em = discord.Embed(title=f"Command Stats for {member}", color=LIGHTNING_COLOR)
-        query = "SELECT COUNT(*), MIN(used_at) FROM command_stats WHERE guild_id=$1 AND user_id=$2;"
+        query = """SELECT COUNT(*), MIN(used_at) FROM public_command_stats
+                   WHERE guild_id=$1 AND user_id=$2;"""
         res = await self.bot.pool.fetchrow(query, ctx.guild.id, member.id)
         em.description = f"{res['count']} commands used so far in {ctx.guild.name}."
 
@@ -239,7 +242,7 @@ class Stats(LightningCog):
         em.timestamp = res[1] or discord.utils.utcnow()
         query2 = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE guild_id=$1
                    AND user_id=$2
                    GROUP BY command_name
@@ -251,7 +254,7 @@ class Stats(LightningCog):
 
         query = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE guild_id=$1
                    AND used_at > (timezone('UTC', now()) - INTERVAL '1 day')
                    AND user_id=$2
@@ -275,7 +278,7 @@ class Stats(LightningCog):
         """Shows a summary of your bot usage over the past year"""
         conn = await self.bot.pool.acquire(timeout=200)
         query = """SELECT COUNT(*)
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE user_id=$1
                    AND used_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
         total_cmds = await conn.fetchval(query, ctx.author.id)
@@ -289,7 +292,7 @@ class Stats(LightningCog):
 
         query = """SELECT command_name,
                         COUNT(*) as "cmd_uses"
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE used_at > (timezone('UTC', now()) - INTERVAL '1 year')
                    AND user_id=$1
                    GROUP BY command_name
@@ -298,7 +301,7 @@ class Stats(LightningCog):
                 """
         records = await conn.fetch(query, ctx.author.id)
         query = """SELECT TO_CHAR(used_at, 'HH24') AS ts, COUNT (*) as "count"
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE user_id=$1
                    AND used_at > (timezone('UTC', now()) - INTERVAL '1 year')
                    GROUP BY ts
@@ -313,14 +316,14 @@ class Stats(LightningCog):
 
         # Reminders
         query = """SELECT COUNT(*)
-                   FROM command_stats
+                   FROM public_command_stats
                    WHERE user_id=$1
                    AND command_name='remind'
                    AND used_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
         total_cmds = await conn.fetchval(query, ctx.author.id)
         if total_cmds:
             query = """SELECT COUNT(*)
-                       FROM command_stats
+                       FROM public_command_stats
                        WHERE user_id=$1
                        AND (command_name='remind delete' OR command_name='remind clear')
                        AND used_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
@@ -359,15 +362,6 @@ class Stats(LightningCog):
                     f"\nThe most popular action you made was {ActionType(most_rec['action']).name.capitalize()}!"
             embed.add_field(name="Moderation", value=value, inline=False)
 
-        # Reports
-        query = """SELECT COUNT (*)
-                   FROM message_reporters
-                   WHERE author_id=$1
-                   AND reported_at > (timezone('UTC', now()) - INTERVAL '1 year');"""
-        total_reports = await conn.fetchval(query, ctx.author.id)
-        if total_reports:
-            embed.add_field(name="Reports", value=f"In the past year, you've sent {total_reports} message reports!")
-
         await self.bot.pool.release(conn)
         await ctx.send(embed=embed, ephemeral=True)
 
@@ -390,7 +384,7 @@ class Stats(LightningCog):
         """Shows command stats for the server through a table."""
         async with ctx.typing():
             query = """SELECT command_name, channel_id, user_id, used_at
-                       FROM command_stats
+                       FROM public_command_stats
                        WHERE guild_id=$1
                        ORDER BY "used_at" DESC
                        LIMIT $2;

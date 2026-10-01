@@ -16,19 +16,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Optional
 from zoneinfo import ZoneInfo
 
 import discord
+import sanctum
 from sanctum.exceptions import NotFound
 
 from lightning import GuildContext, LightningBot, lock_when_pressed
 from lightning.cache import registry as cache_registry
+from lightning.constants import LIGHTNING_COLOR
+from lightning.enums import ActionType
+from lightning.formatters import truncate_text
 from lightning.ui import BaseView, ExitableMenu, MenuLikeView, UpdateableMenu
 from lightning.utils.helpers import dm_user
-from lightning.utils.modlogformats import (base_user_format,
-                                           construct_dm_message)
+from lightning.utils.modlogformats import construct_dm_message
 from lightning.utils.time import FutureTime, add_tzinfo
 
 if TYPE_CHECKING:
@@ -42,6 +46,17 @@ REPORT_PERMISSIONS = discord.Permissions(moderate_members=True, kick_members=Tru
 
 def has_actionable_permissions(perms: discord.Permissions):
     return perms.value & REPORT_PERMISSIONS.value != 0
+
+
+def format_message_content(message: discord.Message) -> str:
+    """Format message text and media consistently across report views."""
+    description = message.content
+    if message.attachments:
+        attach_urls = [f'[{attachment.filename}]({attachment.url})' for attachment in message.attachments]
+        description += '\n\N{BULLET} ' + '\n\N{BULLET} '.join(attach_urls)
+    if message.embeds:
+        description += "\n \N{BULLET} Message contains an embed(s)"
+    return description
 
 
 class ReasonModal(discord.ui.Modal, title="Message Report"):
@@ -201,7 +216,8 @@ class ActionDashboard(BaseView):
 
 
 class ReportDashboard(discord.ui.View):
-    def __init__(self, message_id: int, guild_id: int, channel_id: int, *, dashboard_message_id: int = 0):
+    def __init__(self, message_id: int, guild_id: int, channel_id: int, *,
+                 dashboard_message_id: int = 0, reported_user_id: int = 0):
         self.dismissed = False
         self.actioned = False
         self.message_id = message_id
@@ -209,6 +225,8 @@ class ReportDashboard(discord.ui.View):
         self.channel_id = channel_id
         # This should never be zero
         self.dashboard_message_id = dashboard_message_id
+        # Dashboard v2
+        self.reported_user_id = reported_user_id
         super().__init__(timeout=None)
         self.add_item(discord.ui.Button(label="View Reported Message",
                                         url=f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}",
@@ -217,13 +235,15 @@ class ReportDashboard(discord.ui.View):
         self.action_button.custom_id = f"lightning-reportdash-{message_id}:action"
         self.view_reporters_button.custom_id = f"lightning-reportdash-{message_id}:view"
         self.dismiss_button.custom_id = f"lightning-reportdash-{message_id}:dismiss"
+        self.view_context_button.custom_id = f"lightning-reportdash-{message_id}:context-lens"
 
         self.update_buttons()
 
     @classmethod
     def from_record(cls, record):
         c = cls(record['message_id'], record['guild_id'], record['channel_id'],
-                dashboard_message_id=record['report_message_id'])
+                dashboard_message_id=record['report_message_id'],
+                reported_user_id=record['reported_user_id'])
         c.dismissed = record['dismissed']
         c.actioned = record['actioned']
         return c
@@ -279,16 +299,124 @@ class ReportDashboard(discord.ui.View):
         self.update_buttons()
         await interaction.message.edit(view=self)
 
+    async def fetch_message_context(self, interaction: discord.Interaction[LightningBot]) -> Optional[tuple[list[discord.Message], discord.Message, list[discord.Message]]]:
+        """Fetch the context of the message, includes messages before and after the reported message.
+
+        Returns a tuple containing:
+        - A list of messages before the reported message.
+        - The reported message itself.
+        - A list of messages after the reported message.
+
+        If the message cannot be fetched, returns None.
+        """
+        try:
+            msg = await self.fetch_message(interaction)
+
+            if not msg:
+                return
+
+            before = [m async for m in msg.channel.history(limit=3, before=msg)]
+            after = [m async for m in msg.channel.history(limit=3, after=msg)]
+        except discord.HTTPException:
+            return
+
+        return before, msg, after
+
+    @discord.ui.button(label="View Context", style=discord.ButtonStyle.blurple)
+    async def view_context_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
+        # It's a context lens and provides information on the user who was reported. It helps makes better decisions.
+        assert interaction.guild is not None
+
+        # Note to myself: Reported User ID is a Dashboard v2 thing.
+        # Old dashboards were not migrated so I don't have to worry about fallbacks.
+        desc = [f"## Moderation Context - <@!{self.reported_user_id}>"]
+        member = interaction.guild.get_member(self.reported_user_id)
+        if member:
+            # Data can be made when the member is in the guild, otherwise we don't know.
+            # Typehints want to say it's joined_at can be None, but guests can't be reported anyways.
+            desc.append(f"**Joined:** {discord.utils.format_dt(member.joined_at)}")
+            desc.append(f"**Account Created:** {discord.utils.format_dt(member.created_at)}")
+        else:
+            desc.append("**Joined:** Unknown")
+            desc.append("**Account Created:** Unknown")
+
+        # Dashboard snowflakes encode when the report was created.
+        cutoff_snowflake = discord.utils.time_snowflake(discord.utils.utcnow() - timedelta(days=30))
+        query = """SELECT COUNT(*) FROM message_reports
+                    WHERE guild_id=$1
+                    AND reported_user_id=$2
+                    AND report_message_id >= $3;"""
+        report_count = await interaction.client.pool.fetchval(query, interaction.guild.id,
+                                                              self.reported_user_id, cutoff_snowflake)
+        # Normally, I would check for the view's version in the record, but old ones are not getting migrated!
+        desc.append(f"\n**Reports against the user (last 30 days):** {report_count}")
+
+        container = discord.ui.Container(discord.ui.TextDisplay("\n".join(desc)),
+                                         accent_color=LIGHTNING_COLOR)
+
+        try:
+            infractions = await interaction.client.api.get_user_infractions(interaction.guild.id,
+                                                                            self.reported_user_id)
+        except sanctum.NotFound:
+            infractions = []
+
+        if infractions:
+            # Count matching types and exact stored reasons among the 5 most recent infractions.
+            recent = sorted(infractions, key=lambda x: x['created_at'], reverse=True)[:5]
+            # Use a collections.Counter to tally occurrences of each (action, reason) pair among the recent infractions.
+            counts = Counter((record['action'], record['reason']) for record in recent)
+            lines = [
+                f"**{str(ActionType(action)).capitalize()}** - {count}x - {reason or 'No reason provided.'}"
+                for (action, reason), count in counts.items()
+            ]
+
+            container.add_item(discord.ui.Separator())
+            container.add_item(discord.ui.TextDisplay("### Recent Infractions\n" + "\n".join(lines)))
+
+        # Conversation Context
+        context = await self.fetch_message_context(interaction)
+        if context:
+            before, current, after = context
+            container.add_item(discord.ui.Separator())
+            conversation = (
+                f"### Conversation Context\n### [Jump to the reported message]({current.jump_url})\n" +
+                "\n".join(f"{m.author.mention}: {format_message_content(m)}" for m in before) +
+                f"\n\N{POLICE CARS REVOLVING LIGHT} **Reported Message:** {format_message_content(current)}\n" +
+                "\n".join(f"{m.author.mention}: {format_message_content(m)}" for m in after)
+            )
+            container.add_item(discord.ui.TextDisplay(truncate_text(conversation, limit=3000)))
+
+        view = discord.ui.LayoutView(timeout=None)
+        view.add_item(container)
+
+        await interaction.response.send_message(view=view, ephemeral=True,
+                                                allowed_mentions=discord.AllowedMentions.none())
+
     @discord.ui.button(label="View Reporters", style=discord.ButtonStyle.blurple)
     async def view_reporters_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         reporters = await interaction.client.api.get_guild_message_reporters(interaction.guild.id, self.message_id)
-        tmp = []
-        for record in reporters:
-            m = interaction.guild.get_member(record['author_id']) or record['author_id']
+        entries = []
+        for count, record in enumerate(reporters, start=1):
+            # Add UTC timezone to the reported_at timestamp and format it for display
             timestamp = add_tzinfo(datetime.fromisoformat(record['reported_at']))
-            tmp.append(f"\N{BULLET} {discord.utils.format_dt(timestamp)} {base_user_format(m)}: {record['reason']}")
+            timestamp_str = discord.utils.format_dt(timestamp)
+            # Dashboard v2 now anonymizes reporters to moderators, but they're still recorded in the database.
+            # The philosophy behind this is to prevent potential biases from forming based on the reporter.
+            # Helps avoid social pressure or pressure around reporting messages.
+            entries.append(f"**Confidential Reporter #{count}** — {timestamp_str}\n"
+                           f"{record['reason'] or 'No reason provided.'}")
 
-        await interaction.response.send_message("\n".join(tmp), ephemeral=True)
+        container = discord.ui.Container(
+            discord.ui.TextDisplay("## Reporters"),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay("\n\n".join(entries) or "No reporters found."),
+            accent_color=LIGHTNING_COLOR,
+        )
+        view = discord.ui.LayoutView(timeout=None)
+        view.add_item(container)
+
+        await interaction.response.send_message(view=view, ephemeral=True,
+                                                allowed_mentions=discord.AllowedMentions.none())
 
     @discord.ui.button()
     async def dismiss_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
