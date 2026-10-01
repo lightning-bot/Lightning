@@ -311,14 +311,15 @@ class ReportDashboard(discord.ui.View):
         """
         try:
             msg = await self.fetch_message(interaction)
-        except discord.NotFound:
+
+            if not msg:
+                return
+
+            before = [m async for m in msg.channel.history(limit=3, before=msg)]
+            after = [m async for m in msg.channel.history(limit=3, after=msg)]
+        except discord.HTTPException:
             return
 
-        if not msg:
-            return
-
-        before = [m async for m in msg.channel.history(limit=3, before=msg)]
-        after = [m async for m in msg.channel.history(limit=3, after=msg)]
         return before, msg, after
 
     @discord.ui.button(label="View Context", style=discord.ButtonStyle.blurple)
