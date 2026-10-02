@@ -30,7 +30,7 @@ from lightning.cache import registry as cache_registry
 from lightning.constants import LIGHTNING_COLOR
 from lightning.enums import ActionType
 from lightning.formatters import truncate_text
-from lightning.ui import BaseView, ExitableMenu, MenuLikeView, UpdateableMenu
+from lightning.ui import ExitableMenu, MenuLikeView, UpdateableMenu, _BaseView
 from lightning.utils.helpers import dm_user
 from lightning.utils.modlogformats import construct_dm_message
 from lightning.utils.time import FutureTime, add_tzinfo
@@ -70,7 +70,10 @@ class ReasonModal(discord.ui.Modal, title="Message Report"):
 class ActionOptionsModal(discord.ui.Modal, title="Action Options"):
     duration = discord.ui.TextInput(label="Duration", style=discord.TextStyle.short)
     dt: Optional[FutureTime] = None
-    msg_content: str
+
+    def __init__(self, dashboard: ActionDashboard):
+        super().__init__()
+        self.dashboard = dashboard
 
     async def on_submit(self, interaction: discord.Interaction[LightningBot]) -> None:
         tzinfo = await interaction.client.get_user_timezone(interaction.user.id)
@@ -91,8 +94,14 @@ class ActionOptionsModal(discord.ui.Modal, title="Action Options"):
 
         self.dt = dt
 
-        await interaction.response.edit_message(content=f"{self.msg_content}\n\n**Duration**: "
-                                                        f"{discord.utils.format_dt(dt.dt)}")
+        # The dashboard might have timed out while the modal was open, so don't bring it back.
+        if self.dashboard.is_finished():
+            await interaction.response.defer()
+            return
+
+        self.dashboard.duration = dt.dt
+        self.dashboard.update_components()
+        await interaction.response.edit_message(view=self.dashboard)
 
 
 action_options = [discord.SelectOption(label="No action", value="no_action"),
@@ -103,7 +112,30 @@ action_options = [discord.SelectOption(label="No action", value="no_action"),
                   discord.SelectOption(label="Ban", value="ban", emoji="\N{HAMMER}")]
 
 
-class ActionDashboard(BaseView):
+class ActionReasonModal(ReasonModal):
+    def __init__(self, dashboard: ActionDashboard):
+        super().__init__()
+        self.dashboard = dashboard
+        self.reason.required = True
+        self.reason.default = dashboard.reason
+
+    async def on_submit(self, interaction: discord.Interaction[LightningBot], /) -> None:
+        # The dashboard might have timed out while the modal was open, so don't bring it back.
+        if self.dashboard.is_finished():
+            await interaction.response.defer()
+            return
+
+        self.dashboard.reason = self.reason.value
+        self.dashboard.update_components()
+        await interaction.response.edit_message(view=self.dashboard)
+
+
+class ActionDashboard(_BaseView, discord.ui.LayoutView):
+    # We need rows here so the decorated buttons and select can go inside the container.
+    select_row = discord.ui.ActionRow()
+    options_row = discord.ui.ActionRow()
+    confirm_row = discord.ui.ActionRow()
+
     def __init__(self, message: discord.Message, *, timeout=180):
         self.message = message
         self.action = None
@@ -111,46 +143,73 @@ class ActionDashboard(BaseView):
         self.notify = False
         self.duration: Optional[datetime] = None
         super().__init__(timeout=timeout)
+        # LayoutView adds the rows for us, but we want them inside the container instead.
+        self.clear_items()
+        self.container = discord.ui.Container(accent_color=LIGHTNING_COLOR)
+        self.container.add_item(discord.ui.TextDisplay(
+            f"## Report Action · {message.author.mention}\n"
+            "-# Select a punishment, then configure any options before confirming."))
+        self.container.add_item(discord.ui.Separator())
+        self.summary = discord.ui.TextDisplay("")
+        self.container.add_item(self.summary)
+        self.container.add_item(self.select_row)
+        self.container.add_item(self.options_row)
+        self.container.add_item(discord.ui.Separator())
+        self.container.add_item(self.confirm_row)
+        self.add_item(self.container)
+        self.update_components()
 
-    @discord.ui.select(options=action_options, min_values=1, max_values=1, placeholder="Select a punishment")
+    def update_components(self) -> None:
+        """Keep the controls and summary in sync with the selected punishment."""
+        self.confirm_button.disabled = self.action is None
+        self.reason_button.disabled = self.action in (None, "no_action")
+        self.notify_button.disabled = self.action in (None, "no_action")
+        self.duration_button.disabled = self.action not in ("mute", "ban")
+        self.notify_button.label = "Don't Notify" if self.notify else "Notify"
+        for option in self.select_callback.options:
+            option.default = option.value == self.action
+
+        if self.action is None:
+            self.summary.content = "### Punishment\nSelect a punishment below."
+        elif self.action == "no_action":
+            self.summary.content = "### No action\nPress Confirm to complete this report without a punishment."
+        else:
+            self.summary.content = (
+                f"### {self.action.capitalize()}\n**Reason:** {self.reason}\n"
+                f"**Notify:** {'Yes' if self.notify else 'No'}")
+            if self.action in ("mute", "ban"):
+                duration = discord.utils.format_dt(self.duration) if self.duration else "Not set"
+                self.summary.content += f"\n**Duration:** {duration}"
+
+    async def complete(self, interaction: discord.Interaction) -> None:
+        # We can't use message content with Components v2, so this needs a TextDisplay too.
+        self.clear_items()
+        self.add_item(discord.ui.Container(
+            discord.ui.TextDisplay("## Report Action\nSuccessfully completed action!"),
+            accent_color=LIGHTNING_COLOR))
+        await interaction.response.edit_message(view=self)
+        self.stop()
+
+    @select_row.select(options=action_options, min_values=1, max_values=1, placeholder="Select a punishment")
     async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
         self.action = select.values[0]
-        self.confirm_button.disabled = False
+        # Only mute and ban take a duration, so clear it if we're switching to something else.
+        if self.action not in ("mute", "ban"):
+            self.duration = None
+        if self.action == "no_action":
+            self.notify = False
+        self.update_components()
+        await interaction.response.edit_message(view=self)
 
-        if self.action != "no_action":
-            self.reason_button.disabled = False
-            self.notify_button.disabled = False
-
-        if self.action in ("mute", "ban"):
-            self.duration_button.disabled = False
-
-        await interaction.response.edit_message(content=f"You selected {self.action.capitalize()}. "
-                                                        "Press Confirm once you're done configuring any other options.",
-                                                view=self)
-
-    @discord.ui.button(label="Reason", disabled=True, emoji="\N{MEMO}")
+    @options_row.button(label="Reason", disabled=True, emoji="\N{MEMO}")
     async def reason_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        modal = ReasonModal()
-        modal.reason.required = True
-        modal.reason.default = self.reason
-        await interaction.response.send_modal(modal)
-        await modal.wait()
-        self.reason = modal.reason.value
+        await interaction.response.send_modal(ActionReasonModal(self))
 
-    @discord.ui.button(label="Duration", disabled=True, emoji="\N{HOURGLASS WITH FLOWING SAND}")
+    @options_row.button(label="Duration", disabled=True, emoji="\N{HOURGLASS WITH FLOWING SAND}")
     async def duration_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        modal = ActionOptionsModal()
-        modal.msg_content = f"You selected {self.action.capitalize()}. "\
-                            "Press Confirm once you're done configuring any other options."
-        await interaction.response.send_modal(modal)
-        await modal.wait()
+        await interaction.response.send_modal(ActionOptionsModal(self))
 
-        if not modal.dt:
-            return
-
-        self.duration = modal.dt.dt
-
-    @discord.ui.button(label="Notify", style=discord.ButtonStyle.blurple, disabled=True, emoji="\N{BELL}")
+    @options_row.button(label="Notify", style=discord.ButtonStyle.blurple, disabled=True, emoji="\N{BELL}")
     async def notify_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         self.notify = not self.notify
 
@@ -161,6 +220,7 @@ class ActionDashboard(BaseView):
             content = f"{self.message.author.mention} will not receive a DM when you press Confirm."
             self.notify_button.label = "Notify"
 
+        self.update_components()
         await interaction.response.edit_message(view=self)
         await interaction.followup.send(content, ephemeral=True)
 
@@ -168,7 +228,7 @@ class ActionDashboard(BaseView):
         return self.message.guild.owner_id == self.message.author.id or \
             self.message.guild.me.top_role <= self.message.author.top_role
 
-    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green, disabled=True, row=2)
+    @confirm_row.button(label="Confirm", style=discord.ButtonStyle.green, disabled=True)
     async def confirm_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         # I don't wanna repeat these again
         cog: Optional[AutoMod] = interaction.client.get_cog("AutoMod")
@@ -177,8 +237,7 @@ class ActionDashboard(BaseView):
             return
 
         if self.action == "no_action":
-            await interaction.response.edit_message(content="Successfully completed action!", view=None)
-            self.stop()
+            await self.complete(interaction)
             return
 
         if self.member_unactionable():
@@ -204,13 +263,13 @@ class ActionDashboard(BaseView):
 
         await func(*args, reason=self.reason)
 
-        await interaction.response.edit_message(content="Successfully completed action!", view=None)
-        self.stop()
+        await self.complete(interaction)
 
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red, row=2)
+    @confirm_row.button(label="Cancel", style=discord.ButtonStyle.red)
     async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message()
         await interaction.delete_original_response()
+        # The report dashboard checks this to see if we cancelled.
         self.action = None
         self.stop()
 
@@ -288,7 +347,8 @@ class ReportDashboard(discord.ui.View):
             return
 
         view = ActionDashboard(msg)
-        await interaction.response.send_message(content="Select a punishment below", view=view, ephemeral=True)
+        await interaction.response.send_message(view=view, ephemeral=True,
+                                                allowed_mentions=discord.AllowedMentions.none())
         timed_out = await view.wait()
         if timed_out is True or view.action is None:
             return
