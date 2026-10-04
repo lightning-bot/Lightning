@@ -161,12 +161,12 @@ class LightningAutoModInfractionEvent(InfractionEvent):
 
     @classmethod
     def from_message(cls, event_name: str, message: discord.Message, reason: str, *,
-                     tracked_content: Optional[str] = None):
+                     tracked_content: Optional[str] = None, moderator=None):
         if not message.guild:
             raise Exception("This class should be used in a guild")
 
         return cls(event_name, member=message.author,
-                   guild=message.guild, moderator=message.guild.me,
+                   guild=message.guild, moderator=moderator or message.guild.me,
                    reason=reason, message=message, tracked_content=tracked_content)
 
 
