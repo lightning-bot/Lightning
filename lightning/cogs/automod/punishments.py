@@ -23,11 +23,14 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 import discord
 
 from lightning.enums import ActionType, AutoModPunishmentType
+from lightning.errors import CogNotAvailable, TimersUnavailable
 from lightning.events import LightningAutoModInfractionEvent
 from lightning.utils.time import natural_timedelta
 
 if TYPE_CHECKING:
     from lightning import LightningBot
+    from lightning.cogs.mod import Mod as Moderation
+    from lightning.cogs.reminders.cog import Reminders
 
 
 @dataclass
@@ -82,12 +85,26 @@ class PunishmentContext:
         base = {"TIMEMUTE": ActionType.MUTE, "TIMEBAN": ActionType.BAN}.get(action) or ActionType[action]
         self.bot.dispatch(f"lightning_member_{str(base).lower()}", event)
 
+    def get_reminders(self) -> Reminders:
+        cog = self.bot.get_cog("Reminders")
+        if not cog:
+            raise TimersUnavailable
+
+        return cog  # type: ignore
+
+    def get_moderation(self) -> Moderation:
+        cog = self.bot.get_cog("Moderation")
+        if not cog:
+            raise CogNotAvailable("Moderation")
+
+        return cog  # type: ignore
+
     async def add_timer(self, event: str, **kwargs: Any) -> Any:
         expiry = self.expiry
-        cog = self.bot.get_cog("Reminders")
-        return await cog.add_timer(event, self.message.created_at, expiry, guild_id=self.guild.id,  # type: ignore
+        cog = self.get_reminders()
+        return await cog.add_timer(event, self.message.created_at, expiry, guild_id=self.guild.id,
                                    user_id=self.member.id, mod_id=self.moderator.id, force_insert=True,
-                                   timezone=expiry.tzinfo or datetime.timezone.utc, **kwargs)  # type: ignore
+                                   timezone=expiry.tzinfo or datetime.timezone.utc, **kwargs)
 
 
 class Punishment:
@@ -98,7 +115,10 @@ class Punishment:
     preposition: str = "in"
     takes_duration: bool = False
 
-    async def apply(self, ctx: PunishmentContext) -> None:
+    async def apply(self, ctx: PunishmentContext) -> bool:
+        """Applies the punishment. Returns whether the punishment was actually carried out.
+
+        Raises :class:`~lightning.errors.LightningError` if a required system is unavailable."""
         raise NotImplementedError
 
 
@@ -114,11 +134,13 @@ def register(cls: type[Punishment]) -> type[Punishment]:
 class Delete(Punishment):
     type = AutoModPunishmentType.DELETE
 
-    async def apply(self, ctx: PunishmentContext) -> None:
+    async def apply(self, ctx: PunishmentContext) -> bool:
         try:
             await ctx.message.delete()
         except discord.HTTPException:
-            pass
+            return False
+
+        return True
 
 
 @register
@@ -126,8 +148,9 @@ class Warn(Punishment):
     type = AutoModPunishmentType.WARN
     verb = "warned"
 
-    async def apply(self, ctx: PunishmentContext) -> None:
+    async def apply(self, ctx: PunishmentContext) -> bool:
         await ctx.log("WARN")
+        return True
 
 
 @register
@@ -136,9 +159,10 @@ class Kick(Punishment):
     verb = "kicked"
     preposition = "from"
 
-    async def apply(self, ctx: PunishmentContext) -> None:
+    async def apply(self, ctx: PunishmentContext) -> bool:
         await ctx.member.kick(reason=ctx.audit_reason)
         await ctx.log("KICK")
+        return True
 
 
 @register
@@ -148,12 +172,18 @@ class Ban(Punishment):
     preposition = "from"
     takes_duration = True
 
-    async def apply(self, ctx: PunishmentContext) -> None:
+    async def apply(self, ctx: PunishmentContext) -> bool:
+        if ctx.duration:
+            # Make sure timers are available before banning, so a timed ban never becomes permanent
+            ctx.get_reminders()
+
         await ctx.member.ban(reason=ctx.audit_reason)
         if ctx.duration:
             await self._timed(ctx)
         else:
             await ctx.log("BAN")
+
+        return True
 
     async def _timed(self, ctx: PunishmentContext) -> None:
         timer_id = await ctx.add_timer("timeban")
@@ -166,14 +196,15 @@ class Mute(Punishment):
     verb = "muted"
     takes_duration = True
 
-    async def apply(self, ctx: PunishmentContext) -> None:
+    async def apply(self, ctx: PunishmentContext) -> bool:
         if ctx.duration:
-            await self._timed(ctx)
-        else:
-            await self._permanent(ctx)
+            return await self._timed(ctx)
+
+        return await self._permanent(ctx)
 
     async def _get_role(self, ctx: PunishmentContext) -> Optional[discord.Role]:
-        cfg = await ctx.bot.get_cog("Moderation").get_mod_config(ctx.guild.id)  # type: ignore
+        cog = ctx.get_moderation()
+        cfg = await cog.get_mod_config(ctx.guild.id)
         if not cfg or not cfg.mute_role_id:
             return None
         return ctx.guild.get_role(cfg.mute_role_id)
@@ -185,45 +216,52 @@ class Mute(Punishment):
 
     async def _add_role(self, ctx: PunishmentContext, role: discord.Role) -> None:
         await ctx.member.add_roles(role, reason=ctx.audit_reason)
-        await ctx.bot.get_cog("Moderation").add_punishment_role(ctx.guild.id, ctx.member.id, role.id)  # type: ignore
+        cog = ctx.get_moderation()
+        await cog.add_punishment_role(ctx.guild.id, ctx.member.id, role.id)
 
-    async def _permanent(self, ctx: PunishmentContext) -> None:
+    async def _permanent(self, ctx: PunishmentContext) -> bool:
         if not ctx.message.channel.permissions_for(ctx.guild.me).manage_roles:
-            return
+            return False
 
         role = await self._get_role(ctx)
         if not role:
-            return
+            return False
 
         await self._add_role(ctx, role)
         await ctx.log("MUTE", timestamp=ctx.message.created_at)
+        return True
 
-    async def _timed(self, ctx: PunishmentContext) -> None:
+    async def _timed(self, ctx: PunishmentContext) -> bool:
         expiry = ctx.expiry
         if self._can_timeout(ctx, expiry):  # type: ignore
             await ctx.member.edit(timed_out_until=expiry, reason=ctx.audit_reason)
-            return
+            return True
 
         role = await self._get_role(ctx)
         if not role or not ctx.message.channel.permissions_for(ctx.guild.me).manage_roles:
-            return
+            return False
 
         job_id = await ctx.add_timer("timemute", role_id=role.id)
         await self._add_role(ctx, role)
         await ctx.log("TIMEMUTE", expiry=expiry, timer_id=job_id, timestamp=ctx.message.created_at)
+        return True
 
 
 async def apply_punishment(bot: LightningBot, punishment: Union[AutoModPunishmentType, str], message: discord.Message,
                            *, reason: str, moderator: Optional[Union[discord.Member, discord.User]] = None,
                            duration: Optional[Union[int, datetime.datetime]] = None,
-                           content: Optional[str] = None) -> None:
+                           content: Optional[str] = None) -> bool:
     """Applies a punishment to the author of a message.
 
     ``moderator`` defaults to the bot, which is what AutoMod wants.
+
+    Returns ``False`` if the punishment could not be carried out (e.g. no mute role is configured
+    or the bot lacks permissions). Raises :class:`~lightning.errors.LightningError` if a required
+    cog is unavailable.
     """
     if not isinstance(punishment, AutoModPunishmentType):
         punishment = AutoModPunishmentType[str(punishment).upper()]
 
     ctx = PunishmentContext(bot, message, reason, moderator or message.guild.me,  # type: ignore
                             duration=duration, content=content)
-    await PUNISHMENTS[punishment].apply(ctx)
+    return await PUNISHMENTS[punishment].apply(ctx)

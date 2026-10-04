@@ -30,6 +30,7 @@ from lightning.cache import registry as cache_registry
 from lightning.cogs.automod.punishments import PUNISHMENTS, apply_punishment
 from lightning.constants import LIGHTNING_COLOR
 from lightning.enums import ActionType, AutoModPunishmentType
+from lightning.errors import LightningError
 from lightning.formatters import truncate_text
 from lightning.ui import ExitableMenu, MenuLikeView, UpdateableMenu, _BaseView
 from lightning.utils.helpers import dm_user
@@ -247,8 +248,18 @@ class ActionDashboard(_BaseView, discord.ui.LayoutView):
             await dm_user(self.message.author, dm_message)
 
         # The moderator pressing confirm is the one responsible for this action, not the bot.
-        await apply_punishment(interaction.client, punishment.type, self.message, reason=self.reason,
-                               moderator=interaction.user, duration=self.duration)
+        try:
+            applied = await apply_punishment(interaction.client, punishment.type, self.message, reason=self.reason,
+                                             moderator=interaction.user, duration=self.duration)
+        except LightningError as e:
+            await interaction.response.send_message(str(e), ephemeral=True)
+            return
+
+        if not applied:
+            await interaction.response.send_message("Unable to apply the punishment. Check that the bot has the "
+                                                    "required permissions and that a mute role is configured.",
+                                                    ephemeral=True)
+            return
 
         await self.complete(interaction)
 
