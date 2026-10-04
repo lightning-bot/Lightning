@@ -33,7 +33,6 @@ from lightning.enums import ActionType, AutoModPunishmentType
 from lightning.errors import LightningError
 from lightning.formatters import truncate_text
 from lightning.ui import ExitableMenu, MenuLikeView, UpdateableMenu, _BaseView
-from lightning.utils.helpers import dm_user
 from lightning.utils.modlogformats import construct_dm_message
 from lightning.utils.time import FutureTime, add_tzinfo
 
@@ -241,11 +240,16 @@ class ActionDashboard(_BaseView, discord.ui.LayoutView):
             return
 
         punishment = PUNISHMENTS[AutoModPunishmentType[self.action.upper()]]
+        # We hope and assume the best that the punishment will go through.
+        # Otherwise, the notification was sent in vain.
         if self.notify:
             dm_message = construct_dm_message(self.message.author, punishment.verb, punishment.preposition,
                                               reason=self.reason,
                                               middle=f" due to a message you posted. ({self.message.jump_url})")
-            await dm_user(self.message.author, dm_message)
+            try:
+                message = await self.message.author.send(dm_message)
+            except (AttributeError, discord.HTTPException):
+                message = None
 
         # The moderator pressing confirm is the one responsible for this action, not the bot.
         try:
@@ -253,12 +257,15 @@ class ActionDashboard(_BaseView, discord.ui.LayoutView):
                                              moderator=interaction.user, duration=self.duration)
         except LightningError as e:
             await interaction.response.send_message(str(e), ephemeral=True)
+            await message.delete() if message else None
             return
 
         if not applied:
             await interaction.response.send_message("Unable to apply the punishment. Check that the bot has the "
                                                     "required permissions and that a mute role is configured.",
                                                     ephemeral=True)
+            # Still not the best option, but idk what else to do...
+            await message.delete() if message else None
             return
 
         await self.complete(interaction)
