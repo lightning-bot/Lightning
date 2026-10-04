@@ -64,7 +64,7 @@ class PunishmentContext:
     def audit_reason(self) -> str:
         # Moderators aren't the bot, so make it clear in the audit log who is responsible.
         if self.moderator.id == self.bot.user.id:  # type: ignore
-            return self.reason
+            return self.reason[:512]
         return f"{self.moderator} ({self.moderator.id}): {self.reason}"[:512]
 
     async def log(self, action: str, **kwargs: Any) -> None:
