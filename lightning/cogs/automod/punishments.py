@@ -61,6 +61,9 @@ class PunishmentContext:
             return None
         if isinstance(self.duration, datetime.datetime):
             return self.duration
+
+        # AutoMod rules store durations as a number of seconds, which the previous timed ban/mute code
+        # counted from when the triggering message was sent. Message reports pass a datetime instead.
         return self.message.created_at + datetime.timedelta(seconds=self.duration)
 
     @property
