@@ -27,8 +27,10 @@ from sanctum.exceptions import NotFound
 
 from lightning import GuildContext, LightningBot, lock_when_pressed
 from lightning.cache import registry as cache_registry
+from lightning.cogs.automod.punishments import PUNISHMENTS, apply_punishment
 from lightning.constants import LIGHTNING_COLOR
-from lightning.enums import ActionType
+from lightning.enums import ActionType, AutoModPunishmentType
+from lightning.errors import LightningError
 from lightning.formatters import truncate_text
 from lightning.ui import ExitableMenu, MenuLikeView, UpdateableMenu, _BaseView
 from lightning.utils.helpers import dm_user
@@ -36,7 +38,6 @@ from lightning.utils.modlogformats import construct_dm_message
 from lightning.utils.time import FutureTime, add_tzinfo
 
 if TYPE_CHECKING:
-    from lightning.cogs.automod import AutoMod
     from lightning.cogs.reports.cog import Reports as ReportsCog
 
 
@@ -230,12 +231,6 @@ class ActionDashboard(_BaseView, discord.ui.LayoutView):
 
     @confirm_row.button(label="Confirm", style=discord.ButtonStyle.green, disabled=True)
     async def confirm_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
-        # I don't wanna repeat these again
-        cog: Optional[AutoMod] = interaction.client.get_cog("AutoMod")
-        if not cog:
-            await interaction.response.send_message("Unable to action on reports at this time!", ephemeral=True)
-            return
-
         if self.action == "no_action":
             await self.complete(interaction)
             return
@@ -245,23 +240,26 @@ class ActionDashboard(_BaseView, discord.ui.LayoutView):
                                                     ephemeral=True)
             return
 
-        func = getattr(cog, f"_{self.action}_punishment")
-
-        args = (self.message, self.duration) if self.duration else (self.message, )
+        punishment = PUNISHMENTS[AutoModPunishmentType[self.action.upper()]]
         if self.notify:
-            if self.action in ("warn", "mute"):
-                v, loc = f"{self.action}ed", "in"
-            elif self.action == "kick":
-                v, loc = "kicked", "from"
-            elif self.action == "ban":
-                v, loc = "banned", "from"
-            else:
-                v, loc = "punished", "in"
-            dm_message = construct_dm_message(self.message.author, v, loc, reason=self.reason,
+            dm_message = construct_dm_message(self.message.author, punishment.verb, punishment.preposition,
+                                              reason=self.reason,
                                               middle=f" due to a message you posted. ({self.message.jump_url})")
             await dm_user(self.message.author, dm_message)
 
-        await func(*args, reason=self.reason)
+        # The moderator pressing confirm is the one responsible for this action, not the bot.
+        try:
+            applied = await apply_punishment(interaction.client, punishment.type, self.message, reason=self.reason,
+                                             moderator=interaction.user, duration=self.duration)
+        except LightningError as e:
+            await interaction.response.send_message(str(e), ephemeral=True)
+            return
+
+        if not applied:
+            await interaction.response.send_message("Unable to apply the punishment. Check that the bot has the "
+                                                    "required permissions and that a mute role is configured.",
+                                                    ephemeral=True)
+            return
 
         await self.complete(interaction)
 

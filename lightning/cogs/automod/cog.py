@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import contextlib
-import datetime
 from typing import (TYPE_CHECKING, Annotated, Any, Callable, Dict, List,
                     Literal, Optional, TypedDict, Union)
 
@@ -35,6 +34,7 @@ from lightning.cogs.automod.converters import (AutoModDuration,
                                                IgnorableEntities)
 from lightning.cogs.automod.models import (AutomodConfig, GateKeeperConfig,
                                            SpamConfig)
+from lightning.cogs.automod.punishments import apply_punishment
 from lightning.constants import (AUTOMOD_ADVANCED_EVENT_NAMES_MAPPING,
                                  AUTOMOD_ALL_EVENT_NAMES_LITERAL,
                                  AUTOMOD_BASIC_EVENT_NAMES_MAPPING,
@@ -54,15 +54,10 @@ from lightning.utils.time import ShortTime, natural_timedelta
 
 if TYPE_CHECKING:
     from lightning.cogs.mod import Mod as Moderation
-    from lightning.cogs.reminders.cog import Reminders
 
     class AutoModRulePunishmentPayload(TypedDict):
         type: str
         duration: Optional[str]
-
-    class AutoModMessage(discord.Message):
-        guild: discord.Guild
-        author: discord.Member
 
 
 class AutoMod(LightningCog, required=["Moderation"]):
@@ -479,142 +474,11 @@ class AutoMod(LightningCog, required=["Moderation"]):
 
         return level.value >= CommandLevel.Trusted.value
 
-    # These only require one param, "message", because it contains all the information we want.
-    async def _warn_punishment(self, message: AutoModMessage, *, reason, content: Optional[str] = None):
-        await self.log_manual_action("WARN", message, reason=reason, tracked_content=content)
-
-    # Change reason
-    async def _kick_punishment(self, message: AutoModMessage, *, reason, content: Optional[str] = None):
-        await message.author.kick(reason=reason)
-        await self.log_manual_action("KICK", message, reason=reason, tracked_content=content)
-
-    async def _time_ban_member(self, message: AutoModMessage, seconds: Union[int, datetime.datetime], *, reason,
-                               content: Optional[str] = None):
-        if isinstance(seconds, datetime.datetime):
-            duration = seconds
-        else:
-            duration = message.created_at + datetime.timedelta(seconds=seconds)
-
-        cog: Reminders = self.bot.get_cog("Reminders")  # type: ignore
-        timer_id = await cog.add_timer("timeban", message.created_at, duration, guild_id=message.guild.id,
-                                       user_id=message.author.id, mod_id=self.bot.user.id, force_insert=True,
-                                       timezone=duration.tzinfo or datetime.timezone.utc)
-        await self.log_manual_action("TIMEBAN", message, expiry=duration, timer_id=timer_id, reason=reason,
-                                     tracked_content=content)
-
-    async def _ban_punishment(self, message: AutoModMessage, duration=None, *, reason, content: Optional[str] = None):
-        await message.author.ban(reason=reason)
-        if duration:
-            await self._time_ban_member(message, duration, reason=reason, content=content)
-            return
-        await self.log_manual_action("BAN", message, reason=reason, tracked_content=content)
-
-    async def _delete_punishment(self, message: discord.Message, **kwargs):
-        try:
-            await message.delete()
-        except discord.HTTPException:
-            pass
-
-    async def get_mute_role(self, guild_id: int):
-        cog: Moderation = self.bot.get_cog("Moderation")  # type: ignore
-        cfg = await cog.get_mod_config(guild_id)
-        if not cfg:
-            # No mute role... Perhaps a bot log channel would be helpful to guilds...
-            return
-
-        guild = self.bot.get_guild(guild_id)
-        if not cfg.mute_role_id:
-            return
-
-        return guild.get_role(cfg.mute_role_id)
-
-    def can_timeout(self, message: AutoModMessage, duration: datetime.datetime):
-        """Determines whether the bot can timeout a member.
-
-        Parameters
-        ----------
-        message : AutoModMessage
-            The message
-        duration : datetime.datetime
-            An instance of datetime.datetime
-
-        Returns
-        -------
-        bool
-            Returns True if the bot can timeout a member
-        """
-        me = message.guild.me
-        return bool(
-            message.channel.permissions_for(me).moderate_members
-            and duration <= (message.created_at + datetime.timedelta(days=28))  # noqa: W503
-        )
-
-    async def _time_mute_user(self, message: AutoModMessage, seconds: Union[int, datetime.datetime], *, reason: str,
-                              content: Optional[str] = None):
-        if isinstance(seconds, datetime.datetime):
-            duration = seconds
-        else:
-            duration = message.created_at + datetime.timedelta(seconds=seconds)
-
-        if self.can_timeout(message, duration):
-            await message.author.edit(timed_out_until=duration, reason=reason)
-            return
-
-        role = await self.get_mute_role(message.guild.id)
-        if not role:
-            # Report something went wrong...
-            return
-
-        if not message.channel.permissions_for(message.guild.me).manage_roles:
-            return
-
-        cog: Reminders = self.bot.get_cog('Reminders')  # type: ignore
-        job_id = await cog.add_timer("timemute", message.created_at, duration,
-                                     guild_id=message.guild.id, user_id=message.author.id, role_id=role.id,
-                                     mod_id=self.bot.user.id, force_insert=True,
-                                     timezone=duration.tzinfo or datetime.timezone.utc)
-        await message.author.add_roles(role, reason=reason)
-
-        await self.add_punishment_role(message.guild.id, message.author.id, role.id)
-        await self.log_manual_action("TIMEMUTE", message, reason="Member triggered automod", expiry=duration,
-                                     timer_id=job_id, timestamp=message.created_at, tracked_content=content)
-
-    async def _mute_punishment(self, message: AutoModMessage, duration=None, *, reason: str,
-                               content: Optional[str] = None):
-        if duration:
-            return await self._time_mute_user(message, duration, reason=reason, content=content)
-
-        if not message.channel.permissions_for(message.guild.me).manage_roles:
-            return
-
-        role = await self.get_mute_role(message.guild.id)
-        if not role:
-            return
-
-        await message.author.add_roles(role, reason=reason)
-        await self.add_punishment_role(message.guild.id, message.author.id, role.id)
-        await self.log_manual_action("MUTE", message, reason=reason, timestamp=message.created_at,
-                                     tracked_content=content)
-
-    punishments = {"WARN": _warn_punishment,
-                   "KICK": _kick_punishment,
-                   "BAN": _ban_punishment,
-                   "DELETE": _delete_punishment,
-                   "MUTE": _mute_punishment
-                   }
-
     async def _handle_punishment(self, options: GuildAutoModRulePunishment, message: discord.Message,
                                  automod_rule_name: str, *, content: Optional[str] = None):
         automod_rule_name = AUTOMOD_EVENT_NAMES_MAPPING.get(automod_rule_name.replace('_', '-'), "AutoMod rule")
-        reason = f"{automod_rule_name} triggered"
-
-        meth = self.punishments[str(options.type)]
-
-        if options.type not in ("MUTE", "BAN"):
-            await meth(self, message, reason=reason, content=content)
-            return
-
-        await meth(self, message, options.duration, reason=reason, content=content)
+        await apply_punishment(self.bot, str(options.type), message, reason=f"{automod_rule_name} triggered",
+                               duration=options.duration, content=content)
 
     async def _delete_tracked_messages(self, messages: set[str], guild: discord.Guild):
         # Deletes message IDs tracked in AutoMod
