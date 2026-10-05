@@ -41,6 +41,8 @@ class FormatContext:
         """Builds a context from the format string we store in the database"""
         if setting in ("minimal with timestamp", "minimal without timestamp"):
             return cls("minimal", setting != "minimal without timestamp")
+        if setting not in ("emoji", "embed"):
+            raise ValueError(f"Unknown modlog format: {setting}")
         return cls(setting)  # type: ignore
 
 

@@ -73,13 +73,10 @@ class ModAction(Renderer[Action]):
 
     def _target_with_expiry(self) -> str:
         target = self.event.target
-        if self.event.expiry:
-            for_expiry = f" for {self.event.expiry}"
-        else:
-            for_expiry = ""
-
         if target is None:
             return ""
+
+        for_expiry = f" for {self.event.expiry}" if self.event.expiry else ""
 
         mention = target.mention if hasattr(target, 'mention') else f"<@!{target.id}>"
         if isinstance(target, discord.Object):

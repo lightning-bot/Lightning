@@ -92,7 +92,7 @@ class MemberScreening(Renderer[MemberScreeningEvent]):
     def emoji(self) -> str:
         member = self.event.member
         return f"\N{PASSPORT CONTROL} **Member Completed Screening** {member.mention} | "\
-               f"({escape_markdown_and_mentions(str(member))}"
+               f"{escape_markdown_and_mentions(str(member))}"
 
     def minimal(self, ctx: FormatContext) -> str:
         member = self.event.member
@@ -154,7 +154,7 @@ class NickChange(Renderer[MemberUpdateEvent]):
         return ''.join(base)
 
     def embed(self) -> discord.Embed:
-        embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
+        embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow(), description="")
 
         if self.current and self.previous:
             embed.title = "Member Nickname Update"
