@@ -28,7 +28,9 @@ from lightning.cache import Strategy, cached
 from lightning.cogs.modlog import ui
 from lightning.cogs.modlog.utils import human_friendly_log_names
 from lightning.constants import LIGHTNING_COLOR
-from lightning.events import LightningAutoModInfractionEvent
+from lightning.events import (CommandEvent, LightningAutoModInfractionEvent,
+                              MemberJoinEvent, MemberLeaveEvent,
+                              MemberScreeningEvent, TimedActionExpiredEvent)
 from lightning.formatters import truncate_text
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils import modlogformats
@@ -147,11 +149,15 @@ class ModLog(LightningCog):
 
             yield emitter, rec
 
-    # Every event ends up here once it's formatted. Text formats get sent as a message, embeds
-    # get sent as an embed, and anything extra (like the offending message) tags along as embeds.
-    async def _emit(self, emitter: TextChannelEmitter, fmt_name: str, result: str | discord.Embed, *,
-                    extra_embeds: Optional[List[discord.Embed]] = None, mentions: Optional[list] = None) -> None:
+    # Every event ends up here. We find the renderer for the event, then send what it gives us as a
+    # message or an embed. Anything extra (like the offending message) tags along as embeds.
+    async def _emit(self, emitter: TextChannelEmitter, record, event, *,
+                    extra_embeds: Optional[List[discord.Embed]] = None) -> None:
+        ctx = modlogformats.FormatContext.from_setting(record['format'])
+        renderer = modlogformats.get_renderer(event)
+        result = renderer.render(ctx)
         extra_embeds = extra_embeds or []
+
         if isinstance(result, discord.Embed):
             await emitter.put(embeds=[result, *extra_embeds])
             return
@@ -160,7 +166,8 @@ class ModLog(LightningCog):
         if extra_embeds:
             kwargs['embeds'] = extra_embeds
         # Only the emoji format actually pings people, so it's the only one that needs the allowed mentions
-        if fmt_name == "emoji" and mentions:
+        mentions = renderer.mentions()
+        if ctx.fmt == "emoji" and mentions:
             kwargs['allowed_mentions'] = discord.AllowedMentions(users=mentions)
         await emitter.put(result, **kwargs)
 
@@ -171,9 +178,7 @@ class ModLog(LightningCog):
             return
 
         async for emitter, record in self.get_records(ctx.guild, LoggingType.COMMAND_RAN):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "command_ran", ctx, **kwargs)
-            await self._emit(emitter, fmt_name, result, mentions=[ctx.author])
+            await self._emit(emitter, record, CommandEvent(ctx))
 
     async def handle_automod_events(self, event_name: str, event: LightningAutoModInfractionEvent):
         parts = []
@@ -191,10 +196,7 @@ class ModLog(LightningCog):
                                 value=truncate_text(content, 1024))
 
         async for emitter, record in self.get_records(event.guild, LoggingType(event_name)):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "from_action", event.action, **kwargs)
-            await self._emit(emitter, fmt_name, result, extra_embeds=[msg_embed] if msg_embed else [],
-                             mentions=[event.action.target, event.action.moderator])
+            await self._emit(emitter, record, event.action, extra_embeds=[msg_embed] if msg_embed else None)
 
     # Moderation
     @LightningCog.listener('on_lightning_member_warn')
@@ -215,57 +217,41 @@ class ModLog(LightningCog):
             return
 
         async for emitter, record in self.get_records(event.guild, LoggingType(event_name)):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "from_action", event.action, **kwargs)
-            await self._emit(emitter, fmt_name, result, mentions=[event.action.target, event.action.moderator])
+            await self._emit(emitter, record, event.action)
 
     @LightningCog.listener()
     async def on_lightning_timed_moderation_action_done(self, action, guild_id, user, moderator, timer):
         async for emitter, record in self.get_records(guild_id, LoggingType(f"MEMBER_{action.upper()}")):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            # The args are a bit different for each format, so we sort that out here
-            if fmt_name == "minimal":
-                args = (action.lower(), user, moderator, timer.created_at, timer.expiry)
-            elif fmt_name == "embed":
-                args = (action.lower(), moderator, user, timer.created_at)
-            else:
-                args = (action.lower(), user, moderator, timer.created_at)
-            result = modlogformats.format_event(fmt_name, "timed_action_expired", *args, **kwargs)
-            await self._emit(emitter, fmt_name, result, mentions=[user, moderator])
+            event = TimedActionExpiredEvent(action.lower(), user, moderator, timer.created_at, timer.expiry)
+            await self._emit(emitter, record, event)
 
     # Member events
-    async def _log_member_join_leave(self, member, event):
+    async def _log_member_join_leave(self, member, event, event_cls):
         await self.bot.wait_until_ready()
 
         guild = member.guild
         async for emitter, record in self.get_records(guild, event):
-            # join_leave has always skipped the timestampless minimal format, so we keep skipping it
+            # Join/leave has always skipped the timestampless minimal format, so we keep skipping it
             if record['format'] == "minimal without timestamp":
                 continue
-            fmt_name, _ = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "join_leave", str(event), member)
-            await self._emit(emitter, fmt_name, result, mentions=[member])
+            await self._emit(emitter, record, event_cls(member))
 
     @LightningCog.listener()
     async def on_member_join(self, member):
-        await self._log_member_join_leave(member, LoggingType.MEMBER_JOIN)
+        await self._log_member_join_leave(member, LoggingType.MEMBER_JOIN, MemberJoinEvent)
 
     @LightningCog.listener()
     async def on_member_remove(self, member):
-        await self._log_member_join_leave(member, LoggingType.MEMBER_LEAVE)
+        await self._log_member_join_leave(member, LoggingType.MEMBER_LEAVE, MemberLeaveEvent)
 
     @LightningCog.listener()
     async def on_lightning_member_passed_screening(self, member):
         async for emitter, record in self.get_records(member.guild, LoggingType.MEMBER_SCREENING_COMPLETE):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "completed_screening", member, **kwargs)
-            await self._emit(emitter, fmt_name, result, mentions=[member])
+            await self._emit(emitter, record, MemberScreeningEvent(member))
 
     async def _log_role_changes(self, ltype: LoggingType, event: MemberRolesUpdateEvent) -> None:
         async for emitter, record in self.get_records(event.guild.id, ltype):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "role_change", event, **kwargs)
-            await self._emit(emitter, fmt_name, result)
+            await self._emit(emitter, record, event)
 
     @LightningCog.listener()
     async def on_lightning_member_role_change(self, event: MemberRolesUpdateEvent):
@@ -279,35 +265,26 @@ class ModLog(LightningCog):
     async def on_lightning_member_nick_change(self, event: MemberUpdateEvent):
         guild = event.guild
         async for emitter, record in self.get_records(guild, LoggingType.MEMBER_NICK_CHANGE):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "nick_change", event.after, event.before.nick,
-                                                event.after.nick, event.moderator, **kwargs)
-            await self._emit(emitter, fmt_name, result, mentions=[event.after])
+            await self._emit(emitter, record, event)
 
     @LightningCog.listener()
     async def on_lightning_infraction_update(self, event: InfractionUpdateEvent):
         async for emitter, record in self.get_records(event.after.guild, LoggingType.INFRACTION_UPDATE):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "infraction_update", event, **kwargs)
-            await self._emit(emitter, fmt_name, result)
+            await self._emit(emitter, record, event)
 
     @LightningCog.listener()
     async def on_lightning_infraction_delete(self, event: InfractionDeleteEvent):
         details = event.format_infraction()
         async for emitter, record in self.get_records(event.moderator.guild, LoggingType.INFRACTION_DELETE):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "infraction_delete", event, **kwargs)
-            await self._emit(emitter, fmt_name, result, extra_embeds=[details], mentions=[event.moderator])
+            await self._emit(emitter, record, event, extra_embeds=[details])
 
     @LightningCog.listener()
-    async def on_lightning_member_timeout_remove(self, event: AuditLogTimeoutEvent | MemberUpdateEvent):
+    async def on_lightning_member_timeout_remove(self, event: AuditLogTimeoutEvent):
         query = "UPDATE infractions SET active='f' WHERE action='10' AND guild_id=$1 AND user_id=$2;"
         await self.bot.pool.execute(query, event.guild.id, event.member.id)
 
         async for emitter, record in self.get_records(event.guild, LoggingType.MEMBER_TIMEOUT_REMOVE):
-            fmt_name, kwargs = modlogformats.parse_format_setting(record['format'])
-            result = modlogformats.format_event(fmt_name, "timeout_expired", event, **kwargs)
-            await self._emit(emitter, fmt_name, result, mentions=[event.member])
+            await self._emit(emitter, record, event)
 
     @LightningCog.listener()
     async def on_lightning_guild_alert(self, guild_id: int, message: str):

@@ -16,14 +16,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import List, Optional, Union
 
 import discord
 
 from lightning.enums import ActionType
+from lightning.formatters import base_user_format
 from lightning.models import Action, InfractionRecord
 from lightning.utils.helpers import ticker
-from lightning.utils.modlogformats import base_user_format
 from lightning.utils.time import add_tzinfo
 
 # These are event models that'll be passed for listeners cog
@@ -233,8 +234,6 @@ class InfractionDeleteEvent:
 
         return embed
 
-# These won't be used yet until I do a refactor of modlogformats for single param events
-
 
 # lightning_command_ran
 class CommandEvent:
@@ -245,3 +244,41 @@ class CommandEvent:
         self.user = ctx.author
         self.ran_at = ctx.message.created_at
         self.channel = ctx.channel  # We can get guild from here...
+
+
+# These are only ever used by the modlog renderers. Nothing dispatches them, the modlog cog
+# builds them from the discord.py events it already gets so each renderer can take a single event.
+class MemberEvent:
+    __slots__ = ("member",)
+
+    def __init__(self, member: discord.Member) -> None:
+        self.member = member
+
+    @property
+    def guild(self) -> discord.Guild:
+        return self.member.guild
+
+
+class MemberJoinEvent(MemberEvent):
+    __slots__ = ()
+
+
+class MemberLeaveEvent(MemberEvent):
+    __slots__ = ()
+
+
+# lightning_member_passed_screening
+class MemberScreeningEvent(MemberEvent):
+    __slots__ = ()
+
+
+# lightning_timed_moderation_action_done
+class TimedActionExpiredEvent:
+    __slots__ = ("action", "user", "moderator", "created_at", "expiry")
+
+    def __init__(self, action: str, user, moderator, created_at: datetime, expiry: Optional[datetime]) -> None:
+        self.action = action
+        self.user = user
+        self.moderator = moderator
+        self.created_at = created_at
+        self.expiry = expiry
