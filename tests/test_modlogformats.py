@@ -10,9 +10,9 @@ from lightning.events import (CommandEvent, InfractionEvent,
                               MemberScreeningEvent, MemberUpdateEvent,
                               TimedActionExpiredEvent)
 from lightning.models import Action
-from lightning.utils.modlogformats import (FormatContext, ModAction,
-                                           NickChange, Renderer, RoleChange,
-                                           get_renderer, renders)
+from lightning.modlogformats import (FormatContext, ModAction, NickChange,
+                                     Renderer, RoleChange, get_renderer,
+                                     renders)
 
 NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 SETTINGS = ("emoji", "minimal with timestamp", "minimal without timestamp", "embed")

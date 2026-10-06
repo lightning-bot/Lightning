@@ -22,8 +22,8 @@ from lightning.events import (MemberJoinEvent, MemberLeaveEvent,
                               MemberRolesUpdateEvent, MemberScreeningEvent,
                               MemberUpdateEvent)
 from lightning.formatters import base_user_format, escape_markdown_and_mentions
+from lightning.modlogformats.base import FormatContext, Renderer, renders
 from lightning.utils.helpers import Emoji
-from lightning.utils.modlogformats.base import FormatContext, Renderer, renders
 from lightning.utils.time import natural_timedelta
 
 

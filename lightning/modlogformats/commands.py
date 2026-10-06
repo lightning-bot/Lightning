@@ -20,8 +20,8 @@ import discord
 
 from lightning.events import CommandEvent
 from lightning.formatters import base_user_format
-from lightning.utils.modlogformats.base import FormatContext, Renderer, renders
-from lightning.utils.modlogformats.member import format_user
+from lightning.modlogformats.base import FormatContext, Renderer, renders
+from lightning.modlogformats.member import format_user
 
 
 @renders(CommandEvent)

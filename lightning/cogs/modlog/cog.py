@@ -23,7 +23,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
-                       LightningContext, LoggingType, hybrid_group)
+                       LightningContext, LoggingType, hybrid_group,
+                       modlogformats)
 from lightning.cache import Strategy, cached
 from lightning.cogs.modlog import ui
 from lightning.cogs.modlog.utils import human_friendly_log_names
@@ -33,7 +34,6 @@ from lightning.events import (CommandEvent, LightningAutoModInfractionEvent,
                               MemberScreeningEvent, TimedActionExpiredEvent)
 from lightning.formatters import truncate_text
 from lightning.models import LoggingConfig, PartialGuild
-from lightning.utils import modlogformats
 from lightning.utils.checks import hybrid_guild_permissions, is_server_manager
 from lightning.utils.emitters import TextChannelEmitter
 from lightning.utils.time import ShortTime

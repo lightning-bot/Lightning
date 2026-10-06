@@ -18,21 +18,18 @@ from lightning.formatters import (action_format, base_user_format,
                                   construct_dm_message,
                                   escape_markdown_and_mentions,
                                   format_timestamp)
-from lightning.utils.modlogformats.base import (FormatContext, FormatName,
-                                                Renderer, get_renderer,
-                                                renders)
+from lightning.modlogformats.base import (FormatContext, FormatName, Renderer,
+                                          get_renderer, renders)
 # Importing these is what registers the renderers with @renders
-from lightning.utils.modlogformats.commands import CommandRan
-from lightning.utils.modlogformats.member import (MemberJoin, MemberLeave,
-                                                  MemberScreening, NickChange,
-                                                  RoleChange)
-from lightning.utils.modlogformats.moderation import (CompactModAction,
-                                                      InfractionDelete,
-                                                      InfractionUpdate,
-                                                      ModAction,
-                                                      TimedActionExpired,
-                                                      TimeoutExpired,
-                                                      log_actions)
+from lightning.modlogformats.commands import CommandRan
+from lightning.modlogformats.member import (MemberJoin, MemberLeave,
+                                            MemberScreening, NickChange,
+                                            RoleChange)
+from lightning.modlogformats.moderation import (CompactModAction,
+                                                InfractionDelete,
+                                                InfractionUpdate, ModAction,
+                                                TimedActionExpired,
+                                                TimeoutExpired, log_actions)
 
 __all__ = (
     "CommandRan",

@@ -43,9 +43,9 @@ from lightning.enums import ActionType
 from lightning.errors import LightningCommandError
 from lightning.events import InfractionDeleteEvent, InfractionUpdateEvent
 from lightning.models import InfractionRecord
+from lightning.modlogformats import base_user_format
 from lightning.utils.checks import hybrid_guild_permissions, is_server_manager
 from lightning.utils.helpers import ticker
-from lightning.utils.modlogformats import base_user_format
 from lightning.utils.time import add_tzinfo
 
 matplotlib.use('Agg')

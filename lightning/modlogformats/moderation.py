@@ -27,8 +27,8 @@ from lightning.events import (AuditLogTimeoutEvent, InfractionDeleteEvent,
 from lightning.formatters import (base_user_format,
                                   escape_markdown_and_mentions, truncate_text)
 from lightning.models import Action
-from lightning.utils.modlogformats.base import FormatContext, Renderer, renders
-from lightning.utils.modlogformats.member import format_user
+from lightning.modlogformats.base import FormatContext, Renderer, renders
+from lightning.modlogformats.member import format_user
 from lightning.utils.time import get_utc_timestamp
 
 
