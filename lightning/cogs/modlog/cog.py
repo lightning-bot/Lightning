@@ -16,16 +16,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, LoggingType, hybrid_group,
                        modlogformats)
-from lightning.cache import Strategy, cached
+from lightning.cache import Strategy, TimeoutState, TimeoutStateCache, cached
 from lightning.cogs.modlog import ui
 from lightning.cogs.modlog.utils import human_friendly_log_names
 from lightning.constants import LIGHTNING_COLOR
@@ -51,11 +52,56 @@ class ModLog(LightningCog):
         super().__init__(bot)
         self._emitters: Dict[int, TextChannelEmitter] = {}
         self.shushed: List[int] = []  # shushed channels
+        self.timeouts = TimeoutStateCache()
+        self.purge_timeouts.start()
+
+    def get_timeout_state(self, guild_id: int, user_id: int) -> Optional[TimeoutState]:
+        """Returns the cached state of an active timeout, if any"""
+        return self.timeouts.get(guild_id, user_id)
+
+    def _seed_timeouts(self, guild: discord.Guild) -> None:
+        for member in guild.members:
+            self._seed_member_timeout(member)
+
+    def _seed_member_timeout(self, member: discord.Member) -> None:
+        until = member.timed_out_until
+        if until is not None and until > datetime.now(timezone.utc) \
+                and not self.timeouts.is_active(member.guild.id, member.id):
+            self.timeouts.set(member.guild.id, member.id, until)
+
+    @tasks.loop(minutes=1.0)
+    async def purge_timeouts(self):
+        self.timeouts.purge_expired()
+
+    @LightningCog.listener()
+    async def on_ready(self):
+        for guild in self.bot.guilds:
+            self._seed_timeouts(guild)
+
+    @LightningCog.listener()
+    async def on_guild_available(self, guild: discord.Guild):
+        self._seed_timeouts(guild)
+
+    @LightningCog.listener()
+    async def on_lightning_member_timeout_change(self, event: MemberUpdateEvent):
+        guild_id, user_id = event.after.guild.id, event.after.id
+        until = event.after.timed_out_until
+        if until is None or until <= datetime.now(timezone.utc):
+            self.timeouts.clear(guild_id, user_id)
+            return
+
+        previous = self.timeouts.get(guild_id, user_id)
+        entry = event.entry
+        moderator_id = entry.user_id if entry is not None else (previous.moderator_id if previous else None)
+        reason = entry.reason if entry is not None else (previous.reason if previous else None)
+        self.timeouts.set(guild_id, user_id, until, moderator_id=moderator_id, reason=reason,
+                          infraction_id=previous.infraction_id if previous else None)
 
     # TODO: Log changes to infractions
     # I suppose I could use temp ids for a cache like thing?
 
     def cog_unload(self):
+        self.purge_timeouts.cancel()
         for emitter in self._emitters.values():
             emitter.close()
 
@@ -238,10 +284,12 @@ class ModLog(LightningCog):
 
     @LightningCog.listener()
     async def on_member_join(self, member):
+        self._seed_member_timeout(member)
         await self._log_member_join_leave(member, LoggingType.MEMBER_JOIN, MemberJoinEvent)
 
     @LightningCog.listener()
     async def on_member_remove(self, member):
+        self.timeouts.clear(member.guild.id, member.id)
         await self._log_member_join_leave(member, LoggingType.MEMBER_LEAVE, MemberLeaveEvent)
 
     @LightningCog.listener()
@@ -312,6 +360,8 @@ class ModLog(LightningCog):
     async def on_lightning_guild_remove(self, guild):
         if isinstance(guild, PartialGuild):  # Guild was removed when the bot was down
             return
+
+        self.timeouts.clear_guild(guild.id)
 
         for channel in guild.text_channels:
             self._close_emitter(channel.id)

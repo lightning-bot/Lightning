@@ -533,7 +533,9 @@ class Mod(LightningCog, name="Moderation", required=["Configuration"]):
                         target: discord.Member = commands.param(converter=converters.TargetMember(fetch_user=False)),
                         *, reason: Optional[str] = None):
         """Removes a member from time out"""
-        if not target.is_timed_out():
+        modlog = self.bot.get_cog("ModLog")
+        cached_state = modlog.get_timeout_state(ctx.guild.id, target.id) if modlog else None
+        if not target.is_timed_out() and cached_state is None:
             await ctx.send(f"{target.mention} is not in time out!", ephemeral=True)
             return
 

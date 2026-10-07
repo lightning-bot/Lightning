@@ -206,6 +206,22 @@ class ListenerEvents(LightningCog):
 
         self.bot.dispatch("lightning_member_role_change", MemberRolesUpdateEvent(before, after, entry))
 
+    @LightningCog.listener('on_member_update')
+    async def on_member_timeout_change(self, before: discord.Member, after: discord.Member):
+        if before.timed_out_until == after.timed_out_until:
+            return
+
+        check = await self.check_and_wait(before.guild)
+
+        if check is True:
+            entry = await self.fetch_audit_log_entry(before.guild, discord.AuditLogAction.member_update, target=after,
+                                                     check=match_attribute("timed_out_until", before.timed_out_until,
+                                                                           after.timed_out_until))
+        else:
+            entry = None
+
+        self.bot.dispatch("lightning_member_timeout_change", MemberUpdateEvent(before, after, entry))
+
     # Member events that don't need audit logs
     @LightningCog.listener('on_member_update')
     async def on_member_passed_screening(self, before: discord.Member, after: discord.Member):

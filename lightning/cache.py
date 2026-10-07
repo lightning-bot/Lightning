@@ -20,6 +20,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import enum
 import inspect
 import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, Optional, TypeVar
 
@@ -52,6 +54,66 @@ class ExpiringCache(dict):
 
     def __setitem__(self, key, value):
         super().__setitem__(key, (value, time.monotonic()))
+
+
+@dataclass
+class TimeoutState:
+    timed_out_until: datetime
+    moderator_id: Optional[int] = None
+    reason: Optional[str] = None
+    infraction_id: Optional[int] = None
+
+
+class TimeoutStateCache:
+    """In-memory cache of active member timeouts, bucketed by guild."""
+
+    def __init__(self):
+        self._guilds: dict[int, dict[int, TimeoutState]] = {}
+
+    @staticmethod
+    def _now() -> datetime:
+        return datetime.now(timezone.utc)
+
+    def set(self, guild_id: int, user_id: int, timed_out_until: datetime, *, moderator_id: Optional[int] = None,
+            reason: Optional[str] = None, infraction_id: Optional[int] = None) -> TimeoutState:
+        state = TimeoutState(timed_out_until, moderator_id, reason, infraction_id)
+        self._guilds.setdefault(guild_id, {})[user_id] = state
+        return state
+
+    def get(self, guild_id: int, user_id: int) -> Optional[TimeoutState]:
+        """Returns the state if it's still active, dropping it if it has expired"""
+        bucket = self._guilds.get(guild_id)
+        state = bucket.get(user_id) if bucket else None
+        if state is None:
+            return None
+        if state.timed_out_until <= self._now():
+            self.clear(guild_id, user_id)
+            return None
+        return state
+
+    def is_active(self, guild_id: int, user_id: int) -> bool:
+        return self.get(guild_id, user_id) is not None
+
+    def clear(self, guild_id: int, user_id: int) -> Optional[TimeoutState]:
+        bucket = self._guilds.get(guild_id)
+        if bucket is None:
+            return None
+        state = bucket.pop(user_id, None)
+        if not bucket:
+            del self._guilds[guild_id]
+        return state
+
+    def clear_guild(self, guild_id: int) -> None:
+        self._guilds.pop(guild_id, None)
+
+    def purge_expired(self) -> list[tuple[int, int, TimeoutState]]:
+        """Removes expired entries and returns them as (guild_id, user_id, state)"""
+        now = self._now()
+        expired = [(g, u, st) for g, bucket in self._guilds.items() for u, st in bucket.items()
+                   if st.timed_out_until <= now]
+        for g, u, _ in expired:
+            self.clear(g, u)
+        return expired
 
 
 class BaseCache:
