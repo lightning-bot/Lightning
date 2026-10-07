@@ -54,3 +54,22 @@ def test_purge_does_not_return_entry_twice():
     c.set(1, 2, future(seconds=-1))
     assert len(c.purge_expired()) == 1
     assert c.purge_expired() == []
+
+
+def test_peek_sees_expired_and_remove_checks_identity():
+    c = TimeoutStateCache()
+    old = c.set(1, 2, future(seconds=-1))
+    assert c.peek(1, 2) is old
+    replacement = c.set(1, 2, future(hours=1))
+    assert not c.remove(1, 2, old)
+    assert c.peek(1, 2) is replacement
+    assert c.remove(1, 2, replacement)
+    assert c.peek(1, 2) is None
+
+
+def test_peek_expired_does_not_remove():
+    c = TimeoutStateCache()
+    state = c.set(1, 2, future(seconds=-1))
+    c.set(1, 3, future(hours=1))
+    assert c.peek_expired() == [(1, 2, state)]
+    assert c.peek_expired() == [(1, 2, state)]

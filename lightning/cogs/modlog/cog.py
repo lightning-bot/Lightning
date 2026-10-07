@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import asyncio
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import discord
@@ -28,9 +28,11 @@ from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        modlogformats)
 from lightning.cache import Strategy, cached
 from lightning.cogs.modlog import ui
-from lightning.cogs.modlog.timeouts import TimeoutState, TimeoutStateCache
+from lightning.cogs.modlog.timeouts import (PostgresTimeoutStore, TimeoutState,
+                                            TimeoutStateCache, TimeoutTracker)
 from lightning.cogs.modlog.utils import human_friendly_log_names
 from lightning.constants import LIGHTNING_COLOR
+from lightning.enums import ActionType
 from lightning.events import (CommandEvent, LightningAutoModInfractionEvent,
                               MemberJoinEvent, MemberLeaveEvent,
                               MemberScreeningEvent, TimedActionExpiredEvent,
@@ -39,7 +41,7 @@ from lightning.formatters import truncate_text
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils.checks import hybrid_guild_permissions, is_server_manager
 from lightning.utils.emitters import TextChannelEmitter
-from lightning.utils.time import ShortTime, strip_tzinfo
+from lightning.utils.time import ShortTime
 
 if TYPE_CHECKING:
     from lightning.events import (AuditLogModAction, AuditLogTimeoutEvent,
@@ -55,31 +57,20 @@ class ModLog(LightningCog):
         self._emitters: Dict[int, TextChannelEmitter] = {}
         self.shushed: List[int] = []  # shushed channels
         self.timeouts = TimeoutStateCache()
+        # One lock for every transition that touches both the timeout cache and the infractions table
+        self._timeout_lock = asyncio.Lock()
+        self._timeout_tracker = TimeoutTracker(self.timeouts, self._timeout_lock,
+                                               PostgresTimeoutStore(lambda: self.bot.pool))
         self.purge_timeouts.start()
 
     def get_timeout_state(self, guild_id: int, user_id: int) -> Optional[TimeoutState]:
         """Returns the cached state of an active timeout, if any"""
         return self.timeouts.get(guild_id, user_id)
 
-    async def _deactivate_stale_timeouts(self, guild_ids: List[int]) -> None:
-        """Deactivates timeout infractions that ran out while the bot wasn't watching"""
-        query = """UPDATE infractions SET active='f'
-                   WHERE action='10' AND active='t' AND guild_id=ANY($1) AND expiry < $2;"""
-        await self.bot.pool.execute(query, guild_ids, strip_tzinfo(datetime.now(timezone.utc)))
-
-    def _backfill_timeouts(self, guild: discord.Guild) -> None:
-        for member in guild.members:
-            self._backfill_member_timeout(member)
-
-    def _backfill_member_timeout(self, member: discord.Member) -> None:
-        until = member.timed_out_until
-        if until is not None and until > datetime.now(timezone.utc) \
-                and not self.timeouts.is_active(member.guild.id, member.id):
-            self.timeouts.set(member.guild.id, member.id, until)
-
     @tasks.loop(minutes=1.0)
     async def purge_timeouts(self):
-        for guild_id, user_id, state in self.timeouts.purge_expired():
+        # The lock is released by the time we get the entries back, so rendering and sending logs never hold it
+        for guild_id, user_id, state in await self._timeout_tracker.process_expired():
             guild = self.bot.get_guild(guild_id)
             if guild is None:
                 continue
@@ -94,45 +85,27 @@ class ModLog(LightningCog):
 
     @LightningCog.listener()
     async def on_lightning_member_timeout_expired(self, event: TimeoutExpiredEvent):
-        query = "UPDATE infractions SET active='f' WHERE action='10' AND guild_id=$1 AND user_id=$2;"
-        await self.bot.pool.execute(query, event.guild.id, event.user.id)
-
+        # The infraction was already dealt with when the expiry was processed. This only logs it.
         async for emitter, record in self.get_records(event.guild, LoggingType.MEMBER_TIMEOUT_REMOVE):
             await self._emit(emitter, record, event)
 
     @LightningCog.listener()
     async def on_ready(self):
-        for guild in self.bot.guilds:
-            self._backfill_timeouts(guild)
-        await self._deactivate_stale_timeouts([g.id for g in self.bot.guilds])
+        entries = [(m.guild.id, m.id, m.timed_out_until) for g in self.bot.guilds for m in g.members]
+        await self._timeout_tracker.reconcile(entries, [g.id for g in self.bot.guilds])
 
     @LightningCog.listener()
     async def on_guild_available(self, guild: discord.Guild):
-        self._backfill_timeouts(guild)
-        await self._deactivate_stale_timeouts([guild.id])
+        await self._timeout_tracker.reconcile([(m.guild.id, m.id, m.timed_out_until) for m in guild.members],
+                                              [guild.id])
 
     @LightningCog.listener()
     async def on_lightning_member_timeout_change(self, event: MemberUpdateEvent):
-        guild_id, user_id = event.after.guild.id, event.after.id
-        until = event.after.timed_out_until
-        if until is None or until <= datetime.now(timezone.utc):
-            self.timeouts.clear(guild_id, user_id)
-            return
-
-        if event.before.timed_out_until is not None and event.before.timed_out_until != until:
-            # The timeout was extended or shortened, so keep the infraction's expiry in line with Discord
-            query = """UPDATE infractions SET expiry=$3
-                       WHERE id = (SELECT id FROM infractions
-                                   WHERE action='10' AND active='t' AND guild_id=$1 AND user_id=$2
-                                   ORDER BY id DESC LIMIT 1);"""
-            await self.bot.pool.execute(query, guild_id, user_id, strip_tzinfo(until))
-
-        previous = self.timeouts.get(guild_id, user_id)
         entry = event.entry
-        moderator_id = entry.user_id if entry is not None else (previous.moderator_id if previous else None)
-        reason = entry.reason if entry is not None else (previous.reason if previous else None)
-        self.timeouts.set(guild_id, user_id, until, moderator_id=moderator_id, reason=reason,
-                          infraction_id=previous.infraction_id if previous else None)
+        await self._timeout_tracker.apply_change(
+            event.after.guild.id, event.after.id, event.before.timed_out_until, event.after.timed_out_until,
+            moderator_id=entry.user_id if entry is not None else None,
+            reason=entry.reason if entry is not None else None)
 
     # TODO: Log changes to infractions
     # I suppose I could use temp ids for a cache like thing?
@@ -293,6 +266,10 @@ class ModLog(LightningCog):
         if not event.action.is_logged():
             await event.action.add_infraction(self.bot.pool)
 
+        if event.action.action is ActionType.TIMEOUT and event.action.infraction_id:
+            await self._timeout_tracker.link_infraction(event.guild.id, event.action.target.id,
+                                                        event.action.infraction_id)
+
         event_name = f"MEMBER_{event.action.event}" if not hasattr(event, "event_name") else f"MEMBER_{str(event)}"
 
         if isinstance(event, LightningAutoModInfractionEvent):
@@ -321,12 +298,14 @@ class ModLog(LightningCog):
 
     @LightningCog.listener()
     async def on_member_join(self, member):
-        self._backfill_member_timeout(member)
+        until = member.timed_out_until
+        if until is not None:
+            await self._timeout_tracker.reconcile([(member.guild.id, member.id, until)], [])
         await self._log_member_join_leave(member, LoggingType.MEMBER_JOIN, MemberJoinEvent)
 
     @LightningCog.listener()
     async def on_member_remove(self, member):
-        self.timeouts.clear(member.guild.id, member.id)
+        await self._timeout_tracker.forget_member(member.guild.id, member.id)
         await self._log_member_join_leave(member, LoggingType.MEMBER_LEAVE, MemberLeaveEvent)
 
     @LightningCog.listener()
@@ -365,8 +344,8 @@ class ModLog(LightningCog):
 
     @LightningCog.listener()
     async def on_lightning_member_timeout_remove(self, event: AuditLogTimeoutEvent):
-        query = "UPDATE infractions SET active='f' WHERE action='10' AND guild_id=$1 AND user_id=$2;"
-        await self.bot.pool.execute(query, event.guild.id, event.member.id)
+        await self._timeout_tracker.apply_removal(event.guild.id, event.member.id,
+                                                  getattr(event.before, "timed_out_until", None))
 
         async for emitter, record in self.get_records(event.guild, LoggingType.MEMBER_TIMEOUT_REMOVE):
             await self._emit(emitter, record, event)
@@ -398,7 +377,7 @@ class ModLog(LightningCog):
         if isinstance(guild, PartialGuild):  # Guild was removed when the bot was down
             return
 
-        self.timeouts.clear_guild(guild.id)
+        await self._timeout_tracker.forget_guild(guild.id)
 
         for channel in guild.text_channels:
             self._close_emitter(channel.id)
