@@ -282,3 +282,16 @@ class TimedActionExpiredEvent:
         self.moderator = moderator
         self.created_at = created_at
         self.expiry = expiry
+
+
+# lightning_member_timeout_expired
+class TimeoutExpiredEvent:
+    """A timeout that ran out on its own, as opposed to being removed by a moderator"""
+    __slots__ = ("guild", "user", "moderator", "reason", "expiry")
+
+    def __init__(self, guild: discord.Guild, user, moderator, reason: Optional[str], expiry: datetime) -> None:
+        self.guild = guild
+        self.user = user
+        self.moderator = moderator
+        self.reason = reason
+        self.expiry = expiry

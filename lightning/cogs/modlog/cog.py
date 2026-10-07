@@ -32,7 +32,8 @@ from lightning.cogs.modlog.utils import human_friendly_log_names
 from lightning.constants import LIGHTNING_COLOR
 from lightning.events import (CommandEvent, LightningAutoModInfractionEvent,
                               MemberJoinEvent, MemberLeaveEvent,
-                              MemberScreeningEvent, TimedActionExpiredEvent)
+                              MemberScreeningEvent, TimedActionExpiredEvent,
+                              TimeoutExpiredEvent)
 from lightning.formatters import truncate_text
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils.checks import hybrid_guild_permissions, is_server_manager
@@ -71,7 +72,23 @@ class ModLog(LightningCog):
 
     @tasks.loop(minutes=1.0)
     async def purge_timeouts(self):
-        self.timeouts.purge_expired()
+        for guild_id, user_id, state in self.timeouts.purge_expired():
+            guild = self.bot.get_guild(guild_id)
+            if guild is None:
+                continue
+            self.bot.dispatch("lightning_member_timeout_expired", TimeoutExpiredEvent(
+                guild, guild.get_member(user_id) or discord.Object(user_id),
+                discord.Object(state.moderator_id) if state.moderator_id else None,
+                state.reason, state.timed_out_until))
+
+    @purge_timeouts.before_loop
+    async def before_purge_timeouts(self):
+        await self.bot.wait_until_ready()
+
+    @LightningCog.listener()
+    async def on_lightning_member_timeout_expired(self, event: TimeoutExpiredEvent):
+        async for emitter, record in self.get_records(event.guild, LoggingType.MEMBER_TIMEOUT_REMOVE):
+            await self._emit(emitter, record, event)
 
     @LightningCog.listener()
     async def on_ready(self):

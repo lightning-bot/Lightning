@@ -29,7 +29,8 @@ from lightning.modlogformats.moderation import (CompactModAction,
                                                 InfractionDelete,
                                                 InfractionUpdate, ModAction,
                                                 TimedActionExpired,
-                                                TimeoutExpired, log_actions)
+                                                TimeoutExpired, TimeoutRanOut,
+                                                log_actions)
 
 __all__ = (
     "CommandRan",
@@ -47,6 +48,7 @@ __all__ = (
     "RoleChange",
     "TimedActionExpired",
     "TimeoutExpired",
+    "TimeoutRanOut",
     "action_format",
     "base_user_format",
     "construct_dm_message",

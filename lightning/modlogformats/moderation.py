@@ -23,7 +23,8 @@ from typing import Union
 import discord
 
 from lightning.events import (AuditLogTimeoutEvent, InfractionDeleteEvent,
-                              InfractionUpdateEvent, TimedActionExpiredEvent)
+                              InfractionUpdateEvent, TimedActionExpiredEvent,
+                              TimeoutExpiredEvent)
 from lightning.formatters import (base_user_format,
                                   escape_markdown_and_mentions, truncate_text)
 from lightning.models import Action
@@ -194,6 +195,40 @@ class TimeoutExpired(Renderer[AuditLogTimeoutEvent]):
         if self.event.moderator:
             embed.add_field(name="Moderator", value=base_user_format(self.event.moderator))
 
+        return embed
+
+
+@renders(TimeoutExpiredEvent)
+class TimeoutRanOut(Renderer[TimeoutExpiredEvent]):
+    def mentions(self):
+        return [self.event.user]
+
+    def emoji(self) -> str:
+        event = self.event
+        text = [f"\N{WARNING SIGN} **Timeout expired** <@!{event.user.id}>"]
+
+        if event.moderator:
+            text.append(f"\n\N{BLUE BOOK} __Moderator__: <@!{event.moderator.id}>")
+
+        return ''.join(text)
+
+    def minimal(self, ctx: FormatContext) -> str:
+        event = self.event
+        text = [f"{self.stamp(ctx, event.expiry)}**Timeout expired**\n**User**: {format_user(event.user)}"]
+
+        if event.moderator:
+            text.append(f"\n**Moderator**: {format_user(event.moderator)}")
+
+        return ''.join(text)
+
+    def embed(self) -> discord.Embed:
+        event = self.event
+        embed = discord.Embed(description=f"Timeout for {base_user_format(event.user)} expired")
+
+        if event.moderator:
+            embed.add_field(name="Moderator", value=base_user_format(event.moderator))
+
+        embed.timestamp = event.expiry
         return embed
 
 

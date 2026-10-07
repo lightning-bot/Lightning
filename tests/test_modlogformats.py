@@ -8,7 +8,7 @@ from lightning.events import (CommandEvent, InfractionEvent,
                               LightningAutoModInfractionEvent, MemberJoinEvent,
                               MemberLeaveEvent, MemberRolesUpdateEvent,
                               MemberScreeningEvent, MemberUpdateEvent,
-                              TimedActionExpiredEvent)
+                              TimedActionExpiredEvent, TimeoutExpiredEvent)
 from lightning.models import Action
 from lightning.modlogformats import (FormatContext, ModAction, NickChange,
                                      Renderer, RoleChange, get_renderer,
@@ -65,6 +65,7 @@ class TestRegistry(unittest.TestCase):
             MemberJoinEvent(user), MemberLeaveEvent(user), MemberScreeningEvent(user),
             MemberUpdateEvent(user, user, None), MemberRolesUpdateEvent(user, user, None),
             TimedActionExpiredEvent("ban", user, user, NOW, NOW), make_action(),
+            TimeoutExpiredEvent(None, user, user, None, NOW),
             CommandEvent(SimpleNamespace(command=SimpleNamespace(qualified_name="ping"), author=user,
                                          message=SimpleNamespace(created_at=NOW),
                                          channel=SimpleNamespace(id=5, name="general", mention="<#5>")))
@@ -111,7 +112,9 @@ class TestRendering(unittest.TestCase):
         renderers = (
             get_renderer(MemberJoinEvent(user)), get_renderer(MemberLeaveEvent(user)),
             get_renderer(MemberScreeningEvent(user)), get_renderer(MemberUpdateEvent(user, user, None)),
-            get_renderer(TimedActionExpiredEvent("ban", user, user, NOW, NOW)), get_renderer(make_action())
+            get_renderer(TimedActionExpiredEvent("ban", user, user, NOW, NOW)), get_renderer(make_action()),
+            get_renderer(TimeoutExpiredEvent(None, user, user, None, NOW)),
+            get_renderer(TimeoutExpiredEvent(None, user, None, None, NOW))
         )
         for renderer in renderers:
             for setting in SETTINGS:
