@@ -26,8 +26,8 @@ from discord.ext import commands
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, command, errors, group)
 from lightning.converters import EmojiRE, Whitelisted_URL
+from lightning.modlogformats import action_format
 from lightning.utils.checks import has_guild_permissions
-from lightning.utils.modlogformats import action_format
 
 log = logging.getLogger(__name__)
 

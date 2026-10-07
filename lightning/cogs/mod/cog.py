@@ -29,7 +29,7 @@ from unidecode import unidecode
 
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, cache, command, converters, group,
-                       hybrid_command)
+                       hybrid_command, modlogformats)
 from lightning.cogs.mod.converters import BannedMember
 from lightning.cogs.mod.flags import BanFlags, DefaultModFlags, PurgeFlags
 from lightning.constants import COMMON_HOIST_CHARACTERS
@@ -38,7 +38,7 @@ from lightning.errors import LightningError, MuteRoleError, TimersUnavailable
 from lightning.events import InfractionEvent
 from lightning.formatters import plural, truncate_text
 from lightning.models import GuildModConfig, PartialGuild, Timer
-from lightning.utils import helpers, modlogformats
+from lightning.utils import helpers
 from lightning.utils.checks import (has_channel_permissions,
                                     has_guild_permissions,
                                     hybrid_guild_permissions)

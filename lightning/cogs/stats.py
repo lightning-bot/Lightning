@@ -34,9 +34,9 @@ from lightning import (CommandLevel, GuildContext, LightningCog,
 from lightning.constants import LIGHTNING_COLOR
 from lightning.converters import InbetweenNumber
 from lightning.models import ActionType
+from lightning.modlogformats import base_user_format
 from lightning.utils.checks import has_guild_permissions
 from lightning.utils.emitters import WebhookEmbedEmitter
-from lightning.utils.modlogformats import base_user_format
 from lightning.utils.time import natural_timedelta
 
 if TYPE_CHECKING:

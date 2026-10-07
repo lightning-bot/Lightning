@@ -24,7 +24,7 @@ from lightning import GuildContext
 from lightning.enums import ActionType
 from lightning.formatters import truncate_text
 from lightning.models import InfractionRecord
-from lightning.utils.modlogformats import base_user_format
+from lightning.modlogformats import base_user_format
 from lightning.utils.paginator import Paginator
 from lightning.utils.time import add_tzinfo
 

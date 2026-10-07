@@ -32,8 +32,8 @@ from lightning.constants import LIGHTNING_COLOR
 from lightning.enums import ActionType, AutoModPunishmentType
 from lightning.errors import LightningError
 from lightning.formatters import truncate_text
+from lightning.modlogformats import construct_dm_message
 from lightning.ui import ExitableMenu, MenuLikeView, UpdateableMenu, _BaseView
-from lightning.utils.modlogformats import construct_dm_message
 from lightning.utils.time import FutureTime, add_tzinfo
 
 if TYPE_CHECKING:
