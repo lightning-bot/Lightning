@@ -38,7 +38,7 @@ from lightning.formatters import truncate_text
 from lightning.models import LoggingConfig, PartialGuild
 from lightning.utils.checks import hybrid_guild_permissions, is_server_manager
 from lightning.utils.emitters import TextChannelEmitter
-from lightning.utils.time import ShortTime
+from lightning.utils.time import ShortTime, strip_tzinfo
 
 if TYPE_CHECKING:
     from lightning.events import (AuditLogModAction, AuditLogTimeoutEvent,
@@ -59,6 +59,12 @@ class ModLog(LightningCog):
     def get_timeout_state(self, guild_id: int, user_id: int) -> Optional[TimeoutState]:
         """Returns the cached state of an active timeout, if any"""
         return self.timeouts.get(guild_id, user_id)
+
+    async def _deactivate_stale_timeouts(self, guild_ids: List[int]) -> None:
+        """Deactivates timeout infractions that ran out while the bot wasn't watching"""
+        query = """UPDATE infractions SET active='f'
+                   WHERE action='10' AND active='t' AND guild_id=ANY($1) AND expiry < $2;"""
+        await self.bot.pool.execute(query, guild_ids, strip_tzinfo(datetime.now(timezone.utc)))
 
     def _backfill_timeouts(self, guild: discord.Guild) -> None:
         for member in guild.members:
@@ -97,10 +103,12 @@ class ModLog(LightningCog):
     async def on_ready(self):
         for guild in self.bot.guilds:
             self._backfill_timeouts(guild)
+        await self._deactivate_stale_timeouts([g.id for g in self.bot.guilds])
 
     @LightningCog.listener()
     async def on_guild_available(self, guild: discord.Guild):
         self._backfill_timeouts(guild)
+        await self._deactivate_stale_timeouts([guild.id])
 
     @LightningCog.listener()
     async def on_lightning_member_timeout_change(self, event: MemberUpdateEvent):
@@ -109,6 +117,14 @@ class ModLog(LightningCog):
         if until is None or until <= datetime.now(timezone.utc):
             self.timeouts.clear(guild_id, user_id)
             return
+
+        if event.before.timed_out_until is not None and event.before.timed_out_until != until:
+            # The timeout was extended or shortened, so keep the infraction's expiry in line with Discord
+            query = """UPDATE infractions SET expiry=$3
+                       WHERE id = (SELECT id FROM infractions
+                                   WHERE action='10' AND active='t' AND guild_id=$1 AND user_id=$2
+                                   ORDER BY id DESC LIMIT 1);"""
+            await self.bot.pool.execute(query, guild_id, user_id, strip_tzinfo(until))
 
         previous = self.timeouts.get(guild_id, user_id)
         entry = event.entry
