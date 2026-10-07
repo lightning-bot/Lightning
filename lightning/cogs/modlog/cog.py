@@ -59,11 +59,11 @@ class ModLog(LightningCog):
         """Returns the cached state of an active timeout, if any"""
         return self.timeouts.get(guild_id, user_id)
 
-    def _seed_timeouts(self, guild: discord.Guild) -> None:
+    def _backfill_timeouts(self, guild: discord.Guild) -> None:
         for member in guild.members:
-            self._seed_member_timeout(member)
+            self._backfill_member_timeout(member)
 
-    def _seed_member_timeout(self, member: discord.Member) -> None:
+    def _backfill_member_timeout(self, member: discord.Member) -> None:
         until = member.timed_out_until
         if until is not None and until > datetime.now(timezone.utc) \
                 and not self.timeouts.is_active(member.guild.id, member.id):
@@ -76,11 +76,11 @@ class ModLog(LightningCog):
     @LightningCog.listener()
     async def on_ready(self):
         for guild in self.bot.guilds:
-            self._seed_timeouts(guild)
+            self._backfill_timeouts(guild)
 
     @LightningCog.listener()
     async def on_guild_available(self, guild: discord.Guild):
-        self._seed_timeouts(guild)
+        self._backfill_timeouts(guild)
 
     @LightningCog.listener()
     async def on_lightning_member_timeout_change(self, event: MemberUpdateEvent):
@@ -284,7 +284,7 @@ class ModLog(LightningCog):
 
     @LightningCog.listener()
     async def on_member_join(self, member):
-        self._seed_member_timeout(member)
+        self._backfill_member_timeout(member)
         await self._log_member_join_leave(member, LoggingType.MEMBER_JOIN, MemberJoinEvent)
 
     @LightningCog.listener()
