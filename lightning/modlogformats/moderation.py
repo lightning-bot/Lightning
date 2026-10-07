@@ -212,8 +212,8 @@ class InfractionUpdate(Renderer[InfractionUpdateEvent]):
         base = [f"\N{MEMO} **Infraction update**: ID: {event.after.id}"]
 
         if self.moderator_changed:
-            base.append(f"\n__Old Moderator__: {escape_markdown_and_mentions(event.before.moderator)}"
-                        f"\n__New Moderator__: {escape_markdown_and_mentions(event.after.moderator)}")
+            base.append(f"\n__Old Moderator__: <@!{event.before.moderator_id}>"
+                        f"\n__New Moderator__: <@!{event.after.moderator_id}>")
 
         if self.reason_changed:
             base.append(f"\n__Old Reason__: {truncate_text(event.before.reason, limit=200)}"
