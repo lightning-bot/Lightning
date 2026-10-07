@@ -87,6 +87,9 @@ class ModLog(LightningCog):
 
     @LightningCog.listener()
     async def on_lightning_member_timeout_expired(self, event: TimeoutExpiredEvent):
+        query = "UPDATE infractions SET active='f' WHERE action='10' AND guild_id=$1 AND user_id=$2;"
+        await self.bot.pool.execute(query, event.guild.id, event.user.id)
+
         async for emitter, record in self.get_records(event.guild, LoggingType.MEMBER_TIMEOUT_REMOVE):
             await self._emit(emitter, record, event)
 
