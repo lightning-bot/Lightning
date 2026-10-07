@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from lightning.cache import TimeoutStateCache
+from lightning.cogs.modlog.timeouts import TimeoutStateCache
 
 
 def future(**kw):
@@ -39,3 +39,18 @@ def test_purge_and_guild_isolation():
     assert c.is_active(1, 3) and c.is_active(2, 2)
     c.clear_guild(1)
     assert not c.is_active(1, 3) and c.is_active(2, 2)
+
+
+def test_get_and_is_active_do_not_evict_expired():
+    c = TimeoutStateCache()
+    state = c.set(1, 2, future(seconds=-1))
+    assert c.get(1, 2) is None
+    assert not c.is_active(1, 2)
+    assert c.purge_expired() == [(1, 2, state)]
+
+
+def test_purge_does_not_return_entry_twice():
+    c = TimeoutStateCache()
+    c.set(1, 2, future(seconds=-1))
+    assert len(c.purge_expired()) == 1
+    assert c.purge_expired() == []

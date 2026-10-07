@@ -26,8 +26,9 @@ from discord.ext import commands, tasks
 from lightning import (CommandLevel, GuildContext, LightningBot, LightningCog,
                        LightningContext, LoggingType, hybrid_group,
                        modlogformats)
-from lightning.cache import Strategy, TimeoutState, TimeoutStateCache, cached
+from lightning.cache import Strategy, cached
 from lightning.cogs.modlog import ui
+from lightning.cogs.modlog.timeouts import TimeoutState, TimeoutStateCache
 from lightning.cogs.modlog.utils import human_friendly_log_names
 from lightning.constants import LIGHTNING_COLOR
 from lightning.events import (CommandEvent, LightningAutoModInfractionEvent,
