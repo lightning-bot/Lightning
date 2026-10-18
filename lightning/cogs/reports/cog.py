@@ -161,7 +161,7 @@ class Reports(LightningCog):
                                                                                  "reason": reason})
             return
 
-        view = ReportDashboard(message.id, guild.id, message.channel.id)
+        view = ReportDashboard(message.id, guild.id, message.channel.id, reported_user_id=message.author.id)
         dash_msg = await channel.send("\N{POLICE CARS REVOLVING LIGHT} A new message was reported.\n"
                                       "Please see the embed below to see the contents of the message",
                                       embeds=[self.message_info_embed(message)],

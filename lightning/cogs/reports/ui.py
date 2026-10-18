@@ -136,7 +136,7 @@ class ActionDashboard(_BaseView, discord.ui.LayoutView):
     options_row = discord.ui.ActionRow()
     confirm_row = discord.ui.ActionRow()
 
-    def __init__(self, message: discord.Message, *, timeout=180):
+    def __init__(self, message: discord.Message, *, timeout=300):
         self.message = message
         self.action = None
         self.reason = "No reason provided."
@@ -187,7 +187,7 @@ class ActionDashboard(_BaseView, discord.ui.LayoutView):
         self.add_item(discord.ui.Container(
             discord.ui.TextDisplay("## Report Action\nSuccessfully completed action!"),
             accent_color=LIGHTNING_COLOR))
-        await interaction.response.edit_message(view=self)
+        await interaction.edit_original_response(view=self)
         self.stop()
 
     @select_row.select(options=action_options, min_values=1, max_values=1, placeholder="Select a punishment")
@@ -230,18 +230,21 @@ class ActionDashboard(_BaseView, discord.ui.LayoutView):
 
     @confirm_row.button(label="Confirm", style=discord.ButtonStyle.green, disabled=True)
     async def confirm_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
+        # Acknowledge before DMs and moderation requests can exceed the response deadline.
+        await interaction.response.defer()
         if self.action == "no_action":
             await self.complete(interaction)
             return
 
         if self.member_unactionable():
-            await interaction.response.send_message("Unable to action on the message author due to role hierarchy!",
-                                                    ephemeral=True)
+            await interaction.followup.send("Unable to action on the message author due to role hierarchy!",
+                                            ephemeral=True)
             return
 
         punishment = PUNISHMENTS[AutoModPunishmentType[self.action.upper()]]
         # We hope and assume the best that the punishment will go through.
         # Otherwise, the notification was sent in vain.
+        message = None
         if self.notify:
             dm_message = construct_dm_message(self.message.author, punishment.verb, punishment.preposition,
                                               reason=self.reason,
@@ -256,14 +259,14 @@ class ActionDashboard(_BaseView, discord.ui.LayoutView):
             applied = await apply_punishment(interaction.client, punishment.type, self.message, reason=self.reason,
                                              moderator=interaction.user, duration=self.duration)
         except LightningError as e:
-            await interaction.response.send_message(str(e), ephemeral=True)
+            await interaction.followup.send(str(e), ephemeral=True)
             await message.delete() if message else None
             return
 
         if not applied:
-            await interaction.response.send_message("Unable to apply the punishment. Check that the bot has the "
-                                                    "required permissions and that a mute role is configured.",
-                                                    ephemeral=True)
+            await interaction.followup.send("Unable to apply the punishment. Check that the bot has the "
+                                            "required permissions and that a mute role is configured.",
+                                            ephemeral=True)
             # Still not the best option, but idk what else to do...
             await message.delete() if message else None
             return
@@ -391,12 +394,14 @@ class ReportDashboard(discord.ui.View):
     async def view_context_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
         # It's a context lens and provides information on the user who was reported. It helps makes better decisions.
         assert interaction.guild is not None
+        await interaction.response.defer(ephemeral=True, thinking=True)
 
         # Note to myself: Reported User ID is a Dashboard v2 thing.
         # Old dashboards were not migrated so I don't have to worry about fallbacks.
-        desc = [f"## Moderation Context - <@!{self.reported_user_id}>"]
-        member = interaction.guild.get_member(self.reported_user_id)
-        if member:
+        desc = [f"## Moderation Context - <@!{self.reported_user_id}>",
+                f"**User ID:** `{self.reported_user_id}`"]
+
+        if member := interaction.guild.get_member(self.reported_user_id):
             # Data can be made when the member is in the guild, otherwise we don't know.
             # Typehints want to say it's joined_at can be None, but guests can't be reported anyways.
             desc.append(f"**Joined:** {discord.utils.format_dt(member.joined_at)}")
@@ -454,8 +459,8 @@ class ReportDashboard(discord.ui.View):
         view = discord.ui.LayoutView(timeout=None)
         view.add_item(container)
 
-        await interaction.response.send_message(view=view, ephemeral=True,
-                                                allowed_mentions=discord.AllowedMentions.none())
+        await interaction.edit_original_response(view=view,
+                                                 allowed_mentions=discord.AllowedMentions.none())
 
     @discord.ui.button(label="View Reporters", style=discord.ButtonStyle.blurple)
     async def view_reporters_button(self, interaction: discord.Interaction[LightningBot], button: discord.ui.Button):
