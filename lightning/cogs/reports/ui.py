@@ -398,6 +398,22 @@ class ReportDashboard(discord.ui.View):
 
         # Note to myself: Reported User ID is a Dashboard v2 thing.
         # Old dashboards were not migrated so I don't have to worry about fallbacks.
+        # If the reported user ID is not available, we attempt to fetch it from the reported message.
+        # (I forgot to update the API microservice so a few v2 dashboards are off.)
+        if not self.reported_user_id:
+            try:
+                message = await self.fetch_message(interaction)
+            except discord.HTTPException:
+                message = None
+
+            if message is None:
+                await interaction.edit_original_response(
+                    content="This report has no saved user ID, and the reported message is unavailable. "
+                            "Unable to retrieve moderation context.")
+                return
+
+            self.reported_user_id = message.author.id
+
         desc = [f"## Moderation Context - <@!{self.reported_user_id}>",
                 f"**User ID:** `{self.reported_user_id}`"]
 
