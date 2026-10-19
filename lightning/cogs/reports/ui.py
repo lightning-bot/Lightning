@@ -414,8 +414,7 @@ class ReportDashboard(discord.ui.View):
 
             self.reported_user_id = message.author.id
 
-        desc = [f"## Moderation Context - <@!{self.reported_user_id}>",
-                f"**User ID:** `{self.reported_user_id}`"]
+        desc = [f"## Moderation Context - <@!{self.reported_user_id}>"]
 
         if member := interaction.guild.get_member(self.reported_user_id):
             # Data can be made when the member is in the guild, otherwise we don't know.
