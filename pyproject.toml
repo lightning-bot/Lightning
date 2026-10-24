@@ -29,7 +29,7 @@ dependencies = [
     "uvloop>=0.22.1,<0.23 ; sys_platform == 'linux'",
     "orjson>=3.6.0,<4",
     "beautifulsoup4>=4.12.3,<5",
-    "lxml>=6.1.0,<7",
+    "lxml>=6.1.3,<7",
     "sanctum-tc>=0.8.0,<0.9",
     "objgraph>=3.5.0,<4",
     "Wand>=0.6.11,<0.7",
