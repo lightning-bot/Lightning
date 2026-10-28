@@ -33,7 +33,7 @@ class FakeUser:
 
 
 def make_action(**kwargs):
-    action = Action(1, "ban", FakeUser(2, "Target"), FakeUser(3, "Mod"), "being rude", **kwargs)
+    action = Action(1, "BAN", FakeUser(2, "Target"), FakeUser(3, "Mod"), "being rude", **kwargs)
     action.infraction_id = 10
     return action
 
@@ -64,7 +64,7 @@ class TestRegistry(unittest.TestCase):
         events = (
             MemberJoinEvent(user), MemberLeaveEvent(user), MemberScreeningEvent(user),
             MemberUpdateEvent(user, user, None), MemberRolesUpdateEvent(user, user, None),
-            TimedActionExpiredEvent("ban", user, user, NOW, NOW), make_action(),
+            TimedActionExpiredEvent("BAN", user, user, NOW, NOW), make_action(),
             CommandEvent(SimpleNamespace(command=SimpleNamespace(qualified_name="ping"), author=user,
                                          message=SimpleNamespace(created_at=NOW),
                                          channel=SimpleNamespace(id=5, name="general", mention="<#5>")))
@@ -111,7 +111,7 @@ class TestRendering(unittest.TestCase):
         renderers = (
             get_renderer(MemberJoinEvent(user)), get_renderer(MemberLeaveEvent(user)),
             get_renderer(MemberScreeningEvent(user)), get_renderer(MemberUpdateEvent(user, user, None)),
-            get_renderer(TimedActionExpiredEvent("ban", user, user, NOW, NOW)), get_renderer(make_action())
+            get_renderer(TimedActionExpiredEvent("BAN", user, user, NOW, NOW)), get_renderer(make_action())
         )
         for renderer in renderers:
             for setting in SETTINGS:
@@ -136,14 +136,14 @@ class TestRendering(unittest.TestCase):
     def test_timed_action_has_same_fields_in_every_format(self):
         # Used to be a different argument order for the embed format
         user, mod = FakeUser(2, "Target"), FakeUser(3, "Mod")
-        renderer = get_renderer(TimedActionExpiredEvent("ban", user, mod, NOW, NOW))
+        renderer = get_renderer(TimedActionExpiredEvent("BAN", user, mod, NOW, NOW))
         self.assertIn("Target", renderer.minimal(FormatContext("minimal")))
         embed = renderer.embed()
         self.assertIn("Target", embed.description)
         self.assertIn("Mod", embed.fields[0].value)
 
     def test_mod_action_requires_logged_infraction(self):
-        action = Action(1, "ban", FakeUser(), FakeUser(2), "reason")
+        action = Action(1, "BAN", FakeUser(), FakeUser(2), "reason")
         with self.assertRaises(ValueError):
             ModAction(action)
 
